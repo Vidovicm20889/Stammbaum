@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="sr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,7 +81,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .upload-btn:hover { background: var(--akzent); border-color: var(--akzent); }
 #gedcom-input { display: none; }
 
-#ansicht-karten { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+#ansicht-karten { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
 .personen {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -119,7 +119,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   font-family: 'Courier New', monospace;
 }
 
-#ansicht-baum { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+#ansicht-baum { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
 #baum-container {
   background: var(--bg-soft); border: 1px solid var(--linie);
   height: 700px; overflow: hidden; position: relative;
@@ -134,6 +134,15 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   max-width: 320px; z-index: 5;
 }
 .baum-info strong { color: var(--gold); }
+.baum-zurueck-btn {
+  display: block; margin-top: 12px;
+  background: none; border: 1px solid var(--linie);
+  color: var(--gold); cursor: pointer;
+  font-family: inherit; font-size: 12px;
+  padding: 5px 10px; letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.baum-zurueck-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 .baum-hinweis { text-align: center; margin-top: 15px; font-size: 13px; opacity: 0.6; font-style: italic; }
 
 .knoten rect { stroke-width: 2; cursor: pointer; transition: stroke 0.2s; }
@@ -183,6 +192,12 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   text-transform: uppercase; font-size: 13px;
 }
 .modal .baum-zeigen:hover { background: var(--akzent-hell); }
+.modal .zurueck-btn {
+  background: none; border: none; color: var(--akzent);
+  cursor: pointer; font-family: inherit; font-size: 13px;
+  padding: 0 0 14px 0; letter-spacing: 1px; display: block;
+}
+.modal .zurueck-btn:hover { color: var(--akzent-hell); }
 
 .keine-treffer { text-align: center; padding: 60px 20px; opacity: 0.5; font-style: italic; grid-column: 1 / -1; }
 
@@ -215,8 +230,8 @@ footer {
 
 <div class="steuerung">
   <div class="tab-gruppe">
-    <button class="tab aktiv" data-ansicht="karten" data-i18n="tab_karten"></button>
-    <button class="tab" data-ansicht="baum" data-i18n="tab_baum"></button>
+    <button class="tab" data-ansicht="karten" data-i18n="tab_karten"></button>
+    <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
   </div>
   <input type="text" class="suche" id="suche" data-i18n-placeholder="suche_placeholder">
   <select class="filter" id="filter-nachname"></select>
@@ -284,6 +299,9 @@ const TEXTE = {
     kinder: 'Kinder',
     geschwister: 'Geschwister',
     baum_zeigen: 'Im Stammbaum zeigen',
+    zurueck: 'Zurück',
+    auswahl_titel: 'Mehrere Personen gefunden',
+    auswahl_hinweis: 'Bitte wähle die gesuchte Person aus:',
     footer: 'Sastavljeno s ljubavlju · Mit Liebe zusammengestellt',
     upload_erfolg: 'Erfolgreich geladen: {p} Personen, {f} Familien.',
     upload_fehler: 'Fehler beim Laden: '
@@ -315,6 +333,9 @@ const TEXTE = {
     kinder: 'Deca',
     geschwister: 'Braća i sestre',
     baum_zeigen: 'Prikaži u stablu',
+    zurueck: 'Nazad',
+    auswahl_titel: 'Pronađeno više osoba',
+    auswahl_hinweis: 'Izaberi koju osobu tražiš:',
     footer: 'Sastavljeno s ljubavlju',
     upload_erfolg: 'Uspešno učitano: {p} osoba, {f} porodica.',
     upload_fehler: 'Greška pri učitavanju: '
@@ -346,6 +367,9 @@ const TEXTE = {
     kinder: 'Children',
     geschwister: 'Siblings',
     baum_zeigen: 'Show in family tree',
+    zurueck: 'Back',
+    auswahl_titel: 'Multiple people found',
+    auswahl_hinweis: 'Please select the person you are looking for:',
     footer: 'Made with love',
     upload_erfolg: 'Successfully loaded: {p} people, {f} families.',
     upload_fehler: 'Loading error: '
@@ -355,9 +379,12 @@ const TEXTE = {
 // ============================================================
 // SPRACH-SYSTEM
 // ============================================================
-let aktuelleSprache = localStorage.getItem('vidovic_lang') || 'de';
+let aktuelleSprache = localStorage.getItem('vidovic_lang') || 'sr';
 let aktuelleDaten = FAMILY_DATA;
 let fokusPersonId = null;
+let aktuelleAnsicht = 'baum';
+let modalVerlauf = [];
+let aktuelleModalPersonId = null;
 
 function t(key, vars = {}) {
   let text = TEXTE[aktuelleSprache][key] || TEXTE.de[key] || key;
@@ -402,7 +429,7 @@ function init() {
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => wechselAnsicht(t.dataset.ansicht));
   });
-  document.getElementById('suche').addEventListener('input', zeigeKarten);
+  document.getElementById('suche').addEventListener('input', handleSuche);
   document.getElementById('filter-nachname').addEventListener('change', zeigeKarten);
   document.getElementById('modal').addEventListener('click', (e) => {
     if (e.target.id === 'modal') schliesseModal();
@@ -411,6 +438,7 @@ function init() {
   
   initBaum();
   wechselSprache(aktuelleSprache);
+  wechselAnsicht('baum');
 }
 
 function aktualisiereStats() {
@@ -419,13 +447,78 @@ function aktualisiereStats() {
   document.getElementById('header-stats').textContent = t('stats', {p, f});
 }
 
+function handleSuche() {
+  const suche = document.getElementById('suche').value.trim();
+  if (aktuelleAnsicht === 'karten') {
+    zeigeKarten();
+  } else {
+    suchImBaum(suche);
+  }
+}
+
+function suchImBaum(suche) {
+  if (!suche) {
+    fokusPersonId = null;
+    zeichneBaum('I500009', 10, 0);
+    return;
+  }
+
+  const treffer = Object.values(aktuelleDaten.persons).filter(p =>
+    p.name.toLowerCase().includes(suche.toLowerCase())
+  );
+
+  if (treffer.length === 0) {
+    document.getElementById('baum-info').innerHTML =
+      `<strong style="color:var(--akzent-hell)">${t('keine_treffer')}</strong>`;
+    return;
+  }
+
+  if (treffer.length === 1) {
+    zentriereAufPerson(treffer[0].id);
+    return;
+  }
+
+  zeigAuswahlDialog(treffer);
+}
+
+function zentriereAufPerson(personId) {
+  fokusPersonId = personId;
+  zeichneBaum(personId, 2, 2);
+}
+
+function zeigAuswahlDialog(treffer) {
+  const liste = treffer.map(p => {
+    const info = [p.birth_date ? '* ' + p.birth_date : '', p.birth_place].filter(Boolean).join(', ');
+    return `<span class="verwandter" onclick="waehleAusBaum('${p.id}')">${escapeHtml(p.name)}${info ? ' <small style="color:#888">(' + escapeHtml(info) + ')</small>' : ''}</span>`;
+  }).join('');
+
+  document.getElementById('modal-text').innerHTML = `
+    <h2>${t('auswahl_titel')}</h2>
+    <p class="sub-name">${t('auswahl_hinweis')}</p>
+    <div class="beziehungen" style="border-top:none;padding-top:0">${liste}</div>
+  `;
+  document.getElementById('modal').classList.add('aktiv');
+}
+
+function waehleAusBaum(personId) {
+  schliesseModal();
+  zentriereAufPerson(personId);
+}
+
 function aktualisiereBaumInfo() {
   if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) {
     const p = aktuelleDaten.persons[fokusPersonId];
-    document.getElementById('baum-info').innerHTML = t('baum_zentriert', {name: escapeHtml(p.name)});
+    document.getElementById('baum-info').innerHTML =
+      t('baum_zentriert', {name: escapeHtml(p.name)}) +
+      `<button class="baum-zurueck-btn" onclick="zeigVollenBaum()">← ${t('zurueck')}</button>`;
   } else {
     document.getElementById('baum-info').innerHTML = t('baum_info_hinweis');
   }
+}
+
+function zeigVollenBaum() {
+  fokusPersonId = null;
+  zeichneBaum('I500009', 10, 0);
 }
 
 function baueNachnameFilter() {
@@ -510,6 +603,10 @@ function escapeHtml(s) {
 // DETAIL-FENSTER
 // ============================================================
 function zeigeDetails(personId) {
+  if (document.getElementById('modal').classList.contains('aktiv') && aktuelleModalPersonId) {
+    modalVerlauf.push(aktuelleModalPersonId);
+  }
+  aktuelleModalPersonId = personId;
   const p = aktuelleDaten.persons[personId];
   if (!p) return;
   
@@ -552,6 +649,7 @@ function zeigeDetails(personId) {
   const geschlechtText = p.sex === 'M' ? t('maennlich') : (p.sex === 'F' ? t('weiblich') : t('unbekannt'));
   
   document.getElementById('modal-text').innerHTML = `
+    ${modalVerlauf.length > 0 ? `<button class="zurueck-btn" onclick="geheZurueck()">← ${t('zurueck')}</button>` : ''}
     <h2>${escapeHtml(p.given || '?')}</h2>
     <p class="sub-name">${escapeHtml(p.surname || '')}</p>
     
@@ -573,6 +671,16 @@ function zeigeDetails(personId) {
 
 function schliesseModal() {
   document.getElementById('modal').classList.remove('aktiv');
+  modalVerlauf = [];
+  aktuelleModalPersonId = null;
+}
+
+function geheZurueck() {
+  if (modalVerlauf.length > 0) {
+    const vorherige = modalVerlauf.pop();
+    aktuelleModalPersonId = null;
+    zeigeDetails(vorherige);
+  }
 }
 
 function schliesseModalUndZeigeBaum(personId) {
@@ -586,17 +694,19 @@ function schliesseModalUndZeigeBaum(personId) {
 // ANSICHT-WECHSEL
 // ============================================================
 function wechselAnsicht(name) {
+  aktuelleAnsicht = name;
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.toggle('aktiv', t.dataset.ansicht === name);
   });
   document.getElementById('ansicht-karten').style.display = name === 'karten' ? 'block' : 'none';
   document.getElementById('ansicht-baum').style.display = name === 'baum' ? 'block' : 'none';
-  
-  if (name === 'baum' && !fokusPersonId) {
-    const erste = Object.keys(aktuelleDaten.persons)[0];
-    if (erste) {
-      fokusPersonId = erste;
-      zeichneBaum(erste);
+
+  if (name === 'baum') {
+    const suche = document.getElementById('suche').value.trim();
+    if (suche) {
+      suchImBaum(suche);
+    } else if (!fokusPersonId) {
+      zeichneBaum('I500009', 10, 0);
     }
   }
 }
@@ -615,10 +725,10 @@ function initBaum() {
   baumSvg.call(zoom);
 }
 
-function zeichneBaum(rootPersonId) {
+function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   baumG.selectAll('*').remove();
-  
-  const wurzel = baueBaumDaten(rootPersonId);
+
+  const wurzel = baueBaumDaten(rootPersonId, tiefeUnten, tiefeOben);
   if (!wurzel) return;
   
   const containerB = document.getElementById('baum-container').getBoundingClientRect();
@@ -678,8 +788,9 @@ function zeichneBaum(rootPersonId) {
   const fokusNode = wurzelNode.descendants().find(d => d.data.person.id === rootPersonId);
   if (fokusNode) {
     const tx = breite / 2 - fokusNode.x;
-    const ty = hoehe / 2 - fokusNode.y;
-    baumSvg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(0.85));
+    const ty = tiefeUnten > 5 ? 60 - fokusNode.y : hoehe / 2 - fokusNode.y;
+    const skala = tiefeUnten > 5 ? 0.22 : 0.85;
+    baumSvg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(skala));
   }
   
   aktualisiereBaumInfo();
