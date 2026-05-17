@@ -7,19 +7,19 @@
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
 :root {
-  --bg: #1a1612; --bg-soft: #252019; --bg-card: #2d2620;
-  --paper: #f4ead5; --paper-soft: #e8dcc0;
-  --ink: #2c2418; --akzent: #8b3a2e; --akzent-hell: #c4564a;
-  --gold: #b89968; --gold-hell: #d4b886;
-  --linie: #8b7355; --male: #5a7a8c; --female: #a85a6e;
+  --bg: #f5ede0; --bg-soft: #ede0cc; --bg-card: #fffaf0;
+  --paper: #fffaf0; --paper-soft: #f0e6d3;
+  --ink: #2c2418; --akzent: #722f37; --akzent-hell: #9e4050;
+  --gold: #9c7c3c; --gold-hell: #b8943f;
+  --linie: #c4a882; --male: #3d6080; --female: #8b3d5a;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
   font-family: 'Georgia','Times New Roman',serif;
-  background: var(--bg); color: var(--paper); min-height: 100vh;
+  background: var(--bg); color: var(--ink); min-height: 100vh;
   background-image:
-    radial-gradient(circle at 20% 30%, rgba(139,58,46,0.12) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(184,153,104,0.08) 0%, transparent 50%);
+    radial-gradient(circle at 20% 30%, rgba(114,47,55,0.07) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(156,124,60,0.06) 0%, transparent 50%);
 }
 header {
   text-align: center; padding: 50px 20px 30px;
@@ -29,7 +29,7 @@ header {
 header h1 {
   font-size: clamp(36px, 6vw, 64px);
   letter-spacing: 8px; font-weight: normal;
-  color: var(--gold); margin-bottom: 10px;
+  color: var(--akzent); margin-bottom: 10px;
 }
 header .untertitel { font-style: italic; opacity: 0.7; letter-spacing: 2px; }
 header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing: 2px; }
@@ -42,7 +42,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   border: 1px solid var(--linie);
 }
 .sprach-btn {
-  background: transparent; color: var(--paper);
+  background: transparent; color: var(--ink);
   border: none; padding: 6px 12px; cursor: pointer;
   font-family: inherit; font-size: 12px;
   letter-spacing: 1px; text-transform: uppercase;
@@ -61,24 +61,24 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   padding: 4px; border: 1px solid var(--linie);
 }
 .tab {
-  background: transparent; color: var(--paper);
+  background: transparent; color: var(--ink);
   border: none; padding: 10px 20px; cursor: pointer;
   font-family: inherit; font-size: 13px;
   letter-spacing: 2px; text-transform: uppercase;
   transition: all 0.3s;
 }
-.tab.aktiv { background: var(--akzent); }
-.tab:hover:not(.aktiv) { color: var(--gold); }
+.tab.aktiv { background: var(--akzent); color: var(--paper); }
+.tab:hover:not(.aktiv) { color: var(--akzent); }
 
 .suche, .filter, .upload-btn {
-  background: var(--bg-soft); color: var(--paper);
+  background: var(--paper); color: var(--ink);
   border: 1px solid var(--linie);
   padding: 10px 15px; font-family: inherit; font-size: 14px;
 }
 .suche { min-width: 220px; }
 .suche:focus, .filter:focus { outline: none; border-color: var(--gold); }
 .upload-btn { cursor: pointer; letter-spacing: 1px; }
-.upload-btn:hover { background: var(--akzent); border-color: var(--akzent); }
+.upload-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 #gedcom-input { display: none; }
 
 #ansicht-karten { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
@@ -89,13 +89,13 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 .person {
   background: var(--paper); color: var(--ink); padding: 18px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 12px rgba(44,36,24,0.10), 0 0 0 1px rgba(156,124,60,0.3);
   transition: transform 0.25s, box-shadow 0.25s;
   cursor: pointer; position: relative;
 }
 .person:hover {
   transform: translateY(-4px) rotate(-0.5deg);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 24px rgba(44,36,24,0.15), 0 0 0 1px rgba(114,47,55,0.4);
 }
 .person.verstorben::before {
   content: '✝'; position: absolute; top: 8px; right: 12px;
@@ -107,8 +107,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   font-size: 56px; color: var(--paper);
   margin-bottom: 12px; font-family: serif; overflow: hidden;
 }
-.person .avatar.male { background: linear-gradient(135deg, var(--male), #3d5567); }
-.person .avatar.female { background: linear-gradient(135deg, var(--female), #7d3d4f); }
+.person .avatar.male { background: linear-gradient(135deg, var(--male), #2a4a65); }
+.person .avatar.female { background: linear-gradient(135deg, var(--female), #6b2840); }
 .person .avatar.unknown { background: linear-gradient(135deg, var(--gold), var(--akzent)); }
 .person .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .person h3 { font-size: 17px; margin-bottom: 3px; }
@@ -129,15 +129,16 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 
 .baum-info {
   position: absolute; top: 15px; left: 15px;
-  background: rgba(26,22,18,0.9); padding: 12px 18px;
+  background: rgba(255,250,240,0.96); padding: 12px 18px;
   border: 1px solid var(--linie); font-size: 13px;
   max-width: 320px; z-index: 5;
+  box-shadow: 0 2px 10px rgba(44,36,24,0.10);
 }
-.baum-info strong { color: var(--gold); }
+.baum-info strong { color: var(--akzent); }
 .baum-zurueck-btn {
   display: block; margin-top: 12px;
-  background: none; border: 1px solid var(--linie);
-  color: var(--gold); cursor: pointer;
+  background: none; border: 1px solid var(--akzent);
+  color: var(--akzent); cursor: pointer;
   font-family: inherit; font-size: 12px;
   padding: 5px 10px; letter-spacing: 1px;
   transition: all 0.2s;
@@ -145,21 +146,21 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .baum-zurueck-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 .baum-hinweis { text-align: center; margin-top: 15px; font-size: 13px; opacity: 0.6; font-style: italic; }
 
-.knoten rect { stroke-width: 2; cursor: pointer; transition: stroke 0.2s; }
-.knoten.male rect { fill: #d8e3ec; stroke: var(--male); }
-.knoten.female rect { fill: #ecd8dd; stroke: var(--female); }
+.knoten rect { stroke-width: 1.5; cursor: pointer; transition: stroke 0.2s; rx: 2; }
+.knoten.male rect { fill: #ddeaf3; stroke: var(--male); }
+.knoten.female rect { fill: #f3dde5; stroke: var(--female); }
 .knoten.unknown rect { fill: var(--paper); stroke: var(--gold); }
-.knoten.fokus rect { stroke: var(--akzent); stroke-width: 4; }
-.knoten:hover rect { stroke: var(--akzent-hell); stroke-width: 3; }
+.knoten.fokus rect { stroke: var(--akzent); stroke-width: 3; }
+.knoten:hover rect { stroke: var(--akzent); stroke-width: 2.5; }
 .knoten text { font-family: 'Georgia', serif; fill: var(--ink); pointer-events: none; }
 .knoten .name-text { font-size: 12px; font-weight: bold; }
-.knoten .daten-text { font-size: 10px; fill: #555; }
-.verbindung { fill: none; stroke: var(--linie); stroke-width: 2; }
-.ehe-linie { stroke: var(--akzent); stroke-width: 2.5; stroke-dasharray: 5 3; }
+.knoten .daten-text { font-size: 10px; fill: #6b5a42; }
+.verbindung { fill: none; stroke: var(--linie); stroke-width: 1.5; }
+.ehe-linie { stroke: var(--akzent); stroke-width: 2; stroke-dasharray: 5 3; }
 
 .modal {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85); z-index: 100;
+  background: rgba(44,36,24,0.75); z-index: 100;
   justify-content: center; align-items: center; padding: 20px;
 }
 .modal.aktiv { display: flex; }
