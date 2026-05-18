@@ -792,39 +792,23 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   const breite = containerB.width;
   const hoehe = containerB.height;
   
-  // nodeSize: 280px x = genug Platz für Pärchen (270px Breite) + 10px Lücke.
-  // separation: Geschwister eng (1.0), andere Familien etwas weiter (1.5).
+  // Reingold-Tilford via d3.tree().
+  // nodeSize[0]=300: Pärchen-Breite 270px + 30px Puffer → garantiert kein Überlapp.
+  // separation: Geschwister 1.0, andere Familien 1.5.
   const treeLayout = d3.tree()
-    .nodeSize([280, 130])
-    .separation((a, b) => a.parent === b.parent ? 1 : 1.5);
+    .nodeSize([300, 130])
+    .separation((a, b) => a.parent === b.parent ? 1.0 : 1.5);
   const wurzelNode = d3.hierarchy(wurzel);
   treeLayout(wurzelNode);
 
   // y-Koordinaten negieren → Baum wächst von unten nach oben
   wurzelNode.each(d => { d.y = -d.y; });
 
-  // Mehrreihige Anordnung: >4 Kinder → 2 Zeilen, >8 → 3 Zeilen
-  applyMehrZeilen(wurzelNode);
+  // Kollisions-Check (Konsolen-Warnung bei Überlapp, sollte nicht vorkommen)
+  kollisionsPrüfung(wurzelNode);
 
-  // ── Eltern-Kind-Linien ──────────────────────────────────────────
-  const HH = 30; // halbe Kartenhöhe
-  baumG.selectAll('.verbindung')
-    .data(wurzelNode.links())
-    .enter().append('path')
-    .attr('class', 'verbindung')
-    .attr('d', link => {
-      const src = link.source;
-      const tgt = link.target;
-      const srcY = src.y - HH;
-      const tgtY = tgt.y + HH;
-      const midY = (srcY + tgtY) / 2;
-      if (src.data.marriages && src.data.marriages.length >= 2) {
-        const famIdx = tgt.data.familyIndex ?? 0;
-        const tieX = src.x + (famIdx === 0 ? -70 : 70);
-        return `M ${tgt.x},${tgtY} C ${tgt.x},${midY} ${tieX},${midY} ${tieX},${srcY}`;
-      }
-      return `M ${src.x},${srcY} C ${src.x},${midY} ${tgt.x},${midY} ${tgt.x},${tgtY}`;
-    });
+  // Orthogonale T-Verbindungen (kein Bezier, kein Diagonalen)
+  zeichneVerbindungen(wurzelNode);
 
   // ── Knoten: Hauptperson + Partner ──────────────────────────────
   const knoten = baumG.selectAll('.knoten-gruppe')
@@ -905,6 +889,74 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
     .style('display', skala < 0.35 ? 'none' : null);
   
   aktualisiereBaumInfo();
+}
+
+// Orthogonale T-Verbindungen: Eltern → Sammellinie → Kinder (kein Bezier, keine Diagonalen).
+function zeichneVerbindungen(wurzelNode) {
+  const HH = 30; // halbe Kartenhöhe
+
+  // Links nach (Eltern-ID + FamilienIndex) gruppieren
+  const gruppen = new Map();
+  wurzelNode.links().forEach(link => {
+    const src = link.source;
+    const famIdx = link.target.data.familyIndex ?? 0;
+    const key = src.data.person.id + '_' + famIdx;
+    if (!gruppen.has(key)) gruppen.set(key, { src, famIdx, targets: [] });
+    gruppen.get(key).targets.push(link.target);
+  });
+
+  gruppen.forEach(({ src, famIdx, targets }) => {
+    // Abstiegspunkt: Mitte der Heiratslinie des Elternpaares
+    const istMehrehe = !!(src.data.marriages && src.data.marriages.length >= 2);
+    const descentX = istMehrehe ? src.x + (famIdx === 0 ? -70 : 70) : src.x;
+
+    const srcBottom = src.y + HH;
+    const childTop  = targets[0].y - HH;
+    const midY      = (srcBottom + childTop) / 2;
+
+    const xs       = targets.map(t => t.x);
+    const collXMin = Math.min(descentX, ...xs);
+    const collXMax = Math.max(descentX, ...xs);
+
+    // 1. Vertikale Linie: Elternteil → Sammelpunkt
+    baumG.append('line').attr('class', 'verbindung')
+      .attr('x1', descentX).attr('y1', srcBottom)
+      .attr('x2', descentX).attr('y2', midY);
+    // 2. Horizontale Sammellinie bei midY
+    baumG.append('line').attr('class', 'verbindung')
+      .attr('x1', collXMin).attr('y1', midY)
+      .attr('x2', collXMax).attr('y2', midY);
+    // 3. Vertikale Stubs zu jedem Kind
+    targets.forEach(t => {
+      baumG.append('line').attr('class', 'verbindung')
+        .attr('x1', t.x).attr('y1', midY)
+        .attr('x2', t.x).attr('y2', childTop);
+    });
+  });
+}
+
+// Kollisions-Check: Warnung wenn zwei Knotengruppen in derselben Generation überlappen.
+function kollisionsPrüfung(wurzelNode) {
+  const CW = 135; // halber Paar-Fußabdruck (Person ±65 + Partner-Versatz 70)
+  const MIN_GAP = 20;
+
+  const genMap = new Map();
+  wurzelNode.each(d => {
+    const gy = Math.round(d.y / 10) * 10;
+    if (!genMap.has(gy)) genMap.set(gy, []);
+    genMap.get(gy).push(d);
+  });
+
+  genMap.forEach((nodes, gy) => {
+    nodes.sort((a, b) => a.x - b.x);
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a = nodes[i], b = nodes[i + 1];
+      const gap = (b.x - CW) - (a.x + CW);
+      if (gap < MIN_GAP) {
+        console.warn(`Überlapp y≈${gy}: ${a.data.person.given} ↔ ${b.data.person.given}, Abstand=${gap.toFixed(0)}px`);
+      }
+    }
+  });
 }
 
 // Mehrreihige Anordnung: >4 Kinder → 2 Zeilen, >8 → 3 Zeilen.
@@ -1045,6 +1097,17 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
         const kindKnoten = baueKnoten(cid, tiefe - 1);
         if (kindKnoten) knoten.children.push(kindKnoten);
       });
+    }
+
+    // Blutlinien-Kind in die Mitte stellen → Reingold-Tilford zentriert es unter dem Elternteil
+    const blChild = BLUTLINIE_KINDER[personId];
+    if (blChild && knoten.children.length > 1) {
+      const blIdx = knoten.children.findIndex(c => c.person.id === blChild);
+      if (blIdx >= 0) {
+        const centerIdx = Math.floor(knoten.children.length / 2);
+        const [bl] = knoten.children.splice(blIdx, 1);
+        knoten.children.splice(centerIdx, 0, bl);
+      }
     }
 
     return knoten;
