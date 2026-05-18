@@ -130,7 +130,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   /* cover = füllt den Container vollständig; center 25% = Fokus auf die Krone */
   background: url('Hintergrundbilder/Bild4.jpg') center 25% / cover no-repeat, var(--bg-soft);
   border: 1px solid var(--linie);
-  height: 820px; overflow: hidden; position: relative;
+  height: 90vh; min-height: 600px; overflow: hidden; position: relative;
 }
 /* Gradient-Overlay: Krone kaum überlagert, Stamm/Boden etwas mehr → Personen lesbar */
 #baum-bg {
@@ -171,6 +171,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .knoten.unknown rect { fill: rgba(255,250,240,0.92); stroke: var(--gold); }
 .knoten.fokus rect  { stroke: #fff; stroke-width: 3; }
 .knoten:hover rect  { stroke: #fff; stroke-width: 2.5; }
+.knoten.blutlinie rect { stroke: #c8a840; stroke-width: 3; }
 /* Schatten damit Boxen sich vom Hintergrundbild abheben */
 .knoten { filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); }
 .knoten text { font-family: 'Georgia', serif; fill: #1a1008; pointer-events: none; }
@@ -791,18 +792,22 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   const breite = containerB.width;
   const hoehe = containerB.height;
   
-  // Paare (130px × 2 + 10px Abstand = 270px) passen genau in nodeSize[270].
-  // separation() rückt Geschwister eng zusammen, Cousins etwas weiter auseinander.
+  // nodeSize: 280px x = genug Platz für Pärchen (270px Breite) + 10px Lücke.
+  // separation: Geschwister eng (1.0), andere Familien etwas weiter (1.5).
   const treeLayout = d3.tree()
-    .nodeSize([270, 110])
-    .separation((a, b) => a.parent === b.parent ? 1 : 1.25);
+    .nodeSize([280, 130])
+    .separation((a, b) => a.parent === b.parent ? 1 : 1.5);
   const wurzelNode = d3.hierarchy(wurzel);
   treeLayout(wurzelNode);
 
   // y-Koordinaten negieren → Baum wächst von unten nach oben
   wurzelNode.each(d => { d.y = -d.y; });
 
-  // Eltern-Kind-Linien: organische Bezier-Kurven
+  // Mehrreihige Anordnung: >4 Kinder → 2 Zeilen, >8 → 3 Zeilen
+  applyMehrZeilen(wurzelNode);
+
+  // ── Eltern-Kind-Linien ──────────────────────────────────────────
+  const HH = 30; // halbe Kartenhöhe
   baumG.selectAll('.verbindung')
     .data(wurzelNode.links())
     .enter().append('path')
@@ -810,85 +815,79 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
     .attr('d', link => {
       const src = link.source;
       const tgt = link.target;
-      // Kante: Oberkante der Eltern-Box, Unterkante der Kind-Box
-      const srcY = src.y - 29;
-      const tgtY = tgt.y + 29;
+      const srcY = src.y - HH;
+      const tgtY = tgt.y + HH;
       const midY = (srcY + tgtY) / 2;
       if (src.data.marriages && src.data.marriages.length >= 2) {
         const famIdx = tgt.data.familyIndex ?? 0;
-        const tieX = src.x + (famIdx === 0 ? -67 : 67);
-        // Sanfte S-Kurve statt L-Pfad
+        const tieX = src.x + (famIdx === 0 ? -70 : 70);
         return `M ${tgt.x},${tgtY} C ${tgt.x},${midY} ${tieX},${midY} ${tieX},${srcY}`;
       }
-      // Standard: glatte S-Kurve von Eltern-Mitte zu Kind-Mitte
       return `M ${src.x},${srcY} C ${src.x},${midY} ${tgt.x},${midY} ${tgt.x},${tgtY}`;
     });
-  
-  // Knoten: Hauptperson + ggf. Partner als zweite Box daneben
-  const knoten = baumG.selectAll('.knoten')
+
+  // ── Knoten: Hauptperson + Partner ──────────────────────────────
+  const knoten = baumG.selectAll('.knoten-gruppe')
     .data(wurzelNode.descendants())
     .enter().append('g')
-    .attr('class', d => {
-      const fokus = d.data.person.id === rootPersonId ? ' fokus' : '';
-      return 'knoten-gruppe' + fokus;
-    })
+    .attr('class', d => 'knoten-gruppe' + (d.data.person.id === rootPersonId ? ' fokus' : ''))
     .attr('transform', d => `translate(${d.x},${d.y})`);
-  
-  // === Hauptperson + alle Partner zeichnen ===
+
   knoten.each(function(d) {
     const g = d3.select(this);
     const p = d.data.person;
+    const istBl = !!d.data.blutlinie;
 
     if (d.data.marriages && d.data.marriages.length >= 2) {
-      // Mehrehe: Frau1 LINKS — Mann MITTE — Frau2 RECHTS
       const wife1 = d.data.marriages[0].partner;
       const wife2 = d.data.marriages[1].partner;
-
-      // Ehe-Linien: Mann-Mitte zu je einer Frau
       if (wife1) g.append('line').attr('class', 'ehe-linie')
-        .attr('x1', -5).attr('y1', 0).attr('x2', -130).attr('y2', 0);
+        .attr('x1', -5).attr('y1', 0).attr('x2', -135).attr('y2', 0);
       if (wife2) g.append('line').attr('class', 'ehe-linie')
-        .attr('x1', 5).attr('y1', 0).attr('x2', 130).attr('y2', 0);
-
-      zeichneKnotenBox(g, p, 0, p.id === rootPersonId);       // Mann in der Mitte
-      if (wife1) zeichneKnotenBox(g, wife1, -134, false);     // 1. Frau links
-      if (wife2) zeichneKnotenBox(g, wife2, 134, false);      // 2. Frau rechts
-
+        .attr('x1', 5).attr('y1', 0).attr('x2', 135).attr('y2', 0);
+      zeichneKnotenBox(g, p, 0, p.id === rootPersonId, istBl);
+      if (wife1) zeichneKnotenBox(g, wife1, -140, false, false);
+      if (wife2) zeichneKnotenBox(g, wife2, 140, false, false);
     } else {
-      // Eine Ehe oder keine: bisherige Logik
       const partners = d.data.partners;
       const N = partners.length;
-      const offset = i => -67 * N + 134 * i;
-
+      const offset = i => -70 * N + 140 * i;
       for (let i = 0; i < N; i++) {
         g.append('line').attr('class', 'ehe-linie')
           .attr('x1', offset(i) + 65).attr('y1', 0)
           .attr('x2', offset(i + 1) - 65).attr('y2', 0);
       }
-
-      zeichneKnotenBox(g, p, offset(0), p.id === rootPersonId);
+      zeichneKnotenBox(g, p, offset(0), p.id === rootPersonId, istBl);
       partners.forEach((partner, i) => {
-        zeichneKnotenBox(g, partner, offset(i + 1), false);
+        zeichneKnotenBox(g, partner, offset(i + 1), false, false);
       });
     }
   });
-  
-  // Bounding Box: Puffer = halbe Kartenbreite (65) + max. Partner-Offset (67)
+
+  // Bounding Box: halbe Kartenbreite (65) + max. Partner-Versatz (70) = 135
   const allX = wurzelNode.descendants().map(d => d.x);
   const allY = wurzelNode.descendants().map(d => d.y);
-  const tXMin = Math.min(...allX) - 135;
-  const tXMax = Math.max(...allX) + 135;
-  const tYMin = Math.min(...allY) - 29;
-  const tYMax = Math.max(...allY) + 29;
+  const tXMin = Math.min(...allX) - 145;
+  const tXMax = Math.max(...allX) + 145;
+  const tYMin = Math.min(...allY) - 30;
+  const tYMax = Math.max(...allY) + 30;
   const tW = tXMax - tXMin, tH = tYMax - tYMin;
 
-  // Voller Container mit 3% Rand – maximaler Platz für Lesbarkeit
+  // Auto-Fit: Blutlinie (x=0) auf die horizontale Mitte des Containers setzen.
+  // Skala so wählen, dass der gesamte Baum in den Container passt.
   const pad = 0.03;
-  const fitL = breite * pad,    fitW = breite * (1 - 2 * pad);
-  const fitT = hoehe  * pad,    fitH = hoehe  * (1 - 2 * pad);
+  const padPx = breite * pad;
+  const fitT = hoehe * pad, fitH = hoehe * (1 - 2 * pad);
 
-  const skala = Math.min(fitW / tW, fitH / tH, 2.5);
-  const tx = fitL + (fitW - tW * skala) / 2 - tXMin * skala;
+  // Beide Hälften (links / rechts von x=0) müssen in je eine Container-Hälfte passen.
+  const hHalf = breite / 2 - padPx;
+  const skala_h = Math.min(
+    tXMax > 0 ? hHalf / tXMax : 5,
+    tXMin < 0 ? hHalf / (-tXMin) : 5
+  );
+  const skala_v = fitH / tH;
+  const skala = Math.min(skala_h, skala_v, 2.5);
+  const tx = breite / 2;                                         // x=0 → Bildmitte
   const ty = fitT + (fitH - tH * skala) / 2 - tYMin * skala;
 
   // Zoom-Bereich: minZoom = Fit-Ansicht (90%), maxZoom = 3.0
@@ -908,21 +907,63 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   aktualisiereBaumInfo();
 }
 
-// Hilfsfunktion: Zeichnet eine Personen-Box an Position xOffset
-function zeichneKnotenBox(g, p, xOffset, istFokus) {
+// Mehrreihige Anordnung: >4 Kinder → 2 Zeilen, >8 → 3 Zeilen.
+// ROW = 100 > (130 − 2×30 = 70) → kein Kartenüberlapp mit Enkeln der Parallelzeile.
+// Enthält eine Gruppe ein Blutlinien-Kind, wird diese Gruppe so positioniert,
+// dass das Blutlinien-Kind exakt unter dem Elternteil liegt (x = node.x).
+function applyMehrZeilen(node) {
+  if (!node.children || node.children.length <= 4) {
+    if (node.children) node.children.forEach(applyMehrZeilen);
+    return;
+  }
+  const N = node.children.length;
+  const rows = N > 8 ? 3 : 2;
+  const COL = 280;
+  const ROW = 100;
+
+  const xs = node.children.map(c => c.x);
+  const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const baseY = node.children[0].y;
+
+  const groups = Array.from({length: rows}, () => []);
+  node.children.forEach((child, i) => {
+    groups[Math.min(rows - 1, Math.floor(i * rows / N))].push(child);
+  });
+
+  groups.forEach((group, ri) => {
+    const n = group.length;
+    const rowY = baseY - ri * ROW;
+    // Blutlinien-Kind in dieser Gruppe? → es wird auf x = node.x gesetzt
+    const blIdx = group.findIndex(c => c.data.blutlinie);
+    const startX = blIdx >= 0
+      ? node.x - blIdx * COL          // Blutlinien-Kind genau unter Elternteil
+      : centerX - (n - 1) * COL / 2;  // sonst zentriert
+    group.forEach((child, j) => {
+      const dx = startX + j * COL - child.x;
+      const dy = rowY - child.y;
+      child.each(d => { d.x += dx; d.y += dy; });
+    });
+  });
+
+  node.children.forEach(applyMehrZeilen);
+}
+
+// Zeichnet eine Personen-Box an xOffset relativ zum Gruppen-Ursprung.
+function zeichneKnotenBox(g, p, xOffset, istFokus, istBlutlinie) {
   const sex = p.sex;
   const klasse = sex === 'M' ? 'male' : (sex === 'F' ? 'female' : 'unknown');
-  const fokusKlasse = istFokus ? ' fokus' : '';
-  
+  const extra = (istFokus ? ' fokus' : '') + (istBlutlinie ? ' blutlinie' : '');
+
   const box = g.append('g')
-    .attr('class', 'knoten ' + klasse + fokusKlasse)
+    .attr('class', 'knoten ' + klasse + extra)
     .attr('transform', `translate(${xOffset},0)`)
     .style('cursor', 'pointer')
     .on('click', () => zeigeDetails(p.id));
-  
+
+  // Karte: 130×60 px
   box.append('rect')
-    .attr('x', -65).attr('y', -29)
-    .attr('width', 130).attr('height', 58)
+    .attr('x', -65).attr('y', -30)
+    .attr('width', 130).attr('height', 60)
     .attr('rx', 6);
 
   const gn = p.given || '?';
@@ -939,41 +980,38 @@ function zeichneKnotenBox(g, p, xOffset, istFokus) {
     let dat = p.birth_date ? '* ' + p.birth_date : '';
     if (p.deceased || p.death_date) dat += (dat ? '  ' : '') + '† ' + (p.death_date || '?');
     box.append('text').attr('class', 'daten-text')
-      .attr('text-anchor', 'middle').attr('y', 21)
+      .attr('text-anchor', 'middle').attr('y', 22)
       .text(dat);
   }
 }
 
+// Blutlinie: Tanasije → Simo → Marko (direkte Abstammungslinie)
+const BLUTLINIE_IDS = new Set(['I500009', 'I500007', 'I500003']);
+const BLUTLINIE_KINDER = { 'I500009': 'I500007', 'I500007': 'I500003' };
+
 function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
-  /* Baut einen Baum auf, in dem jeder Knoten EINE Person ist,
-     und Partner als zusätzliches Feld 'partner' angehängt werden.
-     So zeigen wir Ehefrauen UND Ehemänner sichtbar. */
   if (!aktuelleDaten.persons[rootId]) return null;
-  
+
   function findeWurzel(personId, tiefe) {
     if (tiefe <= 0) return personId;
     const p = aktuelleDaten.persons[personId];
     if (!p || !p.families_child.length) return personId;
     const fam = aktuelleDaten.families[p.families_child[0]];
     if (!fam) return personId;
-    // Bevorzugt männliche Linie für die Wurzel-Suche (klassische Stammbaum-Konvention),
-    // aber wenn kein Vater, dann Mutter
     const elternId = fam.husband || fam.wife;
     if (!elternId || !aktuelleDaten.persons[elternId]) return personId;
     return findeWurzel(elternId, tiefe - 1);
   }
-  
+
   const wurzelId = findeWurzel(rootId, tiefeNachOben);
   const besucht = new Set();
-  
+
   function baueKnoten(personId, tiefe) {
     if (besucht.has(personId)) return null;
     besucht.add(personId);
-    
     const p = aktuelleDaten.persons[personId];
     if (!p) return null;
-    
-    // Alle Ehen mit Partner und Kinder-IDs aufbauen
+
     const familien = [];
     p.families_spouse.forEach(famId => {
       const fam = aktuelleDaten.families[famId];
@@ -986,28 +1024,21 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
     });
 
     const partners = familien.map(f => f.partner).filter(Boolean);
-    // marriages nur bei ≥2 Ehen gesetzt → steuert Mehrehe-Rendering
-    const marriages = familien.length >= 2
-      ? familien.map(f => ({ partner: f.partner }))
-      : null;
+    const marriages = familien.length >= 2 ? familien.map(f => ({ partner: f.partner })) : null;
+    const blutlinie = BLUTLINIE_IDS.has(personId);
 
-    const knoten = { person: p, partners, marriages, familyIndex: null, children: [] };
+    const knoten = { person: p, partners, marriages, familyIndex: null, children: [], blutlinie };
 
     if (tiefe <= 0) return knoten;
 
     if (familien.length >= 2) {
-      // Mehrehe: Kinder nach Familie geordnet (Familie 0 zuerst → d3 positioniert links)
       familien.forEach((fam, famIdx) => {
         fam.kinderIds.forEach(cid => {
           const kindKnoten = baueKnoten(cid, tiefe - 1);
-          if (kindKnoten) {
-            kindKnoten.familyIndex = famIdx;
-            knoten.children.push(kindKnoten);
-          }
+          if (kindKnoten) { kindKnoten.familyIndex = famIdx; knoten.children.push(kindKnoten); }
         });
       });
     } else {
-      // Eine Ehe oder keine: Kinder normal sammeln
       const kinderIds = new Set();
       familien.forEach(fam => fam.kinderIds.forEach(c => kinderIds.add(c)));
       kinderIds.forEach(cid => {
@@ -1018,7 +1049,7 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
 
     return knoten;
   }
-  
+
   return baueKnoten(wurzelId, tiefeNachOben + tiefeNachUnten);
 }
 
