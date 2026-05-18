@@ -165,7 +165,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .baum-zurueck-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 .baum-hinweis { text-align: center; margin-top: 15px; font-size: 13px; opacity: 0.6; font-style: italic; }
 
-.knoten rect { stroke-width: 1.8; cursor: pointer; transition: stroke 0.2s; rx: 2; }
+.knoten rect { stroke-width: 1.8; cursor: pointer; transition: stroke 0.2s; }
 .knoten.male rect   { fill: rgba(221,234,243,0.92); stroke: #4a7fa8; }
 .knoten.female rect { fill: rgba(243,221,229,0.92); stroke: #9e4060; }
 .knoten.unknown rect { fill: rgba(255,250,240,0.92); stroke: var(--gold); }
@@ -309,8 +309,8 @@ const TEXTE = {
     filter_alle: 'Alle Familienzweige',
     filter_unbekannt: '(unbekannt)',
     upload_btn: 'GEDCOM laden',
-    baum_hinweis: 'Klick auf Personen für Details · Scroll zum Zoomen',
-    baum_info_hinweis: '<strong>Hinweis:</strong> Klick auf eine Person für Details. Scrollrad zum Zoomen.',
+    baum_hinweis: 'Klick auf Personen für Details · Scroll zum Zoomen · Drag zum Verschieben · Doppelklick zum Zurücksetzen',
+    baum_info_hinweis: '<strong>Hinweis:</strong> Klick für Details, Scroll zum Zoomen, Doppelklick zum Zurücksetzen.',
     baum_zentriert: '<strong>Zentriert auf:</strong> {name}<br><small>Zeigt 2 Generationen aufwärts und abwärts.<br>Klick auf andere Person für neue Ansicht.</small>',
     keine_treffer: 'Keine Personen gefunden.',
     geboren: 'Geboren:',
@@ -343,8 +343,8 @@ const TEXTE = {
     filter_alle: 'Sve porodične grane',
     filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
-    baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje',
-    baum_info_hinweis: '<strong>Napomena:</strong> Klikni na osobu za detalje. Skroluj za zumiranje.',
+    baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Prevuci za pomeranje · Dvostruki klik za reset',
+    baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skroluj za zumiranje, dvostruki klik za reset.',
     baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije naviše i naniže.<br>Klikni drugu osobu za novi prikaz.</small>',
     keine_treffer: 'Nijedna osoba nije pronađena.',
     geboren: 'Rođen/a:',
@@ -377,8 +377,8 @@ const TEXTE = {
     filter_alle: 'All family branches',
     filter_unbekannt: '(unknown)',
     upload_btn: 'Load GEDCOM',
-    baum_hinweis: 'Click on people for details · Scroll to zoom',
-    baum_info_hinweis: '<strong>Tip:</strong> Click a person for details. Scroll to zoom.',
+    baum_hinweis: 'Click for details · Scroll to zoom · Drag to pan · Double-click to reset',
+    baum_info_hinweis: '<strong>Tip:</strong> Click for details, scroll to zoom, double-click to reset.',
     baum_zentriert: '<strong>Centered on:</strong> {name}<br><small>Showing 2 generations up and down.<br>Click another person to re-center.</small>',
     keine_treffer: 'No people found.',
     geboren: 'Born:',
@@ -751,28 +751,24 @@ function wechselAnsicht(name) {
 // ============================================================
 // STAMMBAUM (d3.js)
 // ============================================================
-let baumSvg, baumG, zoom;
+let baumSvg, baumG, zoom, fitTransform = null;
 
 function initBaum() {
   baumSvg = d3.select('#baum-svg');
   baumG = baumSvg.append('g');
 
-  // Pan komplett deaktiviert – nur Scroll-Zoom erlaubt
   zoom = d3.zoom()
-    .scaleExtent([0.1, 6])
-    .filter(() => false) // alle Standard-Events deaktiviert
+    .scaleExtent([0.05, 3.0])
     .on('zoom', e => baumG.attr('transform', e.transform));
   baumSvg.call(zoom);
 
-  // Scroll-Zoom zentriert auf die Baumkrone
-  baumSvg.node().addEventListener('wheel', function(event) {
-    event.preventDefault();
-    const rect = this.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height * 0.35; // Kronenmitte vertikal
-    const factor = event.deltaY < 0 ? 1.15 : 0.87;
-    zoom.scaleBy(d3.select(this), factor, [cx, cy]);
-  }, { passive: false });
+  // Doppelklick → zurück zur Fit-Ansicht
+  baumSvg.on('dblclick.zoom', null); // Standard-d3-Doppelklick deaktivieren
+  baumSvg.on('dblclick', function(event) {
+    if (fitTransform) {
+      baumSvg.transition().duration(500).call(zoom.transform, fitTransform);
+    }
+  });
 }
 
 function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
@@ -785,8 +781,11 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   const breite = containerB.width;
   const hoehe = containerB.height;
   
-  // Mehr horizontaler Platz: Mehrehe-Paare brauchen Platz nebeneinander
-  const treeLayout = d3.tree().nodeSize([200, 120]);
+  // Paare (130px × 2 + 10px Abstand = 270px) passen genau in nodeSize[270].
+  // separation() rückt Geschwister eng zusammen, Cousins etwas weiter auseinander.
+  const treeLayout = d3.tree()
+    .nodeSize([270, 110])
+    .separation((a, b) => a.parent === b.parent ? 1 : 1.25);
   const wurzelNode = d3.hierarchy(wurzel);
   treeLayout(wurzelNode);
 
@@ -804,10 +803,10 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
       if (src.data.marriages && src.data.marriages.length >= 2) {
         const famIdx = tgt.data.familyIndex ?? 0;
         // Bindepunkt: links für Ehe 0 (−65), rechts für Ehe 1 (+65)
-        const tieX = src.x + (famIdx === 0 ? -63 : 63);
+        const tieX = src.x + (famIdx === 0 ? -67 : 67);
         // Elternteil liegt UNTER dem Kind (größeres y), daher Richtung umgekehrt
-        const srcY = src.y - 26;  // Oberkante Elternbox (Richtung Kind)
-        const tgtY = tgt.y + 26;  // Unterkante Kindbox (Richtung Elternteil)
+        const srcY = src.y - 29;  // Oberkante Elternbox
+        const tgtY = tgt.y + 29;  // Unterkante Kindbox
         const midY = srcY + (tgtY - srcY) * 0.45;
         return `M ${tgt.x},${tgtY} V ${midY} H ${tieX} V ${srcY}`;
       }
@@ -836,24 +835,24 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
 
       // Ehe-Linien: Mann-Mitte zu je einer Frau
       if (wife1) g.append('line').attr('class', 'ehe-linie')
-        .attr('x1', -5).attr('y1', 0).attr('x2', -120).attr('y2', 0);
+        .attr('x1', -5).attr('y1', 0).attr('x2', -130).attr('y2', 0);
       if (wife2) g.append('line').attr('class', 'ehe-linie')
-        .attr('x1', 5).attr('y1', 0).attr('x2', 120).attr('y2', 0);
+        .attr('x1', 5).attr('y1', 0).attr('x2', 130).attr('y2', 0);
 
       zeichneKnotenBox(g, p, 0, p.id === rootPersonId);       // Mann in der Mitte
-      if (wife1) zeichneKnotenBox(g, wife1, -126, false);     // 1. Frau links
-      if (wife2) zeichneKnotenBox(g, wife2, 126, false);      // 2. Frau rechts
+      if (wife1) zeichneKnotenBox(g, wife1, -134, false);     // 1. Frau links
+      if (wife2) zeichneKnotenBox(g, wife2, 134, false);      // 2. Frau rechts
 
     } else {
       // Eine Ehe oder keine: bisherige Logik
       const partners = d.data.partners;
       const N = partners.length;
-      const offset = i => -63 * N + 126 * i;
+      const offset = i => -67 * N + 134 * i;
 
       for (let i = 0; i < N; i++) {
         g.append('line').attr('class', 'ehe-linie')
-          .attr('x1', offset(i) + 61).attr('y1', 0)
-          .attr('x2', offset(i + 1) - 61).attr('y2', 0);
+          .attr('x1', offset(i) + 65).attr('y1', 0)
+          .attr('x2', offset(i + 1) - 65).attr('y2', 0);
       }
 
       zeichneKnotenBox(g, p, offset(0), p.id === rootPersonId);
@@ -863,24 +862,28 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
     }
   });
   
-  // Baum in Kronenbereich einpassen (15–85% Breite, 10–62% Höhe)
-  const crownL = breite * 0.15, crownR = breite * 0.85;
-  const crownT = hoehe * 0.10,  crownB = hoehe * 0.62;
-  const crownW = crownR - crownL, crownH = crownB - crownT;
-
+  // Bounding Box: Puffer = halbe Kartenbreite (65) + max. Partner-Offset (67)
   const allX = wurzelNode.descendants().map(d => d.x);
   const allY = wurzelNode.descendants().map(d => d.y);
-  // Puffer für Partner-Boxen (±126 Offset + ±60 Hälfte der Kartenbreite)
-  const tXMin = Math.min(...allX) - 186;
-  const tXMax = Math.max(...allX) + 186;
-  const tYMin = Math.min(...allY) - 26;
-  const tYMax = Math.max(...allY) + 26;
+  const tXMin = Math.min(...allX) - 135;
+  const tXMax = Math.max(...allX) + 135;
+  const tYMin = Math.min(...allY) - 29;
+  const tYMax = Math.max(...allY) + 29;
   const tW = tXMax - tXMin, tH = tYMax - tYMin;
+
+  // Kronenzone: 15–85% Breite, 10–65% Höhe
+  const crownL = breite * 0.15, crownW = breite * 0.70;
+  const crownT = hoehe * 0.10,  crownH = hoehe * 0.55;
 
   const skala = Math.min(crownW / tW, crownH / tH, 2.5);
   const tx = crownL + (crownW - tW * skala) / 2 - tXMin * skala;
   const ty = crownT + (crownH - tH * skala) / 2 - tYMin * skala;
-  baumSvg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(skala));
+
+  // Mindest-Zoom = Fit-to-Crown; Maximum = 3.0
+  zoom.scaleExtent([skala * 0.9, 3.0]);
+
+  fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
+  baumSvg.call(zoom.transform, fitTransform);
   
   aktualisiereBaumInfo();
 }
@@ -898,24 +901,25 @@ function zeichneKnotenBox(g, p, xOffset, istFokus) {
     .on('click', () => zeigeDetails(p.id));
   
   box.append('rect')
-    .attr('x', -60).attr('y', -26)
-    .attr('width', 120).attr('height', 52);
+    .attr('x', -65).attr('y', -29)
+    .attr('width', 130).attr('height', 58)
+    .attr('rx', 6);
 
   const gn = p.given || '?';
   box.append('text').attr('class', 'name-text')
     .attr('text-anchor', 'middle').attr('y', -10)
-    .text(gn.length > 14 ? gn.substring(0, 12) + '…' : gn);
+    .text(gn.length > 15 ? gn.substring(0, 13) + '…' : gn);
 
   const sn = p.surname || '';
   box.append('text').attr('class', 'name-text')
     .attr('text-anchor', 'middle').attr('y', 6)
-    .text(sn.length > 14 ? sn.substring(0, 12) + '…' : sn);
+    .text(sn.length > 15 ? sn.substring(0, 13) + '…' : sn);
 
   if (p.birth_date || p.death_date) {
     let dat = p.birth_date ? '* ' + p.birth_date : '';
     if (p.deceased || p.death_date) dat += (dat ? '  ' : '') + '† ' + (p.death_date || '?');
     box.append('text').attr('class', 'daten-text')
-      .attr('text-anchor', 'middle').attr('y', 20)
+      .attr('text-anchor', 'middle').attr('y', 21)
       .text(dat);
   }
 }
