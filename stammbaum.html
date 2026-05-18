@@ -175,8 +175,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 /* Schatten damit Boxen sich vom Hintergrundbild abheben */
 .knoten { filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); }
 .knoten text { font-family: 'Georgia', serif; fill: #1a1008; pointer-events: none; }
-.knoten .name-text  { font-size: 12px; font-weight: bold; }
-.knoten .daten-text { font-size: 10px; fill: #3a2a10; }
+.knoten .name-text  { font-size: 14px; font-weight: bold; }
+.knoten .daten-text { font-size: 11px; fill: #3a2a10; }
 /* Verbindungslinien: warm-weißes Leuchten – gut sichtbar auf Grün/Gold */
 .verbindung { fill: none; stroke: rgba(255,248,220,0.88); stroke-width: 2.5; }
 /* Ehelinien: Gold passend zum Sonnenuntergang im Bild */
@@ -774,7 +774,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   const hoehe = containerB.height;
   
   // Mehr horizontaler Platz: Mehrehe-Paare brauchen Platz nebeneinander
-  const treeLayout = d3.tree().nodeSize([420, 160]);
+  const treeLayout = d3.tree().nodeSize([220, 150]);
   const wurzelNode = d3.hierarchy(wurzel);
   treeLayout(wurzelNode);
 
@@ -792,10 +792,10 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
       if (src.data.marriages && src.data.marriages.length >= 2) {
         const famIdx = tgt.data.familyIndex ?? 0;
         // Bindepunkt: links für Ehe 0 (−65), rechts für Ehe 1 (+65)
-        const tieX = src.x + (famIdx === 0 ? -65 : 65);
+        const tieX = src.x + (famIdx === 0 ? -53 : 53);
         // Elternteil liegt UNTER dem Kind (größeres y), daher Richtung umgekehrt
-        const srcY = src.y - 30;  // Oberkante Elternbox (Richtung Kind)
-        const tgtY = tgt.y + 30;  // Unterkante Kindbox (Richtung Elternteil)
+        const srcY = src.y - 50;  // Oberkante Elternbox (Richtung Kind)
+        const tgtY = tgt.y + 50;  // Unterkante Kindbox (Richtung Elternteil)
         const midY = srcY + (tgtY - srcY) * 0.45;
         return `M ${tgt.x},${tgtY} V ${midY} H ${tieX} V ${srcY}`;
       }
@@ -824,24 +824,24 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
 
       // Ehe-Linien: Mann-Mitte zu je einer Frau
       if (wife1) g.append('line').attr('class', 'ehe-linie')
-        .attr('x1', -5).attr('y1', 0).attr('x2', -125).attr('y2', 0);
+        .attr('x1', -5).attr('y1', 0).attr('x2', -100).attr('y2', 0);
       if (wife2) g.append('line').attr('class', 'ehe-linie')
-        .attr('x1', 5).attr('y1', 0).attr('x2', 125).attr('y2', 0);
+        .attr('x1', 5).attr('y1', 0).attr('x2', 100).attr('y2', 0);
 
       zeichneKnotenBox(g, p, 0, p.id === rootPersonId);       // Mann in der Mitte
-      if (wife1) zeichneKnotenBox(g, wife1, -130, false);     // 1. Frau links
-      if (wife2) zeichneKnotenBox(g, wife2, 130, false);      // 2. Frau rechts
+      if (wife1) zeichneKnotenBox(g, wife1, -106, false);     // 1. Frau links
+      if (wife2) zeichneKnotenBox(g, wife2, 106, false);      // 2. Frau rechts
 
     } else {
       // Eine Ehe oder keine: bisherige Logik
       const partners = d.data.partners;
       const N = partners.length;
-      const offset = i => -65 * N + 130 * i;
+      const offset = i => -53 * N + 106 * i;
 
       for (let i = 0; i < N; i++) {
         g.append('line').attr('class', 'ehe-linie')
-          .attr('x1', offset(i) + 60).attr('y1', 0)
-          .attr('x2', offset(i + 1) - 60).attr('y2', 0);
+          .attr('x1', offset(i) + 47).attr('y1', 0)
+          .attr('x2', offset(i + 1) - 47).attr('y2', 0);
       }
 
       zeichneKnotenBox(g, p, offset(0), p.id === rootPersonId);
@@ -851,14 +851,21 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
     }
   });
   
-  // Zentrieren: Personen in der Kronenzone positionieren (obere 55–60% des Containers)
+  // Zentrieren: Skala dynamisch so berechnen, dass der Baum 3/4 der Höhe füllt
   const fokusNode = wurzelNode.descendants().find(d => d.data.person.id === rootPersonId);
   if (fokusNode) {
-    const skala = tiefeUnten > 5 ? 0.24 : 0.85;
-    const tx = breite / 2 - fokusNode.x * skala;
-    const ty = tiefeUnten > 5
-      ? hoehe * 0.62 - fokusNode.y * skala  // Vollbaum: ältester Vorfahre im unteren Kronenbereich
-      : hoehe / 2 - fokusNode.y * skala;    // Fokusansicht: Fokusperson in der Mitte
+    let skala, tx, ty;
+    if (tiefeUnten > 5) {
+      const yVals = wurzelNode.descendants().map(d => d.y);
+      const treeH = Math.max(...yVals) - Math.min(...yVals);
+      skala = treeH > 0 ? Math.min(0.95, (hoehe * 0.75) / treeH) : 0.7;
+      tx = breite / 2 - fokusNode.x * skala;
+      ty = hoehe * 0.92 - fokusNode.y * skala; // Wurzel (älteste Person) nahe am unteren Rand
+    } else {
+      skala = 0.85;
+      tx = breite / 2 - fokusNode.x * skala;
+      ty = hoehe / 2 - fokusNode.y * skala;
+    }
     baumSvg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(skala));
   }
   
@@ -878,25 +885,29 @@ function zeichneKnotenBox(g, p, xOffset, istFokus) {
     .on('click', () => zeigeDetails(p.id));
   
   box.append('rect')
-    .attr('x', -55).attr('y', -30)
-    .attr('width', 110).attr('height', 60);
-  
+    .attr('x', -46).attr('y', -50)
+    .attr('width', 92).attr('height', 100);
+
   const gn = p.given || '?';
   box.append('text').attr('class', 'name-text')
-    .attr('text-anchor', 'middle').attr('y', -10)
-    .text(gn.length > 14 ? gn.substring(0, 12) + '…' : gn);
-  
+    .attr('text-anchor', 'middle').attr('y', -27)
+    .text(gn.length > 12 ? gn.substring(0, 10) + '…' : gn);
+
   const sn = p.surname || '';
   box.append('text').attr('class', 'name-text')
-    .attr('text-anchor', 'middle').attr('y', 5)
-    .text(sn.length > 14 ? sn.substring(0, 12) + '…' : sn);
-  
-  if (p.birth_date || p.death_date) {
-    let s = '* ' + (p.birth_date || '?');
-    if (p.deceased || p.death_date) s += ' † ' + (p.death_date || '?');
+    .attr('text-anchor', 'middle').attr('y', -7)
+    .text(sn.length > 12 ? sn.substring(0, 10) + '…' : sn);
+
+  if (p.birth_date) {
     box.append('text').attr('class', 'daten-text')
-      .attr('text-anchor', 'middle').attr('y', 20)
-      .text(s);
+      .attr('text-anchor', 'middle').attr('y', 17)
+      .text('* ' + p.birth_date);
+  }
+
+  if (p.deceased || p.death_date) {
+    box.append('text').attr('class', 'daten-text')
+      .attr('text-anchor', 'middle').attr('y', 37)
+      .text('† ' + (p.death_date || '?'));
   }
 }
 
