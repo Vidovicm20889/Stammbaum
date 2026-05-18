@@ -174,8 +174,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 /* Schatten damit Boxen sich vom Hintergrundbild abheben */
 .knoten { filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); }
 .knoten text { font-family: 'Georgia', serif; fill: #1a1008; pointer-events: none; }
-.knoten .name-text  { font-size: 14px; font-weight: bold; }
-.knoten .daten-text { font-size: 11px; fill: #3a2a10; }
+.knoten .name-text  { font-size: 16px; font-weight: bold; }
+.knoten .daten-text { font-size: 12px; fill: #3a2a10; }
 /* Verbindungslinien: warm-weißes Leuchten – gut sichtbar auf Grün/Gold */
 .verbindung { fill: none; stroke: rgba(255,248,220,0.88); stroke-width: 2.5; }
 /* Ehelinien: Gold passend zum Sonnenuntergang im Bild */
@@ -759,12 +759,22 @@ function initBaum() {
 
   zoom = d3.zoom()
     .scaleExtent([0.05, 3.0])
-    .on('zoom', e => baumG.attr('transform', e.transform));
+    .on('zoom', e => {
+      baumG.attr('transform', e.transform);
+      // Adaptive Schriftgröße: Mindest 11px auf dem Bildschirm für Namen
+      const k = e.transform.k;
+      const nfs = Math.max(16, 11 / k);
+      const dfs = Math.max(12, 9 / k);
+      baumG.selectAll('.name-text').attr('font-size', nfs + 'px');
+      baumG.selectAll('.daten-text')
+        .attr('font-size', dfs + 'px')
+        .style('display', k < 0.35 ? 'none' : null);
+    });
   baumSvg.call(zoom);
 
   // Doppelklick → zurück zur Fit-Ansicht
-  baumSvg.on('dblclick.zoom', null); // Standard-d3-Doppelklick deaktivieren
-  baumSvg.on('dblclick', function(event) {
+  baumSvg.on('dblclick.zoom', null);
+  baumSvg.on('dblclick', function() {
     if (fitTransform) {
       baumSvg.transition().duration(500).call(zoom.transform, fitTransform);
     }
@@ -792,7 +802,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   // y-Koordinaten negieren → Baum wächst von unten nach oben
   wurzelNode.each(d => { d.y = -d.y; });
 
-  // Eltern-Kind-Linien: bei Mehrehe L-Pfad zum Ehe-Bindepunkt
+  // Eltern-Kind-Linien: organische Bezier-Kurven
   baumG.selectAll('.verbindung')
     .data(wurzelNode.links())
     .enter().append('path')
@@ -800,17 +810,18 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
     .attr('d', link => {
       const src = link.source;
       const tgt = link.target;
+      // Kante: Oberkante der Eltern-Box, Unterkante der Kind-Box
+      const srcY = src.y - 29;
+      const tgtY = tgt.y + 29;
+      const midY = (srcY + tgtY) / 2;
       if (src.data.marriages && src.data.marriages.length >= 2) {
         const famIdx = tgt.data.familyIndex ?? 0;
-        // Bindepunkt: links für Ehe 0 (−65), rechts für Ehe 1 (+65)
         const tieX = src.x + (famIdx === 0 ? -67 : 67);
-        // Elternteil liegt UNTER dem Kind (größeres y), daher Richtung umgekehrt
-        const srcY = src.y - 29;  // Oberkante Elternbox
-        const tgtY = tgt.y + 29;  // Unterkante Kindbox
-        const midY = srcY + (tgtY - srcY) * 0.45;
-        return `M ${tgt.x},${tgtY} V ${midY} H ${tieX} V ${srcY}`;
+        // Sanfte S-Kurve statt L-Pfad
+        return `M ${tgt.x},${tgtY} C ${tgt.x},${midY} ${tieX},${midY} ${tieX},${srcY}`;
       }
-      return d3.linkVertical().x(d => d.x).y(d => d.y)(link);
+      // Standard: glatte S-Kurve von Eltern-Mitte zu Kind-Mitte
+      return `M ${src.x},${srcY} C ${src.x},${midY} ${tgt.x},${midY} ${tgt.x},${tgtY}`;
     });
   
   // Knoten: Hauptperson + ggf. Partner als zweite Box daneben
@@ -871,19 +882,28 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   const tYMax = Math.max(...allY) + 29;
   const tW = tXMax - tXMin, tH = tYMax - tYMin;
 
-  // Kronenzone: 15–85% Breite, 10–65% Höhe
-  const crownL = breite * 0.15, crownW = breite * 0.70;
-  const crownT = hoehe * 0.10,  crownH = hoehe * 0.55;
+  // Voller Container mit 3% Rand – maximaler Platz für Lesbarkeit
+  const pad = 0.03;
+  const fitL = breite * pad,    fitW = breite * (1 - 2 * pad);
+  const fitT = hoehe  * pad,    fitH = hoehe  * (1 - 2 * pad);
 
-  const skala = Math.min(crownW / tW, crownH / tH, 2.5);
-  const tx = crownL + (crownW - tW * skala) / 2 - tXMin * skala;
-  const ty = crownT + (crownH - tH * skala) / 2 - tYMin * skala;
+  const skala = Math.min(fitW / tW, fitH / tH, 2.5);
+  const tx = fitL + (fitW - tW * skala) / 2 - tXMin * skala;
+  const ty = fitT + (fitH - tH * skala) / 2 - tYMin * skala;
 
-  // Mindest-Zoom = Fit-to-Crown; Maximum = 3.0
+  // Zoom-Bereich: minZoom = Fit-Ansicht (90%), maxZoom = 3.0
   zoom.scaleExtent([skala * 0.9, 3.0]);
 
   fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
   baumSvg.call(zoom.transform, fitTransform);
+
+  // Initiale Schriftgrößen sofort setzen (ohne auf Zoom-Event zu warten)
+  const nfs = Math.max(16, 11 / skala);
+  const dfs = Math.max(12, 9 / skala);
+  baumG.selectAll('.name-text').attr('font-size', nfs + 'px');
+  baumG.selectAll('.daten-text')
+    .attr('font-size', dfs + 'px')
+    .style('display', skala < 0.35 ? 'none' : null);
   
   aktualisiereBaumInfo();
 }
