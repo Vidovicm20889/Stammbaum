@@ -47,21 +47,41 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
   justify-content: center;
 }
-.sprach-leiste {
-  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
-  display: flex; gap: 4px;
-  background: var(--bg-soft); padding: 4px;
-  border: 1px solid var(--linie);
-}
-.sprach-btn {
-  background: transparent; color: var(--ink);
-  border: none; padding: 6px 12px; cursor: pointer;
+/* Sprach-Dropdown mit Flaggen */
+.sprach-dropdown { position: relative; }
+.sprach-toggle {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-soft); color: var(--ink);
+  border: 1px solid var(--linie); padding: 7px 12px; cursor: pointer;
   font-family: inherit; font-size: 12px;
   letter-spacing: 1px; text-transform: uppercase;
-  transition: all 0.2s;
+  transition: border-color 0.2s;
 }
-.sprach-btn.aktiv { background: var(--akzent); color: var(--paper); }
-.sprach-btn:hover:not(.aktiv) { color: var(--gold); }
+.sprach-toggle:hover { border-color: var(--gold); }
+.sprach-toggle .pfeil { font-size: 9px; opacity: 0.6; transition: transform 0.2s; }
+.sprach-dropdown.offen .sprach-toggle .pfeil { transform: rotate(180deg); }
+.flagge {
+  width: 22px; height: 15px; flex: 0 0 auto;
+  border: 1px solid rgba(44,36,24,0.25); border-radius: 2px;
+  overflow: hidden; display: inline-block; line-height: 0;
+}
+.flagge svg { width: 100%; height: 100%; display: block; }
+.sprach-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 60;
+  min-width: 160px; list-style: none;
+  background: var(--paper); border: 1px solid var(--linie);
+  box-shadow: 0 4px 14px rgba(44,36,24,0.18);
+  display: none;
+}
+.sprach-dropdown.offen .sprach-menu { display: block; }
+.sprach-menu li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer; font-size: 13px;
+  letter-spacing: 0.5px; transition: background 0.15s;
+}
+.sprach-menu li:hover { background: var(--paper-soft); }
+.sprach-menu li.aktiv { background: var(--akzent); color: var(--paper); }
+.sprach-menu li.aktiv .flagge { border-color: rgba(255,255,255,0.4); }
 
 .tab-gruppe {
   display: flex; background: var(--bg-soft);
@@ -236,15 +256,13 @@ footer {
 @media (max-width: 600px) {
   body { padding-top: 0; }
   .top-nav { position: static; padding: 8px 12px; flex-wrap: wrap; gap: 6px; justify-content: center; }
-  .sprach-leiste { position: static; transform: none; }
-  .auth-bereich { position: static; transform: none; }
   .nav-controls { gap: 6px; }
+  .sprach-menu { right: auto; left: 0; }
   header { padding-top: 20px; }
 }
 
-/* Auth-Bereich (links in der Nav) */
+/* Auth-Bereich (Teil der Navigation) */
 .auth-bereich {
-  position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
   display: flex; gap: 8px; align-items: center;
 }
 .anmelden-btn {
@@ -299,28 +317,36 @@ footer {
 <body>
 
 <nav class="top-nav">
-  <div class="auth-bereich" id="auth-bereich">
-    <button class="anmelden-btn" id="anmelden-btn" onclick="zeigeLoginModal()">Anmelden</button>
-    <div class="user-badge" id="user-badge" style="display:none">
-      <span class="user-email" id="user-email"></span>
-      <span class="user-rolle" id="user-rolle"></span>
-      <button class="abmelden-btn" onclick="abmelden()">Abmelden</button>
-    </div>
-  </div>
   <div class="nav-controls">
     <div class="tab-gruppe">
       <button class="tab" data-ansicht="karten" data-i18n="tab_karten"></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
     <input type="text" class="suche" id="suche" data-i18n-placeholder="suche_placeholder">
+
+    <!-- Sprach-Dropdown mit Flaggen -->
+    <div class="sprach-dropdown" id="sprach-dropdown">
+      <button class="sprach-toggle" id="sprach-toggle" aria-haspopup="listbox" aria-expanded="false">
+        <span class="flagge" id="aktive-flagge"></span>
+        <span id="aktive-sprache"></span>
+        <span class="pfeil">▾</span>
+      </button>
+      <ul class="sprach-menu" id="sprach-menu" role="listbox"></ul>
+    </div>
+
+    <!-- Anmelden / Benutzer -->
+    <div class="auth-bereich" id="auth-bereich">
+      <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
+      <div class="user-badge" id="user-badge" style="display:none">
+        <span class="user-email" id="user-email"></span>
+        <span class="user-rolle" id="user-rolle"></span>
+        <button class="abmelden-btn" data-i18n="abmelden" onclick="abmelden()"></button>
+      </div>
+    </div>
+
     <select class="filter" id="filter-nachname"></select>
     <label class="upload-btn" for="gedcom-input" data-i18n="upload_btn"></label>
     <input type="file" id="gedcom-input" accept=".ged">
-  </div>
-  <div class="sprach-leiste">
-    <button class="sprach-btn" data-lang="de">DE</button>
-    <button class="sprach-btn" data-lang="sr">SR</button>
-    <button class="sprach-btn" data-lang="en">EN</button>
   </div>
 </nav>
 
@@ -347,16 +373,16 @@ footer {
 <div class="modal" id="login-modal" onclick="if(event.target===this)schliesseLoginModal()">
   <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseLoginModal()">×</button>
-    <h2>Anmelden</h2>
+    <h2 data-i18n="anmelden"></h2>
     <p class="sub-name">Stammbaum Vidović</p>
     <div id="login-fehler" class="login-fehler"></div>
-    <label class="login-label">E-Mail
+    <label class="login-label"><span data-i18n="login_email"></span>
       <input type="email" id="login-email" class="login-feld" placeholder="name@beispiel.de" onkeydown="if(event.key==='Enter')anmelden()">
     </label>
-    <label class="login-label">Passwort
+    <label class="login-label"><span data-i18n="login_passwort"></span>
       <input type="password" id="login-passwort" class="login-feld" placeholder="••••••••" onkeydown="if(event.key==='Enter')anmelden()">
     </label>
-    <button class="login-submit" onclick="anmelden()">Anmelden</button>
+    <button class="login-submit" data-i18n="anmelden" onclick="anmelden()"></button>
   </div>
 </div>
 
@@ -410,12 +436,6 @@ function loescheUser() {
   aktualisiereAuthUI();
 }
 
-const ROLLEN_LABEL = {
-  super_admin:      'Super Admin',
-  familien_admin:   'Familien-Admin',
-  familien_mitglied:'Mitglied'
-};
-
 function aktualisiereAuthUI() {
   const anmeldenBtn = document.getElementById('anmelden-btn');
   const badge       = document.getElementById('user-badge');
@@ -427,7 +447,7 @@ function aktualisiereAuthUI() {
     anmeldenBtn.style.display = 'none';
     badge.style.display       = 'flex';
     emailEl.textContent       = aktuellerUser.email;
-    rolleEl.textContent       = ROLLEN_LABEL[aktuelleRolle] || '';
+    rolleEl.textContent       = aktuelleRolle ? t('rolle_' + aktuelleRolle) : '';
     // Upload nur für Admins sichtbar
     if (uploadLabel) uploadLabel.style.display =
       ['super_admin','familien_admin'].includes(aktuelleRolle) ? '' : 'none';
@@ -445,14 +465,14 @@ async function anmelden() {
   fehlerEl.style.display = 'none';
 
   if (!email || !passwort) {
-    fehlerEl.textContent   = 'Bitte E-Mail und Passwort eingeben.';
+    fehlerEl.textContent   = t('login_pflicht');
     fehlerEl.style.display = 'block';
     return;
   }
 
   const { error } = await sbClient.auth.signInWithPassword({ email, password: passwort });
   if (error) {
-    fehlerEl.textContent   = 'Anmeldung fehlgeschlagen: ' + error.message;
+    fehlerEl.textContent   = t('login_fehler_prefix') + error.message;
     fehlerEl.style.display = 'block';
   } else {
     schliesseLoginModal();
@@ -516,9 +536,104 @@ const TEXTE = {
     auswahl_hinweis: 'Bitte wähle die gesuchte Person aus:',
     footer: 'Sastavljeno s ljubavlju · Mit Liebe zusammengestellt',
     upload_erfolg: 'Erfolgreich geladen: {p} Personen, {f} Familien.',
-    upload_fehler: 'Fehler beim Laden: '
+    upload_fehler: 'Fehler beim Laden: ',
+    anmelden: 'Anmelden',
+    abmelden: 'Abmelden',
+    login_email: 'E-Mail',
+    login_passwort: 'Passwort',
+    login_pflicht: 'Bitte E-Mail und Passwort eingeben.',
+    login_fehler_prefix: 'Anmeldung fehlgeschlagen: ',
+    rolle_super_admin: 'Super Admin',
+    rolle_familien_admin: 'Familien-Admin',
+    rolle_familien_mitglied: 'Mitglied'
   },
   sr: {
+    untertitel: 'Породично стабло',
+    stats: '{p} ОСОБА · {f} ПОРОДИЦА',
+    tab_karten: 'Чланови породице',
+    tab_baum: 'Стабло',
+    suche_placeholder: 'Претражи по имену...',
+    filter_alle: 'Све породичне гране',
+    filter_unbekannt: '(непознато)',
+    upload_btn: 'Учитај GEDCOM',
+    baum_hinweis: 'Кликни на особу за детаље · Скрол за зумирање · Превуци за померање · Двоструки клик за ресет',
+    baum_info_hinweis: '<strong>Напомена:</strong> Кликни за детаље, скролуј за зумирање, двоструки клик за ресет.',
+    baum_zentriert: '<strong>Центрирано на:</strong> {name}<br><small>Приказује 2 генерације навише и наниже.<br>Кликни другу особу за нови приказ.</small>',
+    keine_treffer: 'Ниједна особа није пронађена.',
+    geboren: 'Рођен/а:',
+    geburtsort: 'Место рођења:',
+    verstorben: 'Преминуо/ла:',
+    sterbeort: 'Место смрти:',
+    geschlecht: 'Пол:',
+    maennlich: 'мушки',
+    weiblich: 'женски',
+    unbekannt: 'непознато',
+    ja: 'да',
+    eltern: 'Родитељи',
+    partner: 'Супружник',
+    kinder: 'Деца',
+    geschwister: 'Браћа и сестре',
+    baum_zeigen: 'Прикажи у стаблу',
+    zurueck: 'Назад',
+    auswahl_titel: 'Пронађено више особа',
+    auswahl_hinweis: 'Изабери коју особу тражиш:',
+    footer: 'Састављено с љубављу',
+    upload_erfolg: 'Успешно учитано: {p} особа, {f} породица.',
+    upload_fehler: 'Грешка при учитавању: ',
+    anmelden: 'Пријава',
+    abmelden: 'Одјава',
+    login_email: 'Е-пошта',
+    login_passwort: 'Лозинка',
+    login_pflicht: 'Унесите е-пошту и лозинку.',
+    login_fehler_prefix: 'Пријава није успела: ',
+    rolle_super_admin: 'Супер админ',
+    rolle_familien_admin: 'Админ породице',
+    rolle_familien_mitglied: 'Члан'
+  },
+  hr: {
+    untertitel: 'Obiteljsko stablo',
+    stats: '{p} OSOBA · {f} OBITELJI',
+    tab_karten: 'Članovi obitelji',
+    tab_baum: 'Stablo',
+    suche_placeholder: 'Pretraži po imenu...',
+    filter_alle: 'Sve obiteljske grane',
+    filter_unbekannt: '(nepoznato)',
+    upload_btn: 'Učitaj GEDCOM',
+    baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomicanje · Dvostruki klik za reset',
+    baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
+    baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore i dolje.<br>Klikni drugu osobu za novi prikaz.</small>',
+    keine_treffer: 'Nijedna osoba nije pronađena.',
+    geboren: 'Rođen/a:',
+    geburtsort: 'Mjesto rođenja:',
+    verstorben: 'Preminuo/la:',
+    sterbeort: 'Mjesto smrti:',
+    geschlecht: 'Spol:',
+    maennlich: 'muški',
+    weiblich: 'ženski',
+    unbekannt: 'nepoznato',
+    ja: 'da',
+    eltern: 'Roditelji',
+    partner: 'Supružnik',
+    kinder: 'Djeca',
+    geschwister: 'Braća i sestre',
+    baum_zeigen: 'Prikaži u stablu',
+    zurueck: 'Natrag',
+    auswahl_titel: 'Pronađeno više osoba',
+    auswahl_hinweis: 'Izaberi koju osobu tražiš:',
+    footer: 'Sastavljeno s ljubavlju',
+    upload_erfolg: 'Uspješno učitano: {p} osoba, {f} obitelji.',
+    upload_fehler: 'Greška pri učitavanju: ',
+    anmelden: 'Prijava',
+    abmelden: 'Odjava',
+    login_email: 'E-pošta',
+    login_passwort: 'Lozinka',
+    login_pflicht: 'Unesite e-poštu i lozinku.',
+    login_fehler_prefix: 'Prijava nije uspjela: ',
+    rolle_super_admin: 'Super admin',
+    rolle_familien_admin: 'Admin obitelji',
+    rolle_familien_mitglied: 'Član'
+  },
+  ba: {
     untertitel: 'Porodično stablo',
     stats: '{p} OSOBA · {f} PORODICA',
     tab_karten: 'Članovi porodice',
@@ -527,30 +642,39 @@ const TEXTE = {
     filter_alle: 'Sve porodične grane',
     filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
-    baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Prevuci za pomeranje · Dvostruki klik za reset',
-    baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skroluj za zumiranje, dvostruki klik za reset.',
-    baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije naviše i naniže.<br>Klikni drugu osobu za novi prikaz.</small>',
+    baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomjeranje · Dvostruki klik za reset',
+    baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
+    baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore i dolje.<br>Klikni drugu osobu za novi prikaz.</small>',
     keine_treffer: 'Nijedna osoba nije pronađena.',
     geboren: 'Rođen/a:',
-    geburtsort: 'Mesto rođenja:',
+    geburtsort: 'Mjesto rođenja:',
     verstorben: 'Preminuo/la:',
-    sterbeort: 'Mesto smrti:',
-    geschlecht: 'Pol:',
+    sterbeort: 'Mjesto smrti:',
+    geschlecht: 'Spol:',
     maennlich: 'muški',
     weiblich: 'ženski',
     unbekannt: 'nepoznato',
     ja: 'da',
     eltern: 'Roditelji',
     partner: 'Supružnik',
-    kinder: 'Deca',
+    kinder: 'Djeca',
     geschwister: 'Braća i sestre',
     baum_zeigen: 'Prikaži u stablu',
     zurueck: 'Nazad',
     auswahl_titel: 'Pronađeno više osoba',
     auswahl_hinweis: 'Izaberi koju osobu tražiš:',
     footer: 'Sastavljeno s ljubavlju',
-    upload_erfolg: 'Uspešno učitano: {p} osoba, {f} porodica.',
-    upload_fehler: 'Greška pri učitavanju: '
+    upload_erfolg: 'Uspješno učitano: {p} osoba, {f} porodica.',
+    upload_fehler: 'Greška pri učitavanju: ',
+    anmelden: 'Prijava',
+    abmelden: 'Odjava',
+    login_email: 'E-pošta',
+    login_passwort: 'Lozinka',
+    login_pflicht: 'Unesite e-poštu i lozinku.',
+    login_fehler_prefix: 'Prijava nije uspjela: ',
+    rolle_super_admin: 'Super admin',
+    rolle_familien_admin: 'Admin porodice',
+    rolle_familien_mitglied: 'Član'
   },
   en: {
     untertitel: 'Family Tree',
@@ -584,14 +708,41 @@ const TEXTE = {
     auswahl_hinweis: 'Please select the person you are looking for:',
     footer: 'Made with love',
     upload_erfolg: 'Successfully loaded: {p} people, {f} families.',
-    upload_fehler: 'Loading error: '
+    upload_fehler: 'Loading error: ',
+    anmelden: 'Sign in',
+    abmelden: 'Sign out',
+    login_email: 'Email',
+    login_passwort: 'Password',
+    login_pflicht: 'Please enter email and password.',
+    login_fehler_prefix: 'Sign-in failed: ',
+    rolle_super_admin: 'Super Admin',
+    rolle_familien_admin: 'Family Admin',
+    rolle_familien_mitglied: 'Member'
   }
 };
 
 // ============================================================
+// SPRACHEN + FLAGGEN (Inline-SVG, plattformübergreifend sichtbar)
+// ============================================================
+const FLAGGEN = {
+  de: '<svg viewBox="0 0 5 3" preserveAspectRatio="none"><rect width="5" height="3" fill="#000"/><rect width="5" height="2" y="1" fill="#D00"/><rect width="5" height="1" y="2" fill="#FFCE00"/></svg>',
+  rs: '<svg viewBox="0 0 5 3" preserveAspectRatio="none"><rect width="5" height="1" fill="#C6363C"/><rect width="5" height="1" y="1" fill="#0C4076"/><rect width="5" height="1" y="2" fill="#fff"/></svg>',
+  hr: '<svg viewBox="0 0 5 3" preserveAspectRatio="none"><rect width="5" height="1" fill="#FF0000"/><rect width="5" height="1" y="1" fill="#fff"/><rect width="5" height="1" y="2" fill="#171796"/></svg>',
+  ba: '<svg viewBox="0 0 5 3" preserveAspectRatio="none"><rect width="5" height="3" fill="#001F7E"/><polygon points="1.65,0 5,0 5,3" fill="#FECB00"/></svg>',
+  gb: '<svg viewBox="0 0 60 30" preserveAspectRatio="none"><rect width="60" height="30" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="2"/><path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/><path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/></svg>'
+};
+const SPRACHEN = [
+  { code: 'sr', label: 'СР', name: 'Српски',   flag: 'rs' },
+  { code: 'hr', label: 'HR', name: 'Hrvatski', flag: 'hr' },
+  { code: 'ba', label: 'BA', name: 'Bosanski', flag: 'ba' },
+  { code: 'de', label: 'DE', name: 'Deutsch',  flag: 'de' },
+  { code: 'en', label: 'EN', name: 'English',  flag: 'gb' }
+];
+
+// ============================================================
 // SPRACH-SYSTEM
 // ============================================================
-let aktuelleSprache = localStorage.getItem('vidovic_lang') || 'sr';
+let aktuelleSprache = TEXTE[localStorage.getItem('vidovic_lang')] ? localStorage.getItem('vidovic_lang') : 'sr';
 let aktuelleDaten = FAMILY_DATA;
 let fokusPersonId = null;
 let aktuelleAnsicht = 'baum';
@@ -611,11 +762,16 @@ function wechselSprache(lang) {
   localStorage.setItem('vidovic_lang', lang);
   document.documentElement.lang = lang;
   
-  // Sprach-Button-Status
-  document.querySelectorAll('.sprach-btn').forEach(b => {
-    b.classList.toggle('aktiv', b.dataset.lang === lang);
+  // Sprach-Dropdown aktualisieren (aktiver Eintrag + Anzeige im Toggle)
+  const sprachInfo = SPRACHEN.find(s => s.code === lang);
+  if (sprachInfo) {
+    document.getElementById('aktive-flagge').innerHTML = FLAGGEN[sprachInfo.flag];
+    document.getElementById('aktive-sprache').textContent = sprachInfo.label;
+  }
+  document.querySelectorAll('#sprach-menu li').forEach(li => {
+    li.classList.toggle('aktiv', li.dataset.lang === lang);
   });
-  
+
   // Alle Elemente mit data-i18n übersetzen
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = t(el.dataset.i18n);
@@ -623,21 +779,59 @@ function wechselSprache(lang) {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
-  
+
   // Dynamische Inhalte neu rendern
   aktualisiereStats();
   baueNachnameFilter();
   zeigeKarten();
   aktualisiereBaumInfo();
+  aktualisiereAuthUI();
+}
+
+// ============================================================
+// SPRACH-DROPDOWN (Flaggen-Menü)
+// ============================================================
+function initSprachDropdown() {
+  const dropdown = document.getElementById('sprach-dropdown');
+  const toggle   = document.getElementById('sprach-toggle');
+  const menu     = document.getElementById('sprach-menu');
+
+  // Menü-Einträge aufbauen
+  menu.innerHTML = SPRACHEN.map(s =>
+    `<li role="option" data-lang="${s.code}">
+       <span class="flagge">${FLAGGEN[s.flag]}</span>${s.name}
+     </li>`
+  ).join('');
+
+  function schliesse() {
+    dropdown.classList.remove('offen');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const offen = dropdown.classList.toggle('offen');
+    toggle.setAttribute('aria-expanded', offen ? 'true' : 'false');
+  });
+
+  menu.querySelectorAll('li').forEach(li => {
+    li.addEventListener('click', () => {
+      wechselSprache(li.dataset.lang);
+      schliesse();
+    });
+  });
+
+  // Klick außerhalb schließt das Menü
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target)) schliesse();
+  });
 }
 
 // ============================================================
 // INITIALISIERUNG
 // ============================================================
 function init() {
-  document.querySelectorAll('.sprach-btn').forEach(b => {
-    b.addEventListener('click', () => wechselSprache(b.dataset.lang));
-  });
+  initSprachDropdown();
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => wechselAnsicht(t.dataset.ansicht));
   });
