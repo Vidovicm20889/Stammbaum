@@ -757,6 +757,33 @@ function t(key, vars = {}) {
   return text;
 }
 
+// ============================================================
+// NAMEN-TRANSLITERATION — Serbische Lateinschrift → Kyrillisch
+// Wird auf Personennamen + Überschrift angewendet, wenn "Српски"
+// gewählt ist (Personendaten sind in Latein gespeichert).
+// ============================================================
+const SR_DIGRAFEN = [['Dž','Џ'],['DŽ','Џ'],['dž','џ'],['Lj','Љ'],['LJ','Љ'],['lj','љ'],['Nj','Њ'],['NJ','Њ'],['nj','њ']];
+const SR_BUCHSTABEN = {
+  'A':'А','B':'Б','C':'Ц','Č':'Ч','Ć':'Ћ','D':'Д','Đ':'Ђ','E':'Е','F':'Ф','G':'Г',
+  'H':'Х','I':'И','J':'Ј','K':'К','L':'Л','M':'М','N':'Н','O':'О','P':'П','R':'Р',
+  'S':'С','Š':'Ш','T':'Т','U':'У','V':'В','Z':'З','Ž':'Ж',
+  'a':'а','b':'б','c':'ц','č':'ч','ć':'ћ','d':'д','đ':'ђ','e':'е','f':'ф','g':'г',
+  'h':'х','i':'и','j':'ј','k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','r':'р',
+  's':'с','š':'ш','t':'т','u':'у','v':'в','z':'з','ž':'ж'
+};
+function srLat2Cyr(text) {
+  if (!text) return text;
+  let out = text;
+  SR_DIGRAFEN.forEach(([lat, cyr]) => { out = out.split(lat).join(cyr); });
+  let result = '';
+  for (const ch of out) result += (SR_BUCHSTABEN[ch] !== undefined ? SR_BUCHSTABEN[ch] : ch);
+  return result;
+}
+// Anzeigename: bei Auswahl "Српски" kyrillisch, sonst unverändert
+function nm(text) {
+  return aktuelleSprache === 'sr' ? srLat2Cyr(text) : text;
+}
+
 function wechselSprache(lang) {
   aktuelleSprache = lang;
   localStorage.setItem('vidovic_lang', lang);
@@ -780,12 +807,26 @@ function wechselSprache(lang) {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
 
+  // Überschrift (Familienname) ggf. kyrillisch
+  const titelEl = document.querySelector('header h1');
+  if (titelEl) titelEl.textContent = nm('VIDOVIĆ');
+
   // Dynamische Inhalte neu rendern
   aktualisiereStats();
   baueNachnameFilter();
   zeigeKarten();
   aktualisiereBaumInfo();
+  zeichneBaumNeu();
   aktualisiereAuthUI();
+}
+
+// Baum im aktuellen Zustand (Suche / Fokus / Vollansicht) neu zeichnen
+function zeichneBaumNeu() {
+  if (!baumG) return;
+  const suche = document.getElementById('suche').value.trim();
+  if (suche) suchImBaum(suche);
+  else if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) zeichneBaum(fokusPersonId, 2, 2);
+  else zeichneBaum('I500009', 10, 0);
 }
 
 // ============================================================
@@ -896,7 +937,7 @@ function zentriereAufPerson(personId) {
 function zeigAuswahlDialog(treffer) {
   const liste = treffer.map(p => {
     const info = [p.birth_date ? '* ' + p.birth_date : '', p.birth_place].filter(Boolean).join(', ');
-    return `<span class="verwandter" onclick="waehleAusBaum('${p.id}')">${escapeHtml(p.name)}${info ? ' <small style="color:#888">(' + escapeHtml(info) + ')</small>' : ''}</span>`;
+    return `<span class="verwandter" onclick="waehleAusBaum('${p.id}')">${escapeHtml(nm(p.name))}${info ? ' <small style="color:#888">(' + escapeHtml(info) + ')</small>' : ''}</span>`;
   }).join('');
 
   document.getElementById('modal-text').innerHTML = `
@@ -916,7 +957,7 @@ function aktualisiereBaumInfo() {
   if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) {
     const p = aktuelleDaten.persons[fokusPersonId];
     document.getElementById('baum-info').innerHTML =
-      t('baum_zentriert', {name: escapeHtml(p.name)}) +
+      t('baum_zentriert', {name: escapeHtml(nm(p.name))}) +
       `<button class="baum-zurueck-btn" onclick="zeigVollenBaum()">← ${t('zurueck')}</button>`;
   } else {
     document.getElementById('baum-info').innerHTML = t('baum_info_hinweis');
@@ -942,7 +983,7 @@ function baueNachnameFilter() {
     .forEach(([n, c]) => {
       const o = document.createElement('option');
       o.value = n;
-      o.textContent = `${n} (${c})`;
+      o.textContent = `${nm(n)} (${c})`;
       select.appendChild(o);
     });
   if (aktuell) select.value = aktuell;
@@ -981,7 +1022,7 @@ function zeigeKarten() {
     karte.className = 'person' + (p.deceased ? ' verstorben' : '');
     karte.onclick = () => zeigeDetails(p.id);
     
-    const initialen = ((p.given[0] || '') + (p.surname[0] || '')).toUpperCase() || '?';
+    const initialen = nm(((p.given[0] || '') + (p.surname[0] || '')).toUpperCase()) || '?';
     const avatarKlasse = p.sex === 'M' ? 'male' : (p.sex === 'F' ? 'female' : 'unknown');
     
     let lebensdaten = '';
@@ -992,8 +1033,8 @@ function zeigeKarten() {
     
     karte.innerHTML = `
       <div class="avatar ${avatarKlasse}">${initialen}</div>
-      <h3>${escapeHtml(p.given || '?')}</h3>
-      <p class="nachname">${escapeHtml(p.surname || '')}</p>
+      <h3>${escapeHtml(nm(p.given || '?'))}</h3>
+      <p class="nachname">${escapeHtml(nm(p.surname || ''))}</p>
       ${lebensdaten ? `<div class="daten">${lebensdaten}</div>` : ''}
       ${p.birth_place ? `<div class="daten">📍 ${escapeHtml(p.birth_place)}</div>` : ''}
     `;
@@ -1049,7 +1090,7 @@ function zeigeDetails(personId) {
   });
 
   const buildVerwandte = (liste) => liste.map(v =>
-    `<span class="verwandter" onclick="zeigeDetails('${v.id}')">${escapeHtml(v.name)}</span>`
+    `<span class="verwandter" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}</span>`
   ).join('');
 
   const geschlechtText = p.sex === 'M' ? t('maennlich') : (p.sex === 'F' ? t('weiblich') : t('unbekannt'));
@@ -1059,16 +1100,16 @@ function zeigeDetails(personId) {
     ? eheFamilien.map((ef, i) => `
         <div class="beziehungen">
           <h3>${t('partner')} ${i + 1}</h3>
-          ${ef.partner ? `<span class="verwandter" onclick="zeigeDetails('${ef.partner.id}')">${escapeHtml(ef.partner.name)}</span>` : ''}
+          ${ef.partner ? `<span class="verwandter" onclick="zeigeDetails('${ef.partner.id}')">${escapeHtml(nm(ef.partner.name))}</span>` : ''}
           ${ef.kinder.length ? `<div style="margin-top:8px"><strong style="font-size:12px;color:#777;letter-spacing:1px">${t('kinder')}:</strong><br>${buildVerwandte(ef.kinder)}</div>` : ''}
         </div>`).join('')
-    : `${eheFamilien[0]?.partner ? `<div class="beziehungen"><h3>${t('partner')}</h3>${`<span class="verwandter" onclick="zeigeDetails('${eheFamilien[0].partner.id}')">${escapeHtml(eheFamilien[0].partner.name)}</span>`}</div>` : ''}
+    : `${eheFamilien[0]?.partner ? `<div class="beziehungen"><h3>${t('partner')}</h3>${`<span class="verwandter" onclick="zeigeDetails('${eheFamilien[0].partner.id}')">${escapeHtml(nm(eheFamilien[0].partner.name))}</span>`}</div>` : ''}
        ${eheFamilien[0]?.kinder?.length ? `<div class="beziehungen"><h3>${t('kinder')}</h3>${buildVerwandte(eheFamilien[0].kinder)}</div>` : ''}`;
 
   document.getElementById('modal-text').innerHTML = `
     ${modalVerlauf.length > 0 ? `<button class="zurueck-btn" onclick="geheZurueck()">← ${t('zurueck')}</button>` : ''}
-    <h2>${escapeHtml(p.given || '?')}</h2>
-    <p class="sub-name">${escapeHtml(p.surname || '')}</p>
+    <h2>${escapeHtml(nm(p.given || '?'))}</h2>
+    <p class="sub-name">${escapeHtml(nm(p.surname || ''))}</p>
 
     ${p.birth_date ? `<div class="info-zeile"><strong>${t('geboren')}</strong> ${escapeHtml(p.birth_date)}</div>` : ''}
     ${p.birth_place ? `<div class="info-zeile"><strong>${t('geburtsort')}</strong> ${escapeHtml(p.birth_place)}</div>` : ''}
@@ -1396,12 +1437,12 @@ function zeichneKnotenBox(g, p, xOffset, istFokus, istBlutlinie) {
     .attr('width', 130).attr('height', 60)
     .attr('rx', 6);
 
-  const gn = p.given || '?';
+  const gn = nm(p.given || '?');
   box.append('text').attr('class', 'name-text')
     .attr('text-anchor', 'middle').attr('y', -10)
     .text(gn.length > 15 ? gn.substring(0, 13) + '…' : gn);
 
-  const sn = p.surname || '';
+  const sn = nm(p.surname || '');
   box.append('text').attr('class', 'name-text')
     .attr('text-anchor', 'middle').attr('y', 6)
     .text(sn.length > 15 ? sn.substring(0, 13) + '…' : sn);
