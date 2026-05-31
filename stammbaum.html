@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg: #f5ede0; --bg-soft: #ede0cc; --bg-card: #fffaf0;
@@ -236,14 +237,76 @@ footer {
   body { padding-top: 0; }
   .top-nav { position: static; padding: 8px 12px; flex-wrap: wrap; gap: 6px; justify-content: center; }
   .sprach-leiste { position: static; transform: none; }
+  .auth-bereich { position: static; transform: none; }
   .nav-controls { gap: 6px; }
   header { padding-top: 20px; }
+}
+
+/* Auth-Bereich (links in der Nav) */
+.auth-bereich {
+  position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+  display: flex; gap: 8px; align-items: center;
+}
+.anmelden-btn {
+  background: var(--akzent); color: var(--paper);
+  border: none; padding: 8px 16px; cursor: pointer;
+  font-family: inherit; font-size: 12px;
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: background 0.2s;
+}
+.anmelden-btn:hover { background: var(--akzent-hell); }
+.user-badge {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+}
+.user-email { color: var(--ink); opacity: 0.8; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-rolle {
+  background: var(--gold); color: var(--paper);
+  padding: 3px 8px; font-size: 10px; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.abmelden-btn {
+  background: none; border: 1px solid var(--linie);
+  color: var(--ink); padding: 5px 10px; cursor: pointer;
+  font-family: inherit; font-size: 11px; letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.abmelden-btn:hover { border-color: var(--akzent); color: var(--akzent); }
+
+/* Login-Modal eigene Stile */
+.login-feld {
+  display: block; width: 100%; padding: 10px;
+  border: 1px solid var(--linie); font-family: inherit;
+  font-size: 14px; background: var(--paper); color: var(--ink);
+  margin-top: 4px;
+}
+.login-feld:focus { outline: none; border-color: var(--gold); }
+.login-label { font-size: 13px; color: #555; display: block; margin-top: 14px; }
+.login-submit {
+  margin-top: 20px; width: 100%; padding: 13px;
+  background: var(--akzent); color: var(--paper);
+  border: none; font-family: inherit; font-size: 14px;
+  letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+  transition: background 0.2s;
+}
+.login-submit:hover { background: var(--akzent-hell); }
+.login-fehler {
+  color: var(--akzent); font-size: 13px;
+  margin-top: 10px; display: none;
 }
 </style>
 </head>
 <body>
 
 <nav class="top-nav">
+  <div class="auth-bereich" id="auth-bereich">
+    <button class="anmelden-btn" id="anmelden-btn" onclick="zeigeLoginModal()">Anmelden</button>
+    <div class="user-badge" id="user-badge" style="display:none">
+      <span class="user-email" id="user-email"></span>
+      <span class="user-rolle" id="user-rolle"></span>
+      <button class="abmelden-btn" onclick="abmelden()">Abmelden</button>
+    </div>
+  </div>
   <div class="nav-controls">
     <div class="tab-gruppe">
       <button class="tab" data-ansicht="karten" data-i18n="tab_karten"></button>
@@ -280,6 +343,23 @@ footer {
   <p class="baum-hinweis" data-i18n="baum_hinweis"></p>
 </section>
 
+<!-- Login Modal -->
+<div class="modal" id="login-modal" onclick="if(event.target===this)schliesseLoginModal()">
+  <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseLoginModal()">×</button>
+    <h2>Anmelden</h2>
+    <p class="sub-name">Stammbaum Vidović</p>
+    <div id="login-fehler" class="login-fehler"></div>
+    <label class="login-label">E-Mail
+      <input type="email" id="login-email" class="login-feld" placeholder="name@beispiel.de" onkeydown="if(event.key==='Enter')anmelden()">
+    </label>
+    <label class="login-label">Passwort
+      <input type="password" id="login-passwort" class="login-feld" placeholder="••••••••" onkeydown="if(event.key==='Enter')anmelden()">
+    </label>
+    <button class="login-submit" onclick="anmelden()">Anmelden</button>
+  </div>
+</div>
+
 <div class="modal" id="modal">
   <div class="modal-inhalt" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseModal()">×</button>
@@ -292,6 +372,109 @@ footer {
 </footer>
 
 <script>
+// ============================================================
+// SUPABASE AUTH
+// ============================================================
+const SUPABASE_URL  = 'https://tybvzhifvufgvlgjpmyl.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5YnZ6aGlmdnVmZ3ZsZ2pwbXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDIyMDQsImV4cCI6MjA5NTgxODIwNH0.VL1Z5bZN4t73ArS-uKLC1tAkt1yhQqflKJZ7XU5vA5Y';
+const sbClient      = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let aktuellerUser  = null;
+let aktuelleRolle  = null;
+
+async function ladeAuth() {
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (session) await setzeUser(session.user);
+
+  sbClient.auth.onAuthStateChange(async (_event, session) => {
+    if (session) await setzeUser(session.user);
+    else          loescheUser();
+  });
+}
+
+async function setzeUser(user) {
+  aktuellerUser = user;
+  const { data } = await sbClient
+    .from('mitgliedschaften')
+    .select('rolle')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle();
+  aktuelleRolle = data?.rolle || null;
+  aktualisiereAuthUI();
+}
+
+function loescheUser() {
+  aktuellerUser = null;
+  aktuelleRolle = null;
+  aktualisiereAuthUI();
+}
+
+const ROLLEN_LABEL = {
+  super_admin:      'Super Admin',
+  familien_admin:   'Familien-Admin',
+  familien_mitglied:'Mitglied'
+};
+
+function aktualisiereAuthUI() {
+  const anmeldenBtn = document.getElementById('anmelden-btn');
+  const badge       = document.getElementById('user-badge');
+  const emailEl     = document.getElementById('user-email');
+  const rolleEl     = document.getElementById('user-rolle');
+  const uploadLabel = document.querySelector('label[for="gedcom-input"]');
+
+  if (aktuellerUser) {
+    anmeldenBtn.style.display = 'none';
+    badge.style.display       = 'flex';
+    emailEl.textContent       = aktuellerUser.email;
+    rolleEl.textContent       = ROLLEN_LABEL[aktuelleRolle] || '';
+    // Upload nur für Admins sichtbar
+    if (uploadLabel) uploadLabel.style.display =
+      ['super_admin','familien_admin'].includes(aktuelleRolle) ? '' : 'none';
+  } else {
+    anmeldenBtn.style.display = '';
+    badge.style.display       = 'none';
+    if (uploadLabel) uploadLabel.style.display = 'none';
+  }
+}
+
+async function anmelden() {
+  const email    = document.getElementById('login-email').value.trim();
+  const passwort = document.getElementById('login-passwort').value;
+  const fehlerEl = document.getElementById('login-fehler');
+  fehlerEl.style.display = 'none';
+
+  if (!email || !passwort) {
+    fehlerEl.textContent   = 'Bitte E-Mail und Passwort eingeben.';
+    fehlerEl.style.display = 'block';
+    return;
+  }
+
+  const { error } = await sbClient.auth.signInWithPassword({ email, password: passwort });
+  if (error) {
+    fehlerEl.textContent   = 'Anmeldung fehlgeschlagen: ' + error.message;
+    fehlerEl.style.display = 'block';
+  } else {
+    schliesseLoginModal();
+  }
+}
+
+async function abmelden() {
+  await sbClient.auth.signOut();
+}
+
+function zeigeLoginModal() {
+  document.getElementById('login-modal').classList.add('aktiv');
+  setTimeout(() => document.getElementById('login-email').focus(), 50);
+}
+
+function schliesseLoginModal() {
+  document.getElementById('login-modal').classList.remove('aktiv');
+  document.getElementById('login-fehler').style.display = 'none';
+  document.getElementById('login-email').value    = '';
+  document.getElementById('login-passwort').value = '';
+}
+
 // ============================================================
 // FAMILIENDATEN — eingebettet aus deiner GEDCOM-Datei
 // ============================================================
@@ -468,6 +651,7 @@ function init() {
   initBaum();
   wechselSprache(aktuelleSprache);
   wechselAnsicht('baum');
+  ladeAuth();
 }
 
 function aktualisiereStats() {
