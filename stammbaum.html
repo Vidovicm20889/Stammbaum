@@ -295,6 +295,11 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .event-editor {
   display: grid; gap: 18px;
 }
+.event-editor input[type="text"] {
+  width: 100%; padding: 16px 14px; min-height: 48px;
+  border: 1px solid var(--linie); font-family: inherit; font-size: 15px;
+  background: var(--paper); color: var(--ink);
+}
 .event-editor textarea {
   width: 100%; min-height: 140px; padding: 14px;
   border: 1px solid var(--linie); font-family: inherit;
@@ -555,19 +560,54 @@ async function ladeAuth() {
 
 async function setzeUser(user) {
   aktuellerUser = user;
-  const { data } = await sbClient
+  
+  // Versuche Rolle aus mitgliedschaften-Tabelle zu laden
+  const { data, error } = await sbClient
     .from('mitgliedschaften')
     .select('rolle')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle();
-  const rawRolle = data?.rolle || null;
+  
+  let rawRolle = data?.rolle || null;
+  
+  // Fallback: Wenn Tabelle nicht existiert oder Zugriff blockiert, prüfe localStorage
+  // (für lokales Testen während Entwicklung)
+  if (!rawRolle) {
+    const debugRolle = localStorage.getItem('debug_rolle');
+    if (debugRolle) {
+      console.log('Debug-Modus: Nutze localStorage rolle:', debugRolle);
+      rawRolle = debugRolle;
+    }
+  }
+  
   aktuelleRolle = rawRolle ? normalizeRolle(rawRolle) : null;
+  console.log('aktuelleRolle gesetzt zu:', aktuelleRolle, '(raw:', rawRolle, ')');
+  
+  if (error) {
+    console.warn('Fehler beim Laden der Rolle:', error);
+  }
+  
   aktualisiereAuthUI();
 }
 
 function normalizeRolle(rolle) {
   return rolle.toString().trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+// DEBUG: Hilfsfunction zum Setzen der Debug-Rolle (nur für lokales Testen)
+function setDebugRolle(rolle) {
+  if (rolle) {
+    localStorage.setItem('debug_rolle', rolle);
+    console.log('Debug-Rolle gesetzt auf:', rolle, '- Seite neu laden zum Aktivieren');
+  } else {
+    localStorage.removeItem('debug_rolle');
+    console.log('Debug-Rolle gelöscht');
+  }
+}
+
+function getDebugRolle() {
+  return localStorage.getItem('debug_rolle') || 'keine';
 }
 
 function loescheUser() {
@@ -1429,8 +1469,29 @@ async function uploadEventMedia(eventId, file) {
 }
 
 function renderEventMedia(eventId) {
-  const key = `event_media_all_${eventId}`;
-  const media = JSON.parse(localStorage.getItem(key) || '[]');
+  // Try new language-independent key first
+  let key = `event_media_all_${eventId}`;
+  let media = JSON.parse(localStorage.getItem(key) || '[]');
+  
+  // Fallback: if old language-specific keys exist, migrate them
+  if (media.length === 0) {
+    const languages = ['de', 'sr', 'hr', 'ba', 'en'];
+    for (const lang of languages) {
+      const oldKey = `event_media_${lang}_${eventId}`;
+      const oldMedia = JSON.parse(localStorage.getItem(oldKey) || '[]');
+      if (oldMedia.length > 0) {
+        // Migrate old key to new key (merge if both exist)
+        media = [...oldMedia, ...media];
+        localStorage.removeItem(oldKey);
+        console.log(`Migrated ${oldKey} to ${key}`);
+      }
+    }
+    // Save migrated data
+    if (media.length > 0) {
+      localStorage.setItem(key, JSON.stringify(media));
+    }
+  }
+  
   return media;
 }
 
@@ -1487,7 +1548,7 @@ function zeigeShort(shortId) {
     <div class="event-section">
       <div class="event-section-line">
         <div class="event-section-label">${t('event_description')}</div>
-        <button class="baum-zeigen ${isAdmin ? '' : 'button-disabled'}" type="button" ${isAdmin ? '' : 'onclick="return false;"'} onclick="${isAdmin ? `zeigeEventEditor('${shortId}')` : 'return false;'}">${t('event_edit')}</button>
+        ${isAdmin ? `<button class="baum-zeigen" type="button" onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>` : `<button class="baum-zeigen button-disabled" type="button" disabled>${t('event_edit')}</button>`}
       </div>
       <div class="event-section-content">
         <div class="info-zeile"><strong>${t('event_single_title')}</strong> ${escapeHtml(nm(event.subtitle))}</div>
@@ -1497,9 +1558,9 @@ function zeigeShort(shortId) {
     <div class="event-section">
       <div class="event-section-line">
         <div class="event-section-label">${t('event_media')}</div>
-        <button class="baum-zeigen ${uploadEnabled ? '' : 'button-disabled'}" ${uploadEnabled ? '' : 'onclick="return false;"'} onclick="${uploadEnabled ? `zeigeEventUploader('${shortId}')` : 'return false;'}">${t('event_upload')}</button>
+        ${uploadEnabled ? `<button class="baum-zeigen" onclick="zeigeEventUploader('${shortId}')">${t('event_upload')}</button>` : `<button class="baum-zeigen button-disabled" disabled>${t('event_upload')}</button>`}
       </div>
-      ${media.length ? buildEventMediaHtml(media, shortId, isAdmin) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
+      ${media.length ? buildEventMediaHtml(media, shortId, false) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
     </div>
     ${isAdmin ? `<div class="event-admin-hint">${t('event_admin_hint')}</div>` : ''}
   `;
@@ -1520,9 +1581,6 @@ function zeigeEventEditor(eventId) {
       <label>${t('event_organizer')}<br>
         <input type="text" id="event-organizers-input" value="${escapeHtml(nm(event.organizers))}">
       </label>
-      <label>${t('event_description')}<br>
-        <textarea id="event-details-input">${escapeHtml(nm(event.details))}</textarea>
-      </label>
       <div class="event-upload-row">
         <label>${t('event_upload_images')}<br><input type="file" id="event-image-input" accept="image/*" multiple></label>
         <label>${t('event_upload_videos')}<br><input type="file" id="event-video-input" accept="video/*" multiple></label>
@@ -1538,8 +1596,6 @@ function zeigeEventEditor(eventId) {
   document.getElementById('modal').classList.add('aktiv');
 
   document.getElementById('event-save-btn').addEventListener('click', async () => {
-    const details = document.getElementById('event-details-input').value.trim();
-    wertSpeichern(eventId, { details });
     const imageFiles = document.getElementById('event-image-input').files;
     const videoFiles = document.getElementById('event-video-input').files;
     const status = document.getElementById('event-status');
