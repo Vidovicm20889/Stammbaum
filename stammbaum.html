@@ -1379,14 +1379,13 @@ function zeigeShort(shortId) {
   const media = renderEventMedia(shortId);
 
   const uploadEnabled = Boolean(aktuellerUser);
-  const editEnabled = Boolean(aktuellerUser && isAdmin);
   document.getElementById('modal-text').innerHTML = `
     <h2>${escapeHtml(nm(event.title))}</h2>
     <p style="margin:14px 0 16px; color:#5e4b35;">${escapeHtml(nm(event.location))}</p>
     <div class="event-section">
       <div class="event-section-line">
         <div class="event-section-label">${t('event_description')}</div>
-        <button class="baum-zeigen" ${editEnabled ? '' : 'disabled'} onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>
+        <button class="baum-zeigen" type="button" ${isAdmin ? '' : 'disabled'} onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>
       </div>
       <div class="event-section-content">
         <div class="info-zeile"><strong>${t('event_single_title')}</strong> ${escapeHtml(nm(event.subtitle))}</div>
