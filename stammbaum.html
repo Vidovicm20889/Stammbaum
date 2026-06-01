@@ -108,6 +108,34 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .upload-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 #gedcom-input { display: none; }
 
+/* Menü-Dropdown (bündelt Sprache, Auth, GEDCOM) – einheitliche Optik */
+.nav-menu { position: relative; }
+.nav-menu-toggle {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-soft); color: var(--ink);
+  border: 1px solid var(--linie); padding: 10px 16px; cursor: pointer;
+  font-family: inherit; font-size: 16px; line-height: 1; transition: border-color 0.2s;
+}
+.nav-menu-toggle:hover { border-color: var(--gold); }
+.nav-menu-toggle .pfeil { font-size: 9px; opacity: 0.6; transition: transform 0.2s; }
+.nav-menu.offen .nav-menu-toggle .pfeil { transform: rotate(180deg); }
+.nav-menu-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  min-width: 240px; background: var(--paper);
+  border: 1px solid var(--linie); box-shadow: 0 8px 22px rgba(44,36,24,0.2);
+  padding: 14px; display: none; flex-direction: column; gap: 12px;
+}
+.nav-menu.offen .nav-menu-panel { display: flex; }
+.nav-menu-panel .sprach-dropdown,
+.nav-menu-panel .sprach-toggle { width: 100%; }
+.nav-menu-panel .sprach-toggle { justify-content: space-between; }
+.nav-menu-panel .sprach-menu { left: 0; right: 0; }
+.nav-menu-panel .auth-bereich { flex-direction: column; align-items: stretch; gap: 10px; }
+.nav-menu-panel .anmelden-btn,
+.nav-menu-panel .account-btn,
+.nav-menu-panel .upload-btn { width: 100%; text-align: center; box-sizing: border-box; }
+.nav-menu-panel .user-badge { flex-wrap: wrap; justify-content: center; }
+
 #ansicht-karten { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
 #ansicht-shorts { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
 .shorts-header { margin-bottom: 24px; }
@@ -533,35 +561,46 @@ footer {
   <div class="nav-controls">
     <div class="tab-gruppe">
       <button class="tab" data-ansicht="karten" data-i18n="tab_karten"></button>
-      <button class="tab" data-ansicht="shorts" data-i18n="tab_shorts"></button>
+      <button class="tab" id="tab-shorts" data-ansicht="shorts" data-i18n="tab_shorts"></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
     <input type="text" class="suche" id="suche" data-i18n-placeholder="suche_placeholder">
     <select class="filter" id="filter-nachname"></select>
 
-    <!-- Sprach-Dropdown mit Flaggen -->
-    <div class="sprach-dropdown" id="sprach-dropdown">
-      <button class="sprach-toggle" id="sprach-toggle" aria-haspopup="listbox" aria-expanded="false">
-        <span class="flagge" id="aktive-flagge"></span>
-        <span id="aktive-sprache"></span>
-        <span class="pfeil">▾</span>
+    <!-- Menü-Dropdown: bündelt Sprache, Anmelden/Account und GEDCOM -->
+    <div class="nav-menu" id="nav-menu">
+      <button class="nav-menu-toggle" id="nav-menu-toggle" onclick="toggleNavMenu(event)"
+              aria-haspopup="true" aria-expanded="false" aria-label="Menü">
+        <span class="nav-menu-icon">☰</span><span class="pfeil">▾</span>
       </button>
-      <ul class="sprach-menu" id="sprach-menu" role="listbox"></ul>
-    </div>
+      <div class="nav-menu-panel" id="nav-menu-panel">
 
-    <!-- Anmelden / Benutzer -->
-    <div class="auth-bereich" id="auth-bereich">
-      <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
-      <div class="user-badge" id="user-badge" style="display:none">
-        <span class="user-email" id="user-email"></span>
-        <span class="user-rolle" id="user-rolle"></span>
-        <button class="abmelden-btn" data-i18n="abmelden" onclick="abmelden()"></button>
+        <!-- Sprach-Dropdown mit Flaggen -->
+        <div class="sprach-dropdown" id="sprach-dropdown">
+          <button class="sprach-toggle" id="sprach-toggle" aria-haspopup="listbox" aria-expanded="false">
+            <span class="flagge" id="aktive-flagge"></span>
+            <span id="aktive-sprache"></span>
+            <span class="pfeil">▾</span>
+          </button>
+          <ul class="sprach-menu" id="sprach-menu" role="listbox"></ul>
+        </div>
+
+        <!-- Anmelden / Benutzer -->
+        <div class="auth-bereich" id="auth-bereich">
+          <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
+          <div class="user-badge" id="user-badge" style="display:none">
+            <span class="user-email" id="user-email"></span>
+            <span class="user-rolle" id="user-rolle"></span>
+            <button class="abmelden-btn" data-i18n="abmelden" onclick="abmelden()"></button>
+          </div>
+          <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
+        </div>
+
+        <!-- GEDCOM -->
+        <label class="upload-btn" for="gedcom-input" data-i18n="upload_btn"></label>
+        <input type="file" id="gedcom-input" accept=".ged">
       </div>
-      <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
     </div>
-
-    <label class="upload-btn" for="gedcom-input" data-i18n="upload_btn"></label>
-    <input type="file" id="gedcom-input" accept=".ged">
   </div>
 </nav>
 
@@ -838,6 +877,7 @@ function aktualisiereAuthUI() {
   const emailEl     = document.getElementById('user-email');
   const rolleEl     = document.getElementById('user-rolle');
   const uploadLabel = document.querySelector('label[for="gedcom-input"]');
+  const shortsTab   = document.getElementById('tab-shorts');   // Events-Tab
 
   if (aktuellerUser) {
     anmeldenBtn.style.display = 'none';
@@ -846,12 +886,85 @@ function aktualisiereAuthUI() {
     rolleEl.textContent       = aktuelleRolle ? t('rolle_' + aktuelleRolle) : '';
     // Upload nur für Admins sichtbar
     if (uploadLabel) uploadLabel.style.display = istAdmin() ? '' : 'none';
+    if (shortsTab)   shortsTab.style.display = '';   // Events nur eingeloggt sichtbar
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
     if (uploadLabel) uploadLabel.style.display = 'none';
+    if (shortsTab)   shortsTab.style.display = 'none';
+    // Falls der ausgeloggte User gerade auf der Events-Ansicht ist -> zur Baum-Ansicht
+    if (typeof aktuelleAnsicht !== 'undefined' && aktuelleAnsicht === 'shorts') wechselAnsicht('baum');
   }
 }
+
+// Menü-Dropdown auf-/zuklappen
+function toggleNavMenu(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('nav-menu');
+  const offen = menu.classList.toggle('offen');
+  document.getElementById('nav-menu-toggle').setAttribute('aria-expanded', offen ? 'true' : 'false');
+}
+
+// ============================================================
+// EINMALIGE MIGRATION: eingebettetes FAMILY_DATA -> Supabase
+// In der Konsole als Super-Admin aufrufen:  await migriereStammbaum()
+// Idempotent (Personen per externe_id upserten; Beziehungen werden für die
+// Familie neu aufgebaut). Rendert NICHTS um — füllt nur die Datenbank.
+// ============================================================
+async function migriereStammbaum() {
+  console.log('%c⏳ Migration startet…', 'color:#7a2a2a;font-weight:bold');
+  if (!aktuellerUser) { console.error('Bitte zuerst als Super-Admin einloggen.'); return { fehler: 'nicht eingeloggt' }; }
+
+  // Familie (Baum-Container) des eingeloggten Admins ermitteln
+  const { data: mit, error: mErr } = await sbClient
+    .from('mitgliedschaften').select('familie_id, rolle').eq('user_id', aktuellerUser.id);
+  if (mErr || !mit || mit.length === 0) { console.error('Keine Mitgliedschaft gefunden:', mErr); return { fehler: 'keine mitgliedschaft', mErr }; }
+  const sa = mit.find(x => x.rolle === 'super_admin') || mit[0];
+  const familie_id = sa.familie_id;
+  console.log('%cMigriere in familie_id: ' + familie_id, 'color:#7a2a2a;font-weight:bold');
+
+  // 1) Personen upserten (Spalten exakt wie im Import-Skript -> sicher vorhanden)
+  const personen = Object.values(FAMILY_DATA.persons).map(p => ({
+    familie_id,
+    externe_id:  p.id,
+    vorname:     p.given   || '',
+    nachname:    p.surname || '',
+    geburtsdatum: null,           // Rohdatum bleibt in stammbaum_daten (Freitext)
+    sterbedatum:  null,
+    geschlecht:  null,            // CHECK-Constraint erlaubt 'M'/'F' nicht -> sex bleibt in stammbaum_daten
+    notizen:     null,
+    stammbaum_daten: p            // komplettes Personen-Objekt (alle Felder, inkl. sex)
+  }));
+  const { data: insP, error: pErr } = await sbClient
+    .from('personen').upsert(personen, { onConflict: 'familie_id,externe_id' })
+    .select('id, externe_id');
+  if (pErr) { console.error('Personen-Upsert-Fehler:', pErr); return { fehler: 'personen', pErr }; }
+  const map = {};
+  insP.forEach(r => { map[r.externe_id] = r.id; });
+  console.log('Personen migriert:', insP.length);
+
+  // 2) Beziehungen dieser Familie neu aufbauen (erst löschen, dann einfügen)
+  await sbClient.from('beziehungen').delete().eq('familie_id', familie_id);
+  const bez = [];
+  Object.values(FAMILY_DATA.families).forEach(f => {
+    const h = map[f.husband], w = map[f.wife];
+    // Mann ↔ Frau
+    if (h && w) bez.push({ familie_id, person_a: h, person_b: w, typ: 'ehepartner' });
+    // Elternteil (person_a) → Kind (person_b)
+    (f.children || []).forEach(cid => {
+      const c = map[cid];
+      if (!c) return;
+      if (h) bez.push({ familie_id, person_a: h, person_b: c, typ: 'elternteil' });
+      if (w) bez.push({ familie_id, person_a: w, person_b: c, typ: 'elternteil' });
+    });
+  });
+  const { error: bErr } = await sbClient.from('beziehungen').insert(bez);
+  if (bErr) { console.error('Beziehungen-Insert-Fehler:', bErr); return { fehler: 'beziehungen', bErr, personen: insP.length }; }
+  console.log('Beziehungen migriert:', bez.length);
+  console.log('%c✅ Migration abgeschlossen.', 'color:green;font-weight:bold;font-size:14px');
+  return { ok: true, personen: insP.length, beziehungen: bez.length };
+}
+window.migriereStammbaum = migriereStammbaum;
 
 async function anmelden() {
   const email    = document.getElementById('login-email').value.trim();
@@ -1833,6 +1946,11 @@ function init() {
     if (e.target.id === 'modal') schliesseModal();
   });
   document.getElementById('gedcom-input').addEventListener('change', handleGedcomUpload);
+  // Klick außerhalb schließt das Menü-Dropdown
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('nav-menu');
+    if (menu && !menu.contains(e.target)) menu.classList.remove('offen');
+  });
   
   initBaum();
   wechselSprache(aktuelleSprache);
