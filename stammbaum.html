@@ -273,6 +273,22 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .event-upload-row {
   display: grid; gap: 14px;
 }
+.event-section {
+  margin-top: 18px;
+  padding: 14px 0 0 0;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+.event-section-line {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px;
+}
+.event-section-label {
+  font-weight: 700; letter-spacing: 0.03em;
+  color: #5e4b35;
+}
+.event-section-content {
+  display: grid; gap: 10px;
+}
 .event-upload-row label {
   display: block; font-size: 13px; color: #5e4b35;
 }
@@ -295,6 +311,11 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .event-media-item a {
   display: flex; align-items: center; gap: 14px; padding: 12px;
   color: inherit; text-decoration: none;
+}
+.baum-zeigen:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(138, 95, 49, 0.35);
 }
 .event-media-thumb {
   width: 72px; height: 72px; border-radius: 14px; object-fit: cover;
@@ -654,6 +675,7 @@ const TEXTE = {
     filter_unbekannt: '(unbekannt)',
     upload_btn: 'GEDCOM laden',
     shorts_titel: 'Familien-Events',
+    event_single_title: 'Familien-Event:',
     shorts_hinweis: 'Kurze Familienmomente und Erinnerungen.',
     baum_hinweis: 'Klick auf Personen für Details · Scroll zum Zoomen · Drag zum Verschieben · Doppelklick zum Zurücksetzen',
     baum_info_hinweis: '<strong>Hinweis:</strong> Klick für Details, Scroll zum Zoomen, Doppelklick zum Zurücksetzen.',
@@ -713,6 +735,7 @@ const TEXTE = {
     filter_unbekannt: '(непознато)',
     upload_btn: 'Учитај GEDCOM',
     shorts_titel: 'Породични догађаји',
+    event_single_title: 'Породични догађај:',
     shorts_hinweis: 'Кратки породични тренуци и успомене.',
     baum_hinweis: 'Кликни на особу за детаље · Скрол за зумирање · Превуци за померање · Двоструки клик за ресет',
     baum_info_hinweis: '<strong>Напомена:</strong> Кликни за детаље, скролуј за зумирање, двоструки клик за ресет.',
@@ -772,6 +795,7 @@ const TEXTE = {
     filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
     shorts_titel: 'Obiteljski događaji',
+    event_single_title: 'Obiteljski događaj:',
     shorts_hinweis: 'Kratki obiteljski trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomicanje · Dvostruki klik za reset',
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
@@ -831,6 +855,7 @@ const TEXTE = {
     filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
     shorts_titel: 'Porodični događaji',
+    event_single_title: 'Porodični događaj:',
     shorts_hinweis: 'Kratki porodični trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomjeranje · Dvostruki klik za reset',
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
@@ -890,6 +915,7 @@ const TEXTE = {
     filter_unbekannt: '(unknown)',
     upload_btn: 'Load GEDCOM',
     shorts_titel: 'Family Events',
+    event_single_title: 'Family Event:',
     shorts_hinweis: 'Quick family moments and memories.',
     baum_hinweis: 'Click for details · Scroll to zoom · Drag to pan · Double-click to reset',
     baum_info_hinweis: '<strong>Tip:</strong> Click for details, scroll to zoom, double-click to reset.',
@@ -1352,15 +1378,28 @@ function zeigeShort(shortId) {
   const isAdmin = ['super_admin','familien_admin'].includes(normalizeRolle(aktuelleRolle || ''));
   const media = renderEventMedia(shortId);
 
+  const uploadEnabled = Boolean(aktuellerUser);
+  const editEnabled = Boolean(aktuellerUser && isAdmin);
   document.getElementById('modal-text').innerHTML = `
     <h2>${escapeHtml(nm(event.title))}</h2>
     <p style="margin:14px 0 16px; color:#5e4b35;">${escapeHtml(nm(event.location))}</p>
-    <div class="info-zeile"><strong>${t('shorts_titel')}</strong> ${escapeHtml(nm(event.subtitle))}</div>
-    <div class="info-zeile"><strong>${t('event_organizer')}</strong> ${escapeHtml(nm(event.organizers))}</div>
-    <div class="info-zeile"><strong>${t('event_description')}</strong><br>${escapeHtml(nm(event.details))}</div>
-    <div class="info-zeile" style="margin-top:12px;">${t('event_media')}</div>
-    ${media.length ? buildEventMediaHtml(media) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
-    ${isAdmin ? `<div class="event-detail-actions"><button class="baum-zeigen" onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button><button class="baum-zeigen" onclick="zeigeEventUploader('${shortId}')">${t('event_upload')}</button></div>` : ''}
+    <div class="event-section">
+      <div class="event-section-line">
+        <div class="event-section-label">${t('event_description')}</div>
+        <button class="baum-zeigen" ${editEnabled ? '' : 'disabled'} onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>
+      </div>
+      <div class="event-section-content">
+        <div class="info-zeile"><strong>${t('event_single_title')}</strong> ${escapeHtml(nm(event.subtitle))}</div>
+        <div class="info-zeile"><strong>${t('event_organizer')}</strong> ${escapeHtml(nm(event.organizers))}</div>
+      </div>
+    </div>
+    <div class="event-section">
+      <div class="event-section-line">
+        <div class="event-section-label">${t('event_media')}</div>
+        <button class="baum-zeigen" ${uploadEnabled ? '' : 'disabled'} onclick="zeigeEventUploader('${shortId}')">${t('event_upload')}</button>
+      </div>
+      ${media.length ? buildEventMediaHtml(media) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
+    </div>
     ${isAdmin ? `<div class="event-admin-hint">${t('event_admin_hint')}</div>` : ''}
   `;
   document.getElementById('modal').classList.add('aktiv');
@@ -1374,6 +1413,12 @@ function zeigeEventEditor(eventId) {
   document.getElementById('modal-text').innerHTML = `
     <h2>${escapeHtml(nm(event.title))}</h2>
     <div class="event-editor">
+      <label>${t('shorts_titel')}<br>
+        <input type="text" id="event-subtitle-input" value="${escapeHtml(nm(event.subtitle))}">
+      </label>
+      <label>${t('event_organizer')}<br>
+        <input type="text" id="event-organizers-input" value="${escapeHtml(nm(event.organizers))}">
+      </label>
       <label>${t('event_description')}<br>
         <textarea id="event-details-input">${escapeHtml(nm(event.details))}</textarea>
       </label>
@@ -1429,6 +1474,9 @@ function buildEventMediaHtml(media) {
 }
 
 function zeigeEventUploader(eventId) {
+  if (!aktuellerUser) {
+    return;
+  }
   const event = getEventConfig(eventId);
   if (!event) return;
   const media = renderEventMedia(eventId);
