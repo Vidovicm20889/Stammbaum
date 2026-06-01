@@ -138,6 +138,20 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 
 #ansicht-karten { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
 #ansicht-shorts { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+#login-hinweis { display: none; max-width: 600px; margin: 90px auto; padding: 0 20px; text-align: center; }
+.login-hinweis-box h2 { font-size: 26px; color: var(--akzent); margin-bottom: 14px; letter-spacing: 1px; }
+.login-hinweis-box p { color: var(--text-dim); margin-bottom: 26px; line-height: 1.6; font-size: 15px; }
+.login-hinweis-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.login-hinweis-btn {
+  background: var(--akzent); color: var(--paper); border: none;
+  padding: 13px 34px; cursor: pointer; font-family: inherit; font-size: 14px;
+  letter-spacing: 2px; text-transform: uppercase; transition: all 0.2s;
+}
+.login-hinweis-btn:hover { background: var(--akzent-hell); }
+.login-hinweis-btn.sekundaer {
+  background: transparent; color: var(--gold); border: 1px solid var(--gold);
+}
+.login-hinweis-btn.sekundaer:hover { background: var(--gold); color: var(--paper); }
 .shorts-header { margin-bottom: 24px; }
 .shorts-header h2 { font-size: clamp(28px, 4vw, 36px); color: var(--akzent); margin-bottom: 8px; }
 .shorts-header p { color: #5e4b35; font-size: 14px; max-width: 760px; line-height: 1.6; }
@@ -565,6 +579,7 @@ footer {
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
     <input type="text" class="suche" id="suche" data-i18n-placeholder="suche_placeholder">
+    <select class="filter" id="tree-select" title="Stammbaum wählen" onchange="waehleStammbaum(this.value)"></select>
     <select class="filter" id="filter-nachname"></select>
 
     <!-- Menü-Dropdown: bündelt Sprache, Anmelden/Account und GEDCOM -->
@@ -609,6 +624,18 @@ footer {
   <p class="untertitel" data-i18n="untertitel"></p>
   <p class="stats" id="header-stats"></p>
 </header>
+
+<!-- Hinweis, solange nicht eingeloggt (Stammbaum ist privat) -->
+<section id="login-hinweis" style="display:none">
+  <div class="login-hinweis-box">
+    <h2 data-i18n="login_hinweis_titel"></h2>
+    <p data-i18n="login_hinweis_text"></p>
+    <div class="login-hinweis-actions">
+      <button class="login-hinweis-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
+      <button class="login-hinweis-btn sekundaer" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
+    </div>
+  </div>
+</section>
 
 <section id="ansicht-karten">
   <div class="personen" id="personen-grid"></div>
@@ -839,6 +866,9 @@ async function setzeUser(user) {
     '(raw:', rawRolle, ', Mitgliedschaften:', (data || []).length, ')');
 
   aktualisiereAuthUI();
+
+  // Phase A2: Sobald Session + Rolle stehen, Baum aus Supabase laden (Fallback bleibt FAMILY_DATA)
+  ladeBaumDaten();
 }
 
 function normalizeRolle(rolle) {
@@ -878,6 +908,7 @@ function aktualisiereAuthUI() {
   const rolleEl     = document.getElementById('user-rolle');
   const uploadLabel = document.querySelector('label[for="gedcom-input"]');
   const shortsTab   = document.getElementById('tab-shorts');   // Events-Tab
+  const accountBtn  = document.getElementById('account-btn');   // "Account anlegen" im ☰-Menü
 
   if (aktuellerUser) {
     anmeldenBtn.style.display = 'none';
@@ -887,13 +918,45 @@ function aktualisiereAuthUI() {
     // Upload nur für Admins sichtbar
     if (uploadLabel) uploadLabel.style.display = istAdmin() ? '' : 'none';
     if (shortsTab)   shortsTab.style.display = '';   // Events nur eingeloggt sichtbar
+    if (accountBtn)  accountBtn.style.display = 'none';   // eingeloggt: kein "Account anlegen"
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
     if (uploadLabel) uploadLabel.style.display = 'none';
     if (shortsTab)   shortsTab.style.display = 'none';
-    // Falls der ausgeloggte User gerade auf der Events-Ansicht ist -> zur Baum-Ansicht
-    if (typeof aktuelleAnsicht !== 'undefined' && aktuelleAnsicht === 'shorts') wechselAnsicht('baum');
+    if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
+    // Falls der ausgeloggte User gerade auf der Events-Ansicht war -> zurück auf Baum
+    if (typeof aktuelleAnsicht !== 'undefined' && aktuelleAnsicht === 'shorts') aktuelleAnsicht = 'baum';
+  }
+  aktualisiereInhaltSichtbarkeit();
+}
+
+// Stammbaum/Daten sind privat: ohne Login nur ein Anmelde-Hinweis, sonst die Ansichten.
+function aktualisiereInhaltSichtbarkeit() {
+  const eingeloggt = !!aktuellerUser;
+  aktualisiereKopf();   // Titel/Zahlen passend zum Login-Status
+  const hinweis    = document.getElementById('login-hinweis');
+  const tabGruppe  = document.querySelector('.tab-gruppe');
+  const suche      = document.getElementById('suche');
+  const filter     = document.getElementById('filter-nachname');
+  const treeSel    = document.getElementById('tree-select');
+
+  if (eingeloggt) {
+    if (hinweis)   hinweis.style.display   = 'none';
+    if (tabGruppe) tabGruppe.style.display = '';
+    if (suche)     suche.style.display     = '';
+    if (filter)    filter.style.display    = '';
+    if (treeSel)   treeSel.style.display   = treeSel.options.length ? '' : 'none';
+    wechselAnsicht(aktuelleAnsicht || 'baum');   // aktuelle Ansicht wieder einblenden
+  } else {
+    ['ansicht-karten','ansicht-shorts','ansicht-baum'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    if (tabGruppe) tabGruppe.style.display = 'none';
+    if (suche)     suche.style.display     = 'none';
+    if (filter)    filter.style.display    = 'none';
+    if (treeSel)   treeSel.style.display   = 'none';
+    if (hinweis)   hinweis.style.display   = 'block';
   }
 }
 
@@ -965,6 +1028,78 @@ async function migriereStammbaum() {
   return { ok: true, personen: insP.length, beziehungen: bez.length };
 }
 window.migriereStammbaum = migriereStammbaum;
+
+// ============================================================
+// MULTI-TREE Phase B1: je Nachname einen Stammbaum anlegen und jede Person
+// zuordnen (personen.stammbaum_id). Konsole als Super-Admin:  await migriereMultiTree()
+// Idempotent (stammbaeume per (familie_id,name) upserten; personen-Update je Gruppe).
+// ============================================================
+async function migriereMultiTree() {
+  console.log('%c⏳ Multi-Tree-Migration startet…', 'color:#7a2a2a;font-weight:bold');
+  if (!aktuellerUser) { console.error('Bitte als Super-Admin einloggen.'); return { fehler: 'nicht eingeloggt' }; }
+
+  const { data: mit, error: mErr } = await sbClient
+    .from('mitgliedschaften').select('familie_id, rolle').eq('user_id', aktuellerUser.id);
+  if (mErr || !mit || mit.length === 0) { console.error('Keine Mitgliedschaft:', mErr); return { fehler: 'mitgliedschaft' }; }
+  const sa = mit.find(x => x.rolle === 'super_admin') || mit[0];
+  const familie_id = sa.familie_id;
+
+  const persons  = FAMILY_DATA.persons;
+  const families = FAMILY_DATA.families;
+
+  // Nachname je Person bestimmen; bei Leerwert aus Geburtsfamilie/Ehepartner ableiten
+  const cache = {};
+  function surnameOf(id, seen) {
+    if (cache[id] !== undefined) return cache[id];
+    const p = persons[id];
+    if (!p) return null;
+    if (p.surname && p.surname.trim()) return (cache[id] = p.surname.trim());
+    seen = seen || new Set();
+    if (seen.has(id)) return null;
+    seen.add(id);
+    for (const fid of (p.families_child || [])) {        // Geburtsfamilie -> Vater/Mutter
+      const fam = families[fid]; if (!fam) continue;
+      const s = (fam.husband && surnameOf(fam.husband, seen)) || (fam.wife && surnameOf(fam.wife, seen));
+      if (s) return (cache[id] = s);
+    }
+    for (const fid of (p.families_spouse || [])) {       // sonst Ehepartner
+      const fam = families[fid]; if (!fam) continue;
+      const partner = fam.husband === id ? fam.wife : fam.husband;
+      const s = partner && surnameOf(partner, seen);
+      if (s) return (cache[id] = s);
+    }
+    return (cache[id] = null);
+  }
+
+  // 1) Distinct Nachnamen -> stammbaeume upserten
+  const namen = new Set();
+  Object.keys(persons).forEach(id => namen.add(surnameOf(id) || 'Unbekannt'));
+  const { data: insB, error: bErr } = await sbClient.from('stammbaeume')
+    .upsert([...namen].map(name => ({ familie_id, name })), { onConflict: 'familie_id,name' })
+    .select('id, name');
+  if (bErr) { console.error('Stammbäume-Upsert-Fehler:', bErr); return { fehler: 'stammbaeume', bErr }; }
+  const name2tree = {};
+  insB.forEach(r => { name2tree[r.name] = r.id; });
+  console.log('Stammbäume:', insB.length, insB.map(b => b.name).join(', '));
+
+  // 2) personen.stammbaum_id je Nachname-Gruppe setzen (nur diese Spalte)
+  const gruppen = {};
+  Object.values(persons).forEach(p => {
+    const tid = name2tree[surnameOf(p.id) || 'Unbekannt'];
+    (gruppen[tid] = gruppen[tid] || []).push(p.id);
+  });
+  let zugeordnet = 0;
+  for (const [tid, exts] of Object.entries(gruppen)) {
+    const { error } = await sbClient.from('personen')
+      .update({ stammbaum_id: tid }).eq('familie_id', familie_id).in('externe_id', exts);
+    if (error) { console.error('Personen-Update-Fehler:', error); return { fehler: 'personen', error }; }
+    zugeordnet += exts.length;
+  }
+  console.log('%c✅ Multi-Tree fertig.', 'color:green;font-weight:bold',
+    insB.length, 'Bäume,', zugeordnet, 'Personen zugeordnet.');
+  return { ok: true, baeume: insB.length, personen: zugeordnet };
+}
+window.migriereMultiTree = migriereMultiTree;
 
 async function anmelden() {
   const email    = document.getElementById('login-email').value.trim();
@@ -1280,6 +1415,7 @@ const TEXTE = {
   de: {
     untertitel: 'Stammbaum',
     stats: '{p} PERSONEN · {f} FAMILIEN',
+    stats_baum: '{p} PERSONEN',
     tab_karten: 'Familienmitglieder',
     tab_shorts: 'Events',
     tab_baum: 'Stammbaum',
@@ -1335,6 +1471,10 @@ const TEXTE = {
     reg_familie_ph: 'Familie suchen…',
     reg_familie_locked: 'Zuerst Land, Stadt, Gemeinde, Geburtsort ausfüllen',
     reg_keine_familien: 'Keine Familie gefunden',
+    login_hinweis_titel: 'Anmeldung erforderlich',
+    login_hinweis_text: 'Bitte melde dich an, um deinen Stammbaum zu sehen.',
+    kopf_neutral: 'Stammbaum-Dokumentation',
+    kopf_neutral_sub: 'Familiengeschichte, bewahrt für kommende Generationen',
     reg_rolle: 'Gewünschte Rolle',
     reg_personendaten: 'Personendaten (optional)',
     reg_vorname: 'Vorname',
@@ -1381,6 +1521,7 @@ const TEXTE = {
   sr: {
     untertitel: 'Породично стабло',
     stats: '{p} ОСОБА · {f} ПОРОДИЦА',
+    stats_baum: '{p} ОСОБА',
     tab_karten: 'Чланови породице',
     tab_shorts: 'Догађаји',
     tab_baum: 'Стабло',
@@ -1436,6 +1577,10 @@ const TEXTE = {
     reg_familie_ph: 'Претражи породицу…',
     reg_familie_locked: 'Прво унеси државу, град, општину и место рођења',
     reg_keine_familien: 'Породица није пронађена',
+    login_hinweis_titel: 'Потребна пријава',
+    login_hinweis_text: 'Пријави се да би видео своје породично стабло.',
+    kopf_neutral: 'Документација стабла',
+    kopf_neutral_sub: 'Породична историја, сачувана за будуће генерације',
     reg_rolle: 'Жељена улога',
     reg_personendaten: 'Лични подаци (опционо)',
     reg_vorname: 'Име',
@@ -1482,6 +1627,7 @@ const TEXTE = {
   hr: {
     untertitel: 'Obiteljsko stablo',
     stats: '{p} OSOBA · {f} OBITELJI',
+    stats_baum: '{p} OSOBA',
     tab_karten: 'Članovi obitelji',
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
@@ -1537,6 +1683,10 @@ const TEXTE = {
     reg_familie_ph: 'Pretraži obitelj…',
     reg_familie_locked: 'Prvo ispuni državu, grad, općinu i mjesto rođenja',
     reg_keine_familien: 'Obitelj nije pronađena',
+    login_hinweis_titel: 'Potrebna prijava',
+    login_hinweis_text: 'Prijavi se kako bi vidio svoje obiteljsko stablo.',
+    kopf_neutral: 'Dokumentacija stabla',
+    kopf_neutral_sub: 'Obiteljska povijest, sačuvana za buduće generacije',
     reg_rolle: 'Željena uloga',
     reg_personendaten: 'Osobni podaci (neobavezno)',
     reg_vorname: 'Ime',
@@ -1583,6 +1733,7 @@ const TEXTE = {
   ba: {
     untertitel: 'Porodično stablo',
     stats: '{p} OSOBA · {f} PORODICA',
+    stats_baum: '{p} OSOBA',
     tab_karten: 'Članovi porodice',
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
@@ -1638,6 +1789,10 @@ const TEXTE = {
     reg_familie_ph: 'Pretraži porodicu…',
     reg_familie_locked: 'Prvo ispuni državu, grad, općinu i mjesto rođenja',
     reg_keine_familien: 'Porodica nije pronađena',
+    login_hinweis_titel: 'Potrebna prijava',
+    login_hinweis_text: 'Prijavi se kako bi vidio svoje porodično stablo.',
+    kopf_neutral: 'Dokumentacija stabla',
+    kopf_neutral_sub: 'Porodična historija, sačuvana za buduće generacije',
     reg_rolle: 'Željena uloga',
     reg_personendaten: 'Lični podaci (opcionalno)',
     reg_vorname: 'Ime',
@@ -1684,6 +1839,7 @@ const TEXTE = {
   en: {
     untertitel: 'Family Tree',
     stats: '{p} PEOPLE · {f} FAMILIES',
+    stats_baum: '{p} PEOPLE',
     tab_karten: 'Family members',
     tab_shorts: 'Events',
     tab_baum: 'Family Tree',
@@ -1739,6 +1895,10 @@ const TEXTE = {
     reg_familie_ph: 'Search family…',
     reg_familie_locked: 'First fill in country, city, municipality and place of birth',
     reg_keine_familien: 'No family found',
+    login_hinweis_titel: 'Login required',
+    login_hinweis_text: 'Please sign in to view your family tree.',
+    kopf_neutral: 'Family Tree Archive',
+    kopf_neutral_sub: 'Family history, preserved for future generations',
     reg_rolle: 'Desired role',
     reg_personendaten: 'Personal data (optional)',
     reg_vorname: 'First name',
@@ -1809,6 +1969,9 @@ let aktuelleSprache = TEXTE[localStorage.getItem('vidovic_lang')] ? localStorage
 let aktuelleDaten = FAMILY_DATA;
 let fokusPersonId = null;
 let aktuelleAnsicht = 'baum';
+// Multi-Tree (B2): aktuell gewählter Stammbaum + Liste {id: name}
+let aktuellerStammbaumId = null;
+let stammbaeumeListe = {};
 let modalVerlauf = [];
 let aktuelleModalPersonId = null;
 
@@ -1870,9 +2033,8 @@ function wechselSprache(lang) {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
 
-  // Überschrift (Familienname) ggf. kyrillisch
-  const titelEl = document.querySelector('header h1');
-  if (titelEl) titelEl.textContent = nm('VIDOVIĆ');
+  // Kopf (Titel/Untertitel/Zahlen) je nach Login + aktuellem Stammbaum
+  aktualisiereKopf();
 
   // Dynamische Inhalte neu rendern
   aktualisiereStats();
@@ -1884,13 +2046,198 @@ function wechselSprache(lang) {
   aktualisiereAuthUI();
 }
 
+// Wurzel des aktuell gewählten Stammbaums (Fallback: klassische Wurzel I500009)
+function aktuelleWurzel() {
+  if (aktuellerStammbaumId) {
+    const r = findeStammbaumWurzel(aktuellerStammbaumId);
+    if (r) return r;
+  }
+  return 'I500009';
+}
+
 // Baum im aktuellen Zustand (Suche / Fokus / Vollansicht) neu zeichnen
 function zeichneBaumNeu() {
   if (!baumG) return;
   const suche = document.getElementById('suche').value.trim();
   if (suche) suchImBaum(suche);
   else if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) zeichneBaum(fokusPersonId, 2, 2);
-  else zeichneBaum('I500009', 10, 0);
+  else zeichneBaum(aktuelleWurzel(), 12, 0);
+}
+
+// ============================================================
+// PHASE A2: Baum aus Supabase laden (Fallback: eingebettetes FAMILY_DATA)
+// Rekonstruiert aus personen + beziehungen (ehepartner/elternteil) wieder die
+// GEDCOM-artige Struktur { persons, families }. Personen-Schlüssel = externe_id
+// (z.B. I500009) -> bleibt kompatibel zur bestehenden Render-Logik.
+// ============================================================
+async function ladeBaumAusSupabase() {
+  const [pRes, bRes, sRes] = await Promise.all([
+    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id'),
+    sbClient.from('beziehungen').select('person_a, person_b, typ'),
+    sbClient.from('stammbaeume').select('id, name')
+  ]);
+  if (pRes.error || bRes.error) {
+    console.warn('Supabase-Baum: Ladefehler, nutze eingebettete Daten.', pRes.error || bRes.error);
+    return null;
+  }
+  // Baumliste merken (id -> name) für Auswahl & Kopf
+  stammbaeumeListe = {};
+  (sRes.data || []).forEach(s => { stammbaeumeListe[s.id] = s.name; });
+  const rows = pRes.data || [];
+  if (rows.length === 0) return null;   // nicht eingeloggt / keine Sichtbarkeit -> Fallback
+
+  const uuid2ext = {};
+  const persons  = {};
+  rows.forEach(row => {
+    const sd  = row.stammbaum_daten || {};
+    const ext = row.externe_id || sd.id;
+    if (!ext) return;
+    uuid2ext[row.id] = ext;
+    persons[ext] = {
+      ...sd, id: ext, families_spouse: [], families_child: [],
+      _uuid: row.id,
+      _tree: row.stammbaum_id || null,
+      _pos: (row.pos_x != null && row.pos_y != null) ? { x: row.pos_x, y: row.pos_y } : null
+    };
+  });
+
+  // Beziehungen -> Ehepaare + Eltern-Mengen je Kind
+  const ehe = [];
+  const elternVon = {};
+  (bRes.data || []).forEach(b => {
+    const a = uuid2ext[b.person_a], c = uuid2ext[b.person_b];
+    if (!a || !c) return;
+    if (b.typ === 'ehepartner')      ehe.push([a, c]);
+    else if (b.typ === 'elternteil') (elternVon[c] = elternVon[c] || new Set()).add(a);
+  });
+
+  // Familien-Einheiten rekonstruieren (Schlüssel = sortierte Eltern-IDs)
+  const families = {};
+  const keyToFam = {};
+  let famN = 1;
+  function holeFamilie(parents) {
+    const key = parents.slice().sort().join('__');
+    if (keyToFam[key]) return keyToFam[key];
+    const fid = 'FAM' + (famN++);
+    const fam = { id: fid, husband: null, wife: null, children: [] };
+    parents.forEach(pid => {
+      const sex = (persons[pid] && persons[pid].sex) || '';
+      if (sex === 'M' && !fam.husband)      fam.husband = pid;
+      else if (sex === 'F' && !fam.wife)    fam.wife = pid;
+      else if (!fam.husband)                fam.husband = pid;
+      else                                  fam.wife = pid;
+    });
+    families[fid] = fam;
+    keyToFam[key] = fid;
+    return fid;
+  }
+  ehe.forEach(([a, b]) => holeFamilie([a, b]));                 // auch kinderlose Paare
+  Object.entries(elternVon).forEach(([child, set]) => {
+    const fid = holeFamilie([...set]);
+    if (!families[fid].children.includes(child)) families[fid].children.push(child);
+  });
+
+  // families_spouse / families_child an den Personen setzen
+  Object.values(families).forEach(fam => {
+    if (fam.husband && persons[fam.husband]) persons[fam.husband].families_spouse.push(fam.id);
+    if (fam.wife    && persons[fam.wife])    persons[fam.wife].families_spouse.push(fam.id);
+    fam.children.forEach(cid => { if (persons[cid]) persons[cid].families_child.push(fam.id); });
+  });
+
+  return { persons, families };
+}
+
+// Lädt die Baumdaten und rendert neu; bei Misserfolg bleibt das eingebettete FAMILY_DATA aktiv.
+async function ladeBaumDaten() {
+  const daten = await ladeBaumAusSupabase();
+  if (!daten || Object.keys(daten.persons).length === 0) {
+    console.log('Baum: eingebettete FAMILY_DATA aktiv (Supabase leer/nicht sichtbar).');
+    return;
+  }
+  // Sicherheitsnetz: fehlt die Wurzelperson, stimmt etwas nicht -> beim Embedded bleiben
+  if (!daten.persons['I500009']) {
+    console.warn('Baum: Wurzelperson I500009 fehlt in Supabase-Daten -> bleibe bei FAMILY_DATA.');
+    return;
+  }
+  aktuelleDaten = daten;
+  console.log('Baum aus Supabase geladen:', Object.keys(daten.persons).length, 'Personen,',
+    Object.keys(daten.families).length, 'Familien,', Object.keys(stammbaeumeListe).length, 'Stammbäume.');
+  baueNachnameFilter();
+  // Multi-Tree (B2): Auswahl befüllen + größten Baum (= Hauptstamm) anzeigen
+  befuelleStammbaumAuswahl();
+  const standard = groessterStammbaum();
+  if (standard) waehleStammbaum(standard);
+  else { aktualisiereStats(); zeichneBaumNeu(); }
+  if (aktuelleAnsicht === 'karten') zeigeKarten();
+  else if (aktuelleAnsicht === 'shorts') zeigeShorts();
+}
+
+// Personenzahl je Stammbaum
+function stammbaumGroessen() {
+  const z = {};
+  Object.values(aktuelleDaten.persons).forEach(p => { if (p._tree) z[p._tree] = (z[p._tree] || 0) + 1; });
+  return z;
+}
+
+function groessterStammbaum() {
+  const z = stammbaumGroessen();
+  let best = null, max = -1;
+  Object.entries(z).forEach(([id, n]) => { if (n > max) { max = n; best = id; } });
+  return best;
+}
+
+// Auswahl-Dropdown mit allen Bäumen (die Personen haben), nach Größe sortiert
+function befuelleStammbaumAuswahl() {
+  const sel = document.getElementById('tree-select');
+  if (!sel) return;
+  const z = stammbaumGroessen();
+  const ids = Object.keys(stammbaeumeListe)
+    .filter(id => z[id])
+    .sort((a, b) => (z[b] || 0) - (z[a] || 0) || (stammbaeumeListe[a] || '').localeCompare(stammbaeumeListe[b] || ''));
+  sel.innerHTML = ids.map(id =>
+    `<option value="${id}">${escapeHtml(nm(stammbaeumeListe[id]))} (${z[id]})</option>`
+  ).join('');
+  sel.style.display = ids.length ? '' : 'none';
+}
+
+// Wurzel eines Baums: Person ohne Eltern im selben Baum mit den meisten Nachkommen
+function findeStammbaumWurzel(treeId) {
+  const imBaum = id => { const p = aktuelleDaten.persons[id]; return p && p._tree === treeId; };
+  const personen = Object.values(aktuelleDaten.persons).filter(p => p._tree === treeId);
+  if (!personen.length) return null;
+  const hatElternImBaum = p => (p.families_child || []).some(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return false;
+    return (fam.husband && imBaum(fam.husband)) || (fam.wife && imBaum(fam.wife));
+  });
+  const kandidaten = personen.filter(p => !hatElternImBaum(p));
+  const liste = kandidaten.length ? kandidaten : personen;
+  function nachkommen(id, seen) {
+    seen = seen || new Set(); if (seen.has(id)) return 0; seen.add(id);
+    const p = aktuelleDaten.persons[id]; if (!p) return 0;
+    let n = 0;
+    (p.families_spouse || []).forEach(fid => {
+      const fam = aktuelleDaten.families[fid]; if (!fam) return;
+      (fam.children || []).forEach(cid => { if (imBaum(cid)) n += 1 + nachkommen(cid, seen); });
+    });
+    return n;
+  }
+  let best = liste[0], max = -1;
+  liste.forEach(p => { const n = nachkommen(p.id); if (n > max) { max = n; best = p; } });
+  return best.id;
+}
+
+// Einen Stammbaum auswählen und anzeigen
+function waehleStammbaum(treeId) {
+  if (!treeId) return;
+  aktuellerStammbaumId = treeId;
+  fokusPersonId = null;
+  document.getElementById('suche').value = '';
+  const sel = document.getElementById('tree-select');
+  if (sel && sel.value !== treeId) sel.value = treeId;
+  aktualisiereKopf();
+  const root = findeStammbaumWurzel(treeId);
+  if (root) zeichneBaum(root, 12, 0);
+  else if (baumG) baumG.selectAll('*').remove();
 }
 
 // ============================================================
@@ -1957,12 +2304,55 @@ function init() {
   wechselAnsicht('baum');
   ladeAuth();
   pruefePasswortSetzen();
+  aktualisiereInhaltSichtbarkeit();   // Standard: ohne Login kein Baum, nur Hinweis
 }
 
 function aktualisiereStats() {
   const p = Object.keys(aktuelleDaten.persons).length;
   const f = Object.keys(aktuelleDaten.families).length;
   document.getElementById('header-stats').textContent = t('stats', {p, f});
+}
+
+// Kopfbereich dynamisch: ausgeloggt = neutraler Titel ohne Zahlen; eingeloggt =
+// Nachname des aktuell angezeigten Stammbaums (folgt dem Fokus, z.B. Petrović).
+function aktualisiereKopf(rootId) {
+  const h1    = document.querySelector('header h1');
+  const sub   = document.querySelector('.untertitel');
+  const stats = document.getElementById('header-stats');
+
+  if (!aktuellerUser) {
+    if (h1)    h1.textContent  = nm(t('kopf_neutral'));
+    if (sub)   sub.textContent = t('kopf_neutral_sub');
+    if (stats) stats.style.display = 'none';
+    return;
+  }
+
+  if (sub)   sub.textContent = t('untertitel');
+  if (stats) stats.style.display = '';
+
+  // Name: gewählter Stammbaum (Multi-Tree); sonst Nachname der Wurzel
+  let name;
+  if (aktuellerStammbaumId && stammbaeumeListe[aktuellerStammbaumId]) {
+    name = stammbaeumeListe[aktuellerStammbaumId];
+  } else {
+    const wurzel = (rootId && aktuelleDaten.persons[rootId]) ? rootId
+                 : (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) ? fokusPersonId
+                 : (aktuelleDaten.persons['I500009'] ? 'I500009'
+                    : Object.keys(aktuelleDaten.persons)[0]);
+    const wp = aktuelleDaten.persons[wurzel];
+    name = (wp && wp.surname) ? wp.surname : t('kopf_neutral');
+  }
+  if (h1) h1.textContent = nm(String(name).toLocaleUpperCase('de'));
+
+  // Zahlen: Personen im aktuellen Baum (sonst Gesamt)
+  if (stats) {
+    if (aktuellerStammbaumId) {
+      const n = Object.values(aktuelleDaten.persons).filter(p => p._tree === aktuellerStammbaumId).length;
+      stats.textContent = t('stats_baum', { p: n });
+    } else {
+      aktualisiereStats();
+    }
+  }
 }
 
 function handleSuche() {
@@ -1979,7 +2369,7 @@ function handleSuche() {
 function suchImBaum(suche) {
   if (!suche) {
     fokusPersonId = null;
-    zeichneBaum('I500009', 10, 0);
+    zeichneBaum(aktuelleWurzel(), 12, 0);
     return;
   }
 
@@ -2038,7 +2428,7 @@ function aktualisiereBaumInfo() {
 
 function zeigVollenBaum() {
   fokusPersonId = null;
-  zeichneBaum('I500009', 10, 0);
+  zeichneBaum(aktuelleWurzel(), 12, 0);
 }
 
 function baueNachnameFilter() {
@@ -2653,9 +3043,17 @@ function geheZurueck() {
 
 function schliesseModalUndZeigeBaum(personId) {
   schliesseModal();
+  const p = aktuelleDaten.persons[personId];
+  // Multi-Tree: gehört die Person zu einem anderen Baum -> dorthin wechseln
+  if (p && p._tree && p._tree !== aktuellerStammbaumId) {
+    aktuellerStammbaumId = p._tree;
+    const sel = document.getElementById('tree-select');
+    if (sel) sel.value = p._tree;
+  }
   fokusPersonId = personId;
+  document.getElementById('suche').value = '';
   wechselAnsicht('baum');
-  zeichneBaum(personId);
+  zeichneBaum(personId);   // setzt den Kopf passend (aktualisiereKopf)
 }
 
 // ============================================================
@@ -2675,7 +3073,7 @@ function wechselAnsicht(name) {
     if (suche) {
       suchImBaum(suche);
     } else if (!fokusPersonId) {
-      zeichneBaum('I500009', 10, 0);
+      zeichneBaum(aktuelleWurzel(), 12, 0);
     }
   } else if (name === 'karten') {
     zeigeKarten();
@@ -2722,6 +3120,9 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
 
   const wurzel = baueBaumDaten(rootPersonId, tiefeUnten, tiefeOben);
   if (!wurzel) return;
+
+  // Kopf an den aktuell angezeigten Stammbaum anpassen (#4: z.B. Petrović)
+  aktualisiereKopf(rootPersonId);
   
   const containerB = document.getElementById('baum-container').getBoundingClientRect();
   const breite = containerB.width;
@@ -2979,13 +3380,25 @@ const BLUTLINIE_KINDER = { 'I500009': 'I500007', 'I500007': 'I500003' };
 function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
   if (!aktuelleDaten.persons[rootId]) return null;
 
+  // Multi-Tree (B2): auf den gewählten Stammbaum begrenzen. Ohne Auswahl (oder
+  // ohne _tree-Daten) verhält es sich wie früher (alles verbunden).
+  const treeId = aktuellerStammbaumId;
+  const sameTree = (id) => {
+    if (!treeId) return true;
+    const p = aktuelleDaten.persons[id];
+    return !!(p && p._tree === treeId);
+  };
+
   function findeWurzel(personId, tiefe) {
     if (tiefe <= 0) return personId;
     const p = aktuelleDaten.persons[personId];
     if (!p || !p.families_child.length) return personId;
     const fam = aktuelleDaten.families[p.families_child[0]];
     if (!fam) return personId;
-    const elternId = fam.husband || fam.wife;
+    // Elternteil im selben Baum bevorzugen; gibt es keinen -> hier ist die Wurzel
+    let elternId = null;
+    if (fam.husband && sameTree(fam.husband)) elternId = fam.husband;
+    else if (fam.wife && sameTree(fam.wife)) elternId = fam.wife;
     if (!elternId || !aktuelleDaten.persons[elternId]) return personId;
     return findeWurzel(elternId, tiefe - 1);
   }
@@ -3021,6 +3434,7 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
     if (familien.length >= 2) {
       familien.forEach((fam, famIdx) => {
         fam.kinderIds.forEach(cid => {
+          if (!sameTree(cid)) return;   // Kinder anderer Bäume gehören in deren Ansicht
           const kindKnoten = baueKnoten(cid, tiefe - 1);
           if (kindKnoten) { kindKnoten.familyIndex = famIdx; knoten.children.push(kindKnoten); }
         });
@@ -3029,6 +3443,7 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
       const kinderIds = new Set();
       familien.forEach(fam => fam.kinderIds.forEach(c => kinderIds.add(c)));
       kinderIds.forEach(cid => {
+        if (!sameTree(cid)) return;
         const kindKnoten = baueKnoten(cid, tiefe - 1);
         if (kindKnoten) knoten.children.push(kindKnoten);
       });
