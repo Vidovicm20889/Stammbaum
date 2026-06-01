@@ -1,0 +1,4 @@
+# Supabase – niemals Secrets committen
+supabase/.env
+supabase/.temp/
+.env
