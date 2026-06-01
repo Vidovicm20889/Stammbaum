@@ -9,7 +9,8 @@ Aktuell: Vanilla HTML/CSS/JS, kein Framework, kein Build-Tool.
 - Edles, nobles Design — dunkles Farbschema, Serifenschriften, Gold-Akzente
 - Konsistent mit bestehendem Stil (Bild4.jpg als Hintergrundbild auf #baum-container)
 - Mobile-first: jede Änderung muss auf Smartphone funktionieren
-- Mehrsprachig: DE / SR / EN — Texte nie hardcoden, immer i18n-Objekte verwenden
+- Mehrsprachig: DE / SR / HR / BA / EN — Texte nie hardcoden, immer i18n-Objekte verwenden
+- Bei der Umsetzung immer sicherstellen, dass alle sichtbaren Inhalte korrekt in alle Sprachen übersetzt werden
 
 ## Architektur-Regeln
 - Keine externen Libraries ohne ausdrückliche Absprache

@@ -109,11 +109,34 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 #gedcom-input { display: none; }
 
 #ansicht-karten { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
-.personen {
+#ansicht-shorts { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+.shorts-header { margin-bottom: 24px; }
+.shorts-header h2 { font-size: clamp(28px, 4vw, 36px); color: var(--akzent); margin-bottom: 8px; }
+.shorts-header p { color: #5e4b35; font-size: 14px; max-width: 760px; line-height: 1.6; }
+.shorts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
 }
+.short-card {
+  background: var(--paper); color: var(--ink);
+  padding: 20px; border: 1px solid var(--linie);
+  box-shadow: 0 2px 12px rgba(44,36,24,0.10);
+  border-radius: 18px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+}
+.short-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(44,36,24,0.16);
+}
+.short-card .thumb {
+  background: linear-gradient(135deg, rgba(156,124,60,0.95), rgba(114,47,55,0.95));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 16 / 9; border-radius: 14px; margin-bottom: 16px;
+  font-size: 28px; font-weight: 700;
+}
+.short-card h3 { font-size: 18px; margin-bottom: 8px; }
+.short-card p { font-size: 13px; line-height: 1.65; color: #5e4b35; min-height: 48px; }
+.short-card .meta { margin-top: 14px; font-size: 12px; color: #7a6a50; letter-spacing: 0.6px; }
 .person {
   background: var(--paper); color: var(--ink); padding: 18px;
   box-shadow: 0 2px 12px rgba(44,36,24,0.10), 0 0 0 1px rgba(156,124,60,0.3);
@@ -238,6 +261,38 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   text-transform: uppercase; font-size: 13px;
 }
 .modal .baum-zeigen:hover { background: var(--akzent-hell); }
+.event-editor {
+  display: grid; gap: 18px;
+}
+.event-editor textarea {
+  width: 100%; min-height: 140px; padding: 14px;
+  border: 1px solid var(--linie); font-family: inherit;
+  background: var(--paper); color: var(--ink);
+  resize: vertical;
+}
+.event-upload-row {
+  display: grid; gap: 14px;
+}
+.event-upload-row label {
+  display: block; font-size: 13px; color: #5e4b35;
+}
+.event-upload-row input[type=file] {
+  margin-top: 8px; width: 100%;
+}
+.event-media-preview {
+  display: grid; gap: 12px; margin-top: 6px;
+}
+.event-media-preview img,
+.event-media-preview video {
+  width: 100%; max-height: 260px; border-radius: 14px;
+  object-fit: cover;
+}
+.event-admin-hint {
+  margin-top: 14px; font-size: 13px; color: #7a6a50; font-style: italic;
+}
+.event-status {
+  margin-top: 10px; font-size: 13px; color: var(--akzent);
+}
 .modal .zurueck-btn {
   background: none; border: none; color: var(--akzent);
   cursor: pointer; font-family: inherit; font-size: 13px;
@@ -320,6 +375,7 @@ footer {
   <div class="nav-controls">
     <div class="tab-gruppe">
       <button class="tab" data-ansicht="karten" data-i18n="tab_karten"></button>
+      <button class="tab" data-ansicht="shorts" data-i18n="tab_shorts"></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
     <input type="text" class="suche" id="suche" data-i18n-placeholder="suche_placeholder">
@@ -358,6 +414,14 @@ footer {
 
 <section id="ansicht-karten">
   <div class="personen" id="personen-grid"></div>
+</section>
+
+<section id="ansicht-shorts">
+  <div class="shorts-header">
+    <h2 data-i18n="shorts_titel"></h2>
+    <p class="shorts-hinweis" data-i18n="shorts_hinweis"></p>
+  </div>
+  <div class="shorts-grid" id="shorts-grid"></div>
 </section>
 
 <section id="ansicht-baum">
@@ -501,18 +565,72 @@ function schliesseLoginModal() {
 const FAMILY_DATA = {"persons":{"I500001":{"id":"I500001","name":"Milan Vidović","given":"Milan","surname":"Vidović","sex":"M","birth_date":"1989","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500013"],"families_child":["F500001"]},"I500002":{"id":"I500002","name":"Mara Petrović","given":"Mara","surname":"Petrović","sex":"F","birth_date":"1952","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500001"],"families_child":["F500002"]},"I500003":{"id":"I500003","name":"Marko Vidović","given":"Marko","surname":"Vidović","sex":"M","birth_date":"1947","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":true,"families_spouse":["F500001"],"families_child":["F500003"]},"I500004":{"id":"I500004","name":"Cvijeta Tadić","given":"Cvijeta","surname":"Tadić","sex":"F","birth_date":"","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500002"],"families_child":[]},"I500005":{"id":"I500005","name":"Trivo Petrovic","given":"Trivo","surname":"Petrovic","sex":"M","birth_date":"","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500002"],"families_child":["F500029"]},"I500006":{"id":"I500006","name":"Živana","given":"Živana","surname":"","sex":"F","birth_date":"","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":true,"families_spouse":["F500003"],"families_child":[]},"I500007":{"id":"I500007","name":"Simo Vidović","given":"Simo","surname":"Vidović","sex":"M","birth_date":"","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":true,"families_spouse":["F500003"],"families_child":["F500004"]},"I500008":{"id":"I500008","name":"Miroslav Vidović","given":"Miroslav","surname":"Vidović","sex":"M","birth_date":"12 MAY 1974","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500012"],"families_child":["F500001"]},"I500009":{"id":"I500009","name":"Tanasije Vidović","given":"Tanasije","surname":"Vidović","sex":"M","birth_date":"","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":true,"families_spouse":["F500004"],"families_child":[]},"I500010":{"id":"I500010","name":"Đojo Vidović","given":"Đojo","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":[],"families_child":["F500004"]},"I500011":{"id":"I500011","name":"Cvijeta","given":"Cvijeta","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500004"],"families_child":[]},"I500012":{"id":"I500012","name":"Vida Vidović","given":"Vida","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":[],"families_child":["F500004"]},"I500013":{"id":"I500013","name":"Ilija Vidović","given":"Ilija","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":[],"families_child":["F500004"]},"I500014":{"id":"I500014","name":"Ignjo Vidović","given":"Ignjo","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":[],"families_child":["F500004"]},"I500015":{"id":"I500015","name":"Anka Vidović","given":"Anka","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":[],"families_child":["F500004"]},"I500016":{"id":"I500016","name":"Tanasije Vidović","given":"Tanasije","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":["F500005"],"families_child":["F500003"]},"I500017":{"id":"I500017","name":"Cvijeta","given":"Cvijeta","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":["F500005"],"families_child":[]},"I500018":{"id":"I500018","name":"Dusan Vidović","given":"Dusan","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500006"],"families_child":["F500003"]},"I500019":{"id":"I500019","name":"Ljubica Bogdanović","given":"Ljubica","surname":"Bogdanović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500006"],"families_child":[]},"I500020":{"id":"I500020","name":"Mićo Vidović","given":"Mićo","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":["F500007","F500008"],"families_child":["F500003"]},"I500021":{"id":"I500021","name":"Đuka Savić","given":"Đuka","surname":"Savić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500007"],"families_child":[]},"I500022":{"id":"I500022","name":"Desa Pisarević","given":"Desa","surname":"Pisarević","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500008"],"families_child":[]},"I500023":{"id":"I500023","name":"Igor Vidović","given":"Igor","surname":"Vidović","sex":"M","birth_date":"21 JUL 1976","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500020","F500021"],"families_child":["F500007"]},"I500024":{"id":"I500024","name":"Gordana Vidović","given":"Gordana","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500023"],"families_child":["F500008"]},"I500025":{"id":"I500025","name":"Rado Vidović","given":"Rado","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":["F500009","F500010"],"families_child":["F500003"]},"I500026":{"id":"I500026","name":"Tereza","given":"Tereza","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":["F500009"],"families_child":[]},"I500027":{"id":"I500027","name":"Mara Dujković","given":"Mara","surname":"Dujković","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500010"],"families_child":[]},"I500028":{"id":"I500028","name":"Suzan Vidović","given":"Suzan","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500036"],"families_child":["F500010"]},"I500029":{"id":"I500029","name":"Saša Vidović","given":"Saša","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"1974","death_place":"","deceased":true,"families_spouse":["F500025","F500026"],"families_child":["F500009"]},"I500030":{"id":"I500030","name":"Siniša Vidović","given":"Siniša","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500035"],"families_child":["F500009"]},"I500031":{"id":"I500031","name":"Žana Vidović","given":"Žana","surname":"Vidović","sex":"F","birth_date":"16 SEP 1976","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500034"],"families_child":["F500009"]},"I500032":{"id":"I500032","name":"Mirjana Vidović","given":"Mirjana","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500011"],"families_child":["F500003"]},"I500033":{"id":"I500033","name":"Lazo Dušanić","given":"Lazo","surname":"Dušanić","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500011"],"families_child":[]},"I500034":{"id":"I500034","name":"Simo Vidović","given":"Simo","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500017"],"families_child":["F500005"]},"I500035":{"id":"I500035","name":"Zorica Vidović","given":"Zorica","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500016"],"families_child":["F500005"]},"I500036":{"id":"I500036","name":"Denis Vidović","given":"Denis","surname":"Vidović","sex":"M","birth_date":"13 JAN 1988","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500006"]},"I500037":{"id":"I500037","name":"Doris Vidović","given":"Doris","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500019"],"families_child":["F500006"]},"I500038":{"id":"I500038","name":"Željko Dušanić","given":"Željko","surname":"Dušanić","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500015"],"families_child":["F500011"]},"I500039":{"id":"I500039","name":"Ljubica Dušanić","given":"Ljubica","surname":"Dušanić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500014"],"families_child":["F500011"]},"I500040":{"id":"I500040","name":"Lepa Pisarević","given":"Lepa","surname":"Pisarević","sex":"F","birth_date":"13 MAY 1978","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500012"],"families_child":[]},"I500041":{"id":"I500041","name":"Marko Vidović","given":"Marko","surname":"Vidović","sex":"M","birth_date":"1 OCT 1999","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500012"]},"I500042":{"id":"I500042","name":"Marina Vidović","given":"Marina","surname":"Vidović","sex":"F","birth_date":"22 SEP 2001","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500012"]},"I500043":{"id":"I500043","name":"Slađana Kneževic","given":"Slađana","surname":"Kneževic","sex":"F","birth_date":"7 APR 1987","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500013"],"families_child":[]},"I500044":{"id":"I500044","name":"Mila Vidović","given":"Mila","surname":"Vidović","sex":"F","birth_date":"16 SEP 2019","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500013"]},"I500045":{"id":"I500045","name":"Željko Rakić","given":"Željko","surname":"Rakić","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500014"],"families_child":[]},"I500046":{"id":"I500046","name":"Dana Parandilovic","given":"Dana","surname":"Parandilovic","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500015"],"families_child":[]},"I500047":{"id":"I500047","name":"Lazar Dušanić","given":"Lazar","surname":"Dušanić","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500015"]},"I500048":{"id":"I500048","name":"Sofija Dušanić","given":"Sofija","surname":"Dušanić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500015"]},"I500049":{"id":"I500049","name":"Marko Rakić","given":"Marko","surname":"Rakić","sex":"M","birth_date":"6 JAN 2007","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500014"]},"I500050":{"id":"I500050","name":"Anđela Rakić","given":"Anđela","surname":"Rakić","sex":"F","birth_date":"18 NOV 2008","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500014"]},"I500051":{"id":"I500051","name":"Cyrilo Stephen - Vidović","given":"Cyrilo","surname":"Stephen - Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500016"]},"I500052":{"id":"I500052","name":"","given":"","surname":"","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500016"],"families_child":[]},"I500053":{"id":"I500053","name":"Mila Voćkić","given":"Mila","surname":"Voćkić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":true,"families_spouse":["F500017"],"families_child":[]},"I500054":{"id":"I500054","name":"Srđan Vidović","given":"Srđan","surname":"Vidović","sex":"M","birth_date":"7 JUN 1993","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500018"],"families_child":["F500017"]},"I500055":{"id":"I500055","name":"Stefan Vidović","given":"Stefan","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500017"]},"I500056":{"id":"I500056","name":"Maja Vidović","given":"Maja","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500017"]},"I500057":{"id":"I500057","name":"Mila Vidović","given":"Mila","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500018"]},"I500058":{"id":"I500058","name":"Bojana","given":"Bojana","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500018"],"families_child":[]},"I500059":{"id":"I500059","name":"Andrej Vidović","given":"Andrej","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500018"]},"I500060":{"id":"I500060","name":"Katarina Vidović","given":"Katarina","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500018"]},"I500061":{"id":"I500061","name":"Predrag Mašić","given":"Predrag","surname":"Mašić","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500019"],"families_child":[]},"I500062":{"id":"I500062","name":"Andrea Mašić","given":"Andrea","surname":"Mašić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500019"]},"I500063":{"id":"I500063","name":"Petra Mašić","given":"Petra","surname":"Mašić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500019"]},"I500064":{"id":"I500064","name":"Mićo Vidović","given":"Mićo","surname":"Vidović","sex":"M","birth_date":"30 OCT 1997","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500020"]},"I500065":{"id":"I500065","name":"Sanja Stolić","given":"Sanja","surname":"Stolić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500020"],"families_child":[]},"I500066":{"id":"I500066","name":"Hanka Mujkić","given":"Hanka","surname":"Mujkić","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500021"],"families_child":[]},"I500067":{"id":"I500067","name":"Ognjen Vidović","given":"Ognjen","surname":"Vidović","sex":"M","birth_date":"18 JUL 2000","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500021"]},"I500068":{"id":"I500068","name":"Đuka Vidović","given":"Đuka","surname":"Vidović","sex":"F","birth_date":"9 NOV 2001","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500022"],"families_child":["F500021"]},"I500069":{"id":"I500069","name":"Predrag Savić","given":"Predrag","surname":"Savić","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500022"],"families_child":[]},"I500070":{"id":"I500070","name":"Bogdan Savić","given":"Bogdan","surname":"Savić","sex":"M","birth_date":"4 SEP 2025","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500022"]},"I500071":{"id":"I500071","name":"Mićo Dujković","given":"Mićo","surname":"Dujković","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500023"],"families_child":[]},"I500072":{"id":"I500072","name":"Danijela Dujković","given":"Danijela","surname":"Dujković","sex":"F","birth_date":"20 AUG 1989","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500024"],"families_child":["F500023"]},"I500073":{"id":"I500073","name":"Nemanja Dujković","given":"Nemanja","surname":"Dujković","sex":"M","birth_date":"30 AUG 1993","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500037"],"families_child":["F500023"]},"I500074":{"id":"I500074","name":"Andrea Dujković","given":"Andrea","surname":"Dujković","sex":"F","birth_date":"19 DEC 2007","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500023"]},"I500075":{"id":"I500075","name":"Fadil","given":"Fadil","surname":"","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500024"],"families_child":[]},"I500076":{"id":"I500076","name":"Lamija","given":"Lamija","surname":"","sex":"F","birth_date":"9 JUL 2020","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500024"]},"I500077":{"id":"I500077","name":"Amar","given":"Amar","surname":"","sex":"M","birth_date":"26 MAR 2024","birth_place":"Deutschland","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500024"]},"I500078":{"id":"I500078","name":"Jeka Vuković","given":"Jeka","surname":"Vuković","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500025"],"families_child":[]},"I500079":{"id":"I500079","name":"Kristijan Vidović","given":"Kristijan","surname":"Vidović","sex":"M","birth_date":"9 NOV 1999","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500025"]},"I500080":{"id":"I500080","name":"Darko Vidović","given":"Darko","surname":"Vidović","sex":"M","birth_date":"20 JAN 2005","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500025"]},"I500081":{"id":"I500081","name":"Anđelka Milićević","given":"Anđelka","surname":"Milićević","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500026"],"families_child":[]},"I500082":{"id":"I500082","name":"Tamara Vidović","given":"Tamara","surname":"Vidović","sex":"F","birth_date":"7 SEP 1995","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500028"],"families_child":["F500026"]},"I500083":{"id":"I500083","name":"Tatjana Vidović","given":"Tatjana","surname":"Vidović","sex":"F","birth_date":"29 DEC 1996","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500027"],"families_child":["F500026"]},"I500084":{"id":"I500084","name":"Mihailo Stevanović","given":"Mihailo","surname":"Stevanović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500027"],"families_child":[]},"I500085":{"id":"I500085","name":"Nemanja Stevanović","given":"Nemanja","surname":"Stevanović","sex":"M","birth_date":"19 AUG 2020","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500027"]},"I500086":{"id":"I500086","name":"Uros Stevanović","given":"Uros","surname":"Stevanović","sex":"M","birth_date":"18 FEB 2023","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500027"]},"I500087":{"id":"I500087","name":"Saša Božić","given":"Saša","surname":"Božić","sex":"M","birth_date":"9 OCT 2022","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500028"]},"I500088":{"id":"I500088","name":"Luka Božić","given":"Luka","surname":"Božić","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500028"],"families_child":[]},"I500089":{"id":"I500089","name":"Mićo Vidović","given":"Mićo","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500004"]},"I500090":{"id":"I500090","name":"Milan Petrović","given":"Milan","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500032"],"families_child":["F500002"]},"I500091":{"id":"I500091","name":"Mila Petrović","given":"Mila","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500033"],"families_child":["F500002"]},"I500092":{"id":"I500092","name":"Zarja Petrović","given":"Zarja","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500029","F500030"],"families_child":["F500031"]},"I500093":{"id":"I500093","name":"Zena 1","given":"Zena 1","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500029"],"families_child":[]},"I500094":{"id":"I500094","name":"Milan Petrović","given":"Milan","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500029"]},"I500095":{"id":"I500095","name":"Marko Petrović","given":"Marko","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500029"]},"I500096":{"id":"I500096","name":"Mara Petrović","given":"Mara","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500029"]},"I500097":{"id":"I500097","name":"Kosa Petrović","given":"Kosa","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500029"]},"I500098":{"id":"I500098","name":"Jeka Petrović","given":"Jeka","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500029"]},"I500099":{"id":"I500099","name":"Zena 2","given":"Zena 2","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500030"],"families_child":[]},"I500100":{"id":"I500100","name":"Marjan","given":"Marjan","surname":"","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500030"]},"I500101":{"id":"I500101","name":"Jovan Petrović","given":"Jovan","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500030"]},"I500102":{"id":"I500102","name":"Cvijeta Petrović","given":"Cvijeta","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500030"]},"I500103":{"id":"I500103","name":"Trivo Petrović","given":"Trivo","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500031"],"families_child":[]},"I500104":{"id":"I500104","name":"Marjan Petrović","given":"Marjan","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500040"],"families_child":["F500031"]},"I500105":{"id":"I500105","name":"","given":"","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500031"],"families_child":[]},"I500106":{"id":"I500106","name":"Jovan Petrović","given":"Jovan","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500043"],"families_child":["F500031"]},"I500107":{"id":"I500107","name":"Cvijeta Petrović","given":"Cvijeta","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500031"]},"I500108":{"id":"I500108","name":"Dragica","given":"Dragica","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500032"],"families_child":[]},"I500109":{"id":"I500109","name":"Trivo Petrović","given":"Trivo","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500032"]},"I500110":{"id":"I500110","name":"Snjezana","given":"Snjezana","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500033"]},"I500111":{"id":"I500111","name":"","given":"","surname":"","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500033"],"families_child":[]},"I500112":{"id":"I500112","name":"Jelena","given":"Jelena","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500033"]},"I500113":{"id":"I500113","name":"Rajko Pisarević","given":"Rajko","surname":"Pisarević","sex":"M","birth_date":"8 SEP 1966","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500034"],"families_child":[]},"I500114":{"id":"I500114","name":"Tereza Pisarević","given":"Tereza","surname":"Pisarević","sex":"F","birth_date":"5 OCT 1998","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500034"]},"I500115":{"id":"I500115","name":"Nikola Pisarević","given":"Nikola","surname":"Pisarević","sex":"M","birth_date":"3 FEB 2012","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500034"]},"I500116":{"id":"I500116","name":"Nataša","given":"Nataša","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500035"],"families_child":[]},"I500117":{"id":"I500117","name":"Daniel Vidović","given":"Daniel","surname":"Vidović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500035"]},"I500118":{"id":"I500118","name":"Marko Vidović","given":"Marko","surname":"Vidović","sex":"M","birth_date":"1 SEP 1989","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500038"],"families_child":["F500036"]},"I500119":{"id":"I500119","name":"Ankica Vidović","given":"Ankica","surname":"Vidović","sex":"F","birth_date":"","birth_place":"Bosnien und Herzegowina","death_date":"","death_place":"","deceased":false,"families_spouse":["F500036"],"families_child":[]},"I500120":{"id":"I500120","name":"Marina Vidović","given":"Marina","surname":"Vidović","sex":"F","birth_date":"18 APR 1997","birth_place":"Kroatien","death_date":"","death_place":"","deceased":false,"families_spouse":["F500039"],"families_child":["F500036"]},"I500121":{"id":"I500121","name":"Dragana Mitrović","given":"Dragana","surname":"Mitrović","sex":"F","birth_date":"13 JAN 1993","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500037"],"families_child":[]},"I500122":{"id":"I500122","name":"Lea Vidović","given":"Lea","surname":"Vidović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500038"]},"I500123":{"id":"I500123","name":"","given":"","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500038"],"families_child":[]},"I500124":{"id":"I500124","name":"Matija Ivanov","given":"Matija","surname":"Ivanov","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500039"]},"I500125":{"id":"I500125","name":"","given":"","surname":"","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500039"],"families_child":[]},"I500126":{"id":"I500126","name":"Ema Ivanov","given":"Ema","surname":"Ivanov","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500039"]},"I500127":{"id":"I500127","name":"Slavko Petrović","given":"Slavko","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500041"],"families_child":["F500040"]},"I500128":{"id":"I500128","name":"","given":"","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500040"],"families_child":[]},"I500129":{"id":"I500129","name":"Dušan Petrović","given":"Dušan","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500042"],"families_child":["F500040"]},"I500130":{"id":"I500130","name":"Marjan Petrović","given":"Marjan","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500041"]},"I500131":{"id":"I500131","name":"","given":"","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500041"],"families_child":[]},"I500132":{"id":"I500132","name":"Milutin Petrović","given":"Milutin","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500042"]},"I500133":{"id":"I500133","name":"","given":"","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500042"],"families_child":[]},"I500134":{"id":"I500134","name":"Dušanka Petrović","given":"Dušanka","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500042"]},"I500135":{"id":"I500135","name":"Mitar Petrović","given":"Mitar","surname":"Petrović","sex":"M","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500043"]},"I500136":{"id":"I500136","name":"","given":"","surname":"","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":["F500043"],"families_child":[]},"I500137":{"id":"I500137","name":"Spasa Petrović","given":"Spasa","surname":"Petrović","sex":"F","birth_date":"","birth_place":"","death_date":"","death_place":"","deceased":false,"families_spouse":[],"families_child":["F500043"]}},"families":{"F500001":{"id":"F500001","husband":"I500003","wife":"I500002","children":["I500008","I500001"],"marriage_date":"","marriage_place":""},"F500002":{"id":"F500002","husband":"I500005","wife":"I500004","children":["I500002","I500091","I500090"],"marriage_date":"","marriage_place":""},"F500003":{"id":"F500003","husband":"I500007","wife":"I500006","children":["I500003","I500032","I500025","I500020","I500018","I500016"],"marriage_date":"","marriage_place":""},"F500004":{"id":"F500004","husband":"I500009","wife":"I500011","children":["I500010","I500015","I500014","I500013","I500012","I500089","I500007"],"marriage_date":"","marriage_place":""},"F500005":{"id":"F500005","husband":"I500016","wife":"I500017","children":["I500034","I500035"],"marriage_date":"","marriage_place":""},"F500006":{"id":"F500006","husband":"I500018","wife":"I500019","children":["I500036","I500037"],"marriage_date":"","marriage_place":""},"F500007":{"id":"F500007","husband":"I500020","wife":"I500021","children":["I500023"],"marriage_date":"","marriage_place":""},"F500008":{"id":"F500008","husband":"I500020","wife":"I500022","children":["I500024"],"marriage_date":"","marriage_place":""},"F500009":{"id":"F500009","husband":"I500025","wife":"I500026","children":["I500031","I500030","I500029"],"marriage_date":"","marriage_place":""},"F500010":{"id":"F500010","husband":"I500025","wife":"I500027","children":["I500028"],"marriage_date":"","marriage_place":""},"F500011":{"id":"F500011","husband":"I500033","wife":"I500032","children":["I500038","I500039"],"marriage_date":"","marriage_place":""},"F500012":{"id":"F500012","husband":"I500008","wife":"I500040","children":["I500041","I500042"],"marriage_date":"","marriage_place":""},"F500013":{"id":"F500013","husband":"I500001","wife":"I500043","children":["I500044"],"marriage_date":"","marriage_place":""},"F500014":{"id":"F500014","husband":"I500045","wife":"I500039","children":["I500049","I500050"],"marriage_date":"","marriage_place":""},"F500015":{"id":"F500015","husband":"I500038","wife":"I500046","children":["I500047","I500048"],"marriage_date":"","marriage_place":""},"F500016":{"id":"F500016","husband":"I500052","wife":"I500035","children":["I500051"],"marriage_date":"","marriage_place":""},"F500017":{"id":"F500017","husband":"I500034","wife":"I500053","children":["I500054","I500056","I500055"],"marriage_date":"","marriage_place":""},"F500018":{"id":"F500018","husband":"I500054","wife":"I500058","children":["I500057","I500059","I500060"],"marriage_date":"","marriage_place":""},"F500019":{"id":"F500019","husband":"I500061","wife":"I500037","children":["I500062","I500063"],"marriage_date":"","marriage_place":""},"F500020":{"id":"F500020","husband":"I500023","wife":"I500065","children":["I500064"],"marriage_date":"","marriage_place":""},"F500021":{"id":"F500021","husband":"I500023","wife":"I500066","children":["I500067","I500068"],"marriage_date":"","marriage_place":""},"F500022":{"id":"F500022","husband":"I500069","wife":"I500068","children":["I500070"],"marriage_date":"","marriage_place":""},"F500023":{"id":"F500023","husband":"I500071","wife":"I500024","children":["I500072","I500073","I500074"],"marriage_date":"","marriage_place":""},"F500024":{"id":"F500024","husband":"I500075","wife":"I500072","children":["I500076","I500077"],"marriage_date":"","marriage_place":""},"F500025":{"id":"F500025","husband":"I500029","wife":"I500078","children":["I500079","I500080"],"marriage_date":"","marriage_place":""},"F500026":{"id":"F500026","husband":"I500029","wife":"I500081","children":["I500082","I500083"],"marriage_date":"","marriage_place":""},"F500027":{"id":"F500027","husband":"I500084","wife":"I500083","children":["I500085","I500086"],"marriage_date":"","marriage_place":""},"F500028":{"id":"F500028","husband":"I500088","wife":"I500082","children":["I500087"],"marriage_date":"4 MAR 2022","marriage_place":""},"F500029":{"id":"F500029","husband":"I500092","wife":"I500093","children":["I500098","I500097","I500096","I500095","I500094","I500005"],"marriage_date":"","marriage_place":""},"F500030":{"id":"F500030","husband":"I500092","wife":"I500099","children":["I500100","I500101","I500102"],"marriage_date":"","marriage_place":""},"F500031":{"id":"F500031","husband":"I500103","wife":"I500105","children":["I500107","I500092","I500104","I500106"],"marriage_date":"","marriage_place":""},"F500032":{"id":"F500032","husband":"I500090","wife":"I500108","children":["I500109"],"marriage_date":"","marriage_place":""},"F500033":{"id":"F500033","husband":"I500111","wife":"I500091","children":["I500112","I500110"],"marriage_date":"","marriage_place":""},"F500034":{"id":"F500034","husband":"I500113","wife":"I500031","children":["I500114","I500115"],"marriage_date":"","marriage_place":""},"F500035":{"id":"F500035","husband":"I500030","wife":"I500116","children":["I500117"],"marriage_date":"","marriage_place":""},"F500036":{"id":"F500036","husband":"I500028","wife":"I500119","children":["I500118","I500120"],"marriage_date":"","marriage_place":""},"F500037":{"id":"F500037","husband":"I500073","wife":"I500121","children":[],"marriage_date":"","marriage_place":""},"F500038":{"id":"F500038","husband":"I500118","wife":"I500123","children":["I500122"],"marriage_date":"","marriage_place":""},"F500039":{"id":"F500039","husband":"I500125","wife":"I500120","children":["I500124","I500126"],"marriage_date":"","marriage_place":""},"F500040":{"id":"F500040","husband":"I500104","wife":"I500128","children":["I500129","I500127"],"marriage_date":"","marriage_place":""},"F500041":{"id":"F500041","husband":"I500127","wife":"I500131","children":["I500130"],"marriage_date":"","marriage_place":""},"F500042":{"id":"F500042","husband":"I500129","wife":"I500133","children":["I500134","I500132"],"marriage_date":"","marriage_place":""},"F500043":{"id":"F500043","husband":"I500106","wife":"I500136","children":["I500135","I500137"],"marriage_date":"","marriage_place":""}}};
 
 // ============================================================
+// EVENTS — lokalisierte Event-Karten für Familienmomente
+// ============================================================
+const EVENTS_DATA = {
+  de: [
+    {
+      id: 'E1',
+      title: 'Beginne eine Tradition – Familientreffen',
+      subtitle: '15. August 2026 um 19:00 Uhr',
+      organizers: 'Organisiert von Gordana Dujković, Miroslav Vidović und Milan Vidović',
+      location: 'Bei Milan Vidović in Tišina',
+    }
+  ],
+  sr: [
+    {
+      id: 'E1',
+      title: 'Започни традицију – породични састанак',
+      subtitle: '15. август 2026. у 19:00',
+      organizers: 'Организовано од стране Гордане Дујковић, Мирослава Видовића и Милана Видовића',
+      location: 'Код Милана Видовића у Тишини',
+    }
+  ],
+  hr: [
+    {
+      id: 'E1',
+      title: 'Započni tradiciju – obiteljsko okupljanje',
+      subtitle: '15. kolovoz 2026. u 19:00',
+      organizers: 'Organizirali Gordana Dujković, Miroslav Vidović i Milan Vidović',
+      location: 'Kod Milana Vidovića u Tišini',
+    }
+  ],
+  ba: [
+    {
+      id: 'E1',
+      title: 'Započni tradiciju – porodični susret',
+      subtitle: '15. august 2026. u 19:00',
+      organizers: 'Organizovano od strane Gordane Dujković, Miroslava Vidovića i Milana Vidovića',
+      location: 'Kod Milana Vidovića u Tišini',
+    }
+  ],
+  en: [
+    {
+      id: 'E1',
+      title: 'Start a tradition – Family Reunion',
+      subtitle: 'August 15, 2026 at 7:00 PM',
+      organizers: 'Organized by Gordana Dujković, Miroslav Vidović and Milan Vidović',
+      location: "at Milan Vidović's place in Tišina",
+    }
+  ]
+};
+
+// ============================================================
 // ÜBERSETZUNGEN — hier kannst du Texte ändern oder hinzufügen
 // ============================================================
 const TEXTE = {
   de: {
     untertitel: 'Stammbaum',
     stats: '{p} PERSONEN · {f} FAMILIEN',
-    tab_karten: 'Familien mitglieder',
+    tab_karten: 'Familienmitglieder',
+    tab_shorts: 'Events',
     tab_baum: 'Stammbaum',
     suche_placeholder: 'Nach Namen suchen...',
     filter_alle: 'Alle Familienzweige',
     filter_unbekannt: '(unbekannt)',
     upload_btn: 'GEDCOM laden',
+    shorts_titel: 'Familien-Events',
+    shorts_hinweis: 'Kurze Familienmomente und Erinnerungen.',
     baum_hinweis: 'Klick auf Personen für Details · Scroll zum Zoomen · Drag zum Verschieben · Doppelklick zum Zurücksetzen',
     baum_info_hinweis: '<strong>Hinweis:</strong> Klick für Details, Scroll zum Zoomen, Doppelklick zum Zurücksetzen.',
     baum_zentriert: '<strong>Zentriert auf:</strong> {name}<br><small>Zeigt 2 Generationen aufwärts und abwärts.<br>Klick auf andere Person für neue Ansicht.</small>',
@@ -528,6 +646,18 @@ const TEXTE = {
     ja: 'ja',
     eltern: 'Eltern',
     partner: 'Partner',
+    event_organizer: 'Organisiert von:',
+    event_description: 'Beschreibung',
+    event_media: 'Medien',
+    event_upload_images: 'Bilder hochladen',
+    event_upload_videos: 'Videos hochladen',
+    event_save: 'Speichern',
+    event_cancel: 'Abbrechen',
+    event_edit: 'Bearbeiten',
+    event_admin_hint: 'Nur Super Admin und Familien-Admin können hier ändern.',
+    event_uploading: 'Dateien werden hochgeladen…',
+    event_saved: 'Änderungen gespeichert.',
+    event_no_media: 'Noch keine Medien hochgeladen.',
     kinder: 'Kinder',
     geschwister: 'Geschwister',
     baum_zeigen: 'Im Stammbaum zeigen',
@@ -551,11 +681,14 @@ const TEXTE = {
     untertitel: 'Породично стабло',
     stats: '{p} ОСОБА · {f} ПОРОДИЦА',
     tab_karten: 'Чланови породице',
+    tab_shorts: 'Догађаји',
     tab_baum: 'Стабло',
     suche_placeholder: 'Претражи по имену...',
     filter_alle: 'Све породичне гране',
     filter_unbekannt: '(непознато)',
     upload_btn: 'Учитај GEDCOM',
+    shorts_titel: 'Породични догађаји',
+    shorts_hinweis: 'Кратки породични тренуци и успомене.',
     baum_hinweis: 'Кликни на особу за детаље · Скрол за зумирање · Превуци за померање · Двоструки клик за ресет',
     baum_info_hinweis: '<strong>Напомена:</strong> Кликни за детаље, скролуј за зумирање, двоструки клик за ресет.',
     baum_zentriert: '<strong>Центрирано на:</strong> {name}<br><small>Приказује 2 генерације навише и наниже.<br>Кликни другу особу за нови приказ.</small>',
@@ -571,6 +704,18 @@ const TEXTE = {
     ja: 'да',
     eltern: 'Родитељи',
     partner: 'Супружник',
+    event_organizer: 'Организовано од:',
+    event_description: 'Опис',
+    event_media: 'Медији',
+    event_upload_images: 'Отпреми слике',
+    event_upload_videos: 'Отпреми видео записе',
+    event_save: 'Сачувај',
+    event_cancel: 'Откажи',
+    event_edit: 'Уреди',
+    event_admin_hint: 'Само Супер Админ и Породични Админ могу овде мењати.',
+    event_uploading: 'Отпремање датотека…',
+    event_saved: 'Промене сачуване.',
+    event_no_media: 'Још нема отпремљених медија.',
     kinder: 'Деца',
     geschwister: 'Браћа и сестре',
     baum_zeigen: 'Прикажи у стаблу',
@@ -594,11 +739,14 @@ const TEXTE = {
     untertitel: 'Obiteljsko stablo',
     stats: '{p} OSOBA · {f} OBITELJI',
     tab_karten: 'Članovi obitelji',
+    tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
     suche_placeholder: 'Pretraži po imenu...',
     filter_alle: 'Sve obiteljske grane',
     filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
+    shorts_titel: 'Obiteljski događaji',
+    shorts_hinweis: 'Kratki obiteljski trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomicanje · Dvostruki klik za reset',
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
     baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore i dolje.<br>Klikni drugu osobu za novi prikaz.</small>',
@@ -614,6 +762,18 @@ const TEXTE = {
     ja: 'da',
     eltern: 'Roditelji',
     partner: 'Supružnik',
+    event_organizer: 'Organizirano od:',
+    event_description: 'Opis',
+    event_media: 'Mediji',
+    event_upload_images: 'Učitaj slike',
+    event_upload_videos: 'Učitaj videozapise',
+    event_save: 'Spremi',
+    event_cancel: 'Odustani',
+    event_edit: 'Uredi',
+    event_admin_hint: 'Samo Super Admin i Admin obitelji mogu ovdje mijenjati.',
+    event_uploading: 'Preuzimanje datoteka…',
+    event_saved: 'Promjene spremljene.',
+    event_no_media: 'Još nema učitanih medija.',
     kinder: 'Djeca',
     geschwister: 'Braća i sestre',
     baum_zeigen: 'Prikaži u stablu',
@@ -637,14 +797,17 @@ const TEXTE = {
     untertitel: 'Porodično stablo',
     stats: '{p} OSOBA · {f} PORODICA',
     tab_karten: 'Članovi porodice',
+    tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
     suche_placeholder: 'Pretraži po imenu...',
     filter_alle: 'Sve porodične grane',
     filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
+    shorts_titel: 'Porodični događaji',
+    shorts_hinweis: 'Kratki porodični trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomjeranje · Dvostruki klik za reset',
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
-    baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore i dolje.<br>Klikni drugu osobu za novi prikaz.</small>',
+    baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore и доле.<br>Klikni drugu osobu za novi prikaz.</small>',
     keine_treffer: 'Nijedna osoba nije pronađena.',
     geboren: 'Rođen/a:',
     geburtsort: 'Mjesto rođenja:',
@@ -657,6 +820,18 @@ const TEXTE = {
     ja: 'da',
     eltern: 'Roditelji',
     partner: 'Supružnik',
+    event_organizer: 'Organizovano od:',
+    event_description: 'Opis',
+    event_media: 'Mediji',
+    event_upload_images: 'Učitaj slike',
+    event_upload_videos: 'Učitaj video zapise',
+    event_save: 'Sačuvaj',
+    event_cancel: 'Odustani',
+    event_edit: 'Uredi',
+    event_admin_hint: 'Samo Super Admin i Admin porodice mogu ovdje mijenjati.',
+    event_uploading: 'Otpremanje datoteka…',
+    event_saved: 'Promjene sačuvane.',
+    event_no_media: 'Još nema učitanih medija.',
     kinder: 'Djeca',
     geschwister: 'Braća i sestre',
     baum_zeigen: 'Prikaži u stablu',
@@ -679,12 +854,15 @@ const TEXTE = {
   en: {
     untertitel: 'Family Tree',
     stats: '{p} PEOPLE · {f} FAMILIES',
-    tab_karten: 'Familymember',
+    tab_karten: 'Family members',
+    tab_shorts: 'Events',
     tab_baum: 'Family Tree',
     suche_placeholder: 'Search by name...',
     filter_alle: 'All family branches',
     filter_unbekannt: '(unknown)',
     upload_btn: 'Load GEDCOM',
+    shorts_titel: 'Family Events',
+    shorts_hinweis: 'Quick family moments and memories.',
     baum_hinweis: 'Click for details · Scroll to zoom · Drag to pan · Double-click to reset',
     baum_info_hinweis: '<strong>Tip:</strong> Click for details, scroll to zoom, double-click to reset.',
     baum_zentriert: '<strong>Centered on:</strong> {name}<br><small>Showing 2 generations up and down.<br>Click another person to re-center.</small>',
@@ -700,6 +878,18 @@ const TEXTE = {
     ja: 'yes',
     eltern: 'Parents',
     partner: 'Spouse',
+    event_organizer: 'Organized by:',
+    event_description: 'Description',
+    event_media: 'Media',
+    event_upload_images: 'Upload images',
+    event_upload_videos: 'Upload videos',
+    event_save: 'Save',
+    event_cancel: 'Cancel',
+    event_edit: 'Edit',
+    event_admin_hint: 'Only Super Admin and Family Admin can edit here.',
+    event_uploading: 'Uploading files…',
+    event_saved: 'Changes saved.',
+    event_no_media: 'No media uploaded yet.',
     kinder: 'Children',
     geschwister: 'Siblings',
     baum_zeigen: 'Show in family tree',
@@ -814,8 +1004,9 @@ function wechselSprache(lang) {
   // Dynamische Inhalte neu rendern
   aktualisiereStats();
   baueNachnameFilter();
-  zeigeKarten();
-  aktualisiereBaumInfo();
+  if (aktuelleAnsicht === 'karten') zeigeKarten();
+  else if (aktuelleAnsicht === 'shorts') zeigeShorts();
+  else aktualisiereBaumInfo();
   zeichneBaumNeu();
   aktualisiereAuthUI();
 }
@@ -899,6 +1090,8 @@ function handleSuche() {
   const suche = document.getElementById('suche').value.trim();
   if (aktuelleAnsicht === 'karten') {
     zeigeKarten();
+  } else if (aktuelleAnsicht === 'shorts') {
+    zeigeShorts();
   } else {
     suchImBaum(suche);
   }
@@ -1042,6 +1235,161 @@ function zeigeKarten() {
   });
 }
 
+function getEventConfig(eventId) {
+  const events = EVENTS_DATA[aktuelleSprache] || EVENTS_DATA.de;
+  const base = events.find(e => e.id === eventId);
+  if (!base) return null;
+
+  const saved = JSON.parse(localStorage.getItem(`event_edit_${aktuelleSprache}_${eventId}`) || '{}');
+  return { ...base, ...saved };
+}
+
+function wertSpeichern(eventId, updates) {
+  const key = `event_edit_${aktuelleSprache}_${eventId}`;
+  const saved = JSON.parse(localStorage.getItem(key) || '{}');
+  const merged = { ...saved, ...updates };
+  localStorage.setItem(key, JSON.stringify(merged));
+}
+
+async function uploadEventMedia(eventId, file) {
+  if (!file || !aktuellerUser) return { url: null, error: 'No file or unauthenticated.' };
+  const bucket = 'events';
+  const path = `${eventId}/${Date.now()}_${file.name}`;
+  const { data, error } = await sbClient.storage.from(bucket).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) {
+    console.warn('Upload fehlgeschlagen', error.message);
+    return { url: null, error: error.message };
+  }
+  const { data: urlData, error: signError } = await sbClient.storage.from(bucket).createSignedUrl(path, 60 * 60 * 24);
+  if (signError) {
+    console.warn('Signed URL fehlgeschlagen', signError.message);
+    return { url: null, error: signError.message };
+  }
+  return { url: urlData?.signedUrl || null, error: null };
+}
+
+function renderEventMedia(eventId) {
+  const key = `event_media_${aktuelleSprache}_${eventId}`;
+  const media = JSON.parse(localStorage.getItem(key) || '[]');
+  return media;
+}
+
+function addEventMedia(eventId, mediaItem) {
+  const key = `event_media_${aktuelleSprache}_${eventId}`;
+  const media = JSON.parse(localStorage.getItem(key) || '[]');
+  media.unshift(mediaItem);
+  localStorage.setItem(key, JSON.stringify(media));
+}
+
+function zeigeShorts() {
+  const suche = document.getElementById('suche').value.toLowerCase();
+  const grid = document.getElementById('shorts-grid');
+  const events = EVENTS_DATA[aktuelleSprache] || EVENTS_DATA.de;
+
+  const gefiltert = events.filter(event => {
+    const current = getEventConfig(event.id);
+    const searchable = [current.title, current.subtitle, current.organizers, current.location, current.details].join(' ').toLowerCase();
+    return !suche || searchable.includes(suche);
+  });
+
+  if (gefiltert.length === 0) {
+    grid.innerHTML = `<div class="keine-treffer">${t('keine_treffer')}</div>`;
+    return;
+  }
+
+  grid.innerHTML = '';
+  gefiltert.forEach(event => {
+    const item = getEventConfig(event.id);
+    const karte = document.createElement('div');
+    karte.className = 'short-card';
+    karte.onclick = () => zeigeShort(event.id);
+    karte.innerHTML = `
+      <div class="thumb">▶</div>
+      <h3>${escapeHtml(nm(item.title))}</h3>
+      <p>${escapeHtml(nm(item.location))}</p>
+      <div class="meta">${escapeHtml(nm(item.subtitle))}</div>
+      <div class="meta" style="margin-top:12px; font-size: 12px; color: #7a6a50;">${escapeHtml(nm(item.organizers))}</div>
+    `;
+    grid.appendChild(karte);
+  });
+}
+
+function zeigeShort(shortId) {
+  const event = getEventConfig(shortId);
+  if (!event) return;
+  const isAdmin = ['super_admin','familien_admin'].includes(aktuelleRolle);
+  const media = renderEventMedia(shortId);
+
+  document.getElementById('modal-text').innerHTML = `
+    <h2>${escapeHtml(nm(event.title))}</h2>
+    <p style="margin:14px 0 16px; color:#5e4b35;">${escapeHtml(nm(event.location))}</p>
+    <div class="info-zeile"><strong>${t('shorts_titel')}</strong> ${escapeHtml(nm(event.subtitle))}</div>
+    <div class="info-zeile"><strong>${t('event_organizer')}</strong> ${escapeHtml(nm(event.organizers))}</div>
+    <div class="info-zeile"><strong>${t('event_description')}</strong><br>${escapeHtml(nm(event.details))}</div>
+    <div class="info-zeile" style="margin-top:12px;">${t('event_media')}</div>
+    ${media.length ? `<div class="event-media-preview">${media.map(m => m.type.startsWith('image/') ? `<img src="${m.url}" alt="${escapeHtml(m.name)}" />` : `<video controls src="${m.url}"></video>`).join('')}</div>` : `<div class="event-media-empty">${t('event_no_media')}</div>`}
+    ${isAdmin ? `<button class="baum-zeigen" onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>` : ''}
+    ${isAdmin ? `<div class="event-admin-hint">${t('event_admin_hint')}</div>` : ''}
+  `;
+  document.getElementById('modal').classList.add('aktiv');
+}
+
+function zeigeEventEditor(eventId) {
+  const event = getEventConfig(eventId);
+  if (!event) return;
+  const media = renderEventMedia(eventId);
+
+  document.getElementById('modal-text').innerHTML = `
+    <h2>${escapeHtml(nm(event.title))}</h2>
+    <div class="event-editor">
+      <label>${t('event_description')}<br>
+        <textarea id="event-details-input">${escapeHtml(nm(event.details))}</textarea>
+      </label>
+      <div class="event-upload-row">
+        <label>${t('event_upload_images')}<br><input type="file" id="event-image-input" accept="image/*" multiple></label>
+        <label>${t('event_upload_videos')}<br><input type="file" id="event-video-input" accept="video/*" multiple></label>
+      </div>
+      <div class="event-media-preview">${media.map(m => m.type.startsWith('image/') ? `<img src="${m.url}" alt="${escapeHtml(m.name)}" />` : `<video controls src="${m.url}"></video>`).join('')}</div>
+      <div class="event-editor-actions">
+        <button class="baum-zeigen" id="event-save-btn">${t('event_save')}</button>
+        <button class="zurueck-btn" onclick="zeigeShort('${eventId}')">${t('event_cancel')}</button>
+      </div>
+      <div class="event-status" id="event-status"></div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('aktiv');
+
+  document.getElementById('event-save-btn').addEventListener('click', async () => {
+    const details = document.getElementById('event-details-input').value.trim();
+    wertSpeichern(eventId, { details });
+    const imageFiles = document.getElementById('event-image-input').files;
+    const videoFiles = document.getElementById('event-video-input').files;
+    const status = document.getElementById('event-status');
+    const button = document.getElementById('event-save-btn');
+    button.disabled = true;
+    status.textContent = t('event_uploading');
+
+    const uploads = [...imageFiles, ...videoFiles];
+    for (const file of uploads) {
+      const result = await uploadEventMedia(eventId, file);
+      if (result?.url) {
+        addEventMedia(eventId, { url: result.url, name: file.name, type: file.type });
+      } else if (result?.error) {
+        status.textContent = `${t('event_uploading')} ${result.error}`;
+        button.disabled = false;
+        return;
+      }
+    }
+
+    status.textContent = t('event_saved');
+    button.disabled = false;
+    setTimeout(() => status.textContent = '', 3000);
+  });
+}
+
 function escapeHtml(s) {
   if (!s) return '';
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1156,6 +1504,7 @@ function wechselAnsicht(name) {
     t.classList.toggle('aktiv', t.dataset.ansicht === name);
   });
   document.getElementById('ansicht-karten').style.display = name === 'karten' ? 'block' : 'none';
+  document.getElementById('ansicht-shorts').style.display = name === 'shorts' ? 'block' : 'none';
   document.getElementById('ansicht-baum').style.display = name === 'baum' ? 'block' : 'none';
 
   if (name === 'baum') {
@@ -1165,6 +1514,10 @@ function wechselAnsicht(name) {
     } else if (!fokusPersonId) {
       zeichneBaum('I500009', 10, 0);
     }
+  } else if (name === 'karten') {
+    zeigeKarten();
+  } else if (name === 'shorts') {
+    zeigeShorts();
   }
 }
 
