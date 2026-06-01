@@ -1324,12 +1324,37 @@ async function uploadEventMedia(eventId, file) {
     }
     
     console.log('Upload erfolgreich:', data);
+    console.log('Full upload response:', JSON.stringify(data));
+
     // Use the path returned by the upload response when available —
     // the client may normalize or alter the filename. Fall back to our
     // constructed `path` when upload response doesn't include it.
-    const uploadedPath = (data && (data.path || data.Key || data.KeyName || data.name)) || path;
+    let uploadedPath = (data && (data.path || data.Key || data.KeyName || data.name)) || path;
+
+    // If the returned path accidentally contains the bucket name prefix,
+    // strip it (e.g. "events/..." when we already pass the bucket separately).
+    if (uploadedPath && uploadedPath.startsWith(bucket + '/')) {
+      uploadedPath = uploadedPath.slice(bucket.length + 1);
+      console.log('Stripped bucket prefix from uploadedPath, now:', uploadedPath);
+    }
 
     console.log('Using path for signed URL:', uploadedPath);
+
+    // Debug: list objects in the target folder to verify the object exists
+    try {
+      const { data: listData, error: listErr } = await sbClient.storage.from(bucket).list(eventId, { limit: 100 });
+      console.log('List objects in folder', eventId, listData, listErr);
+    } catch (listEx) {
+      console.warn('List-exception:', listEx);
+    }
+
+    // Debug: get public URL (works for public buckets) to compare
+    try {
+      const publicRes = sbClient.storage.from(bucket).getPublicUrl(uploadedPath);
+      console.log('Public URL result:', publicRes);
+    } catch (pubEx) {
+      console.warn('PublicUrl-exception:', pubEx);
+    }
 
     const { data: urlData, error: signError } = await sbClient.storage.from(bucket).createSignedUrl(uploadedPath, 60 * 60 * 24);
     if (signError) {
