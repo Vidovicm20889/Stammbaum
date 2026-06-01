@@ -340,6 +340,48 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   padding: 12px; background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
 }
+/* Ab mehr als 2 Dateien: Höhe begrenzen + dezenter Scrollbalken,
+   damit das Overlay bei vielen Medien nicht zu groß wird. */
+.event-media-folder--scroll {
+  max-height: 230px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--akzent) transparent;
+}
+.event-media-folder--scroll::-webkit-scrollbar { width: 8px; }
+.event-media-folder--scroll::-webkit-scrollbar-thumb {
+  background: var(--akzent); border-radius: 8px;
+}
+.event-media-folder--scroll::-webkit-scrollbar-track { background: transparent; }
+/* Eigener Bestätigungs-Dialog (ersetzt das Browser-confirm) */
+.confirm-overlay {
+  position: fixed; inset: 0; z-index: 4000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(30, 20, 12, 0.55); padding: 20px;
+}
+.confirm-box {
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--gold-hell); border-radius: 16px;
+  max-width: 380px; width: 100%; padding: 28px 26px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35); text-align: center;
+}
+.confirm-text {
+  font-size: 16px; line-height: 1.4; margin: 0 0 22px;
+}
+.confirm-actions {
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+}
+.confirm-actions button {
+  font-family: inherit; font-size: 13px; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 11px 22px; border-radius: 8px;
+  cursor: pointer; border: none;
+}
+.confirm-ja {
+  background: var(--akzent); color: var(--paper);
+}
+.confirm-ja:hover { background: var(--akzent-hell); }
+.confirm-nein {
+  background: transparent; color: var(--ink); border: 1px solid var(--linie) !important;
+}
+.confirm-nein:hover { background: var(--gold-hell); }
 .event-media-item {
   display: block; background: var(--paper-soft); border: 1px solid var(--linie);
   border-radius: 14px; overflow: hidden;
@@ -810,6 +852,10 @@ const TEXTE = {
     event_uploading: 'Dateien werden hochgeladen…',
     event_saved: 'Änderungen gespeichert.',
     event_no_media: 'Noch keine Medien hochgeladen.',
+    confirm_delete: 'Diese Datei wirklich löschen?',
+    delete: 'Löschen',
+    nein: 'Nein',
+    media_loading: 'Medien werden geladen…',
     kinder: 'Kinder',
     geschwister: 'Geschwister',
     baum_zeigen: 'Im Stammbaum zeigen',
@@ -870,6 +916,10 @@ const TEXTE = {
     event_uploading: 'Отпремање датотека…',
     event_saved: 'Промене сачуване.',
     event_no_media: 'Још нема отпремљених медија.',
+    confirm_delete: 'Стварно обрисати ову датотеку?',
+    delete: 'Обриши',
+    nein: 'Не',
+    media_loading: 'Учитавање медија…',
     kinder: 'Деца',
     geschwister: 'Браћа и сестре',
     baum_zeigen: 'Прикажи у стаблу',
@@ -930,6 +980,10 @@ const TEXTE = {
     event_uploading: 'Preuzimanje datoteka…',
     event_saved: 'Promjene spremljene.',
     event_no_media: 'Još nema učitanih medija.',
+    confirm_delete: 'Stvarno obrisati ovu datoteku?',
+    delete: 'Obriši',
+    nein: 'Ne',
+    media_loading: 'Učitavanje medija…',
     kinder: 'Djeca',
     geschwister: 'Braća i sestre',
     baum_zeigen: 'Prikaži u stablu',
@@ -990,6 +1044,10 @@ const TEXTE = {
     event_uploading: 'Otpremanje datoteka…',
     event_saved: 'Promjene sačuvane.',
     event_no_media: 'Još nema učitanih medija.',
+    confirm_delete: 'Stvarno obrisati ovu datoteku?',
+    delete: 'Obriši',
+    nein: 'Ne',
+    media_loading: 'Učitavanje medija…',
     kinder: 'Djeca',
     geschwister: 'Braća i sestre',
     baum_zeigen: 'Prikaži u stablu',
@@ -1050,6 +1108,10 @@ const TEXTE = {
     event_uploading: 'Uploading files…',
     event_saved: 'Changes saved.',
     event_no_media: 'No media uploaded yet.',
+    confirm_delete: 'Really delete this file?',
+    delete: 'Delete',
+    nein: 'No',
+    media_loading: 'Loading media…',
     kinder: 'Children',
     geschwister: 'Siblings',
     baum_zeigen: 'Show in family tree',
@@ -1502,38 +1564,74 @@ async function uploadEventMedia(eventId, file) {
   }
 }
 
-function renderEventMedia(eventId) {
-  // Try new language-independent key first
-  let key = `event_media_all_${eventId}`;
-  let media = JSON.parse(localStorage.getItem(key) || '[]');
-  
-  // Fallback: if old language-specific keys exist, migrate them
-  if (media.length === 0) {
-    const languages = ['de', 'sr', 'hr', 'ba', 'en'];
-    for (const lang of languages) {
-      const oldKey = `event_media_${lang}_${eventId}`;
-      const oldMedia = JSON.parse(localStorage.getItem(oldKey) || '[]');
-      if (oldMedia.length > 0) {
-        // Migrate old key to new key (merge if both exist)
-        media = [...oldMedia, ...media];
-        localStorage.removeItem(oldKey);
-        console.log(`Migrated ${oldKey} to ${key}`);
-      }
-    }
-    // Save migrated data
-    if (media.length > 0) {
-      localStorage.setItem(key, JSON.stringify(media));
-    }
+// Medien werden direkt aus dem geteilten Supabase-Storage gelesen, damit sie
+// für ALLE eingeloggten User sichtbar sind (vorher nur im lokalen localStorage).
+const EVENTS_BUCKET = 'events';
+
+// Cache der zuletzt gerenderten Medienliste je Event – damit Löschen per Index
+// den richtigen Storage-Pfad findet.
+let letzteMedienListe = {};
+
+async function renderEventMedia(eventId) {
+  const { data: files, error } = await sbClient.storage
+    .from(EVENTS_BUCKET)
+    .list(eventId, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+
+  if (error) {
+    console.warn('Medien-Liste konnte nicht geladen werden:', error);
+    letzteMedienListe[eventId] = [];
+    return [];
   }
-  
+
+  // Platzhalter-Objekte (leere Ordner) herausfiltern
+  const realFiles = (files || []).filter(f => f.name && f.name !== '.emptyFolderPlaceholder');
+  if (realFiles.length === 0) {
+    letzteMedienListe[eventId] = [];
+    return [];
+  }
+
+  const paths = realFiles.map(f => `${eventId}/${f.name}`);
+
+  // Signierte URLs für alle Dateien in EINEM Aufruf (gültig 24h, bei jedem Öffnen neu erzeugt)
+  const { data: signed, error: signErr } = await sbClient.storage
+    .from(EVENTS_BUCKET)
+    .createSignedUrls(paths, 60 * 60 * 24);
+  if (signErr) console.warn('Signed-URL-Fehler:', signErr);
+
+  const media = realFiles.map((f, i) => {
+    const mimetype = (f.metadata && f.metadata.mimetype) || '';
+    const type = mimetype || (/\.(mp4|webm|mov|m4v|ogg)$/i.test(f.name) ? 'video/mp4' : 'image/*');
+    return {
+      url:  signed && signed[i] ? signed[i].signedUrl : '',
+      name: f.name.replace(/^\d+_/, ''),   // Zeitstempel-Präfix für die Anzeige entfernen
+      type,
+      path: `${eventId}/${f.name}`
+    };
+  });
+
+  letzteMedienListe[eventId] = media;
   return media;
 }
 
-function addEventMedia(eventId, mediaItem) {
-  const key = `event_media_all_${eventId}`;
-  const media = JSON.parse(localStorage.getItem(key) || '[]');
-  media.unshift(mediaItem);
-  localStorage.setItem(key, JSON.stringify(media));
+// Eigener Bestätigungs-Dialog statt Browser-confirm. Liefert ein Promise<boolean>.
+function zeigeBestaetigung(text) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <p class="confirm-text">${escapeHtml(text)}</p>
+        <div class="confirm-actions">
+          <button type="button" class="confirm-ja">${t('ja')}</button>
+          <button type="button" class="confirm-nein">${t('nein')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const fertig = (wert) => { overlay.remove(); resolve(wert); };
+    overlay.querySelector('.confirm-ja').addEventListener('click', () => fertig(true));
+    overlay.querySelector('.confirm-nein').addEventListener('click', () => fertig(false));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) fertig(false); });
+  });
 }
 
 function zeigeShorts() {
@@ -1569,21 +1667,18 @@ function zeigeShorts() {
   });
 }
 
-function zeigeShort(shortId) {
+async function zeigeShort(shortId) {
   const event = getEventConfig(shortId);
   if (!event) return;
   const isAdmin = istAdmin();
-  const media = renderEventMedia(shortId);
+  const media = await renderEventMedia(shortId);
 
-  // Hochladen nur für Admins (super_admin / familien_admin) – nicht für reine Mitglieder
-  const uploadEnabled = isAdmin;
   document.getElementById('modal-text').innerHTML = `
     <h2>${escapeHtml(nm(event.title))}</h2>
     <p style="margin:14px 0 16px; color:#5e4b35;">${escapeHtml(nm(event.location))}</p>
     <div class="event-section">
       <div class="event-section-line">
         <div class="event-section-label">${t('event_description')}</div>
-        ${isAdmin ? `<button class="baum-zeigen" type="button" onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>` : `<button class="baum-zeigen button-disabled" type="button" disabled>${t('event_edit')}</button>`}
       </div>
       <div class="event-section-content">
         <div class="info-zeile"><strong>${t('event_single_title')}</strong> ${escapeHtml(nm(event.subtitle))}</div>
@@ -1593,20 +1688,22 @@ function zeigeShort(shortId) {
     <div class="event-section">
       <div class="event-section-line">
         <div class="event-section-label">${t('event_media')}</div>
-        ${uploadEnabled ? `<button class="baum-zeigen" onclick="zeigeEventUploader('${shortId}')">${t('event_upload')}</button>` : `<button class="baum-zeigen button-disabled" disabled>${t('event_upload')}</button>`}
       </div>
       ${media.length ? buildEventMediaHtml(media, shortId, false) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
     </div>
-    ${isAdmin ? `<div class="event-admin-hint">${t('event_admin_hint')}</div>` : ''}
+    <div style="text-align:center;">
+      ${isAdmin ? `<button class="baum-zeigen" type="button" onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>` : `<button class="baum-zeigen button-disabled" type="button" disabled>${t('event_edit')}</button>`}
+    </div>
+    ${isAdmin ? `<div class="event-admin-hint" style="text-align:center;">${t('event_admin_hint')}</div>` : ''}
   `;
   document.getElementById('modal').classList.add('aktiv');
 }
 
-function zeigeEventEditor(eventId) {
+async function zeigeEventEditor(eventId) {
   if (!istAdmin()) return;   // nur super_admin / familien_admin
   const event = getEventConfig(eventId);
   if (!event) return;
-  const media = renderEventMedia(eventId);
+  const media = await renderEventMedia(eventId);
 
   document.getElementById('modal-text').innerHTML = `
     <h2>${escapeHtml(nm(event.title))}</h2>
@@ -1641,24 +1738,33 @@ function zeigeEventEditor(eventId) {
 
     const uploads = [...imageFiles, ...videoFiles];
     for (const file of uploads) {
+      // Datei landet direkt im geteilten Storage – keine lokale Liste mehr nötig
       const result = await uploadEventMedia(eventId, file);
-      if (result?.url) {
-        addEventMedia(eventId, { url: result.url, name: file.name, type: file.type });
-      } else if (result?.error) {
+      if (result?.error) {
         status.textContent = `${t('event_uploading')} ${result.error}`;
         button.disabled = false;
         return;
       }
     }
 
+    // Text-Änderungen (Datum/Untertitel + Organisatoren) ebenfalls speichern –
+    // sonst gingen sie beim automatischen Schließen verloren.
+    wertSpeichern(eventId, {
+      subtitle:   document.getElementById('event-subtitle-input').value,
+      organizers: document.getElementById('event-organizers-input').value
+    });
+
     status.textContent = t('event_saved');
     button.disabled = false;
-    setTimeout(() => status.textContent = '', 3000);
+    // Kurze Bestätigung zeigen, dann Overlay automatisch schließen
+    setTimeout(() => schliesseModal(), 1000);
   });
 }
 
 function buildEventMediaHtml(media, eventId = null, showDelete = false) {
-  return `<div class="event-media-folder">${media.map((m, idx) => {
+  // Ab mehr als 2 Dateien wird der Container scrollbar (siehe CSS)
+  const scrollClass = media.length > 2 ? ' event-media-folder--scroll' : '';
+  return `<div class="event-media-folder${scrollClass}">${media.map((m, idx) => {
     const thumb = m.type.startsWith('image/')
       ? `<img class="event-media-thumb" src="${m.url}" alt="${escapeHtml(m.name)}" />`
       : `<div class="event-media-thumb video-thumb">🎥</div>`;
@@ -1667,19 +1773,26 @@ function buildEventMediaHtml(media, eventId = null, showDelete = false) {
   }).join('')}</div>`;
 }
 
-function deleteEventMedia(eventId, mediaIndex) {
-  if (!confirm(t('confirm_delete') || 'Sicher?')) return;
-  const key = `event_media_all_${eventId}`;
-  const media = JSON.parse(localStorage.getItem(key) || '[]');
-  media.splice(mediaIndex, 1);
-  localStorage.setItem(key, JSON.stringify(media));
-  console.log('Media gelöscht, Index:', mediaIndex);
-  // Refresh Editor-View
+async function deleteEventMedia(eventId, mediaIndex) {
+  const eintrag = (letzteMedienListe[eventId] || [])[mediaIndex];
+  if (!eintrag) return;
+
+  const bestaetigt = await zeigeBestaetigung(t('confirm_delete'));
+  if (!bestaetigt) return;
+
+  // Datei SOFORT aus dem geteilten Storage löschen – damit für alle User wirksam
+  const { error } = await sbClient.storage.from(EVENTS_BUCKET).remove([eintrag.path]);
+  if (error) {
+    console.error('Löschen fehlgeschlagen:', error);
+    return;
+  }
+  console.log('Datei gelöscht:', eintrag.path);
+  // Editor-Ansicht neu aufbauen (liest die aktualisierte Liste aus dem Storage)
   zeigeEventEditor(eventId);
 }
 
-function zeigeMediaSlideshow(eventId, startIndex = 0) {
-  const media = renderEventMedia(eventId);
+async function zeigeMediaSlideshow(eventId, startIndex = 0) {
+  const media = await renderEventMedia(eventId);
   if (media.length === 0) return;
   
   const event = getEventConfig(eventId);
@@ -1721,12 +1834,12 @@ function zeigeMediaSlideshow(eventId, startIndex = 0) {
   updateSlideshow();
 }
 
-function zeigeEventUploader(eventId) {
+async function zeigeEventUploader(eventId) {
   if (!istAdmin()) return;   // nur super_admin / familien_admin
 
   const event = getEventConfig(eventId);
   if (!event) return;
-  const media = renderEventMedia(eventId);
+  const media = await renderEventMedia(eventId);
 
   document.getElementById('modal-text').innerHTML = `
     <h2>${escapeHtml(nm(event.title))}</h2>
@@ -1768,7 +1881,6 @@ function zeigeEventUploader(eventId) {
       const result = await uploadEventMedia(eventId, file);
       if (result?.url) {
         console.log('Erfolgreich hochgeladen:', file.name);
-        addEventMedia(eventId, { url: result.url, name: file.name, type: file.type });
         uploadedCount++;
       } else if (result?.error) {
         console.error('Upload-Fehler für', file.name, ':', result.error);
