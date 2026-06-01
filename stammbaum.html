@@ -1356,14 +1356,41 @@ async function uploadEventMedia(eventId, file) {
       console.warn('PublicUrl-exception:', pubEx);
     }
 
+    // Try to create a signed URL first
     const { data: urlData, error: signError } = await sbClient.storage.from(bucket).createSignedUrl(uploadedPath, 60 * 60 * 24);
-    if (signError) {
-      console.error('Signed URL-Fehler:', signError);
-      return { url: null, error: signError.message || 'URL-Fehler' };
+    if (!signError && urlData?.signedUrl) {
+      console.log('Signed URL generiert:', urlData.signedUrl);
+      return { url: urlData.signedUrl, error: null, storagePath: uploadedPath };
     }
-    
-    console.log('URL generiert:', urlData?.signedUrl);
-    return { url: urlData?.signedUrl || null, error: null };
+
+    console.warn('Signed URL-Fehler:', signError);
+
+    // Fallback 1: if the bucket is public, getPublicUrl will return a usable URL
+    try {
+      const publicRes = sbClient.storage.from(bucket).getPublicUrl(uploadedPath);
+      if (publicRes && publicRes.data && publicRes.data.publicUrl) {
+        console.log('Public URL result:', publicRes.data.publicUrl);
+        return { url: publicRes.data.publicUrl, error: null, storagePath: uploadedPath };
+      }
+    } catch (pubEx) {
+      console.warn('PublicUrl-exception:', pubEx);
+    }
+
+    // Fallback 2: try to download the object (requires auth) and create a blob URL
+    try {
+      const { data: downloadData, error: downloadError } = await sbClient.storage.from(bucket).download(uploadedPath);
+      if (!downloadError && downloadData) {
+        const blobUrl = URL.createObjectURL(downloadData);
+        console.log('Erzeugt blob-URL für Anzeige');
+        return { url: blobUrl, error: null, storagePath: uploadedPath, isBlob: true };
+      } else {
+        console.warn('Download-Fehler:', downloadError);
+      }
+    } catch (downloadEx) {
+      console.warn('Download-exception:', downloadEx);
+    }
+
+    return { url: null, error: signError?.message || 'URL-Fehler', storagePath: uploadedPath };
   } catch (err) {
     console.error('Upload-Exception:', err);
     return { url: null, error: err.message || 'Unbekannter Fehler' };
