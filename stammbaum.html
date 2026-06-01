@@ -261,6 +261,37 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   text-transform: uppercase; font-size: 13px;
 }
 .modal .baum-zeigen:hover { background: var(--akzent-hell); }
+.modal .baum-zeigen.button-disabled {
+  background: var(--linie); color: var(--text-dim); cursor: not-allowed; opacity: 0.6;
+}
+.modal .baum-zeigen.button-disabled:hover { background: var(--linie); }
+.media-delete-btn {
+  position: absolute; top: 8px; right: 8px; background: var(--akzent);
+  color: var(--paper); border: none; width: 28px; height: 28px;
+  border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1;
+  transition: background 0.2s; z-index: 10;
+}
+.media-delete-btn:hover { background: #c41e3a; }
+.event-media-item {
+  position: relative; display: inline-block;
+}
+.slideshow-nav {
+  display: flex; justify-content: center; gap: 20px; align-items: center;
+  margin: 20px 0; flex-wrap: wrap;
+}
+.slideshow-nav button {
+  background: var(--akzent); color: var(--paper); border: none;
+  padding: 10px 16px; cursor: pointer; font-family: inherit;
+  border-radius: 4px; transition: background 0.2s;
+}
+.slideshow-nav button:hover:not(:disabled) { background: var(--akzent-hell); }
+.slideshow-nav button:disabled {
+  background: var(--linie); color: var(--text-dim); cursor: not-allowed;
+  opacity: 0.6;
+}
+.slideshow-nav span {
+  color: var(--text-dim); font-size: 14px; min-width: 80px; text-align: center;
+}
 .event-editor {
   display: grid; gap: 18px;
 }
@@ -1398,13 +1429,13 @@ async function uploadEventMedia(eventId, file) {
 }
 
 function renderEventMedia(eventId) {
-  const key = `event_media_${aktuelleSprache}_${eventId}`;
+  const key = `event_media_all_${eventId}`;
   const media = JSON.parse(localStorage.getItem(key) || '[]');
   return media;
 }
 
 function addEventMedia(eventId, mediaItem) {
-  const key = `event_media_${aktuelleSprache}_${eventId}`;
+  const key = `event_media_all_${eventId}`;
   const media = JSON.parse(localStorage.getItem(key) || '[]');
   media.unshift(mediaItem);
   localStorage.setItem(key, JSON.stringify(media));
@@ -1456,7 +1487,7 @@ function zeigeShort(shortId) {
     <div class="event-section">
       <div class="event-section-line">
         <div class="event-section-label">${t('event_description')}</div>
-        <button class="baum-zeigen" type="button" ${isAdmin ? '' : 'disabled'} onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>
+        <button class="baum-zeigen ${isAdmin ? '' : 'button-disabled'}" type="button" ${isAdmin ? '' : 'onclick="return false;"'} onclick="${isAdmin ? `zeigeEventEditor('${shortId}')` : 'return false;'}">${t('event_edit')}</button>
       </div>
       <div class="event-section-content">
         <div class="info-zeile"><strong>${t('event_single_title')}</strong> ${escapeHtml(nm(event.subtitle))}</div>
@@ -1466,9 +1497,9 @@ function zeigeShort(shortId) {
     <div class="event-section">
       <div class="event-section-line">
         <div class="event-section-label">${t('event_media')}</div>
-        <button class="baum-zeigen" ${uploadEnabled ? '' : 'disabled'} onclick="zeigeEventUploader('${shortId}')">${t('event_upload')}</button>
+        <button class="baum-zeigen ${uploadEnabled ? '' : 'button-disabled'}" ${uploadEnabled ? '' : 'onclick="return false;"'} onclick="${uploadEnabled ? `zeigeEventUploader('${shortId}')` : 'return false;'}">${t('event_upload')}</button>
       </div>
-      ${media.length ? buildEventMediaHtml(media) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
+      ${media.length ? buildEventMediaHtml(media, shortId, isAdmin) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
     </div>
     ${isAdmin ? `<div class="event-admin-hint">${t('event_admin_hint')}</div>` : ''}
   `;
@@ -1496,7 +1527,7 @@ function zeigeEventEditor(eventId) {
         <label>${t('event_upload_images')}<br><input type="file" id="event-image-input" accept="image/*" multiple></label>
         <label>${t('event_upload_videos')}<br><input type="file" id="event-video-input" accept="video/*" multiple></label>
       </div>
-      <div class="event-media-list">${media.length ? buildEventMediaHtml(media) : `<div class="event-media-empty">${t('event_no_media')}</div>`}</div>
+      <div class="event-media-list">${media.length ? buildEventMediaHtml(media, eventId, true) : `<div class="event-media-empty">${t('event_no_media')}</div>`}</div>
       <div class="event-editor-actions">
         <button class="baum-zeigen" id="event-save-btn">${t('event_save')}</button>
         <button class="zurueck-btn" onclick="zeigeShort('${eventId}')">${t('event_cancel')}</button>
@@ -1534,13 +1565,68 @@ function zeigeEventEditor(eventId) {
   });
 }
 
-function buildEventMediaHtml(media) {
-  return `<div class="event-media-folder">${media.map(m => {
+function buildEventMediaHtml(media, eventId = null, showDelete = false) {
+  return `<div class="event-media-folder">${media.map((m, idx) => {
     const thumb = m.type.startsWith('image/')
       ? `<img class="event-media-thumb" src="${m.url}" alt="${escapeHtml(m.name)}" />`
       : `<div class="event-media-thumb video-thumb">🎥</div>`;
-    return `<div class="event-media-item"><a href="${m.url}" target="_blank" rel="noopener noreferrer">${thumb}<div class="event-media-info">${escapeHtml(m.name)}</div></a></div>`;
+    const deleteBtn = showDelete && eventId ? `<button class="media-delete-btn" onclick="deleteEventMedia('${eventId}', ${idx})" title="${t('delete')}">×</button>` : '';
+    return `<div class="event-media-item">${deleteBtn}<a href="javascript:void(0)" onclick="${eventId ? `zeigeMediaSlideshow('${eventId}', ${idx})` : 'return false;'}" style="cursor: pointer;">${thumb}<div class="event-media-info">${escapeHtml(m.name)}</div></a></div>`;
   }).join('')}</div>`;
+}
+
+function deleteEventMedia(eventId, mediaIndex) {
+  if (!confirm(t('confirm_delete') || 'Sicher?')) return;
+  const key = `event_media_all_${eventId}`;
+  const media = JSON.parse(localStorage.getItem(key) || '[]');
+  media.splice(mediaIndex, 1);
+  localStorage.setItem(key, JSON.stringify(media));
+  console.log('Media gelöscht, Index:', mediaIndex);
+  // Refresh Editor-View
+  zeigeEventEditor(eventId);
+}
+
+function zeigeMediaSlideshow(eventId, startIndex = 0) {
+  const media = renderEventMedia(eventId);
+  if (media.length === 0) return;
+  
+  const event = getEventConfig(eventId);
+  let currentIndex = startIndex;
+  
+  const updateSlideshow = () => {
+    const m = media[currentIndex];
+    const isImage = m.type.startsWith('image/');
+    const content = isImage
+      ? `<img src="${m.url}" alt="${escapeHtml(m.name)}" style="max-width: 90vw; max-height: 70vh; object-fit: contain;" />`
+      : `<video style="max-width: 90vw; max-height: 70vh;" controls><source src="${m.url}" type="${m.type}">Browser nicht unterstützt</video>`;
+    
+    const navHtml = media.length > 1 ? `
+      <div class="slideshow-nav">
+        <button onclick="window.slideshowUpdate(${Math.max(0, currentIndex - 1)})" ${currentIndex === 0 ? 'disabled' : ''}>← ${t('prev') || 'Zurück'}</button>
+        <span>${currentIndex + 1} / ${media.length}</span>
+        <button onclick="window.slideshowUpdate(${Math.min(media.length - 1, currentIndex + 1)})" ${currentIndex === media.length - 1 ? 'disabled' : ''}>${t('next') || 'Weiter'} →</button>
+      </div>
+    ` : '';
+    
+    document.getElementById('modal-text').innerHTML = `
+      <h2>${escapeHtml(nm(event.title))}</h2>
+      <div style="text-align: center; margin: 20px 0;">${content}</div>
+      <div style="text-align: center; color: #666; margin: 10px 0;">${escapeHtml(m.name)}</div>
+      ${navHtml}
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="zurueck-btn" onclick="zeigeShort('${eventId}')">${t('event_cancel')}</button>
+      </div>
+    `;
+  };
+  
+  window.slideshowUpdate = (newIndex) => {
+    if (newIndex >= 0 && newIndex < media.length) {
+      currentIndex = newIndex;
+      updateSlideshow();
+    }
+  };
+  
+  updateSlideshow();
 }
 
 function zeigeEventUploader(eventId) {
