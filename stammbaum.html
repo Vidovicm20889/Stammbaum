@@ -558,41 +558,76 @@ async function ladeAuth() {
   });
 }
 
+// Rang einer Rolle: je höher, desto mehr Rechte. Wird genutzt, um bei
+// mehreren Mitgliedschaften (verschiedene Familien) die höchste zu wählen.
+const ROLLEN_RANG = {
+  super_admin: 3,
+  familien_admin: 2,
+  familien_mitglied: 1
+};
+
 async function setzeUser(user) {
   aktuellerUser = user;
-  
-  // Versuche Rolle aus mitgliedschaften-Tabelle zu laden
+
+  // Alle Mitgliedschaften des Users laden (User kann in mehreren Familien sein).
+  // KEIN .limit(1) — sonst würde bei mehreren Familien evtl. die falsche
+  // (niedrigere) Rolle gewählt. Wir suchen explizit die höchste Rolle.
   const { data, error } = await sbClient
     .from('mitgliedschaften')
     .select('rolle')
-    .eq('user_id', user.id)
-    .limit(1)
-    .maybeSingle();
-  
-  let rawRolle = data?.rolle || null;
-  
-  // Fallback: Wenn Tabelle nicht existiert oder Zugriff blockiert, prüfe localStorage
-  // (für lokales Testen während Entwicklung)
-  if (!rawRolle) {
-    const debugRolle = localStorage.getItem('debug_rolle');
-    if (debugRolle) {
-      console.log('Debug-Modus: Nutze localStorage rolle:', debugRolle);
-      rawRolle = debugRolle;
-    }
-  }
-  
-  aktuelleRolle = rawRolle ? normalizeRolle(rawRolle) : null;
-  console.log('aktuelleRolle gesetzt zu:', aktuelleRolle, '(raw:', rawRolle, ')');
-  
+    .eq('user_id', user.id);
+
   if (error) {
     console.warn('Fehler beim Laden der Rolle:', error);
   }
-  
+
+  // Aus allen geladenen Zeilen die Rolle mit dem höchsten Rang bestimmen
+  let rawRolle = null;
+  let besterRang = 0;
+  (data || []).forEach(row => {
+    if (!row.rolle) return;
+    const norm = normalizeRolle(row.rolle);
+    const rang = ROLLEN_RANG[norm] || 0;
+    if (rang >= besterRang) {
+      besterRang = rang;
+      rawRolle   = row.rolle;
+    }
+  });
+
+  // Fallback NUR für lokale Entwicklung (localhost/127.0.0.1/file://).
+  // In Produktion (GitHub Pages) darf der localStorage-Wert NIEMALS die echte
+  // DB-Rolle überschreiben — sonst würde jeder User mit leerer DB-Antwort
+  // fälschlicherweise als 'super_admin' (o.ä.) angezeigt werden.
+  const istLokal = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+  if (!rawRolle && istLokal) {
+    const debugRolle = localStorage.getItem('debug_rolle');
+    if (debugRolle) {
+      console.log('Debug-Modus (lokal): Nutze localStorage rolle:', debugRolle);
+      rawRolle = debugRolle;
+    }
+  }
+
+  // In Produktion: Wenn die DB 0 Zeilen lieferte, ist das ein echtes Problem
+  // (meist RLS blockiert das Lesen der eigenen Mitgliedschaft) — sichtbar machen.
+  if (!rawRolle && !istLokal && (data || []).length === 0) {
+    console.warn('Keine Mitgliedschaft für eingeloggten User gelesen — ' +
+      'vermutlich RLS-Policy "mitgliedschaften_select". User bleibt ohne Rolle (nur Lesezugriff).');
+  }
+
+  aktuelleRolle = rawRolle ? normalizeRolle(rawRolle) : null;
+  console.log('aktuelleRolle gesetzt zu:', aktuelleRolle,
+    '(raw:', rawRolle, ', Mitgliedschaften:', (data || []).length, ')');
+
   aktualisiereAuthUI();
 }
 
 function normalizeRolle(rolle) {
   return rolle.toString().trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+// Zentrale Admin-Prüfung: nur super_admin und familien_admin dürfen bearbeiten/hochladen
+function istAdmin() {
+  return ['super_admin', 'familien_admin'].includes(normalizeRolle(aktuelleRolle || ''));
 }
 
 // DEBUG: Hilfsfunction zum Setzen der Debug-Rolle (nur für lokales Testen)
@@ -629,8 +664,7 @@ function aktualisiereAuthUI() {
     emailEl.textContent       = aktuellerUser.email;
     rolleEl.textContent       = aktuelleRolle ? t('rolle_' + aktuelleRolle) : '';
     // Upload nur für Admins sichtbar
-    if (uploadLabel) uploadLabel.style.display =
-      ['super_admin','familien_admin'].includes(normalizeRolle(aktuelleRolle || '')) ? '' : 'none';
+    if (uploadLabel) uploadLabel.style.display = istAdmin() ? '' : 'none';
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
@@ -1538,10 +1572,11 @@ function zeigeShorts() {
 function zeigeShort(shortId) {
   const event = getEventConfig(shortId);
   if (!event) return;
-  const isAdmin = ['super_admin','familien_admin'].includes(normalizeRolle(aktuelleRolle || ''));
+  const isAdmin = istAdmin();
   const media = renderEventMedia(shortId);
 
-  const uploadEnabled = Boolean(aktuellerUser);
+  // Hochladen nur für Admins (super_admin / familien_admin) – nicht für reine Mitglieder
+  const uploadEnabled = isAdmin;
   document.getElementById('modal-text').innerHTML = `
     <h2>${escapeHtml(nm(event.title))}</h2>
     <p style="margin:14px 0 16px; color:#5e4b35;">${escapeHtml(nm(event.location))}</p>
@@ -1568,6 +1603,7 @@ function zeigeShort(shortId) {
 }
 
 function zeigeEventEditor(eventId) {
+  if (!istAdmin()) return;   // nur super_admin / familien_admin
   const event = getEventConfig(eventId);
   if (!event) return;
   const media = renderEventMedia(eventId);
@@ -1686,9 +1722,8 @@ function zeigeMediaSlideshow(eventId, startIndex = 0) {
 }
 
 function zeigeEventUploader(eventId) {
-  if (!aktuellerUser) {
-    return;
-  }
+  if (!istAdmin()) return;   // nur super_admin / familien_admin
+
   const event = getEventConfig(eventId);
   if (!event) return;
   const media = renderEventMedia(eventId);
