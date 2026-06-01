@@ -509,8 +509,13 @@ async function setzeUser(user) {
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle();
-  aktuelleRolle = data?.rolle || null;
+  const rawRolle = data?.rolle || null;
+  aktuelleRolle = rawRolle ? normalizeRolle(rawRolle) : null;
   aktualisiereAuthUI();
+}
+
+function normalizeRolle(rolle) {
+  return rolle.toString().trim().toLowerCase().replace(/[\s-]+/g, '_');
 }
 
 function loescheUser() {
@@ -533,7 +538,7 @@ function aktualisiereAuthUI() {
     rolleEl.textContent       = aktuelleRolle ? t('rolle_' + aktuelleRolle) : '';
     // Upload nur für Admins sichtbar
     if (uploadLabel) uploadLabel.style.display =
-      ['super_admin','familien_admin'].includes(aktuelleRolle) ? '' : 'none';
+      ['super_admin','familien_admin'].includes(normalizeRolle(aktuelleRolle || '')) ? '' : 'none';
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
@@ -1344,7 +1349,7 @@ function zeigeShorts() {
 function zeigeShort(shortId) {
   const event = getEventConfig(shortId);
   if (!event) return;
-  const isAdmin = ['super_admin','familien_admin'].includes(aktuelleRolle);
+  const isAdmin = ['super_admin','familien_admin'].includes(normalizeRolle(aktuelleRolle || ''));
   const media = renderEventMedia(shortId);
 
   document.getElementById('modal-text').innerHTML = `
