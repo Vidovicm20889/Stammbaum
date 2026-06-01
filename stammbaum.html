@@ -1307,23 +1307,42 @@ function wertSpeichern(eventId, updates) {
 }
 
 async function uploadEventMedia(eventId, file) {
-  if (!file || !aktuellerUser) return { url: null, error: 'No file or unauthenticated.' };
-  const bucket = 'events';
-  const path = `${eventId}/${Date.now()}_${file.name}`;
-  const { data, error } = await sbClient.storage.from(bucket).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-  });
-  if (error) {
-    console.warn('Upload fehlgeschlagen', error.message);
-    return { url: null, error: error.message };
+  if (!file || !aktuellerUser) return { url: null, error: 'Keine Datei oder nicht authentifiziert.' };
+  try {
+    const bucket = 'events';
+    const path = `${eventId}/${Date.now()}_${file.name}`;
+    console.log('Upload starten:', { bucket, path, fileType: file.type, fileSize: file.size });
+    
+    const { data, error } = await sbClient.storage.from(bucket).upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+    
+    if (error) {
+      console.error('Upload-Fehler:', error);
+      return { url: null, error: error.message || 'Upload-Fehler' };
+    }
+    
+    console.log('Upload erfolgreich:', data);
+    // Use the path returned by the upload response when available —
+    // the client may normalize or alter the filename. Fall back to our
+    // constructed `path` when upload response doesn't include it.
+    const uploadedPath = (data && (data.path || data.Key || data.KeyName || data.name)) || path;
+
+    console.log('Using path for signed URL:', uploadedPath);
+
+    const { data: urlData, error: signError } = await sbClient.storage.from(bucket).createSignedUrl(uploadedPath, 60 * 60 * 24);
+    if (signError) {
+      console.error('Signed URL-Fehler:', signError);
+      return { url: null, error: signError.message || 'URL-Fehler' };
+    }
+    
+    console.log('URL generiert:', urlData?.signedUrl);
+    return { url: urlData?.signedUrl || null, error: null };
+  } catch (err) {
+    console.error('Upload-Exception:', err);
+    return { url: null, error: err.message || 'Unbekannter Fehler' };
   }
-  const { data: urlData, error: signError } = await sbClient.storage.from(bucket).createSignedUrl(path, 60 * 60 * 24);
-  if (signError) {
-    console.warn('Signed URL fehlgeschlagen', signError.message);
-    return { url: null, error: signError.message };
-  }
-  return { url: urlData?.signedUrl || null, error: null };
 }
 
 function renderEventMedia(eventId) {
@@ -1502,22 +1521,35 @@ function zeigeEventUploader(eventId) {
     const videoFiles = document.getElementById('event-video-input').files;
     const status = document.getElementById('event-status');
     const button = document.getElementById('event-upload-btn');
+    
+    const uploads = [...imageFiles, ...videoFiles];
+    console.log('Upload-Button geklickt. Dateien:', uploads.length);
+    
+    if (uploads.length === 0) {
+      status.textContent = 'Bitte Dateien auswählen.';
+      return;
+    }
+    
     button.disabled = true;
     status.textContent = t('event_uploading');
 
-    const uploads = [...imageFiles, ...videoFiles];
+    let uploadedCount = 0;
     for (const file of uploads) {
+      console.log('Uploading:', file.name);
       const result = await uploadEventMedia(eventId, file);
       if (result?.url) {
+        console.log('Erfolgreich hochgeladen:', file.name);
         addEventMedia(eventId, { url: result.url, name: file.name, type: file.type });
+        uploadedCount++;
       } else if (result?.error) {
-        status.textContent = `${t('event_uploading')} ${result.error}`;
+        console.error('Upload-Fehler für', file.name, ':', result.error);
+        status.textContent = `Fehler bei ${file.name}: ${result.error}`;
         button.disabled = false;
         return;
       }
     }
 
-    status.textContent = t('event_saved');
+    status.textContent = `${uploadedCount} Datei(en) erfolgreich hochgeladen.`;
     button.disabled = false;
     setTimeout(() => status.textContent = '', 3000);
   });
