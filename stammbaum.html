@@ -279,13 +279,32 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .event-upload-row input[type=file] {
   margin-top: 8px; width: 100%;
 }
-.event-media-preview {
-  display: grid; gap: 12px; margin-top: 6px;
+.event-detail-actions,
+.event-editor-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px;
 }
-.event-media-preview img,
-.event-media-preview video {
-  width: 100%; max-height: 260px; border-radius: 14px;
-  object-fit: cover;
+.event-media-folder {
+  display: grid; gap: 10px; margin-top: 10px;
+  padding: 12px; background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
+}
+.event-media-item {
+  display: block; background: var(--paper-soft); border: 1px solid var(--linie);
+  border-radius: 14px; overflow: hidden;
+}
+.event-media-item a {
+  display: flex; align-items: center; gap: 14px; padding: 12px;
+  color: inherit; text-decoration: none;
+}
+.event-media-thumb {
+  width: 72px; height: 72px; border-radius: 14px; object-fit: cover;
+  flex-shrink: 0; background: rgba(0,0,0,0.12);
+}
+.video-thumb {
+  display: grid; place-items: center; font-size: 24px;
+}
+.event-media-info {
+  flex: 1; font-size: 13px; line-height: 1.3; color: #7a6a50;
 }
 .event-admin-hint {
   margin-top: 14px; font-size: 13px; color: #7a6a50; font-style: italic;
@@ -654,6 +673,7 @@ const TEXTE = {
     event_save: 'Speichern',
     event_cancel: 'Abbrechen',
     event_edit: 'Bearbeiten',
+    event_upload: 'Hochladen',
     event_admin_hint: 'Nur Super Admin und Familien-Admin können hier ändern.',
     event_uploading: 'Dateien werden hochgeladen…',
     event_saved: 'Änderungen gespeichert.',
@@ -712,6 +732,7 @@ const TEXTE = {
     event_save: 'Сачувај',
     event_cancel: 'Откажи',
     event_edit: 'Уреди',
+    event_upload: 'Отпреми',
     event_admin_hint: 'Само Супер Админ и Породични Админ могу овде мењати.',
     event_uploading: 'Отпремање датотека…',
     event_saved: 'Промене сачуване.',
@@ -770,6 +791,7 @@ const TEXTE = {
     event_save: 'Spremi',
     event_cancel: 'Odustani',
     event_edit: 'Uredi',
+    event_upload: 'Otpremi',
     event_admin_hint: 'Samo Super Admin i Admin obitelji mogu ovdje mijenjati.',
     event_uploading: 'Preuzimanje datoteka…',
     event_saved: 'Promjene spremljene.',
@@ -828,6 +850,7 @@ const TEXTE = {
     event_save: 'Sačuvaj',
     event_cancel: 'Odustani',
     event_edit: 'Uredi',
+    event_upload: 'Otpremi',
     event_admin_hint: 'Samo Super Admin i Admin porodice mogu ovdje mijenjati.',
     event_uploading: 'Otpremanje datoteka…',
     event_saved: 'Promjene sačuvane.',
@@ -886,6 +909,7 @@ const TEXTE = {
     event_save: 'Save',
     event_cancel: 'Cancel',
     event_edit: 'Edit',
+    event_upload: 'Upload',
     event_admin_hint: 'Only Super Admin and Family Admin can edit here.',
     event_uploading: 'Uploading files…',
     event_saved: 'Changes saved.',
@@ -1330,8 +1354,8 @@ function zeigeShort(shortId) {
     <div class="info-zeile"><strong>${t('event_organizer')}</strong> ${escapeHtml(nm(event.organizers))}</div>
     <div class="info-zeile"><strong>${t('event_description')}</strong><br>${escapeHtml(nm(event.details))}</div>
     <div class="info-zeile" style="margin-top:12px;">${t('event_media')}</div>
-    ${media.length ? `<div class="event-media-preview">${media.map(m => m.type.startsWith('image/') ? `<img src="${m.url}" alt="${escapeHtml(m.name)}" />` : `<video controls src="${m.url}"></video>`).join('')}</div>` : `<div class="event-media-empty">${t('event_no_media')}</div>`}
-    ${isAdmin ? `<button class="baum-zeigen" onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button>` : ''}
+    ${media.length ? buildEventMediaHtml(media) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
+    ${isAdmin ? `<div class="event-detail-actions"><button class="baum-zeigen" onclick="zeigeEventEditor('${shortId}')">${t('event_edit')}</button><button class="baum-zeigen" onclick="zeigeEventUploader('${shortId}')">${t('event_upload')}</button></div>` : ''}
     ${isAdmin ? `<div class="event-admin-hint">${t('event_admin_hint')}</div>` : ''}
   `;
   document.getElementById('modal').classList.add('aktiv');
@@ -1352,7 +1376,7 @@ function zeigeEventEditor(eventId) {
         <label>${t('event_upload_images')}<br><input type="file" id="event-image-input" accept="image/*" multiple></label>
         <label>${t('event_upload_videos')}<br><input type="file" id="event-video-input" accept="video/*" multiple></label>
       </div>
-      <div class="event-media-preview">${media.map(m => m.type.startsWith('image/') ? `<img src="${m.url}" alt="${escapeHtml(m.name)}" />` : `<video controls src="${m.url}"></video>`).join('')}</div>
+      <div class="event-media-list">${media.length ? buildEventMediaHtml(media) : `<div class="event-media-empty">${t('event_no_media')}</div>`}</div>
       <div class="event-editor-actions">
         <button class="baum-zeigen" id="event-save-btn">${t('event_save')}</button>
         <button class="zurueck-btn" onclick="zeigeShort('${eventId}')">${t('event_cancel')}</button>
@@ -1369,6 +1393,63 @@ function zeigeEventEditor(eventId) {
     const videoFiles = document.getElementById('event-video-input').files;
     const status = document.getElementById('event-status');
     const button = document.getElementById('event-save-btn');
+    button.disabled = true;
+    status.textContent = t('event_uploading');
+
+    const uploads = [...imageFiles, ...videoFiles];
+    for (const file of uploads) {
+      const result = await uploadEventMedia(eventId, file);
+      if (result?.url) {
+        addEventMedia(eventId, { url: result.url, name: file.name, type: file.type });
+      } else if (result?.error) {
+        status.textContent = `${t('event_uploading')} ${result.error}`;
+        button.disabled = false;
+        return;
+      }
+    }
+
+    status.textContent = t('event_saved');
+    button.disabled = false;
+    setTimeout(() => status.textContent = '', 3000);
+  });
+}
+
+function buildEventMediaHtml(media) {
+  return `<div class="event-media-folder">${media.map(m => {
+    const thumb = m.type.startsWith('image/')
+      ? `<img class="event-media-thumb" src="${m.url}" alt="${escapeHtml(m.name)}" />`
+      : `<div class="event-media-thumb video-thumb">🎥</div>`;
+    return `<div class="event-media-item"><a href="${m.url}" target="_blank" rel="noopener noreferrer">${thumb}<div class="event-media-info">${escapeHtml(m.name)}</div></a></div>`;
+  }).join('')}</div>`;
+}
+
+function zeigeEventUploader(eventId) {
+  const event = getEventConfig(eventId);
+  if (!event) return;
+  const media = renderEventMedia(eventId);
+
+  document.getElementById('modal-text').innerHTML = `
+    <h2>${escapeHtml(nm(event.title))}</h2>
+    <div class="event-editor">
+      <div class="event-upload-row">
+        <label>${t('event_upload_images')}<br><input type="file" id="event-image-input" accept="image/*" multiple></label>
+        <label>${t('event_upload_videos')}<br><input type="file" id="event-video-input" accept="video/*" multiple></label>
+      </div>
+      <div class="event-media-list">${media.length ? buildEventMediaHtml(media) : `<div class="event-media-empty">${t('event_no_media')}</div>`}</div>
+      <div class="event-editor-actions">
+        <button class="baum-zeigen" id="event-upload-btn">${t('event_upload')}</button>
+        <button class="zurueck-btn" onclick="zeigeShort('${eventId}')">${t('event_cancel')}</button>
+      </div>
+      <div class="event-status" id="event-status"></div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('aktiv');
+
+  document.getElementById('event-upload-btn').addEventListener('click', async () => {
+    const imageFiles = document.getElementById('event-image-input').files;
+    const videoFiles = document.getElementById('event-video-input').files;
+    const status = document.getElementById('event-status');
+    const button = document.getElementById('event-upload-btn');
     button.disabled = true;
     status.textContent = t('event_uploading');
 
