@@ -620,6 +620,30 @@ footer {
   color: var(--akzent); font-size: 13px;
   margin-top: 10px; display: none;
 }
+/* Personen-Aktionen im Detail-Overlay (hinzufügen / löschen) */
+.pa-aktionen { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;
+  padding-top: 14px; border-top: 1px solid var(--linie); }
+.pa-add-btn, .pa-del-btn {
+  flex: 1; min-width: 140px; padding: 10px 14px; cursor: pointer;
+  font-family: inherit; font-size: 13px; letter-spacing: 1px;
+  text-transform: uppercase; transition: all 0.2s; background: none;
+}
+.pa-add-btn { border: 1px solid var(--gold); color: var(--gold); }
+.pa-add-btn:hover { background: var(--gold); color: var(--paper); }
+.pa-del-btn { border: 1px solid #9b2226; color: #9b2226; }
+.pa-del-btn:hover { background: #9b2226; color: #fff; }
+.pa-kontext { font-size: 13px; color: var(--gold); margin: -6px 0 10px; }
+.pa-hilfe {
+  position: relative; background: rgba(122,42,42,0.06);
+  border: 1px solid var(--linie); border-left: 3px solid var(--gold);
+  padding: 12px 34px 12px 14px; margin-bottom: 14px;
+  font-size: 13px; line-height: 1.5; color: #555;
+}
+.pa-hilfe strong { display: block; color: var(--akzent); margin-bottom: 4px; }
+.pa-hilfe-zu {
+  position: absolute; top: 6px; right: 8px; background: none; border: none;
+  font-size: 18px; line-height: 1; cursor: pointer; color: #8a7a5a;
+}
 </style>
 </head>
 <body>
@@ -953,6 +977,121 @@ footer {
     <div id="pe-fehler" class="login-fehler"></div>
     <button class="login-submit" id="pe-submit" data-i18n="event_save" onclick="speicherePerson()"></button>
     <div id="pe-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Neue Person anlegen + Beziehung zur aktiven Person (nur Admins) -->
+<div class="modal" id="person-add-modal">
+  <div class="modal-inhalt" style="max-width:620px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePersonAdd()">×</button>
+    <h2 data-i18n="pa_titel_fenster"></h2>
+    <input type="hidden" id="pa-context-id">
+    <p class="pa-kontext" id="pa-kontext"></p>
+
+    <div class="pa-hilfe" id="pa-hilfe" style="display:none">
+      <button type="button" class="pa-hilfe-zu" onclick="schliessePaHilfe()" aria-label="OK">×</button>
+      <strong data-i18n="pa_hilfe_titel"></strong>
+      <span data-i18n="pa_hilfe_text"></span>
+    </div>
+
+    <div class="reg-gruppe-titel" data-i18n="pa_beziehung_titel"></div>
+    <label class="login-label reg-feld-voll"><span data-i18n="pa_beziehungstyp"></span> *
+      <select id="pa-beziehungstyp" class="login-feld" onchange="paPruefeFelder()">
+        <option value="kind" data-i18n="bzt_kind"></option>
+        <option value="elternteil" data-i18n="bzt_elternteil"></option>
+        <option value="partner" data-i18n="bzt_partner"></option>
+      </select></label>
+    <!-- Bei Kind + mehreren Ehepartnern: zweiten Elternteil abfragen -->
+    <label class="login-label reg-feld-voll" id="pa-row-elternteil2" style="display:none"><span data-i18n="pa_zweiter_elternteil"></span>
+      <select id="pa-elternteil2" class="login-feld"></select></label>
+
+    <div class="reg-gruppe-titel" data-i18n="pa_g_personendaten"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="reg_vorname"></span> *
+        <input type="text" id="pa-vorname" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_nachname"></span>
+        <input type="text" id="pa-nachname" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_geschlecht"></span>
+        <select id="pa-geschlecht" class="login-feld">
+          <option value="" data-i18n="unbekannt"></option>
+          <option value="M" data-i18n="maennlich"></option>
+          <option value="F" data-i18n="weiblich"></option>
+        </select></label>
+      <label class="login-label"><span data-i18n="pe_status"></span>
+        <select id="pa-status" class="login-feld" onchange="paPruefeFelder()">
+          <option value="lebend" data-i18n="pe_lebend"></option>
+          <option value="verstorben" data-i18n="pe_verstorben"></option>
+        </select></label>
+      <label class="login-label" id="pa-row-sterbedatum" style="display:none"><span data-i18n="pe_sterbedatum"></span>
+        <input type="text" id="pa-sterbedatum" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
+        <input type="text" id="pa-geburtsdatum" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label"><span data-i18n="reg_geburtsort"></span>
+        <input type="text" id="pa-geburtsort" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_geburtsland"></span>
+        <input type="text" id="pa-geburtsland" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_titel"></span>
+        <input type="text" id="pa-titel" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_namenszusatz"></span>
+        <input type="text" id="pa-namenszusatz" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_ehename"></span>
+        <input type="text" id="pa-ehename" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_getauft"></span>
+        <input type="text" id="pa-getauft" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="pe_beziehung"></span>
+        <select id="pa-beziehung" class="login-feld" onchange="paPruefeFelder()">
+          <option value="unbekannt" data-i18n="bz_unbekannt"></option>
+          <option value="verheiratet" data-i18n="bz_verheiratet"></option>
+          <option value="verlobt" data-i18n="bz_verlobt"></option>
+          <option value="partner" data-i18n="bz_partner"></option>
+          <option value="getrennt" data-i18n="bz_getrennt"></option>
+          <option value="geschieden" data-i18n="bz_geschieden"></option>
+          <option value="verwitwet" data-i18n="bz_verwitwet"></option>
+          <option value="sonstige" data-i18n="bz_sonstige"></option>
+        </select></label>
+      <label class="login-label" id="pa-row-hochzeitsort" style="display:none"><span data-i18n="pe_hochzeitsort"></span>
+        <input type="text" id="pa-hochzeitsort" class="login-feld"></label>
+      <label class="login-label" id="pa-row-standesamt" style="display:none"><span data-i18n="pe_hochzeit_standesamt"></span>
+        <input type="text" id="pa-hochzeit-standesamt" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label" id="pa-row-kirchlich" style="display:none"><span data-i18n="pe_hochzeit_kirchlich"></span>
+        <input type="text" id="pa-hochzeit-kirchlich" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label reg-feld-voll" id="pa-row-sonstige" style="display:none"><span data-i18n="pe_beziehung_sonstige"></span>
+        <input type="text" id="pa-beziehung-sonstige" class="login-feld"></label>
+    </div>
+
+    <div class="reg-gruppe-titel" data-i18n="reg_kontakt"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="reg_kontakt_email"></span>
+        <input type="email" id="pa-email" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_telefon"></span>
+        <input type="tel" id="pa-telefon" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_facebook"></span>
+        <input type="text" id="pa-facebook" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_instagram"></span>
+        <input type="text" id="pa-instagram" class="login-feld"></label>
+    </div>
+
+    <div class="reg-gruppe-titel" data-i18n="pe_g_wohnen"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="pe_wohnland"></span>
+        <input type="text" id="pa-wohnland" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_wohnstadt"></span>
+        <input type="text" id="pa-wohnstadt" class="login-feld"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="pe_adresse"></span>
+        <input type="text" id="pa-adresse" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_beruf"></span>
+        <input type="text" id="pa-beruf" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_ausbildung"></span>
+        <input type="text" id="pa-ausbildung" class="login-feld"></label>
+    </div>
+
+    <div class="reg-gruppe-titel" data-i18n="pe_g_ueber"></div>
+    <label class="login-label"><span data-i18n="pe_beschreibung"></span>
+      <textarea id="pa-beschreibung" class="login-feld" rows="4"></textarea></label>
+
+    <div id="pa-fehler" class="login-fehler"></div>
+    <button class="login-submit" id="pa-submit" data-i18n="pa_speichern" onclick="speichereNeuePerson()"></button>
+    <div id="pa-erfolg" class="reg-erfolg" style="display:none"></div>
   </div>
 </div>
 
@@ -2060,6 +2199,23 @@ const TEXTE = {
     pe_g_wohnen: 'Wohnort & Beruf',
     pe_g_ueber: 'Über mich',
     pe_gespeichert: 'Gespeichert.',
+    person_hinzufuegen: 'Person hinzufügen',
+    person_loeschen: 'Person löschen',
+    pa_titel_fenster: 'Neue Person anlegen',
+    pa_kontext: 'Verwandt mit: {name}',
+    pa_beziehung_titel: 'Beziehung zur aktiven Person',
+    pa_beziehungstyp: 'Die neue Person ist …',
+    bzt_kind: 'Kind dieser Person',
+    bzt_elternteil: 'Elternteil dieser Person',
+    bzt_partner: 'Partner(in) dieser Person',
+    pa_hilfe_titel: 'So funktioniert es',
+    pa_hilfe_text: 'Wähle, in welcher Beziehung die neue Person zur aktuell geöffneten Person steht (Kind, Elternteil oder Partner). Fülle die Personendaten aus und speichere — die neue Karte erscheint sofort verbunden im Baum. Über eine Karte öffnest du jederzeit Details, kannst weitere Personen anlegen oder löschen.',
+    pa_speichern: 'Person speichern',
+    pa_erfolg: 'Person hinzugefügt.',
+    pa_pflicht: 'Bitte mindestens den Vornamen angeben.',
+    pa_kein_kontext: 'Bezugsperson nicht gefunden.',
+    pa_loeschen_frage: 'Möchtest du diese Person wirklich löschen? Alle ihre Beziehungen werden ebenfalls entfernt.',
+    pa_geloescht: 'Person gelöscht.',
     pe_sterbedatum: 'Sterbedatum',
     pe_hochzeit_standesamt: 'Hochzeitstag (standesamtlich)',
     pe_hochzeit_kirchlich: 'Hochzeitstag (kirchlich)',
@@ -2222,6 +2378,23 @@ const TEXTE = {
     pe_g_wohnen: 'Пребивалиште и посао',
     pe_g_ueber: 'О мени',
     pe_gespeichert: 'Сачувано.',
+    person_hinzufuegen: 'Додај особу',
+    person_loeschen: 'Обриши особу',
+    pa_titel_fenster: 'Направи нову особу',
+    pa_kontext: 'У сродству са: {name}',
+    pa_beziehung_titel: 'Однос према активној особи',
+    pa_beziehungstyp: 'Нова особа је …',
+    bzt_kind: 'Дете ове особе',
+    bzt_elternteil: 'Родитељ ове особе',
+    bzt_partner: 'Партнер ове особе',
+    pa_hilfe_titel: 'Како функционише',
+    pa_hilfe_text: 'Изабери у каквом је односу нова особа према тренутно отвореној особи (дете, родитељ или партнер). Попуни податке и сачувај — нова картица се одмах појављује повезана у стаблу. Преко картице у сваком тренутку отвараш детаље, додајеш или бришеш особе.',
+    pa_speichern: 'Сачувај особу',
+    pa_erfolg: 'Особа додата.',
+    pa_pflicht: 'Молимо унеси бар име.',
+    pa_kein_kontext: 'Референтна особа није пронађена.',
+    pa_loeschen_frage: 'Да ли заиста желиш да обришеш ову особу? Сви њени односи ће такође бити уклоњени.',
+    pa_geloescht: 'Особа обрисана.',
     pe_sterbedatum: 'Датум смрти',
     pe_hochzeit_standesamt: 'Венчање (грађанско)',
     pe_hochzeit_kirchlich: 'Венчање (црквено)',
@@ -2384,6 +2557,23 @@ const TEXTE = {
     pe_g_wohnen: 'Prebivalište i posao',
     pe_g_ueber: 'O meni',
     pe_gespeichert: 'Spremljeno.',
+    person_hinzufuegen: 'Dodaj osobu',
+    person_loeschen: 'Obriši osobu',
+    pa_titel_fenster: 'Izradi novu osobu',
+    pa_kontext: 'U srodstvu s: {name}',
+    pa_beziehung_titel: 'Odnos prema aktivnoj osobi',
+    pa_beziehungstyp: 'Nova osoba je …',
+    bzt_kind: 'Dijete ove osobe',
+    bzt_elternteil: 'Roditelj ove osobe',
+    bzt_partner: 'Partner(ica) ove osobe',
+    pa_hilfe_titel: 'Kako funkcionira',
+    pa_hilfe_text: 'Odaberi u kakvom je odnosu nova osoba prema trenutno otvorenoj osobi (dijete, roditelj ili partner). Ispuni podatke i spremi — nova kartica odmah se pojavljuje povezana u stablu. Preko kartice u svakom trenutku otvaraš detalje, dodaješ ili brišeš osobe.',
+    pa_speichern: 'Spremi osobu',
+    pa_erfolg: 'Osoba dodana.',
+    pa_pflicht: 'Molimo unesi barem ime.',
+    pa_kein_kontext: 'Referentna osoba nije pronađena.',
+    pa_loeschen_frage: 'Želiš li doista obrisati ovu osobu? Svi njezini odnosi također će biti uklonjeni.',
+    pa_geloescht: 'Osoba obrisana.',
     pe_sterbedatum: 'Datum smrti',
     pe_hochzeit_standesamt: 'Vjenčanje (građansko)',
     pe_hochzeit_kirchlich: 'Vjenčanje (crkveno)',
@@ -2546,6 +2736,23 @@ const TEXTE = {
     pe_g_wohnen: 'Prebivalište i posao',
     pe_g_ueber: 'O meni',
     pe_gespeichert: 'Sačuvano.',
+    person_hinzufuegen: 'Dodaj osobu',
+    person_loeschen: 'Obriši osobu',
+    pa_titel_fenster: 'Kreiraj novu osobu',
+    pa_kontext: 'U srodstvu s: {name}',
+    pa_beziehung_titel: 'Odnos prema aktivnoj osobi',
+    pa_beziehungstyp: 'Nova osoba je …',
+    bzt_kind: 'Dijete ove osobe',
+    bzt_elternteil: 'Roditelj ove osobe',
+    bzt_partner: 'Partner(ica) ove osobe',
+    pa_hilfe_titel: 'Kako funkcioniše',
+    pa_hilfe_text: 'Odaberi u kakvom je odnosu nova osoba prema trenutno otvorenoj osobi (dijete, roditelj ili partner). Popuni podatke i sačuvaj — nova kartica se odmah pojavljuje povezana u stablu. Preko kartice u svakom trenutku otvaraš detalje, dodaješ ili brišeš osobe.',
+    pa_speichern: 'Sačuvaj osobu',
+    pa_erfolg: 'Osoba dodana.',
+    pa_pflicht: 'Molimo unesi barem ime.',
+    pa_kein_kontext: 'Referentna osoba nije pronađena.',
+    pa_loeschen_frage: 'Želiš li zaista obrisati ovu osobu? Svi njeni odnosi će također biti uklonjeni.',
+    pa_geloescht: 'Osoba obrisana.',
     pe_sterbedatum: 'Datum smrti',
     pe_hochzeit_standesamt: 'Vjenčanje (građansko)',
     pe_hochzeit_kirchlich: 'Vjenčanje (crkveno)',
@@ -2708,6 +2915,23 @@ const TEXTE = {
     pe_g_wohnen: 'Residence & work',
     pe_g_ueber: 'About me',
     pe_gespeichert: 'Saved.',
+    person_hinzufuegen: 'Add person',
+    person_loeschen: 'Delete person',
+    pa_titel_fenster: 'Create new person',
+    pa_kontext: 'Related to: {name}',
+    pa_beziehung_titel: 'Relationship to the active person',
+    pa_beziehungstyp: 'The new person is …',
+    bzt_kind: 'Child of this person',
+    bzt_elternteil: 'Parent of this person',
+    bzt_partner: 'Partner of this person',
+    pa_hilfe_titel: 'How it works',
+    pa_hilfe_text: 'Choose how the new person relates to the currently open person (child, parent or partner). Fill in the details and save — the new card appears connected in the tree immediately. From any card you can open details, add more people or delete them.',
+    pa_speichern: 'Save person',
+    pa_erfolg: 'Person added.',
+    pa_pflicht: 'Please enter at least a first name.',
+    pa_kein_kontext: 'Reference person not found.',
+    pa_loeschen_frage: 'Do you really want to delete this person? All of their relationships will be removed as well.',
+    pa_geloescht: 'Person deleted.',
     pe_sterbedatum: 'Date of death',
     pe_hochzeit_standesamt: 'Wedding (civil)',
     pe_hochzeit_kirchlich: 'Wedding (church)',
@@ -3941,6 +4165,11 @@ function zeigeDetails(personId) {
 
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
+    ${istAdmin() ? `
+      <div class="pa-aktionen">
+        <button class="pa-add-btn" onclick="zeigePersonHinzufuegen('${p.id}')">＋ ${t('person_hinzufuegen')}</button>
+        <button class="pa-del-btn" onclick="loeschePerson('${p.id}')">🗑 ${t('person_loeschen')}</button>
+      </div>` : ''}
   `;
   document.getElementById('modal').classList.add('aktiv');
 }
@@ -4076,6 +4305,230 @@ async function speicherePerson() {
   zeichneBaumNeu();
   erfolgEl.textContent = t('pe_gespeichert'); erfolgEl.style.display = 'block';
   setTimeout(() => schliessePersonEdit(), 900);
+}
+
+// ============================================================
+// PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD
+// ============================================================
+
+// Baum nach einer Änderung frisch laden und neu zeichnen, Fokus behalten.
+async function reloadBaumBehalteFokus(fokusExtId) {
+  const daten = await ladeBaumAusSupabase();
+  if (daten && Object.keys(daten.persons).length) {
+    aktuelleDaten = daten;
+    baueNachnameFilter();
+    befuelleStammbaumAuswahl();
+    aktualisiereStats();
+  }
+  if (fokusExtId && aktuelleDaten.persons[fokusExtId]) {
+    fokusPersonId = fokusExtId;
+    zeichneBaum(fokusExtId, 2, 2);
+  } else {
+    fokusPersonId = null;
+    zeichneBaumNeu();
+  }
+}
+
+function schliessePaHilfe() {
+  document.getElementById('pa-hilfe').style.display = 'none';
+  try { localStorage.setItem('hasSeenTreeHelp', 'true'); } catch (e) {}
+}
+
+// Ehepartner der aktiven Person (für die Zweit-Elternteil-Abfrage beim Kind)
+let paSpouses = [];
+
+// Aus dem Detail-Overlay heraus: neue Person im Kontext der aktiven Person anlegen.
+function zeigePersonHinzufuegen(personId) {
+  if (!istAdmin()) return;
+  const p = aktuelleDaten.persons[personId];
+  if (!p) return;
+  schliesseModal();   // immer nur EIN Overlay aktiv
+  document.getElementById('pa-context-id').value = personId;
+  document.getElementById('pa-kontext').textContent =
+    t('pa_kontext', { name: nm(p.name || p.given || '?') });
+  // Alle Eingabefelder leeren
+  ['pa-vorname','pa-nachname','pa-geburtsdatum','pa-geburtsort','pa-geburtsland','pa-sterbedatum',
+   'pa-titel','pa-namenszusatz','pa-ehename','pa-getauft','pa-hochzeitsort',
+   'pa-hochzeit-standesamt','pa-hochzeit-kirchlich','pa-beziehung-sonstige',
+   'pa-email','pa-telefon','pa-facebook','pa-instagram',
+   'pa-wohnland','pa-wohnstadt','pa-adresse','pa-beruf','pa-ausbildung','pa-beschreibung']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pa-geschlecht').value = '';
+  document.getElementById('pa-status').value = 'lebend';
+  document.getElementById('pa-beziehung').value = 'unbekannt';
+  document.getElementById('pa-beziehungstyp').value = 'kind';
+
+  // Ehepartner der aktiven Person ermitteln (für zweiten Elternteil bei "Kind")
+  paSpouses = [];
+  (p.families_spouse || []).forEach(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return;
+    const partnerExt = fam.husband === personId ? fam.wife : fam.husband;
+    const partner = partnerExt ? aktuelleDaten.persons[partnerExt] : null;
+    if (partner && partner._uuid) paSpouses.push({ uuid: partner._uuid, name: nm(partner.name || partner.given || '?') });
+  });
+  const sel2 = document.getElementById('pa-elternteil2');
+  sel2.innerHTML = `<option value="">${escapeHtml(t('unbekannt'))}</option>` +
+    paSpouses.map(s => `<option value="${s.uuid}">${escapeHtml(s.name)}</option>`).join('');
+  if (paSpouses.length === 1) sel2.value = paSpouses[0].uuid;   // Vorauswahl: einziger Partner
+
+  document.getElementById('pa-fehler').style.display = 'none';
+  document.getElementById('pa-erfolg').style.display = 'none';
+  paPruefeFelder();
+  // Hilfe nur beim ersten Mal automatisch zeigen (dismissible)
+  let gesehen = false;
+  try { gesehen = localStorage.getItem('hasSeenTreeHelp') === 'true'; } catch (e) {}
+  document.getElementById('pa-hilfe').style.display = gesehen ? 'none' : 'block';
+  document.getElementById('person-add-modal').classList.add('aktiv');
+}
+
+function paPruefeFelder() {
+  const verstorben = document.getElementById('pa-status').value === 'verstorben';
+  document.getElementById('pa-row-sterbedatum').style.display = verstorben ? '' : 'none';
+  // Beziehung (Ehe -> Hochzeitsfelder, Sonstige -> Freitext)
+  const bez = document.getElementById('pa-beziehung').value;
+  const ehe = bez === 'verheiratet';
+  document.getElementById('pa-row-hochzeitsort').style.display = ehe ? '' : 'none';
+  document.getElementById('pa-row-standesamt').style.display   = ehe ? '' : 'none';
+  document.getElementById('pa-row-kirchlich').style.display    = ehe ? '' : 'none';
+  document.getElementById('pa-row-sonstige').style.display     = (bez === 'sonstige') ? '' : 'none';
+  // Zweiter Elternteil nur bei "Kind" UND mehreren Ehepartnern abfragen
+  const typ = document.getElementById('pa-beziehungstyp').value;
+  document.getElementById('pa-row-elternteil2').style.display =
+    (typ === 'kind' && paSpouses.length >= 2) ? '' : 'none';
+}
+
+function schliessePersonAdd() {
+  document.getElementById('person-add-modal').classList.remove('aktiv');
+}
+
+async function speichereNeuePerson() {
+  if (!istAdmin()) return;
+  const fehlerEl = document.getElementById('pa-fehler');
+  const erfolgEl = document.getElementById('pa-erfolg');
+  const button   = document.getElementById('pa-submit');
+  fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+
+  const aktivId = document.getElementById('pa-context-id').value;
+  const aktiv   = aktuelleDaten.persons[aktivId];
+  if (!aktiv || !aktiv._uuid) { fehlerEl.textContent = t('pa_kein_kontext'); fehlerEl.style.display = 'block'; return; }
+
+  const v = id => document.getElementById(id).value.trim();
+  const vorname = v('pa-vorname');
+  if (!vorname) { fehlerEl.textContent = t('pa_pflicht'); fehlerEl.style.display = 'block'; return; }
+
+  const typ        = document.getElementById('pa-beziehungstyp').value;   // kind | elternteil | partner
+  const verstorben = document.getElementById('pa-status').value === 'verstorben';
+  const nachname   = v('pa-nachname') || aktiv.surname || '';
+  const sex        = document.getElementById('pa-geschlecht').value || '';
+
+  const altText = button.textContent;
+  button.disabled = true; button.textContent = t('reg_senden_laeuft');
+
+  // familie_id + stammbaum_id der aktiven Person frisch holen (für Besitz/Baum)
+  const { data: kontext, error: kErr } = await sbClient.from('personen')
+    .select('familie_id, stammbaum_id').eq('id', aktiv._uuid).single();
+  if (kErr || !kontext) {
+    button.disabled = false; button.textContent = altText;
+    fehlerEl.textContent = t('reg_fehler') + (kErr ? kErr.message : '—'); fehlerEl.style.display = 'block'; return;
+  }
+
+  const ehe = document.getElementById('pa-beziehung').value;
+  const externeId = 'I' + Date.now();
+  const name = (vorname + ' ' + nachname).trim();
+  const stammbaum_daten = {
+    id: externeId, given: vorname, surname: nachname, name, sex,
+    titel: v('pa-titel'), namenszusatz: v('pa-namenszusatz'), ehename: v('pa-ehename'),
+    birth_date: v('pa-geburtsdatum'), birth_place: v('pa-geburtsort'),
+    geburtsland: v('pa-geburtsland'), getauft: v('pa-getauft'),
+    hochzeitsort: v('pa-hochzeitsort'),
+    hochzeit_standesamt: v('pa-hochzeit-standesamt'),
+    hochzeit_kirchlich: v('pa-hochzeit-kirchlich'),
+    beziehung: ehe, beziehung_sonstige: v('pa-beziehung-sonstige'),
+    email: v('pa-email'), telefon: v('pa-telefon'), facebook: v('pa-facebook'), instagram: v('pa-instagram'),
+    wohnort_land: v('pa-wohnland'), wohnort_stadt: v('pa-wohnstadt'), adresse: v('pa-adresse'),
+    beruf: v('pa-beruf'), ausbildung: v('pa-ausbildung'), beschreibung: v('pa-beschreibung'),
+    deceased: verstorben, death_date: verstorben ? v('pa-sterbedatum') : '',
+    angelegt_aus: 'stammbaum-anlegen'
+  };
+
+  // 1) Person anlegen (geschlecht-Spalte bleibt NULL wegen CHECK; sex steckt in stammbaum_daten)
+  const { data: neu, error: pErr } = await sbClient.from('personen').insert({
+    familie_id:   kontext.familie_id,
+    stammbaum_id: kontext.stammbaum_id,
+    externe_id:   externeId,
+    vorname, nachname,
+    geburtsdatum: null,           // Rohdatum bleibt in stammbaum_daten (Freitext)
+    stammbaum_daten
+  }).select('id').single();
+  if (pErr) {
+    button.disabled = false; button.textContent = altText;
+    fehlerEl.textContent = t('reg_fehler') + pErr.message; fehlerEl.style.display = 'block'; return;
+  }
+
+  // 2) Beziehung(en) speichern. elternteil: person_a = Elternteil, person_b = Kind.
+  const fid = kontext.familie_id;
+  const bezRows = [];
+  if (typ === 'elternteil') {
+    bezRows.push({ person_a: neu.id, person_b: aktiv._uuid, typ: 'elternteil', familie_id: fid });
+  } else if (typ === 'partner') {
+    bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'ehepartner', familie_id: fid });
+  } else { // kind: an BEIDE Eltern hängen
+    bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'elternteil', familie_id: fid });
+    // Zweiter Elternteil: 1 Partner -> automatisch; mehrere -> Auswahl (leer = unbekannt)
+    let zweiter = null;
+    if (paSpouses.length === 1) zweiter = paSpouses[0].uuid;
+    else if (paSpouses.length >= 2) zweiter = document.getElementById('pa-elternteil2').value || null;
+    if (zweiter && zweiter !== aktiv._uuid) {
+      bezRows.push({ person_a: zweiter, person_b: neu.id, typ: 'elternteil', familie_id: fid });
+    }
+  }
+
+  const { error: bErr } = await sbClient.from('beziehungen').insert(bezRows);
+  button.disabled = false; button.textContent = altText;
+  if (bErr) { fehlerEl.textContent = t('reg_fehler') + bErr.message; fehlerEl.style.display = 'block'; return; }
+
+  // 3) UI aktualisieren (Re-Render), Overlay schließen, zurück zum Baum
+  erfolgEl.textContent = t('pa_erfolg'); erfolgEl.style.display = 'block';
+  await reloadBaumBehalteFokus(aktivId);
+  setTimeout(() => schliessePersonAdd(), 800);
+}
+
+// Person + zugehörige Beziehungen löschen (mit Bestätigung). Keine verwaisten Beziehungen.
+async function loeschePerson(personId) {
+  if (!istAdmin()) return;
+  const p = aktuelleDaten.persons[personId];
+  if (!p || !p._uuid) return;
+
+  const ok = await zeigeBestaetigung(t('pa_loeschen_frage') + '\n\n' + nm(p.name || p.given || '?'));
+  if (!ok) return;
+
+  // Fokus-Fallback bestimmen, bevor die Person verschwindet (Partner > Elternteil > Kind > Wurzel)
+  let fallback = null;
+  (p.families_spouse || []).forEach(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return;
+    const partner = fam.husband === personId ? fam.wife : fam.husband;
+    if (partner && aktuelleDaten.persons[partner]) fallback = fallback || partner;
+    (fam.children || []).forEach(c => { if (aktuelleDaten.persons[c]) fallback = fallback || c; });
+  });
+  (p.families_child || []).forEach(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return;
+    if (fam.husband && aktuelleDaten.persons[fam.husband]) fallback = fallback || fam.husband;
+    if (fam.wife && aktuelleDaten.persons[fam.wife]) fallback = fallback || fam.wife;
+  });
+
+  // 1) Alle Beziehungen mit dieser Person entfernen (keine verwaisten Kanten)
+  const { error: bErr } = await sbClient.from('beziehungen').delete()
+    .or(`person_a.eq.${p._uuid},person_b.eq.${p._uuid}`);
+  if (bErr) { await zeigeHinweis(t('reg_fehler') + bErr.message); return; }
+
+  // 2) Person selbst löschen
+  const { error: pErr } = await sbClient.from('personen').delete().eq('id', p._uuid);
+  if (pErr) { await zeigeHinweis(t('reg_fehler') + pErr.message); return; }
+
+  // 3) Detail-Overlay schließen + Baum neu zeichnen
+  schliesseModal();
+  await reloadBaumBehalteFokus(fallback);
+  await zeigeHinweis(t('pa_geloescht'));
 }
 
 function schliesseModalUndZeigeBaum(personId) {

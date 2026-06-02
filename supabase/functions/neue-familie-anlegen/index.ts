@@ -133,15 +133,21 @@ Deno.serve(async (req) => {
     const stammbaum_id = baum.id;
 
     // 4) erste Person (der anlegende Nutzer)
+    const externe_id = "I" + Date.now();
+    const vorname  = p.vorname ?? "";
+    const nachname = p.nachname ?? familie_name;
     const { data: pers, error: persErr } = await admin.from("personen").insert({
       familie_id,
       stammbaum_id,
-      externe_id:   "I" + Date.now(),
-      vorname:      p.vorname ?? "",
-      nachname:     p.nachname ?? familie_name,
-      geburtsdatum: p.geburtsdatum ?? null,
+      externe_id,
+      vorname,
+      nachname,
+      geburtsdatum: null,   // Rohdatum bleibt Freitext in stammbaum_daten (Spalte ist date)
       stammbaum_daten: {
-        geburtsort: p.geburtsort, geburtsland: p.geburtsland,
+        id: externe_id, given: vorname, surname: nachname,
+        name: (vorname + " " + nachname).trim(), sex: "",
+        birth_date: p.geburtsdatum ?? "", birth_place: p.geburtsort ?? "",
+        geburtsland: p.geburtsland,
         getauft_am: p.getauft_am, verheiratet_am: p.verheiratet_am,
         telefon: p.telefon, kontakt_email: p.kontakt_email,
         facebook: p.facebook, instagram: p.instagram,
