@@ -3514,11 +3514,9 @@ async function ladeBaumDaten() {
     console.log('Baum: eingebettete FAMILY_DATA aktiv (Supabase leer/nicht sichtbar).');
     return;
   }
-  // Sicherheitsnetz: fehlt die Wurzelperson, stimmt etwas nicht -> beim Embedded bleiben
-  if (!daten.persons['I500009']) {
-    console.warn('Baum: Wurzelperson I500009 fehlt in Supabase-Daten -> bleibe bei FAMILY_DATA.');
-    return;
-  }
+  // Hinweis: KEIN Hardcode-Check auf die Vidović-Wurzel I500009 mehr.
+  // Sonst würden Konten ohne diese Wurzel (eigene/andere Stammbäume) fälschlich
+  // auf das eingebettete FAMILY_DATA zurückfallen und ihre echten Daten nicht sehen.
   aktuelleDaten = daten;
   console.log('Baum aus Supabase geladen:', Object.keys(daten.persons).length, 'Personen,',
     Object.keys(daten.families).length, 'Familien,', Object.keys(stammbaeumeListe).length, 'Stammbäume.');
