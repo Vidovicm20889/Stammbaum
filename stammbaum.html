@@ -135,6 +135,13 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .nav-menu-panel .account-btn,
 .nav-menu-panel .upload-btn { width: 100%; text-align: center; box-sizing: border-box; }
 .nav-menu-panel .user-badge { flex-wrap: wrap; justify-content: center; }
+.nav-menu-panel .admin-bereich { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.admin-titel {
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--akzent); border-top: 1px solid var(--linie);
+  padding-top: 10px; margin-top: 2px; font-weight: bold;
+}
+.account-btn.admin-bald { opacity: 0.4; cursor: not-allowed; border-style: dashed; }
 
 #ansicht-karten { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
 #ansicht-shorts { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
@@ -250,6 +257,17 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 .baum-zurueck-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 .baum-hinweis { text-align: center; margin-top: 15px; font-size: 13px; opacity: 0.6; font-style: italic; }
+.baum-tree-hinweis {
+  max-width: 920px; margin: 12px auto 0; padding: 10px 14px 10px 18px;
+  background: var(--gold-hell); border: 1px solid var(--gold); border-radius: 10px;
+  color: var(--ink); font-size: 14px; line-height: 1.4;
+  display: flex; align-items: center; gap: 12px; justify-content: center;
+}
+.baum-tree-hinweis-x {
+  background: none; border: none; font-size: 20px; line-height: 1;
+  cursor: pointer; color: var(--akzent); flex: 0 0 auto;
+}
+.baum-tree-hinweis-x:hover { color: var(--akzent-hell); }
 
 .knoten rect { stroke-width: 1.8; cursor: pointer; transition: stroke 0.2s; }
 .knoten.male rect   { fill: rgba(221,234,243,0.92); stroke: #4a7fa8; }
@@ -542,6 +560,8 @@ footer {
 .reg-autocomplete-item:hover { background: var(--gold-hell); }
 .reg-autocomplete-item .meta { font-size: 12px; color: #8a7a5a; display: block; }
 .reg-autocomplete-leer { padding: 10px 12px; font-size: 13px; color: #8a7a5a; }
+.reg-toggle { display: flex; gap: 26px; margin-bottom: 10px; }
+.reg-toggle label { display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: 14px; color: var(--ink); }
 @media (max-width: 480px) {
   .reg-grid { grid-template-columns: 1fr; }
 }
@@ -563,6 +583,39 @@ footer {
   transition: background 0.2s;
 }
 .login-submit:hover { background: var(--akzent-hell); }
+.login-link-btn {
+  display: block; margin: 12px auto 0; background: none; border: none;
+  color: var(--akzent); font-family: inherit; font-size: 13px;
+  text-decoration: underline; cursor: pointer;
+}
+.login-link-btn:hover { color: var(--akzent-hell); }
+/* Mitglieder-Verwaltung */
+.mv-familie-gruppe h3 {
+  font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--akzent); border-bottom: 1px solid var(--linie);
+  padding-bottom: 5px; margin: 14px 0 8px;
+}
+/* Ab >5 Mitgliedern: fester Bereich mit eigenem Scrollbalken (nur Liste scrollt) */
+#mv-liste {
+  max-height: 320px; overflow-y: auto; margin-bottom: 6px;
+  scrollbar-width: thin; scrollbar-color: var(--akzent) transparent;
+}
+#mv-liste::-webkit-scrollbar { width: 8px; }
+#mv-liste::-webkit-scrollbar-thumb { background: var(--akzent); border-radius: 8px; }
+.mv-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 0; border-bottom: 1px solid var(--linie);
+}
+.mv-row .mv-email { flex: 1; min-width: 150px; font-size: 14px; color: var(--ink); word-break: break-all; }
+.mv-row .mv-rolle-text { font-size: 13px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+.mv-row select { padding: 6px 8px; border: 1px solid var(--linie); font-family: inherit; font-size: 13px; background: var(--paper); color: var(--ink); }
+.mv-del { background: none; border: 1px solid var(--linie); color: #9b2226; padding: 6px 10px; cursor: pointer; font-size: 12px; }
+.mv-del:hover { background: #9b2226; color: #fff; }
+.mv-legende { font-size: 12px; color: #8a7a5a; margin: -4px 0 12px; line-height: 1.4; }
+.mv-row.inaktiv { opacity: 0.5; }
+.mv-status { font-size: 10px; color: #9b2226; text-transform: uppercase; letter-spacing: 1px; }
+.mv-toggle { background: none; border: 1px solid var(--linie); color: var(--ink); padding: 6px 10px; cursor: pointer; font-size: 12px; }
+.mv-toggle:hover { border-color: var(--akzent); color: var(--akzent); }
 .login-fehler {
   color: var(--akzent); font-size: 13px;
   margin-top: 10px; display: none;
@@ -611,6 +664,16 @@ footer {
           <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
         </div>
 
+        <!-- Admin-Einstellungen (nur Admins) -->
+        <div class="admin-bereich" id="admin-bereich" style="display:none">
+          <div class="admin-titel" data-i18n="admin_einstellungen"></div>
+          <button class="account-btn" data-i18n="mv_titel" onclick="zeigeMitglieder()"></button>
+          <button class="account-btn" data-i18n="mv_add_titel" onclick="zeigeMitgliedHinzufuegen()"></button>
+          <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_benachrichtigungen"></button>
+          <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_familieneinst"></button>
+          <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
+        </div>
+
         <!-- GEDCOM -->
         <label class="upload-btn" for="gedcom-input" data-i18n="upload_btn"></label>
         <input type="file" id="gedcom-input" accept=".ged">
@@ -650,6 +713,10 @@ footer {
 </section>
 
 <section id="ansicht-baum">
+  <div id="baum-tree-hinweis" class="baum-tree-hinweis" style="display:none">
+    <span id="baum-tree-hinweis-text"></span>
+    <button class="baum-tree-hinweis-x" onclick="schliesseBaumHinweis()" aria-label="schließen">×</button>
+  </div>
   <div id="baum-container">
     <div id="baum-bg"></div>
     <div class="baum-info" id="baum-info"></div>
@@ -659,7 +726,7 @@ footer {
 </section>
 
 <!-- Login Modal -->
-<div class="modal" id="login-modal" onclick="if(event.target===this)schliesseLoginModal()">
+<div class="modal" id="login-modal">
   <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseLoginModal()">×</button>
     <h2 data-i18n="anmelden"></h2>
@@ -672,11 +739,12 @@ footer {
       <input type="password" id="login-passwort" class="login-feld" placeholder="••••••••" onkeydown="if(event.key==='Enter')anmelden()">
     </label>
     <button class="login-submit" data-i18n="anmelden" onclick="anmelden()"></button>
+    <button type="button" class="login-link-btn" data-i18n="pw_vergessen" onclick="passwortVergessen()"></button>
   </div>
 </div>
 
 <!-- Registrierungs- / Zugangsanfrage-Modal -->
-<div class="modal" id="registrier-modal" onclick="if(event.target===this)schliesseRegistrierModal()">
+<div class="modal" id="registrier-modal">
   <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseRegistrierModal()">×</button>
     <h2 data-i18n="reg_titel"></h2>
@@ -690,32 +758,44 @@ footer {
       </label>
     </div>
 
-    <div class="reg-gruppe-titel" data-i18n="reg_familie_finden"></div>
-    <div class="reg-grid">
-      <label class="login-label"><span data-i18n="reg_land"></span> *
-        <input type="text" id="reg-land" class="login-feld" oninput="pruefeFamilieFreigabe()">
-      </label>
-      <label class="login-label"><span data-i18n="reg_stadt"></span> *
-        <input type="text" id="reg-stadt" class="login-feld" oninput="pruefeFamilieFreigabe()">
-      </label>
-      <label class="login-label"><span data-i18n="reg_gemeinde"></span> *
-        <input type="text" id="reg-gemeinde" class="login-feld" oninput="pruefeFamilieFreigabe()">
-      </label>
-      <label class="login-label"><span data-i18n="reg_geburtsort"></span> *
-        <input type="text" id="reg-geburtsort" class="login-feld" oninput="pruefeFamilieFreigabe()">
-      </label>
-      <label class="login-label reg-feld-voll" style="position:relative"><span data-i18n="reg_familie"></span> *
-        <input type="hidden" id="reg-familie">
-        <input type="text" id="reg-familie-suche" class="login-feld" autocomplete="off" disabled
-          oninput="sucheFamilienDebounced()" onfocus="sucheFamilienDebounced()">
-        <div id="reg-familie-ergebnisse" class="reg-autocomplete"></div>
-      </label>
-      <label class="login-label"><span data-i18n="reg_rolle"></span> *
-        <select id="reg-rolle" class="login-feld">
-          <option value="familien_mitglied" data-i18n="rolle_familien_mitglied"></option>
-          <option value="familien_admin" data-i18n="rolle_familien_admin"></option>
-        </select>
-      </label>
+    <!-- #1: Stammbaum schon vorhanden? -->
+    <div class="reg-gruppe-titel" data-i18n="reg_vorhanden_frage"></div>
+    <div class="reg-toggle">
+      <label><input type="radio" name="reg-vorhanden" value="ja" checked onchange="regVorhandenWechsel()"> <span data-i18n="ja"></span></label>
+      <label><input type="radio" name="reg-vorhanden" value="nein" onchange="regVorhandenWechsel()"> <span data-i18n="nein"></span></label>
+    </div>
+
+    <!-- Ja: vorhandene Familie finden -->
+    <div id="reg-block-ja">
+      <div class="reg-gruppe-titel" data-i18n="reg_familie_finden"></div>
+      <div class="reg-grid">
+        <label class="login-label"><span data-i18n="reg_land"></span> *
+          <input type="text" id="reg-land" class="login-feld" oninput="pruefeFamilieFreigabe()"></label>
+        <label class="login-label"><span data-i18n="reg_stadt"></span> *
+          <input type="text" id="reg-stadt" class="login-feld" oninput="pruefeFamilieFreigabe()"></label>
+        <label class="login-label"><span data-i18n="reg_gemeinde"></span> *
+          <input type="text" id="reg-gemeinde" class="login-feld" oninput="pruefeFamilieFreigabe()"></label>
+        <label class="login-label reg-feld-voll" style="position:relative"><span data-i18n="reg_familie"></span> *
+          <input type="hidden" id="reg-familie">
+          <input type="text" id="reg-familie-suche" class="login-feld" autocomplete="off" disabled
+            oninput="sucheFamilienDebounced()" onfocus="sucheFamilienDebounced()">
+          <div id="reg-familie-ergebnisse" class="reg-autocomplete"></div></label>
+        <label class="login-label"><span data-i18n="reg_rolle"></span> *
+          <select id="reg-rolle" class="login-feld">
+            <option value="familien_mitglied" data-i18n="rolle_familien_mitglied"></option>
+            <option value="familien_admin" data-i18n="rolle_familien_admin"></option>
+          </select></label>
+      </div>
+    </div>
+
+    <!-- Nein: neue Familie/leeren Stammbaum anlegen -->
+    <div id="reg-block-nein" style="display:none">
+      <div class="reg-gruppe-titel" data-i18n="reg_familie_anlegen"></div>
+      <p class="login-label" data-i18n="reg_familie_anlegen_info" style="margin-top:0"></p>
+      <div class="reg-grid">
+        <label class="login-label reg-feld-voll"><span data-i18n="reg_neue_familie"></span> *
+          <input type="text" id="reg-neue-familie" class="login-feld" placeholder="z. B. Vidović"></label>
+      </div>
     </div>
 
     <div class="reg-gruppe-titel" data-i18n="reg_personendaten"></div>
@@ -728,6 +808,12 @@ footer {
       </label>
       <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
         <input type="text" id="reg-geburtsdatum" class="login-feld" placeholder="TT.MM.JJJJ">
+      </label>
+      <label class="login-label"><span data-i18n="reg_geburtsort"></span>
+        <input type="text" id="reg-geburtsort" class="login-feld">
+      </label>
+      <label class="login-label"><span data-i18n="reg_geburtsland"></span>
+        <input type="text" id="reg-geburtsland" class="login-feld">
       </label>
       <label class="login-label"><span data-i18n="reg_getauft"></span>
         <input type="text" id="reg-getauft" class="login-feld" placeholder="TT.MM.JJJJ">
@@ -770,6 +856,141 @@ footer {
     </label>
     <button class="login-submit" data-i18n="setpw_btn" onclick="setzePasswort()"></button>
     <div id="setpw-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Personen-Bearbeiten-Modal (Admins) -->
+<div class="modal" id="person-edit-modal">
+  <div class="modal-inhalt" style="max-width:620px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePersonEdit()">×</button>
+    <h2 data-i18n="pe_titel_fenster"></h2>
+    <input type="hidden" id="pe-id">
+
+    <div class="reg-gruppe-titel" data-i18n="reg_personendaten"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="pe_geschlecht"></span>
+        <select id="pe-geschlecht" class="login-feld">
+          <option value="" data-i18n="unbekannt"></option>
+          <option value="M" data-i18n="maennlich"></option>
+          <option value="F" data-i18n="weiblich"></option>
+        </select></label>
+      <label class="login-label"><span data-i18n="pe_status"></span>
+        <select id="pe-status" class="login-feld" onchange="pePruefeFelder()">
+          <option value="lebend" data-i18n="pe_lebend"></option>
+          <option value="verstorben" data-i18n="pe_verstorben"></option>
+        </select></label>
+      <label class="login-label" id="pe-row-sterbedatum" style="display:none"><span data-i18n="pe_sterbedatum"></span>
+        <input type="text" id="pe-sterbedatum" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label"><span data-i18n="reg_vorname"></span>
+        <input type="text" id="pe-vorname" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_nachname"></span>
+        <input type="text" id="pe-nachname" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_titel"></span>
+        <input type="text" id="pe-titel" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_namenszusatz"></span>
+        <input type="text" id="pe-namenszusatz" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_ehename"></span>
+        <input type="text" id="pe-ehename" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
+        <input type="text" id="pe-geburtsdatum" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label"><span data-i18n="reg_geburtsort"></span>
+        <input type="text" id="pe-geburtsort" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_geburtsland"></span>
+        <input type="text" id="pe-geburtsland" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_getauft"></span>
+        <input type="text" id="pe-getauft" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="pe_beziehung"></span>
+        <select id="pe-beziehung" class="login-feld" onchange="pePruefeFelder()">
+          <option value="unbekannt" data-i18n="bz_unbekannt"></option>
+          <option value="verheiratet" data-i18n="bz_verheiratet"></option>
+          <option value="verlobt" data-i18n="bz_verlobt"></option>
+          <option value="partner" data-i18n="bz_partner"></option>
+          <option value="getrennt" data-i18n="bz_getrennt"></option>
+          <option value="geschieden" data-i18n="bz_geschieden"></option>
+          <option value="verwitwet" data-i18n="bz_verwitwet"></option>
+          <option value="sonstige" data-i18n="bz_sonstige"></option>
+        </select></label>
+      <label class="login-label" id="pe-row-hochzeitsort" style="display:none"><span data-i18n="pe_hochzeitsort"></span>
+        <input type="text" id="pe-hochzeitsort" class="login-feld"></label>
+      <label class="login-label" id="pe-row-standesamt" style="display:none"><span data-i18n="pe_hochzeit_standesamt"></span>
+        <input type="text" id="pe-hochzeit-standesamt" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label" id="pe-row-kirchlich" style="display:none"><span data-i18n="pe_hochzeit_kirchlich"></span>
+        <input type="text" id="pe-hochzeit-kirchlich" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label reg-feld-voll" id="pe-row-sonstige" style="display:none"><span data-i18n="pe_beziehung_sonstige"></span>
+        <input type="text" id="pe-beziehung-sonstige" class="login-feld"></label>
+    </div>
+
+    <div class="reg-gruppe-titel" data-i18n="reg_kontakt"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="reg_kontakt_email"></span>
+        <input type="email" id="pe-email" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_telefon"></span>
+        <input type="tel" id="pe-telefon" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_facebook"></span>
+        <input type="text" id="pe-facebook" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_instagram"></span>
+        <input type="text" id="pe-instagram" class="login-feld"></label>
+    </div>
+
+    <div class="reg-gruppe-titel" data-i18n="pe_g_wohnen"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="pe_wohnland"></span>
+        <input type="text" id="pe-wohnland" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_wohnstadt"></span>
+        <input type="text" id="pe-wohnstadt" class="login-feld"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="pe_adresse"></span>
+        <input type="text" id="pe-adresse" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_beruf"></span>
+        <input type="text" id="pe-beruf" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="pe_ausbildung"></span>
+        <input type="text" id="pe-ausbildung" class="login-feld"></label>
+    </div>
+
+    <div class="reg-gruppe-titel" data-i18n="pe_g_ueber"></div>
+    <label class="login-label"><span data-i18n="pe_beschreibung"></span>
+      <textarea id="pe-beschreibung" class="login-feld" rows="4"></textarea></label>
+
+    <div id="pe-fehler" class="login-fehler"></div>
+    <button class="login-submit" id="pe-submit" data-i18n="event_save" onclick="speicherePerson()"></button>
+    <div id="pe-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Mitglieder-Verwaltung (Admins) -->
+<div class="modal" id="mitglieder-modal">
+  <div class="modal-inhalt" style="max-width:640px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseMitglieder()">×</button>
+    <h2 data-i18n="mv_titel"></h2>
+    <p class="mv-legende" data-i18n="mv_legende"></p>
+    <input type="text" id="mv-suche" class="login-feld" data-i18n-placeholder="mv_suche"
+      oninput="renderMitglieder()" style="margin-bottom:10px">
+    <div id="mv-fehler" class="login-fehler"></div>
+    <div id="mv-liste"></div>
+    <div id="mv-info" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Mitglied hinzufügen (separates Overlay, nur Benutzer-Erstellung) -->
+<div class="modal" id="mitglied-add-modal">
+  <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseMitgliedHinzufuegen()">×</button>
+    <h2 data-i18n="mv_add_titel"></h2>
+    <p class="mv-legende" data-i18n="ma_info"></p>
+    <div class="reg-grid">
+      <label class="login-label reg-feld-voll"><span data-i18n="reg_email"></span> *
+        <input type="email" id="ma-email" class="login-feld" placeholder="name@beispiel.de"></label>
+      <label class="login-label"><span data-i18n="reg_rolle"></span> *
+        <select id="ma-rolle" class="login-feld">
+          <option value="familien_mitglied" data-i18n="rolle_familien_mitglied"></option>
+          <option value="familien_admin" data-i18n="rolle_familien_admin"></option>
+        </select></label>
+      <label class="login-label" id="ma-familie-wrap"><span data-i18n="reg_familie"></span> *
+        <input type="text" id="ma-familie-input" class="login-feld" list="ma-familie-list" autocomplete="off" data-i18n-placeholder="reg_familie_ph">
+        <datalist id="ma-familie-list"></datalist></label>
+    </div>
+    <div id="ma-fehler" class="login-fehler"></div>
+    <button class="login-submit" id="ma-submit" data-i18n="mv_add_btn" onclick="fuegeMitgliedEinladen()"></button>
+    <div id="ma-info" class="reg-erfolg" style="display:none"></div>
   </div>
 </div>
 
@@ -909,6 +1130,7 @@ function aktualisiereAuthUI() {
   const uploadLabel = document.querySelector('label[for="gedcom-input"]');
   const shortsTab   = document.getElementById('tab-shorts');   // Events-Tab
   const accountBtn  = document.getElementById('account-btn');   // "Account anlegen" im ☰-Menü
+  const adminBereich = document.getElementById('admin-bereich'); // "Admin-Einstellungen"
 
   if (aktuellerUser) {
     anmeldenBtn.style.display = 'none';
@@ -919,12 +1141,14 @@ function aktualisiereAuthUI() {
     if (uploadLabel) uploadLabel.style.display = istAdmin() ? '' : 'none';
     if (shortsTab)   shortsTab.style.display = '';   // Events nur eingeloggt sichtbar
     if (accountBtn)  accountBtn.style.display = 'none';   // eingeloggt: kein "Account anlegen"
+    if (adminBereich) adminBereich.style.display = istAdmin() ? '' : 'none';   // nur Admins
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
     if (uploadLabel) uploadLabel.style.display = 'none';
     if (shortsTab)   shortsTab.style.display = 'none';
     if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
+    if (adminBereich) adminBereich.style.display = 'none';
     // Falls der ausgeloggte User gerade auf der Events-Ansicht war -> zurück auf Baum
     if (typeof aktuelleAnsicht !== 'undefined' && aktuelleAnsicht === 'shorts') aktuelleAnsicht = 'baum';
   }
@@ -966,6 +1190,169 @@ function toggleNavMenu(e) {
   const menu = document.getElementById('nav-menu');
   const offen = menu.classList.toggle('offen');
   document.getElementById('nav-menu-toggle').setAttribute('aria-expanded', offen ? 'true' : 'false');
+}
+
+// ============================================================
+// MITGLIEDER-VERWALTUNG (Admins)
+// ============================================================
+let mvFamilien = {};
+let mvAlle = [];
+let mvNameZuId = {};
+function zeigeMvFehler(msg) {
+  const el = document.getElementById('mv-fehler');
+  el.textContent = msg; el.style.display = 'block';
+}
+async function zeigeMitglieder() {
+  if (!istAdmin()) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  document.getElementById('mv-fehler').style.display = 'none';
+  document.getElementById('mv-info').style.display = 'none';
+  document.getElementById('mv-suche').value = '';
+  document.getElementById('mitglieder-modal').classList.add('aktiv');
+  await ladeMitglieder();
+}
+function schliesseMitglieder() {
+  document.getElementById('mitglieder-modal').classList.remove('aktiv');
+}
+async function ladeMitglieder() {
+  const liste = document.getElementById('mv-liste');
+  liste.innerHTML = '…';
+  const { data, error } = await sbClient.rpc('mitglieder_verwaltbar');
+  if (error) { liste.innerHTML = `<p class="login-fehler" style="display:block">${escapeHtml(error.message)}</p>`; mvAlle = []; return; }
+  mvAlle = data || [];
+  renderMitglieder();
+}
+
+// Mitgliederliste rendern (mit Such-/Filterfeld + Status + Deaktivieren)
+function renderMitglieder() {
+  const liste  = document.getElementById('mv-liste');
+  const filter = (document.getElementById('mv-suche').value || '').toLowerCase();
+  const istSuper = aktuelleRolle === 'super_admin';
+  const gefiltert = mvAlle.filter(m =>
+    !filter
+    || (m.email || '').toLowerCase().includes(filter)
+    || (m.name  || '').toLowerCase().includes(filter)
+    || t('rolle_' + m.rolle).toLowerCase().includes(filter)
+  );
+  if (gefiltert.length === 0) { liste.innerHTML = `<p style="color:#8a7a5a">${t('mv_keine')}</p>`; return; }
+  const grp = {};
+  gefiltert.forEach(m => { (grp[m.familie_id] = grp[m.familie_id] || { name: m.familie_name, rows: [] }).rows.push(m); });
+  liste.innerHTML = Object.values(grp).map(g => `
+    <div class="mv-familie-gruppe">
+      <h3>${escapeHtml(nm(g.name))}</h3>
+      ${g.rows.map(m => {
+        const schreibbar = m.rolle !== 'super_admin' || istSuper;
+        return `<div class="mv-row${m.aktiv ? '' : ' inaktiv'}">
+          <span class="mv-email">${m.name ? `<strong>${escapeHtml(m.name)}</strong> · ` : ''}${escapeHtml(m.email)}${m.aktiv ? '' : ` <span class="mv-status">${escapeHtml(t('mv_inaktiv'))}</span>`}</span>
+          ${schreibbar ? `
+            <select onchange="aendereRolle('${m.mitgliedschaft_id}', this.value)">
+              <option value="familien_mitglied" ${m.rolle === 'familien_mitglied' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_mitglied'))}</option>
+              <option value="familien_admin" ${m.rolle === 'familien_admin' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_admin'))}</option>
+              ${m.rolle === 'super_admin' ? `<option value="super_admin" selected>${escapeHtml(t('rolle_super_admin'))}</option>` : ''}
+            </select>
+            <button class="mv-toggle" onclick="toggleAktiv('${m.mitgliedschaft_id}', ${m.aktiv ? 'false' : 'true'})">${escapeHtml(m.aktiv ? t('mv_deaktivieren') : t('mv_aktivieren'))}</button>
+            <button class="mv-del" onclick="entferneMitglied('${m.mitgliedschaft_id}','${escapeHtml(m.email)}')">${escapeHtml(t('mv_entfernen'))}</button>
+          ` : `<span class="mv-rolle-text">${escapeHtml(t('rolle_' + m.rolle))}</span>`}
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+async function toggleAktiv(mid, neu) {
+  const { error } = await sbClient.from('mitgliedschaften').update({ aktiv: neu }).eq('id', mid);
+  if (error) zeigeMvFehler(error.message);
+  await ladeMitglieder();
+}
+async function aendereRolle(mid, rolle) {
+  const { error } = await sbClient.from('mitgliedschaften').update({ rolle }).eq('id', mid);
+  if (error) { zeigeMvFehler(error.message); return; }
+  const infoEl = document.getElementById('mv-info');
+  infoEl.textContent = t('mv_rolle_gespeichert'); infoEl.style.display = 'block';
+  setTimeout(() => { infoEl.style.display = 'none'; }, 2500);
+  await ladeMitglieder();
+}
+async function entferneMitglied(mid, email) {
+  const ok = await zeigeBestaetigung(t('mv_entfernen_frage') + '\n\n' + email);
+  if (!ok) return;
+  const { error } = await sbClient.from('mitgliedschaften').delete().eq('id', mid);
+  if (error) { zeigeMvFehler(error.message); return; }
+  await ladeMitglieder();
+}
+// ---- Overlay "Mitglied hinzufügen" (separat, nur Benutzer-Erstellung) ----
+async function zeigeMitgliedHinzufuegen() {
+  if (!istAdmin()) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  document.getElementById('ma-fehler').style.display = 'none';
+  document.getElementById('ma-info').style.display = 'none';
+  document.getElementById('ma-email').value = '';
+  document.getElementById('mitglied-add-modal').classList.add('aktiv');
+  await ladeAddFamilien();
+}
+function schliesseMitgliedHinzufuegen() {
+  document.getElementById('mitglied-add-modal').classList.remove('aktiv');
+}
+
+// Nur Familien laden, die der angemeldete Admin verwalten darf (aus mitglieder_verwaltbar).
+async function ladeAddFamilien() {
+  const dl   = document.getElementById('ma-familie-list');
+  const wrap = document.getElementById('ma-familie-wrap');
+  const inp  = document.getElementById('ma-familie-input');
+  dl.innerHTML = ''; inp.value = '';
+  const { data, error } = await sbClient.rpc('mitglieder_verwaltbar');
+  if (error) { zeigeMaFehler(error.message); return; }
+  mvFamilien = {}; mvNameZuId = {};
+  (data || []).forEach(m => { mvFamilien[m.familie_id] = m.familie_name; });
+  dl.innerHTML = Object.entries(mvFamilien).map(([fid, name]) => {
+    mvNameZuId[(name || '').toLowerCase()] = fid;
+    return `<option value="${escapeHtml(name)}"></option>`;
+  }).join('');
+  // Bei nur einer verwaltbaren Familie automatisch setzen + Feld ausblenden
+  const keys = Object.keys(mvFamilien);
+  if (keys.length <= 1) { wrap.style.display = 'none'; inp.value = Object.values(mvFamilien)[0] || ''; }
+  else { wrap.style.display = ''; inp.value = ''; }
+}
+
+function zeigeMaFehler(msg) {
+  const el = document.getElementById('ma-fehler');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// Legt einen neuen Benutzer an (falls nötig), verknüpft Rolle + Familie und
+// verschickt eine Einladungs-Mail mit Registrierungslink (Edge Function).
+async function fuegeMitgliedEinladen() {
+  const email    = document.getElementById('ma-email').value.trim();
+  const rolle    = document.getElementById('ma-rolle').value;
+  const fehlerEl = document.getElementById('ma-fehler');
+  const infoEl   = document.getElementById('ma-info');
+  const button   = document.getElementById('ma-submit');
+  fehlerEl.style.display = 'none'; infoEl.style.display = 'none';
+
+  // Familie aus dem suchbaren Feld auflösen (bei nur einer Familie automatisch)
+  let familie_id;
+  if (Object.keys(mvFamilien).length <= 1) familie_id = Object.keys(mvFamilien)[0];
+  else familie_id = mvNameZuId[(document.getElementById('ma-familie-input').value || '').trim().toLowerCase()];
+  if (!email || !familie_id) { fehlerEl.textContent = t('reg_pflicht'); fehlerEl.style.display = 'block'; return; }
+
+  const altText = button.textContent;
+  button.disabled = true; button.textContent = t('reg_senden_laeuft');
+
+  let error = null;
+  try {
+    const res = await sbClient.functions.invoke('mitglied-einladen', {
+      body: { email, rolle, familie_id, sprache: aktuelleSprache },
+    });
+    error = res.error || (res.data && res.data.error) || null;
+  } catch (e) { error = e; }
+
+  button.disabled = false; button.textContent = altText;
+
+  if (error) {
+    const msg = error.message || String(error);
+    fehlerEl.textContent = /23505|bereits|already/i.test(msg) ? t('mv_bereits') : msg;
+    fehlerEl.style.display = 'block'; return;
+  }
+  document.getElementById('ma-email').value = '';
+  infoEl.textContent = t('ma_erfolg'); infoEl.style.display = 'block';
 }
 
 // ============================================================
@@ -1101,6 +1488,122 @@ async function migriereMultiTree() {
 }
 window.migriereMultiTree = migriereMultiTree;
 
+// ============================================================
+// Land bei leeren Geburtsorten füllen — für den AKTUELL gewählten Stammbaum.
+// Konsole als Admin:  await fuelleLandBosnien()
+// Schreibt 'Bosnien und Herzegowina' nur dort, wo birth_place leer ist.
+// ============================================================
+async function fuelleLandBosnien() {
+  const LAND = 'Bosnien und Herzegowina';
+  if (!aktuellerUser) { console.error('Bitte als Admin einloggen.'); return { fehler: 'nicht eingeloggt' }; }
+  if (!aktuellerStammbaumId) { console.error('Kein Stammbaum gewählt.'); return { fehler: 'kein baum' }; }
+  console.log('%c⏳ Fülle Land im Baum «' + (stammbaeumeListe[aktuellerStammbaumId] || '?') + '»…',
+    'color:#7a2a2a;font-weight:bold');
+
+  // Pristine Personendaten des Baums holen (nicht die rekonstruierten im Frontend!)
+  const { data, error } = await sbClient.from('personen')
+    .select('id, stammbaum_daten').eq('stammbaum_id', aktuellerStammbaumId);
+  if (error) { console.error('Ladefehler:', error); return { fehler: error }; }
+
+  let aktualisiert = 0;
+  for (const row of (data || [])) {
+    const sd = row.stammbaum_daten || {};
+    if ((sd.birth_place || '').trim()) continue;   // nur leere füllen
+    const { error: uErr } = await sbClient.from('personen')
+      .update({ stammbaum_daten: { ...sd, birth_place: LAND } }).eq('id', row.id);
+    if (uErr) { console.error('Update-Fehler:', uErr); return { fehler: uErr, aktualisiert }; }
+    aktualisiert++;
+  }
+  console.log('%c✅ Land ergänzt bei ' + aktualisiert + ' Personen.', 'color:green;font-weight:bold');
+  await ladeBaumDaten();   // Baum neu laden, damit es sofort sichtbar ist
+  return { ok: true, aktualisiert };
+}
+window.fuelleLandBosnien = fuelleLandBosnien;
+
+// Verschiebt 'Bosnien und Herzegowina' vom Feld Geburtsort INS Feld Geburtsland —
+// für ALLE Personen ALLER Stammbäume. Konsole als Super-Admin: await verschiebeLandBosnien()
+async function verschiebeLandBosnien() {
+  const LAND = 'Bosnien und Herzegowina';
+  if (!aktuellerUser) { console.error('Bitte als Super-Admin einloggen.'); return { fehler: 'nicht eingeloggt' }; }
+  console.log('%c⏳ Verschiebe Land (Geburtsort → Geburtsland)…', 'color:#7a2a2a;font-weight:bold');
+  const { data, error } = await sbClient.from('personen').select('id, stammbaum_daten');
+  if (error) { console.error(error); return { fehler: error }; }
+  let geaendert = 0;
+  for (const row of (data || [])) {
+    const sd = row.stammbaum_daten || {};
+    if ((sd.birth_place || '').trim() === LAND) {
+      const neu = { ...sd, geburtsland: LAND, birth_place: '' };
+      const { error: uErr } = await sbClient.from('personen').update({ stammbaum_daten: neu }).eq('id', row.id);
+      if (uErr) { console.error('Update-Fehler:', uErr); return { fehler: uErr, geaendert }; }
+      geaendert++;
+    }
+  }
+  console.log('%c✅ Verschoben bei ' + geaendert + ' Personen.', 'color:green;font-weight:bold');
+  await ladeBaumDaten();
+  return { ok: true, geaendert };
+}
+window.verschiebeLandBosnien = verschiebeLandBosnien;
+
+// ============================================================
+// Nachname-Korrektur / Baum-Zusammenführung (Tippfehler-Dubletten).
+// Verschiebt Personen vom falsch geschriebenen Baum in den richtigen,
+// korrigiert surname+name, löscht den leeren Tippfehler-Baum.
+// Konsole als Super-Admin:  await korrigiereNachnamen()
+// ============================================================
+async function korrigiereNachname(falsch, richtig) {
+  const { data: mit } = await sbClient
+    .from('mitgliedschaften').select('familie_id, rolle').eq('user_id', aktuellerUser.id);
+  const sa = (mit || []).find(x => x.rolle === 'super_admin') || (mit || [])[0];
+  if (!sa) { console.error('Keine Mitgliedschaft.'); return { fehler: 'mitgliedschaft' }; }
+  const familie_id = sa.familie_id;
+
+  const { data: baeume, error: bErr } = await sbClient.from('stammbaeume')
+    .select('id, name').eq('familie_id', familie_id).in('name', [falsch, richtig]);
+  if (bErr) { console.error(bErr); return { fehler: bErr }; }
+  const falschBaum  = (baeume || []).find(b => b.name === falsch);
+  const richtigBaum = (baeume || []).find(b => b.name === richtig);
+  if (!falschBaum) { console.warn('Kein Baum namens', falsch, '– übersprungen.'); return { ok: true, korrigiert: 0 }; }
+
+  // Zielbaum: vorhandener "richtiger" Baum; sonst den falschen einfach umbenennen
+  let zielId = richtigBaum ? richtigBaum.id : falschBaum.id;
+  if (!richtigBaum) {
+    await sbClient.from('stammbaeume').update({ name: richtig }).eq('id', falschBaum.id);
+  }
+
+  const { data: personen, error: pErr } = await sbClient.from('personen')
+    .select('id, stammbaum_daten').eq('stammbaum_id', falschBaum.id);
+  if (pErr) { console.error(pErr); return { fehler: pErr }; }
+
+  for (const row of (personen || [])) {
+    const sd = row.stammbaum_daten || {};
+    const neu = { ...sd };
+    if (sd.surname) neu.surname = sd.surname.split(falsch).join(richtig);
+    if (sd.name)    neu.name    = sd.name.split(falsch).join(richtig);
+    const { error: uErr } = await sbClient.from('personen')
+      .update({ stammbaum_daten: neu, stammbaum_id: zielId }).eq('id', row.id);
+    if (uErr) { console.error('Update-Fehler:', uErr); return { fehler: uErr }; }
+  }
+
+  // Leeren Tippfehler-Baum löschen (nur wenn wir in einen anderen verschoben haben)
+  if (richtigBaum) await sbClient.from('stammbaeume').delete().eq('id', falschBaum.id);
+
+  console.log('%c✅ ' + falsch + ' → ' + richtig + ': ' + (personen || []).length + ' Personen korrigiert.',
+    'color:green;font-weight:bold');
+  return { ok: true, korrigiert: (personen || []).length };
+}
+
+async function korrigiereNachnamen() {
+  if (!aktuellerUser) { console.error('Bitte als Super-Admin einloggen.'); return { fehler: 'nicht eingeloggt' }; }
+  console.log('%c⏳ Korrigiere Nachnamen…', 'color:#7a2a2a;font-weight:bold');
+  const r1 = await korrigiereNachname('Petrovic', 'Petrović');
+  const r2 = await korrigiereNachname('Kneževic', 'Knežević');
+  const r3 = await korrigiereNachname('Parandilovic', 'Parandilović');
+  await ladeBaumDaten();
+  console.log('%c✅ Fertig.', 'color:green;font-weight:bold');
+  return { petrovic: r1, knezevic: r2, parandilovic: r3 };
+}
+window.korrigiereNachnamen = korrigiereNachnamen;
+
 async function anmelden() {
   const email    = document.getElementById('login-email').value.trim();
   const passwort = document.getElementById('login-passwort').value;
@@ -1126,6 +1629,29 @@ async function abmelden() {
   await sbClient.auth.signOut();
 }
 
+// Passwort vergessen: Recovery-Mail mit Einmal-Link senden. Der Link führt
+// zurück zur App (type=recovery) -> pruefePasswortSetzen öffnet das Passwort-Modal.
+async function passwortVergessen() {
+  const email    = document.getElementById('login-email').value.trim();
+  const fehlerEl = document.getElementById('login-fehler');
+  fehlerEl.style.display = 'none';
+  if (!email) {
+    fehlerEl.textContent = t('pw_email_noetig');
+    fehlerEl.style.display = 'block';
+    return;
+  }
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+    redirectTo: location.origin + location.pathname
+  });
+  if (error) {
+    fehlerEl.textContent = t('login_fehler_prefix') + error.message;
+    fehlerEl.style.display = 'block';
+    return;
+  }
+  schliesseLoginModal();
+  await zeigeHinweis(t('pw_reset_gesendet'));
+}
+
 function zeigeLoginModal() {
   document.getElementById('login-modal').classList.add('aktiv');
   setTimeout(() => document.getElementById('login-email').focus(), 50);
@@ -1149,6 +1675,9 @@ function zeigeRegistrierModal() {
   document.getElementById('reg-familie').value = '';
   document.getElementById('reg-familie-suche').value = '';
   document.getElementById('reg-familie-ergebnisse').classList.remove('aktiv');
+  const jaRadio = document.querySelector('input[name="reg-vorhanden"][value="ja"]');
+  if (jaRadio) jaRadio.checked = true;   // Standard: vorhandene Familie finden
+  regVorhandenWechsel();                 // Ja/Nein-Blöcke korrekt ein-/ausblenden
   pruefeFamilieFreigabe();   // Suchfeld initial sperren + Hinweistext setzen
   setTimeout(() => document.getElementById('reg-email').focus(), 50);
 }
@@ -1198,7 +1727,7 @@ async function setzePasswort() {
 // ausgefüllt sind (#3/#4). Solange gesperrt, Hinweistext im Feld anzeigen.
 function pruefeFamilieFreigabe() {
   const v = id => document.getElementById(id).value.trim();
-  const frei = v('reg-land') && v('reg-stadt') && v('reg-gemeinde') && v('reg-geburtsort');
+  const frei = v('reg-land') && v('reg-stadt') && v('reg-gemeinde');
   const sucheEl = document.getElementById('reg-familie-suche');
   sucheEl.disabled = !frei;
   sucheEl.placeholder = frei ? t('reg_familie_ph') : t('reg_familie_locked');
@@ -1206,6 +1735,14 @@ function pruefeFamilieFreigabe() {
     document.getElementById('reg-familie').value = '';
     document.getElementById('reg-familie-ergebnisse').classList.remove('aktiv');
   }
+}
+
+// #1: zwischen "Familie finden" (Ja) und "Familie anlegen" (Nein) umschalten
+function regVorhandenWechsel() {
+  const sel = document.querySelector('input[name="reg-vorhanden"]:checked');
+  const ja = !sel || sel.value === 'ja';
+  document.getElementById('reg-block-ja').style.display   = ja ? '' : 'none';
+  document.getElementById('reg-block-nein').style.display = ja ? 'none' : '';
 }
 
 let regSucheTimer = null;
@@ -1274,7 +1811,21 @@ function zeigeHinweis(text) {
   });
 }
 
+// Alle Registrier-Felder leeren (nach erfolgreichem Absenden / beim Öffnen).
+function regFelderLeeren() {
+  ['reg-email','reg-land','reg-stadt','reg-gemeinde','reg-geburtsort','reg-geburtsland',
+   'reg-familie-suche','reg-neue-familie',
+   'reg-vorname','reg-nachname','reg-geburtsdatum','reg-getauft','reg-verheiratet',
+   'reg-telefon','reg-kontakt-email','reg-facebook','reg-instagram']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('reg-familie').value = '';
+  pruefeFamilieFreigabe();
+}
+
 async function sendeRegistrierAnfrage() {
+  const sel = document.querySelector('input[name="reg-vorhanden"]:checked');
+  if (sel && sel.value === 'nein') { await regNeueFamilieAnlegen(); return; }
+
   const fehlerEl = document.getElementById('reg-fehler');
   const erfolgEl = document.getElementById('reg-erfolg');
   const button   = document.getElementById('reg-submit');
@@ -1304,9 +1855,9 @@ async function sendeRegistrierAnfrage() {
     nachname:       val('reg-nachname')      || null,
     geburtsdatum:   val('reg-geburtsdatum')  || null,
     geburtsort:     val('reg-geburtsort')    || null,
-    geburtsland:    val('reg-land')          || null,   // "Land" der Familie
-    stadt:          val('reg-stadt')         || null,
-    gemeinde:       val('reg-gemeinde')      || null,
+    geburtsland:    val('reg-geburtsland')   || null,   // Geburtsland der Person
+    stadt:          val('reg-stadt')         || null,   // Familien-Finder: Stadt
+    gemeinde:       val('reg-gemeinde')      || null,   // Familien-Finder: Gemeinde
     getauft_am:     val('reg-getauft')       || null,
     verheiratet_am: val('reg-verheiratet')   || null,
     telefon:        val('reg-telefon')       || null,
@@ -1342,14 +1893,75 @@ async function sendeRegistrierAnfrage() {
 
   // Felder leeren, Overlay schließen und eine klare Bestätigung anzeigen,
   // die der User selbst wegklickt (verschwindet nicht von allein).
-  ['reg-email','reg-land','reg-stadt','reg-gemeinde','reg-geburtsort','reg-familie-suche',
-   'reg-vorname','reg-nachname','reg-geburtsdatum','reg-getauft','reg-verheiratet',
-   'reg-telefon','reg-kontakt-email','reg-facebook','reg-instagram']
-    .forEach(id => document.getElementById(id).value = '');
-  document.getElementById('reg-familie').value = '';
-  pruefeFamilieFreigabe();
+  regFelderLeeren();
   schliesseRegistrierModal();
   await zeigeHinweis(t('reg_erfolg'));
+}
+
+// #1 "Nein": neuen, leeren Stammbaum selbst anlegen (ohne Freigabe durch einen Admin).
+// Edge Function legt Auth-User + Familie + Stammbaum + erste Person + Admin-Mitgliedschaft an
+// und verschickt eine Einladungs-Mail zum Passwort-Setzen.
+async function regNeueFamilieAnlegen() {
+  const fehlerEl = document.getElementById('reg-fehler');
+  const erfolgEl = document.getElementById('reg-erfolg');
+  const button   = document.getElementById('reg-submit');
+  fehlerEl.style.display = 'none';
+  erfolgEl.style.display = 'none';
+
+  const val = id => document.getElementById(id).value.trim();
+  const email        = val('reg-email');
+  const familie_name = val('reg-neue-familie');
+
+  if (!email || !familie_name) {
+    fehlerEl.textContent = t('reg_pflicht');
+    fehlerEl.style.display = 'block';
+    return;
+  }
+
+  const altText = button.textContent;
+  button.disabled = true;
+  button.textContent = t('reg_senden_laeuft');
+
+  const payload = {
+    email,
+    familie_name,
+    sprache: aktuelleSprache,
+    person: {
+      vorname:        val('reg-vorname')       || null,
+      nachname:       val('reg-nachname')      || familie_name,
+      geburtsdatum:   val('reg-geburtsdatum')  || null,
+      geburtsort:     val('reg-geburtsort')    || null,
+      geburtsland:    val('reg-geburtsland')   || null,
+      getauft_am:     val('reg-getauft')       || null,
+      verheiratet_am: val('reg-verheiratet')   || null,
+      telefon:        val('reg-telefon')       || null,
+      kontakt_email:  val('reg-kontakt-email') || null,
+      facebook:       val('reg-facebook')      || null,
+      instagram:      val('reg-instagram')     || null
+    }
+  };
+
+  let error = null;
+  try {
+    const res = await sbClient.functions.invoke('neue-familie-anlegen', { body: payload });
+    error = res.error || (res.data && res.data.error) || null;
+  } catch (e) {
+    error = e;
+  }
+
+  button.disabled = false;
+  button.textContent = altText;
+
+  if (error) {
+    console.error('Neue-Familie-Fehler:', error);
+    fehlerEl.textContent = t('reg_fehler') + (error.message || error);
+    fehlerEl.style.display = 'block';
+    return;
+  }
+
+  regFelderLeeren();
+  schliesseRegistrierModal();
+  await zeigeHinweis(t('reg_neue_erfolg'));
 }
 
 // ============================================================
@@ -1427,6 +2039,34 @@ const TEXTE = {
     event_single_title: 'Familien-Event:',
     shorts_hinweis: 'Kurze Familienmomente und Erinnerungen.',
     baum_hinweis: 'Klick auf Personen für Details · Scroll zum Zoomen · Drag zum Verschieben · Doppelklick zum Zurücksetzen',
+    baum_wechsel_hinweis: 'Du befindest dich im Stammbaum «{name}». Oben über das Auswahlmenü kannst du zwischen den Stammbäumen wechseln.',
+    pe_titel_fenster: 'Person bearbeiten',
+    pe_geschlecht: 'Geschlecht',
+    pe_titel: 'Titel',
+    pe_namenszusatz: 'Namenszusatz',
+    pe_ehename: 'Ehename',
+    pe_status: 'Status',
+    pe_lebend: 'Lebend',
+    pe_verstorben: 'Verstorben',
+    pe_hochzeitstag: 'Hochzeitstag',
+    pe_hochzeitsort: 'Hochzeitsort',
+    pe_beziehung: 'Beziehung',
+    pe_wohnland: 'Wohnort – Land',
+    pe_wohnstadt: 'Wohnort – Stadt',
+    pe_adresse: 'Vollständige Adresse',
+    pe_beruf: 'Beruf',
+    pe_ausbildung: 'Ausbildung',
+    pe_beschreibung: 'Beschreibung über mich',
+    pe_g_wohnen: 'Wohnort & Beruf',
+    pe_g_ueber: 'Über mich',
+    pe_gespeichert: 'Gespeichert.',
+    pe_sterbedatum: 'Sterbedatum',
+    pe_hochzeit_standesamt: 'Hochzeitstag (standesamtlich)',
+    pe_hochzeit_kirchlich: 'Hochzeitstag (kirchlich)',
+    pe_beziehung_sonstige: 'Beschreibung der Beziehung',
+    bz_unbekannt: 'Unbekannt', bz_verheiratet: 'Verheiratet', bz_verlobt: 'Verlobt',
+    bz_partner: 'Partner', bz_getrennt: 'Getrennt', bz_geschieden: 'Geschieden',
+    bz_verwitwet: 'Verwitwet', bz_sonstige: 'Sonstige',
     baum_info_hinweis: '<strong>Hinweis:</strong> Klick für Details, Scroll zum Zoomen, Doppelklick zum Zurücksetzen.',
     baum_zentriert: '<strong>Zentriert auf:</strong> {name}<br><small>Zeigt 2 Generationen aufwärts und abwärts.<br>Klick auf andere Person für neue Ansicht.</small>',
     keine_treffer: 'Keine Personen gefunden.',
@@ -1471,6 +2111,11 @@ const TEXTE = {
     reg_familie_ph: 'Familie suchen…',
     reg_familie_locked: 'Zuerst Land, Stadt, Gemeinde, Geburtsort ausfüllen',
     reg_keine_familien: 'Keine Familie gefunden',
+    reg_vorhanden_frage: 'Stammbaum schon vorhanden?',
+    reg_familie_anlegen: 'Neuen Stammbaum anlegen',
+    reg_familie_anlegen_info: 'Du legst einen neuen, leeren Stammbaum an und wirst dessen Administrator. Danach kannst du weitere Personen hinzufügen.',
+    reg_neue_familie: 'Name der Familie / des Stammbaums',
+    reg_neue_erfolg: 'Stammbaum angelegt! Du erhältst eine E-Mail mit einem Link zum Passwort-Setzen.',
     login_hinweis_titel: 'Anmeldung erforderlich',
     login_hinweis_text: 'Bitte melde dich an, um deinen Stammbaum zu sehen.',
     kopf_neutral: 'Stammbaum-Dokumentation',
@@ -1497,6 +2142,29 @@ const TEXTE = {
     setpw_titel: 'Passwort festlegen',
     setpw_neu: 'Neues Passwort',
     setpw_btn: 'Speichern & anmelden',
+    pw_vergessen: 'Passwort vergessen?',
+    pw_email_noetig: 'Bitte zuerst deine E-Mail-Adresse oben eingeben.',
+    pw_reset_gesendet: 'Falls die Adresse existiert, wurde eine E-Mail zum Zurücksetzen des Passworts gesendet.',
+    mv_titel: 'Mitglieder verwalten',
+    mv_hinzufuegen: 'Mitglied hinzufügen',
+    mv_add_btn: 'Hinzufügen',
+    mv_entfernen: 'Entfernen',
+    mv_kein_user: 'Kein Benutzer mit dieser E-Mail. Die Person muss zuerst einen Account anlegen.',
+    mv_bereits: 'Diese Person ist bereits Mitglied dieser Familie.',
+    mv_suche: 'Suche nach E-Mail oder Rolle…',
+    mv_deaktivieren: 'Deaktivieren', mv_aktivieren: 'Aktivieren', mv_inaktiv: 'inaktiv',
+    mv_legende: 'Super-Admin: alles · Familien-Admin: eigene Familie verwalten · Mitglied: nur lesen',
+    mv_entfernen_frage: 'Sind Sie sicher, dass Sie dieses Mitglied entfernen möchten?',
+    mv_rolle_gespeichert: 'Rolle gespeichert.',
+    mv_hinzugefuegt: 'Mitglied hinzugefügt.',
+    mv_keine: 'Keine Mitglieder gefunden.',
+    admin_einstellungen: 'Admin-Einstellungen',
+    mv_add_titel: 'Mitglied hinzufügen',
+    admin_benachrichtigungen: 'Benachrichtigungen (bald)',
+    admin_familieneinst: 'Familieneinstellungen (bald)',
+    admin_weitere: 'Weitere Admin-Funktionen (bald)',
+    ma_info: 'Lege ein neues Mitglied an. Es erhält eine Einladungs-E-Mail mit einem Link, um ein eigenes Passwort zu setzen.',
+    ma_erfolg: 'Einladung versendet. Das Mitglied erhält eine E-Mail zum Passwort-Setzen.',
     setpw_erfolg: 'Passwort gesetzt. Du bist jetzt angemeldet.',
     setpw_fehler: 'Fehler: ',
     kinder: 'Kinder',
@@ -1533,6 +2201,34 @@ const TEXTE = {
     event_single_title: 'Породични догађај:',
     shorts_hinweis: 'Кратки породични тренуци и успомене.',
     baum_hinweis: 'Кликни на особу за детаље · Скрол за зумирање · Превуци за померање · Двоструки клик за ресет',
+    baum_wechsel_hinweis: 'Налазиш се у стаблу «{name}». Горе преко менија за избор можеш да мењаш стабла.',
+    pe_titel_fenster: 'Уреди особу',
+    pe_geschlecht: 'Пол',
+    pe_titel: 'Титула',
+    pe_namenszusatz: 'Додатак имену',
+    pe_ehename: 'Брачно презиме',
+    pe_status: 'Статус',
+    pe_lebend: 'Жив(а)',
+    pe_verstorben: 'Преминуо(ла)',
+    pe_hochzeitstag: 'Датум венчања',
+    pe_hochzeitsort: 'Место венчања',
+    pe_beziehung: 'Веза',
+    pe_wohnland: 'Пребивалиште – држава',
+    pe_wohnstadt: 'Пребивалиште – град',
+    pe_adresse: 'Пуна адреса',
+    pe_beruf: 'Занимање',
+    pe_ausbildung: 'Образовање',
+    pe_beschreibung: 'О мени',
+    pe_g_wohnen: 'Пребивалиште и посао',
+    pe_g_ueber: 'О мени',
+    pe_gespeichert: 'Сачувано.',
+    pe_sterbedatum: 'Датум смрти',
+    pe_hochzeit_standesamt: 'Венчање (грађанско)',
+    pe_hochzeit_kirchlich: 'Венчање (црквено)',
+    pe_beziehung_sonstige: 'Опис везе',
+    bz_unbekannt: 'Непознато', bz_verheiratet: 'У браку', bz_verlobt: 'Верен(а)',
+    bz_partner: 'Партнер', bz_getrennt: 'Раздвојен(а)', bz_geschieden: 'Разведен(а)',
+    bz_verwitwet: 'Удовац/удовица', bz_sonstige: 'Остало',
     baum_info_hinweis: '<strong>Напомена:</strong> Кликни за детаље, скролуј за зумирање, двоструки клик за ресет.',
     baum_zentriert: '<strong>Центрирано на:</strong> {name}<br><small>Приказује 2 генерације навише и наниже.<br>Кликни другу особу за нови приказ.</small>',
     keine_treffer: 'Ниједна особа није пронађена.',
@@ -1577,6 +2273,11 @@ const TEXTE = {
     reg_familie_ph: 'Претражи породицу…',
     reg_familie_locked: 'Прво унеси државу, град, општину и место рођења',
     reg_keine_familien: 'Породица није пронађена',
+    reg_vorhanden_frage: 'Стабло већ постоји?',
+    reg_familie_anlegen: 'Направи ново стабло',
+    reg_familie_anlegen_info: 'Правиш ново, празно стабло и постајеш његов администратор. Након тога можеш додавати особе.',
+    reg_neue_familie: 'Назив породице / стабла',
+    reg_neue_erfolg: 'Стабло направљено! Добићеш имејл са линком за постављање лозинке.',
     login_hinweis_titel: 'Потребна пријава',
     login_hinweis_text: 'Пријави се да би видео своје породично стабло.',
     kopf_neutral: 'Документација стабла',
@@ -1603,6 +2304,29 @@ const TEXTE = {
     setpw_titel: 'Постави лозинку',
     setpw_neu: 'Нова лозинка',
     setpw_btn: 'Сачувај и пријави се',
+    pw_vergessen: 'Заборављена лозинка?',
+    pw_email_noetig: 'Прво унеси своју имејл адресу горе.',
+    pw_reset_gesendet: 'Ако адреса постоји, послат је имејл за ресетовање лозинке.',
+    mv_titel: 'Управљање члановима',
+    mv_hinzufuegen: 'Додај члана',
+    mv_add_btn: 'Додај',
+    mv_entfernen: 'Уклони',
+    mv_kein_user: 'Нема корисника са овим имејлом. Особа прво мора да направи налог.',
+    mv_bereits: 'Ова особа је већ члан ове породице.',
+    mv_suche: 'Претрага по имејлу или улози…',
+    mv_deaktivieren: 'Деактивирај', mv_aktivieren: 'Активирај', mv_inaktiv: 'неактиван',
+    mv_legende: 'Супер-админ: све · Админ породице: своја породица · Члан: само читање',
+    mv_entfernen_frage: 'Да ли сте сигурни да желите да уклоните овог члана?',
+    mv_rolle_gespeichert: 'Улога сачувана.',
+    mv_hinzugefuegt: 'Члан додат.',
+    mv_keine: 'Нема чланова.',
+    admin_einstellungen: 'Админ-подешавања',
+    mv_add_titel: 'Додај члана',
+    admin_benachrichtigungen: 'Обавештења (ускоро)',
+    admin_familieneinst: 'Подешавања породице (ускоро)',
+    admin_weitere: 'Остале админ-функције (ускоро)',
+    ma_info: 'Направи новог члана. Добиће имејл са линком да постави сопствену лозинку.',
+    ma_erfolg: 'Позивница послата. Члан добија имејл за постављање лозинке.',
     setpw_erfolg: 'Лозинка постављена. Сада си пријављен.',
     setpw_fehler: 'Грешка: ',
     kinder: 'Деца',
@@ -1639,6 +2363,34 @@ const TEXTE = {
     event_single_title: 'Obiteljski događaj:',
     shorts_hinweis: 'Kratki obiteljski trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomicanje · Dvostruki klik za reset',
+    baum_wechsel_hinweis: 'Nalaziš se u stablu «{name}». Gore preko izbornika možeš mijenjati stabla.',
+    pe_titel_fenster: 'Uredi osobu',
+    pe_geschlecht: 'Spol',
+    pe_titel: 'Titula',
+    pe_namenszusatz: 'Dodatak imenu',
+    pe_ehename: 'Bračno prezime',
+    pe_status: 'Status',
+    pe_lebend: 'Živ(a)',
+    pe_verstorben: 'Preminuo(la)',
+    pe_hochzeitstag: 'Datum vjenčanja',
+    pe_hochzeitsort: 'Mjesto vjenčanja',
+    pe_beziehung: 'Veza',
+    pe_wohnland: 'Prebivalište – država',
+    pe_wohnstadt: 'Prebivalište – grad',
+    pe_adresse: 'Puna adresa',
+    pe_beruf: 'Zanimanje',
+    pe_ausbildung: 'Obrazovanje',
+    pe_beschreibung: 'O meni',
+    pe_g_wohnen: 'Prebivalište i posao',
+    pe_g_ueber: 'O meni',
+    pe_gespeichert: 'Spremljeno.',
+    pe_sterbedatum: 'Datum smrti',
+    pe_hochzeit_standesamt: 'Vjenčanje (građansko)',
+    pe_hochzeit_kirchlich: 'Vjenčanje (crkveno)',
+    pe_beziehung_sonstige: 'Opis veze',
+    bz_unbekannt: 'Nepoznato', bz_verheiratet: 'U braku', bz_verlobt: 'Zaručen(a)',
+    bz_partner: 'Partner', bz_getrennt: 'Razdvojen(a)', bz_geschieden: 'Razveden(a)',
+    bz_verwitwet: 'Udovac/udovica', bz_sonstige: 'Ostalo',
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
     baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore i dolje.<br>Klikni drugu osobu za novi prikaz.</small>',
     keine_treffer: 'Nijedna osoba nije pronađena.',
@@ -1683,6 +2435,11 @@ const TEXTE = {
     reg_familie_ph: 'Pretraži obitelj…',
     reg_familie_locked: 'Prvo ispuni državu, grad, općinu i mjesto rođenja',
     reg_keine_familien: 'Obitelj nije pronađena',
+    reg_vorhanden_frage: 'Stablo već postoji?',
+    reg_familie_anlegen: 'Izradi novo stablo',
+    reg_familie_anlegen_info: 'Izrađuješ novo, prazno stablo i postaješ njegov administrator. Nakon toga možeš dodavati osobe.',
+    reg_neue_familie: 'Naziv obitelji / stabla',
+    reg_neue_erfolg: 'Stablo izrađeno! Dobit ćeš e-mail s poveznicom za postavljanje lozinke.',
     login_hinweis_titel: 'Potrebna prijava',
     login_hinweis_text: 'Prijavi se kako bi vidio svoje obiteljsko stablo.',
     kopf_neutral: 'Dokumentacija stabla',
@@ -1709,6 +2466,29 @@ const TEXTE = {
     setpw_titel: 'Postavi lozinku',
     setpw_neu: 'Nova lozinka',
     setpw_btn: 'Spremi i prijavi se',
+    pw_vergessen: 'Zaboravljena lozinka?',
+    pw_email_noetig: 'Prvo unesi svoju e-mail adresu gore.',
+    pw_reset_gesendet: 'Ako adresa postoji, poslan je e-mail za resetiranje lozinke.',
+    mv_titel: 'Upravljanje članovima',
+    mv_hinzufuegen: 'Dodaj člana',
+    mv_add_btn: 'Dodaj',
+    mv_entfernen: 'Ukloni',
+    mv_kein_user: 'Nema korisnika s tim e-mailom. Osoba prvo mora otvoriti račun.',
+    mv_bereits: 'Ova osoba je već član ove obitelji.',
+    mv_suche: 'Pretraga po e-mailu ili ulozi…',
+    mv_deaktivieren: 'Deaktiviraj', mv_aktivieren: 'Aktiviraj', mv_inaktiv: 'neaktivan',
+    mv_legende: 'Super-admin: sve · Admin obitelji: vlastita obitelj · Član: samo čitanje',
+    mv_entfernen_frage: 'Jeste li sigurni da želite ukloniti ovog člana?',
+    mv_rolle_gespeichert: 'Uloga spremljena.',
+    mv_hinzugefuegt: 'Član dodan.',
+    mv_keine: 'Nema članova.',
+    admin_einstellungen: 'Admin postavke',
+    mv_add_titel: 'Dodaj člana',
+    admin_benachrichtigungen: 'Obavijesti (uskoro)',
+    admin_familieneinst: 'Postavke obitelji (uskoro)',
+    admin_weitere: 'Ostale admin funkcije (uskoro)',
+    ma_info: 'Izradi novog člana. Dobit će e-mail s poveznicom da postavi vlastitu lozinku.',
+    ma_erfolg: 'Pozivnica poslana. Član dobiva e-mail za postavljanje lozinke.',
     setpw_erfolg: 'Lozinka postavljena. Sada si prijavljen.',
     setpw_fehler: 'Greška: ',
     kinder: 'Djeca',
@@ -1745,6 +2525,34 @@ const TEXTE = {
     event_single_title: 'Porodični događaj:',
     shorts_hinweis: 'Kratki porodični trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomjeranje · Dvostruki klik za reset',
+    baum_wechsel_hinweis: 'Nalaziš se u stablu «{name}». Gore preko menija možeš mijenjati stabla.',
+    pe_titel_fenster: 'Uredi osobu',
+    pe_geschlecht: 'Spol',
+    pe_titel: 'Titula',
+    pe_namenszusatz: 'Dodatak imenu',
+    pe_ehename: 'Bračno prezime',
+    pe_status: 'Status',
+    pe_lebend: 'Živ(a)',
+    pe_verstorben: 'Preminuo(la)',
+    pe_hochzeitstag: 'Datum vjenčanja',
+    pe_hochzeitsort: 'Mjesto vjenčanja',
+    pe_beziehung: 'Veza',
+    pe_wohnland: 'Prebivalište – država',
+    pe_wohnstadt: 'Prebivalište – grad',
+    pe_adresse: 'Puna adresa',
+    pe_beruf: 'Zanimanje',
+    pe_ausbildung: 'Obrazovanje',
+    pe_beschreibung: 'O meni',
+    pe_g_wohnen: 'Prebivalište i posao',
+    pe_g_ueber: 'O meni',
+    pe_gespeichert: 'Sačuvano.',
+    pe_sterbedatum: 'Datum smrti',
+    pe_hochzeit_standesamt: 'Vjenčanje (građansko)',
+    pe_hochzeit_kirchlich: 'Vjenčanje (crkveno)',
+    pe_beziehung_sonstige: 'Opis veze',
+    bz_unbekannt: 'Nepoznato', bz_verheiratet: 'U braku', bz_verlobt: 'Zaručen(a)',
+    bz_partner: 'Partner', bz_getrennt: 'Razdvojen(a)', bz_geschieden: 'Razveden(a)',
+    bz_verwitwet: 'Udovac/udovica', bz_sonstige: 'Ostalo',
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
     baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore и доле.<br>Klikni drugu osobu za novi prikaz.</small>',
     keine_treffer: 'Nijedna osoba nije pronađena.',
@@ -1789,6 +2597,11 @@ const TEXTE = {
     reg_familie_ph: 'Pretraži porodicu…',
     reg_familie_locked: 'Prvo ispuni državu, grad, općinu i mjesto rođenja',
     reg_keine_familien: 'Porodica nije pronađena',
+    reg_vorhanden_frage: 'Stablo već postoji?',
+    reg_familie_anlegen: 'Kreiraj novo stablo',
+    reg_familie_anlegen_info: 'Kreiraš novo, prazno stablo i postaješ njegov administrator. Nakon toga možeš dodavati osobe.',
+    reg_neue_familie: 'Naziv porodice / stabla',
+    reg_neue_erfolg: 'Stablo kreirano! Dobit ćeš e-mail s linkom za postavljanje lozinke.',
     login_hinweis_titel: 'Potrebna prijava',
     login_hinweis_text: 'Prijavi se kako bi vidio svoje porodično stablo.',
     kopf_neutral: 'Dokumentacija stabla',
@@ -1815,6 +2628,29 @@ const TEXTE = {
     setpw_titel: 'Postavi lozinku',
     setpw_neu: 'Nova lozinka',
     setpw_btn: 'Sačuvaj i prijavi se',
+    pw_vergessen: 'Zaboravljena lozinka?',
+    pw_email_noetig: 'Prvo unesi svoju e-mail adresu gore.',
+    pw_reset_gesendet: 'Ako adresa postoji, poslan je e-mail za resetovanje lozinke.',
+    mv_titel: 'Upravljanje članovima',
+    mv_hinzufuegen: 'Dodaj člana',
+    mv_add_btn: 'Dodaj',
+    mv_entfernen: 'Ukloni',
+    mv_kein_user: 'Nema korisnika s tim e-mailom. Osoba prvo mora otvoriti račun.',
+    mv_bereits: 'Ova osoba je već član ove porodice.',
+    mv_suche: 'Pretraga po e-mailu ili ulozi…',
+    mv_deaktivieren: 'Deaktiviraj', mv_aktivieren: 'Aktiviraj', mv_inaktiv: 'neaktivan',
+    mv_legende: 'Super-admin: sve · Admin porodice: vlastita porodica · Član: samo čitanje',
+    mv_entfernen_frage: 'Jeste li sigurni da želite ukloniti ovog člana?',
+    mv_rolle_gespeichert: 'Uloga sačuvana.',
+    mv_hinzugefuegt: 'Član dodan.',
+    mv_keine: 'Nema članova.',
+    admin_einstellungen: 'Admin postavke',
+    mv_add_titel: 'Dodaj člana',
+    admin_benachrichtigungen: 'Obavijesti (uskoro)',
+    admin_familieneinst: 'Postavke porodice (uskoro)',
+    admin_weitere: 'Ostale admin funkcije (uskoro)',
+    ma_info: 'Kreiraj novog člana. Dobit će e-mail s linkom da postavi vlastitu lozinku.',
+    ma_erfolg: 'Pozivnica poslana. Član dobiva e-mail za postavljanje lozinke.',
     setpw_erfolg: 'Lozinka postavljena. Sada si prijavljen.',
     setpw_fehler: 'Greška: ',
     kinder: 'Djeca',
@@ -1851,6 +2687,34 @@ const TEXTE = {
     event_single_title: 'Family Event:',
     shorts_hinweis: 'Quick family moments and memories.',
     baum_hinweis: 'Click for details · Scroll to zoom · Drag to pan · Double-click to reset',
+    baum_wechsel_hinweis: 'You are in the «{name}» tree. Use the selector at the top to switch between trees.',
+    pe_titel_fenster: 'Edit person',
+    pe_geschlecht: 'Gender',
+    pe_titel: 'Title',
+    pe_namenszusatz: 'Name affix',
+    pe_ehename: 'Married name',
+    pe_status: 'Status',
+    pe_lebend: 'Alive',
+    pe_verstorben: 'Deceased',
+    pe_hochzeitstag: 'Wedding date',
+    pe_hochzeitsort: 'Wedding place',
+    pe_beziehung: 'Relationship',
+    pe_wohnland: 'Residence – Country',
+    pe_wohnstadt: 'Residence – City',
+    pe_adresse: 'Full address',
+    pe_beruf: 'Occupation',
+    pe_ausbildung: 'Education',
+    pe_beschreibung: 'About me',
+    pe_g_wohnen: 'Residence & work',
+    pe_g_ueber: 'About me',
+    pe_gespeichert: 'Saved.',
+    pe_sterbedatum: 'Date of death',
+    pe_hochzeit_standesamt: 'Wedding (civil)',
+    pe_hochzeit_kirchlich: 'Wedding (church)',
+    pe_beziehung_sonstige: 'Relationship description',
+    bz_unbekannt: 'Unknown', bz_verheiratet: 'Married', bz_verlobt: 'Engaged',
+    bz_partner: 'Partner', bz_getrennt: 'Separated', bz_geschieden: 'Divorced',
+    bz_verwitwet: 'Widowed', bz_sonstige: 'Other',
     baum_info_hinweis: '<strong>Tip:</strong> Click for details, scroll to zoom, double-click to reset.',
     baum_zentriert: '<strong>Centered on:</strong> {name}<br><small>Showing 2 generations up and down.<br>Click another person to re-center.</small>',
     keine_treffer: 'No people found.',
@@ -1895,6 +2759,11 @@ const TEXTE = {
     reg_familie_ph: 'Search family…',
     reg_familie_locked: 'First fill in country, city, municipality and place of birth',
     reg_keine_familien: 'No family found',
+    reg_vorhanden_frage: 'Family tree already exists?',
+    reg_familie_anlegen: 'Create new tree',
+    reg_familie_anlegen_info: 'Create a new, empty tree and become its administrator. Afterwards you can add more people.',
+    reg_neue_familie: 'Name of the family / tree',
+    reg_neue_erfolg: 'Tree created! You will receive an email with a link to set your password.',
     login_hinweis_titel: 'Login required',
     login_hinweis_text: 'Please sign in to view your family tree.',
     kopf_neutral: 'Family Tree Archive',
@@ -1921,6 +2790,29 @@ const TEXTE = {
     setpw_titel: 'Set password',
     setpw_neu: 'New password',
     setpw_btn: 'Save & sign in',
+    pw_vergessen: 'Forgot password?',
+    pw_email_noetig: 'Please enter your email address above first.',
+    pw_reset_gesendet: 'If the address exists, a password reset email has been sent.',
+    mv_titel: 'Manage members',
+    mv_hinzufuegen: 'Add member',
+    mv_add_btn: 'Add',
+    mv_entfernen: 'Remove',
+    mv_kein_user: 'No user with this email. The person must create an account first.',
+    mv_bereits: 'This person is already a member of this family.',
+    mv_suche: 'Search by email or role…',
+    mv_deaktivieren: 'Deactivate', mv_aktivieren: 'Activate', mv_inaktiv: 'inactive',
+    mv_legende: 'Super admin: everything · Family admin: manage own family · Member: read only',
+    mv_entfernen_frage: 'Are you sure you want to remove this member?',
+    mv_rolle_gespeichert: 'Role saved.',
+    mv_hinzugefuegt: 'Member added.',
+    mv_keine: 'No members found.',
+    admin_einstellungen: 'Admin settings',
+    mv_add_titel: 'Add member',
+    admin_benachrichtigungen: 'Notifications (soon)',
+    admin_familieneinst: 'Family settings (soon)',
+    admin_weitere: 'More admin functions (soon)',
+    ma_info: 'Create a new member. They receive an invitation email with a link to set their own password.',
+    ma_erfolg: 'Invitation sent. The member receives an email to set their password.',
     setpw_erfolg: 'Password set. You are now signed in.',
     setpw_fehler: 'Error: ',
     kinder: 'Children',
@@ -2238,6 +3130,25 @@ function waehleStammbaum(treeId) {
   const root = findeStammbaumWurzel(treeId);
   if (root) zeichneBaum(root, 12, 0);
   else if (baumG) baumG.selectAll('*').remove();
+  aktualisiereBaumHinweis();
+}
+
+// Hinweis-Banner: in welchem Stammbaum man ist + dass man oben wechseln kann
+function aktualisiereBaumHinweis() {
+  const el  = document.getElementById('baum-tree-hinweis');
+  const txt = document.getElementById('baum-tree-hinweis-text');
+  if (!el || !txt) return;
+  if (!aktuellerUser || !aktuellerStammbaumId || sessionStorage.getItem('baum_hinweis_zu')) {
+    el.style.display = 'none';
+    return;
+  }
+  txt.textContent = t('baum_wechsel_hinweis', { name: nm(stammbaeumeListe[aktuellerStammbaumId] || '') });
+  el.style.display = 'flex';
+}
+function schliesseBaumHinweis() {
+  sessionStorage.setItem('baum_hinweis_zu', '1');
+  const el = document.getElementById('baum-tree-hinweis');
+  if (el) el.style.display = 'none';
 }
 
 // ============================================================
@@ -2289,9 +3200,6 @@ function init() {
   });
   document.getElementById('suche').addEventListener('input', handleSuche);
   document.getElementById('filter-nachname').addEventListener('change', zeigeKarten);
-  document.getElementById('modal').addEventListener('click', (e) => {
-    if (e.target.id === 'modal') schliesseModal();
-  });
   document.getElementById('gedcom-input').addEventListener('change', handleGedcomUpload);
   // Klick außerhalb schließt das Menü-Dropdown
   document.addEventListener('click', (e) => {
@@ -3017,12 +3925,22 @@ function zeigeDetails(personId) {
     ${p.deceased || p.death_date ? `<div class="info-zeile"><strong>${t('verstorben')}</strong> ${escapeHtml(p.death_date || t('ja'))}</div>` : ''}
     ${p.death_place ? `<div class="info-zeile"><strong>${t('sterbeort')}</strong> ${escapeHtml(p.death_place)}</div>` : ''}
     <div class="info-zeile"><strong>${t('geschlecht')}</strong> ${geschlechtText}</div>
+    ${p.geburtsland ? `<div class="info-zeile"><strong>${t('reg_geburtsland')}:</strong> ${escapeHtml(p.geburtsland)}</div>` : ''}
+    ${p.getauft ? `<div class="info-zeile"><strong>${t('reg_getauft')}:</strong> ${escapeHtml(p.getauft)}</div>` : ''}
+    ${(p.beziehung && p.beziehung !== 'unbekannt') ? `<div class="info-zeile"><strong>${t('pe_beziehung')}:</strong> ${escapeHtml(p.beziehung === 'sonstige' ? (p.beziehung_sonstige || t('bz_sonstige')) : t('bz_' + p.beziehung))}</div>` : ''}
+    ${(p.hochzeit_standesamt || p.hochzeit_kirchlich || p.hochzeitsort) ? `<div class="info-zeile"><strong>${t('pe_hochzeit_standesamt')}:</strong> ${escapeHtml([p.hochzeit_standesamt, p.hochzeit_kirchlich, p.hochzeitsort].filter(Boolean).join(' · '))}</div>` : ''}
+    ${p.beruf ? `<div class="info-zeile"><strong>${t('pe_beruf')}:</strong> ${escapeHtml(p.beruf)}</div>` : ''}
+    ${p.ausbildung ? `<div class="info-zeile"><strong>${t('pe_ausbildung')}:</strong> ${escapeHtml(p.ausbildung)}</div>` : ''}
+    ${(p.adresse || p.wohnort_stadt || p.wohnort_land) ? `<div class="info-zeile"><strong>${t('pe_g_wohnen')}:</strong> ${escapeHtml([p.adresse, p.wohnort_stadt, p.wohnort_land].filter(Boolean).join(', '))}</div>` : ''}
+    ${(p.email || p.telefon || p.facebook || p.instagram) ? `<div class="info-zeile"><strong>${t('reg_kontakt')}:</strong> ${escapeHtml([p.email, p.telefon, p.facebook, p.instagram].filter(Boolean).join(' · '))}</div>` : ''}
+    ${p.beschreibung ? `<div class="info-zeile"><strong>${t('pe_beschreibung')}:</strong> ${escapeHtml(p.beschreibung)}</div>` : ''}
 
     ${eltern.length ? `<div class="beziehungen"><h3>${t('eltern')}</h3>${buildVerwandte(eltern)}</div>` : ''}
     ${eheHtml}
     ${geschwister.length ? `<div class="beziehungen"><h3>${t('geschwister')}</h3>${buildVerwandte(geschwister)}</div>` : ''}
 
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
+    ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
   `;
   document.getElementById('modal').classList.add('aktiv');
 }
@@ -3041,6 +3959,125 @@ function geheZurueck() {
   }
 }
 
+// ============================================================
+// PERSON BEARBEITEN (nur Admins)
+// ============================================================
+function zeigePersonBearbeiten(personId) {
+  if (!istAdmin()) return;
+  const p = aktuelleDaten.persons[personId];
+  if (!p) return;
+  schliesseModal();   // Detail-Fenster schließen, bevor der Editor aufgeht
+  const set = (id, v) => { document.getElementById(id).value = v ?? ''; };
+  document.getElementById('pe-id').value = personId;
+  document.getElementById('pe-geschlecht').value = p.sex || '';
+  document.getElementById('pe-status').value = (p.deceased || p.death_date) ? 'verstorben' : 'lebend';
+  set('pe-vorname', p.given);        set('pe-nachname', p.surname);
+  set('pe-titel', p.titel);          set('pe-namenszusatz', p.namenszusatz);
+  set('pe-ehename', p.ehename);      set('pe-geburtsdatum', p.birth_date);
+  set('pe-geburtsort', p.birth_place); set('pe-geburtsland', p.geburtsland);
+  set('pe-getauft', p.getauft);
+  set('pe-sterbedatum', p.death_date);
+  set('pe-hochzeitsort', p.hochzeitsort);
+  set('pe-hochzeit-standesamt', p.hochzeit_standesamt || p.hochzeitstag);
+  set('pe-hochzeit-kirchlich', p.hochzeit_kirchlich);
+  set('pe-beziehung-sonstige', p.beziehung_sonstige);
+  document.getElementById('pe-beziehung').value =
+    ['unbekannt','verheiratet','verlobt','partner','getrennt','geschieden','verwitwet','sonstige']
+      .includes(p.beziehung) ? p.beziehung : 'unbekannt';
+  set('pe-email', p.email);          set('pe-telefon', p.telefon);
+  set('pe-facebook', p.facebook);    set('pe-instagram', p.instagram);
+  set('pe-wohnland', p.wohnort_land); set('pe-wohnstadt', p.wohnort_stadt);
+  set('pe-adresse', p.adresse);      set('pe-beruf', p.beruf);
+  set('pe-ausbildung', p.ausbildung); set('pe-beschreibung', p.beschreibung);
+  document.getElementById('pe-fehler').style.display = 'none';
+  document.getElementById('pe-erfolg').style.display = 'none';
+  pePruefeFelder();   // bedingte Felder (Sterbedatum / Hochzeit / Sonstige) anzeigen
+  document.getElementById('person-edit-modal').classList.add('aktiv');
+}
+
+// Bedingte Felder im Editor ein-/ausblenden
+function pePruefeFelder() {
+  const verstorben = document.getElementById('pe-status').value === 'verstorben';
+  document.getElementById('pe-row-sterbedatum').style.display = verstorben ? '' : 'none';
+  const bez = document.getElementById('pe-beziehung').value;
+  const ehe = bez === 'verheiratet';
+  document.getElementById('pe-row-hochzeitsort').style.display = ehe ? '' : 'none';
+  document.getElementById('pe-row-standesamt').style.display   = ehe ? '' : 'none';
+  document.getElementById('pe-row-kirchlich').style.display    = ehe ? '' : 'none';
+  document.getElementById('pe-row-sonstige').style.display     = (bez === 'sonstige') ? '' : 'none';
+}
+
+function schliessePersonEdit() {
+  document.getElementById('person-edit-modal').classList.remove('aktiv');
+}
+
+async function speicherePerson() {
+  if (!istAdmin()) return;
+  const personId = document.getElementById('pe-id').value;
+  const pObj     = aktuelleDaten.persons[personId];
+  const fehlerEl = document.getElementById('pe-fehler');
+  const erfolgEl = document.getElementById('pe-erfolg');
+  const button   = document.getElementById('pe-submit');
+  fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  if (!pObj || !pObj._uuid) { fehlerEl.textContent = 'Person nicht gefunden.'; fehlerEl.style.display = 'block'; return; }
+
+  const v = id => document.getElementById(id).value.trim();
+  const altText = button.textContent;
+  button.disabled = true; button.textContent = t('reg_senden_laeuft');
+
+  // Pristine stammbaum_daten holen (rekonstruierte FAMx-Felder NICHT zurückschreiben)
+  const { data: row, error: lErr } = await sbClient.from('personen')
+    .select('stammbaum_daten').eq('id', pObj._uuid).single();
+  if (lErr) {
+    button.disabled = false; button.textContent = altText;
+    fehlerEl.textContent = t('reg_fehler') + lErr.message; fehlerEl.style.display = 'block'; return;
+  }
+  const sd = row.stammbaum_daten || {};
+  const verstorben = document.getElementById('pe-status').value === 'verstorben';
+  const neu = {
+    ...sd,
+    sex: document.getElementById('pe-geschlecht').value || '',
+    given: v('pe-vorname'), surname: v('pe-nachname'),
+    titel: v('pe-titel'), namenszusatz: v('pe-namenszusatz'), ehename: v('pe-ehename'),
+    birth_date: v('pe-geburtsdatum'), birth_place: v('pe-geburtsort'), geburtsland: v('pe-geburtsland'),
+    getauft: v('pe-getauft'),
+    hochzeitsort: v('pe-hochzeitsort'),
+    hochzeit_standesamt: v('pe-hochzeit-standesamt'),
+    hochzeit_kirchlich: v('pe-hochzeit-kirchlich'),
+    hochzeitstag: '',                                    // altes Einzelfeld nicht mehr genutzt
+    beziehung: document.getElementById('pe-beziehung').value,
+    beziehung_sonstige: v('pe-beziehung-sonstige'),
+    email: v('pe-email'), telefon: v('pe-telefon'), facebook: v('pe-facebook'), instagram: v('pe-instagram'),
+    wohnort_land: v('pe-wohnland'), wohnort_stadt: v('pe-wohnstadt'), adresse: v('pe-adresse'),
+    beruf: v('pe-beruf'), ausbildung: v('pe-ausbildung'), beschreibung: v('pe-beschreibung'),
+    deceased: verstorben,
+    death_date: verstorben ? v('pe-sterbedatum') : ''
+  };
+  neu.name = (neu.given + ' ' + neu.surname).trim();
+
+  const { error: uErr } = await sbClient.from('personen')
+    .update({ stammbaum_daten: neu, vorname: neu.given, nachname: neu.surname }).eq('id', pObj._uuid);
+  button.disabled = false; button.textContent = altText;
+  if (uErr) { fehlerEl.textContent = t('reg_fehler') + uErr.message; fehlerEl.style.display = 'block'; return; }
+
+  // In-memory aktualisieren + neu zeichnen (kein voller Reload, Baumkontext bleibt)
+  Object.assign(pObj, {
+    sex: neu.sex, given: neu.given, surname: neu.surname, name: neu.name,
+    titel: neu.titel, namenszusatz: neu.namenszusatz, ehename: neu.ehename,
+    birth_date: neu.birth_date, birth_place: neu.birth_place, geburtsland: neu.geburtsland,
+    getauft: neu.getauft, hochzeitsort: neu.hochzeitsort,
+    hochzeit_standesamt: neu.hochzeit_standesamt, hochzeit_kirchlich: neu.hochzeit_kirchlich,
+    beziehung: neu.beziehung, beziehung_sonstige: neu.beziehung_sonstige,
+    email: neu.email, telefon: neu.telefon, facebook: neu.facebook, instagram: neu.instagram,
+    wohnort_land: neu.wohnort_land, wohnort_stadt: neu.wohnort_stadt, adresse: neu.adresse,
+    beruf: neu.beruf, ausbildung: neu.ausbildung, beschreibung: neu.beschreibung,
+    deceased: neu.deceased, death_date: neu.death_date
+  });
+  zeichneBaumNeu();
+  erfolgEl.textContent = t('pe_gespeichert'); erfolgEl.style.display = 'block';
+  setTimeout(() => schliessePersonEdit(), 900);
+}
+
 function schliesseModalUndZeigeBaum(personId) {
   schliesseModal();
   const p = aktuelleDaten.persons[personId];
@@ -3049,11 +4086,13 @@ function schliesseModalUndZeigeBaum(personId) {
     aktuellerStammbaumId = p._tree;
     const sel = document.getElementById('tree-select');
     if (sel) sel.value = p._tree;
+    sessionStorage.removeItem('baum_hinweis_zu');   // beim Baumwechsel Hinweis wieder zeigen
   }
   fokusPersonId = personId;
   document.getElementById('suche').value = '';
   wechselAnsicht('baum');
   zeichneBaum(personId);   // setzt den Kopf passend (aktualisiereKopf)
+  aktualisiereBaumHinweis();
 }
 
 // ============================================================
