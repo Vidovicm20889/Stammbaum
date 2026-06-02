@@ -142,6 +142,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   padding-top: 10px; margin-top: 2px; font-weight: bold;
 }
 .account-btn.admin-bald { opacity: 0.4; cursor: not-allowed; border-style: dashed; }
+.account-btn.admin-danger { border-color: #9b2226; color: #9b2226; }
+.account-btn.admin-danger:hover { background: #9b2226; color: #fff; }
 
 #ansicht-karten { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
 #ansicht-shorts { display: none; max-width: 1400px; margin: 30px auto; padding: 0 20px; }
@@ -612,6 +614,12 @@ footer {
 .mv-del { background: none; border: 1px solid var(--linie); color: #9b2226; padding: 6px 10px; cursor: pointer; font-size: 12px; }
 .mv-del:hover { background: #9b2226; color: #fff; }
 .mv-legende { font-size: 12px; color: #8a7a5a; margin: -4px 0 12px; line-height: 1.4; }
+.mv-familie-aktiv {
+  font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--akzent); border-bottom: 1px solid var(--linie);
+  padding-bottom: 5px; margin: 12px 0 8px; font-weight: bold;
+}
+.mv-familie-aktiv:empty { display: none; }
 .mv-row.inaktiv { opacity: 0.5; }
 .mv-status { font-size: 10px; color: #9b2226; text-transform: uppercase; letter-spacing: 1px; }
 .mv-toggle { background: none; border: 1px solid var(--linie); color: var(--ink); padding: 6px 10px; cursor: pointer; font-size: 12px; }
@@ -693,6 +701,7 @@ footer {
           <div class="admin-titel" data-i18n="admin_einstellungen"></div>
           <button class="account-btn" data-i18n="mv_titel" onclick="zeigeMitglieder()"></button>
           <button class="account-btn" data-i18n="mv_add_titel" onclick="zeigeMitgliedHinzufuegen()"></button>
+          <button class="account-btn admin-danger" type="button" data-i18n="admin_baum_loeschen" onclick="loescheStammbaum()"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_benachrichtigungen"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_familieneinst"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
@@ -774,7 +783,6 @@ footer {
     <h2 data-i18n="reg_titel"></h2>
     <p class="sub-name">Stammbaum Vidović</p>
     <p class="login-label" data-i18n="reg_intro" style="margin-top:0"></p>
-    <div id="reg-fehler" class="login-fehler"></div>
 
     <div class="reg-grid">
       <label class="login-label reg-feld-voll"><span data-i18n="reg_email"></span> *
@@ -863,6 +871,7 @@ footer {
       </label>
     </div>
 
+    <div id="reg-fehler" class="login-fehler"></div>
     <button class="login-submit" id="reg-submit" data-i18n="reg_absenden" onclick="sendeRegistrierAnfrage()"></button>
     <div id="reg-erfolg" class="reg-erfolg" style="display:none"></div>
   </div>
@@ -876,6 +885,10 @@ footer {
     <div id="setpw-fehler" class="login-fehler"></div>
     <label class="login-label"><span data-i18n="setpw_neu"></span>
       <input type="password" id="setpw-passwort" class="login-feld" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')document.getElementById('setpw-passwort2').focus()">
+    </label>
+    <label class="login-label"><span data-i18n="setpw_neu2"></span>
+      <input type="password" id="setpw-passwort2" class="login-feld" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')setzePasswort()">
     </label>
     <button class="login-submit" data-i18n="setpw_btn" onclick="setzePasswort()"></button>
@@ -1101,6 +1114,11 @@ footer {
     <button class="modal-schliessen" onclick="schliesseMitglieder()">×</button>
     <h2 data-i18n="mv_titel"></h2>
     <p class="mv-legende" data-i18n="mv_legende"></p>
+    <label class="login-label" id="mv-familie-wrap" style="margin-top:0"><span data-i18n="mv_familie_label"></span>
+      <input type="text" id="mv-familie-filter" class="login-feld" list="mv-familie-filter-list"
+        autocomplete="off" oninput="mvWaehleFamilie()" data-i18n-placeholder="mv_familie_ph">
+      <datalist id="mv-familie-filter-list"></datalist></label>
+    <div class="mv-familie-aktiv" id="mv-familie-aktiv"></div>
     <input type="text" id="mv-suche" class="login-feld" data-i18n-placeholder="mv_suche"
       oninput="renderMitglieder()" style="margin-bottom:10px">
     <div id="mv-fehler" class="login-fehler"></div>
@@ -1159,9 +1177,22 @@ async function ladeAuth() {
   const { data: { session } } = await sbClient.auth.getSession();
   if (session) await setzeUser(session.user);
 
-  sbClient.auth.onAuthStateChange(async (_event, session) => {
-    if (session) await setzeUser(session.user);
-    else          loescheUser();
+  // WICHTIG: Im onAuthStateChange-Callback KEINE weiteren Supabase-Aufrufe
+  // synchron/await ausführen — der Callback hält die interne Auth-Sperre.
+  // setzeUser()/ladeBaumDaten() rufen sbClient.from(...) auf und würden auf
+  // denselben Lock warten -> Deadlock (jeder weitere Request hängt bis F5).
+  // Daher: Arbeit per setTimeout aus dem Callback herauslösen (Lock ist dann frei),
+  // und nur reagieren, wenn sich der User tatsächlich ändert (nicht bei jedem
+  // TOKEN_REFRESHED, das sonst Baum/Overlay mitten in einer Aktion neu lädt).
+  sbClient.auth.onAuthStateChange((_event, session) => {
+    const neueUserId = session?.user?.id || null;
+    setTimeout(() => {
+      if (neueUserId) {
+        if (!aktuellerUser || aktuellerUser.id !== neueUserId) setzeUser(session.user);
+      } else if (aktuellerUser) {
+        loescheUser();
+      }
+    }, 0);
   });
 }
 
@@ -1337,7 +1368,12 @@ function toggleNavMenu(e) {
 let mvFamilien = {};
 let mvAlle = [];
 let mvNameZuId = {};
+// Familienauswahl im Verwaltungs-Overlay (getrennt von der Add-Modal-Auswahl)
+let mvVerwaltFamilien = {};   // familie_id -> name
+let mvVerwaltNameZuId = {};   // name(lower) -> familie_id
+let mvVerwaltFamilie = null;  // aktuell gewählte Familie
 function zeigeMvFehler(msg) {
+  document.getElementById('mv-info').style.display = 'none';
   const el = document.getElementById('mv-fehler');
   el.textContent = msg; el.style.display = 'block';
 }
@@ -1347,6 +1383,7 @@ async function zeigeMitglieder() {
   document.getElementById('mv-fehler').style.display = 'none';
   document.getElementById('mv-info').style.display = 'none';
   document.getElementById('mv-suche').value = '';
+  mvVerwaltFamilie = null;   // bei jedem Öffnen Auswahl zurücksetzen
   document.getElementById('mitglieder-modal').classList.add('aktiv');
   await ladeMitglieder();
 }
@@ -1359,62 +1396,109 @@ async function ladeMitglieder() {
   const { data, error } = await sbClient.rpc('mitglieder_verwaltbar');
   if (error) { liste.innerHTML = `<p class="login-fehler" style="display:block">${escapeHtml(error.message)}</p>`; mvAlle = []; return; }
   mvAlle = data || [];
+
+  // Verwaltbare Familien aus den Daten ableiten (mitglieder_verwaltbar liefert
+  // nur Familien, die der angemeldete Admin verwalten darf; Super-Admin = alle).
+  mvVerwaltFamilien = {};
+  mvAlle.forEach(m => { if (m.familie_id) mvVerwaltFamilien[m.familie_id] = m.familie_name; });
+  mvVerwaltNameZuId = {};
+  const eintraege = Object.entries(mvVerwaltFamilien)
+    .sort((a, b) => (a[1] || '').localeCompare(b[1] || ''));
+  document.getElementById('mv-familie-filter-list').innerHTML = eintraege.map(([fid, name]) => {
+    mvVerwaltNameZuId[(name || '').toLowerCase()] = fid;
+    return `<option value="${escapeHtml(name)}"></option>`;
+  }).join('');
+
+  // Auswahl bestimmen: bestehende behalten -> sonst bei genau 1 Familie automatisch
+  if (mvVerwaltFamilie && !mvVerwaltFamilien[mvVerwaltFamilie]) mvVerwaltFamilie = null;
+  if (!mvVerwaltFamilie && eintraege.length === 1) mvVerwaltFamilie = eintraege[0][0];
+
+  // Dropdown nur zeigen, wenn es etwas zu wählen gibt (>1 Familie)
+  document.getElementById('mv-familie-wrap').style.display = (eintraege.length > 1) ? '' : 'none';
+  document.getElementById('mv-familie-filter').value =
+    mvVerwaltFamilie ? (mvVerwaltFamilien[mvVerwaltFamilie] || '') : '';
+
   renderMitglieder();
 }
 
-// Mitgliederliste rendern (mit Such-/Filterfeld + Status + Deaktivieren)
+// Familie im Such-Dropdown wählen -> Liste neu filtern
+function mvWaehleFamilie() {
+  const txt = (document.getElementById('mv-familie-filter').value || '').trim().toLowerCase();
+  mvVerwaltFamilie = mvVerwaltNameZuId[txt] || null;
+  renderMitglieder();
+}
+
+// Mitgliederliste rendern — ausschließlich die gewählte Familie, ohne super_admin.
 function renderMitglieder() {
-  const liste  = document.getElementById('mv-liste');
-  const filter = (document.getElementById('mv-suche').value || '').toLowerCase();
-  const istSuper = aktuelleRolle === 'super_admin';
-  const gefiltert = mvAlle.filter(m =>
+  const liste   = document.getElementById('mv-liste');
+  const aktivEl = document.getElementById('mv-familie-aktiv');
+  const filter  = (document.getElementById('mv-suche').value || '').toLowerCase();
+
+  // Keine Familie gewählt -> Hinweis (bei mehreren Familien)
+  if (!mvVerwaltFamilie) {
+    aktivEl.textContent = '';
+    liste.innerHTML = `<p style="color:#8a7a5a">${t('mv_familie_waehlen')}</p>`;
+    return;
+  }
+
+  aktivEl.textContent = t('mv_familie_aktiv', { name: nm(mvVerwaltFamilien[mvVerwaltFamilie] || '') });
+
+  // Nur Mitglieder DIESER Familie, Super-Admin ausgeblendet
+  const inFam = mvAlle.filter(m => m.familie_id === mvVerwaltFamilie && m.rolle !== 'super_admin');
+  const gefiltert = inFam.filter(m =>
     !filter
     || (m.email || '').toLowerCase().includes(filter)
     || (m.name  || '').toLowerCase().includes(filter)
     || t('rolle_' + m.rolle).toLowerCase().includes(filter)
   );
-  if (gefiltert.length === 0) { liste.innerHTML = `<p style="color:#8a7a5a">${t('mv_keine')}</p>`; return; }
-  const grp = {};
-  gefiltert.forEach(m => { (grp[m.familie_id] = grp[m.familie_id] || { name: m.familie_name, rows: [] }).rows.push(m); });
-  liste.innerHTML = Object.values(grp).map(g => `
-    <div class="mv-familie-gruppe">
-      <h3>${escapeHtml(nm(g.name))}</h3>
-      ${g.rows.map(m => {
-        const schreibbar = m.rolle !== 'super_admin' || istSuper;
-        return `<div class="mv-row${m.aktiv ? '' : ' inaktiv'}">
-          <span class="mv-email">${m.name ? `<strong>${escapeHtml(m.name)}</strong> · ` : ''}${escapeHtml(m.email)}${m.aktiv ? '' : ` <span class="mv-status">${escapeHtml(t('mv_inaktiv'))}</span>`}</span>
-          ${schreibbar ? `
-            <select onchange="aendereRolle('${m.mitgliedschaft_id}', this.value)">
-              <option value="familien_mitglied" ${m.rolle === 'familien_mitglied' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_mitglied'))}</option>
-              <option value="familien_admin" ${m.rolle === 'familien_admin' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_admin'))}</option>
-              ${m.rolle === 'super_admin' ? `<option value="super_admin" selected>${escapeHtml(t('rolle_super_admin'))}</option>` : ''}
-            </select>
-            <button class="mv-toggle" onclick="toggleAktiv('${m.mitgliedschaft_id}', ${m.aktiv ? 'false' : 'true'})">${escapeHtml(m.aktiv ? t('mv_deaktivieren') : t('mv_aktivieren'))}</button>
-            <button class="mv-del" onclick="entferneMitglied('${m.mitgliedschaft_id}','${escapeHtml(m.email)}')">${escapeHtml(t('mv_entfernen'))}</button>
-          ` : `<span class="mv-rolle-text">${escapeHtml(t('rolle_' + m.rolle))}</span>`}
-        </div>`;
-      }).join('')}
+  if (gefiltert.length === 0) {
+    liste.innerHTML = `<p style="color:#8a7a5a">${t('mv_keine_in_familie')}</p>`;
+    return;
+  }
+  liste.innerHTML = gefiltert.map(m => `
+    <div class="mv-row${m.aktiv ? '' : ' inaktiv'}">
+      <span class="mv-email">${m.name ? `<strong>${escapeHtml(m.name)}</strong> · ` : ''}${escapeHtml(m.email)}${m.aktiv ? '' : ` <span class="mv-status">${escapeHtml(t('mv_inaktiv'))}</span>`}</span>
+      <select onchange="aendereRolle('${m.mitgliedschaft_id}', this.value)">
+        <option value="familien_mitglied" ${m.rolle === 'familien_mitglied' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_mitglied'))}</option>
+        <option value="familien_admin" ${m.rolle === 'familien_admin' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_admin'))}</option>
+      </select>
+      <button class="mv-toggle" onclick="toggleAktiv('${m.mitgliedschaft_id}', ${m.aktiv ? 'false' : 'true'})">${escapeHtml(m.aktiv ? t('mv_deaktivieren') : t('mv_aktivieren'))}</button>
+      <button class="mv-del" onclick="entferneMitglied('${m.mitgliedschaft_id}','${escapeHtml(m.email)}')">${escapeHtml(t('mv_entfernen'))}</button>
     </div>`).join('');
 }
 
+// Erfolgshinweis im Mitglieder-Overlay (blendet sich selbst wieder aus)
+function zeigeMvInfo(msg) {
+  document.getElementById('mv-fehler').style.display = 'none';
+  const el = document.getElementById('mv-info');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+// Schreiboperationen laufen über SECURITY-DEFINER-RPCs (verlässlich trotz RLS).
+// Jede Aktion wird verifiziert: nur bei bestätigtem Erfolg wird die Liste neu geladen.
 async function toggleAktiv(mid, neu) {
-  const { error } = await sbClient.from('mitgliedschaften').update({ aktiv: neu }).eq('id', mid);
-  if (error) zeigeMvFehler(error.message);
+  const { data, error } = await sbClient.rpc('mitglied_aktiv_setzen', { p_mid: mid, p_aktiv: neu });
+  if (error || data !== true) { zeigeMvFehler(error ? error.message : t('mv_fehlgeschlagen')); return; }
+  zeigeMvInfo(t('mv_aktualisiert'));
   await ladeMitglieder();
 }
 async function aendereRolle(mid, rolle) {
-  const { error } = await sbClient.from('mitgliedschaften').update({ rolle }).eq('id', mid);
-  if (error) { zeigeMvFehler(error.message); return; }
-  const infoEl = document.getElementById('mv-info');
-  infoEl.textContent = t('mv_rolle_gespeichert'); infoEl.style.display = 'block';
-  setTimeout(() => { infoEl.style.display = 'none'; }, 2500);
+  const { data, error } = await sbClient.rpc('mitglied_rolle_setzen', { p_mid: mid, p_rolle: rolle });
+  if (error || data !== true) {
+    zeigeMvFehler(error ? error.message : t('mv_fehlgeschlagen'));
+    await ladeMitglieder();   // Dropdown auf den echten DB-Stand zurücksetzen
+    return;
+  }
+  zeigeMvInfo(t('mv_rolle_gespeichert'));
   await ladeMitglieder();
 }
 async function entferneMitglied(mid, email) {
   const ok = await zeigeBestaetigung(t('mv_entfernen_frage') + '\n\n' + email);
   if (!ok) return;
-  const { error } = await sbClient.from('mitgliedschaften').delete().eq('id', mid);
-  if (error) { zeigeMvFehler(error.message); return; }
+  const { data, error } = await sbClient.rpc('mitglied_entfernen', { p_mid: mid });
+  if (error || data !== true) { zeigeMvFehler(error ? error.message : t('mv_fehlgeschlagen')); return; }
+  zeigeMvInfo(t('mv_entfernt'));
   await ladeMitglieder();
 }
 // ---- Overlay "Mitglied hinzufügen" (separat, nur Benutzer-Erstellung) ----
@@ -1492,6 +1576,27 @@ async function fuegeMitgliedEinladen() {
   }
   document.getElementById('ma-email').value = '';
   infoEl.textContent = t('ma_erfolg'); infoEl.style.display = 'block';
+}
+
+// Kompletten (aktuell ausgewählten) Stammbaum löschen — Personen + Beziehungen
+// + Baum-Eintrag, über eine SECURITY-DEFINER-RPC. Nur Admins.
+async function loescheStammbaum() {
+  if (!istAdmin()) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  const treeId = aktuellerStammbaumId;
+  if (!treeId) { await zeigeHinweis(t('baum_kein_aktiver')); return; }
+  const name = nm(stammbaeumeListe[treeId] || '?');
+
+  const ok = await zeigeBestaetigung(t('baum_loeschen_frage', { name }));
+  if (!ok) return;
+
+  const { data, error } = await sbClient.rpc('stammbaum_loeschen', { p_tree: treeId });
+  if (error) { await zeigeHinweis(t('reg_fehler') + error.message); return; }
+
+  // Frisch laden (wählt automatisch einen verbleibenden Baum)
+  aktuellerStammbaumId = null;
+  await ladeBaumDaten();
+  await zeigeHinweis(t('baum_geloescht'));
 }
 
 // ============================================================
@@ -1837,29 +1942,52 @@ function pruefePasswortSetzen() {
 
 async function setzePasswort() {
   const pw       = document.getElementById('setpw-passwort').value;
+  const pw2      = document.getElementById('setpw-passwort2').value;
   const fehlerEl = document.getElementById('setpw-fehler');
   const erfolgEl = document.getElementById('setpw-erfolg');
+  const button   = document.querySelector('#setpw-modal .login-submit');
   fehlerEl.style.display = 'none';
   erfolgEl.style.display = 'none';
 
+  // Bug 1: zwei Eingaben, müssen übereinstimmen
   if (!pw || pw.length < 6) {
     fehlerEl.textContent = t('setpw_fehler') + '≥ 6';
-    fehlerEl.style.display = 'block';
-    return;
+    fehlerEl.style.display = 'block'; return;
   }
+  if (pw !== pw2) {
+    fehlerEl.textContent = t('setpw_ungleich');
+    fehlerEl.style.display = 'block'; return;
+  }
+
+  // Bug 2: sicherstellen, dass die Session aus dem Invite-/Recovery-Link aktiv ist
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (!session) {
+    fehlerEl.textContent = t('setpw_keine_session');
+    fehlerEl.style.display = 'block'; return;
+  }
+
+  const altText = button ? button.textContent : '';
+  if (button) { button.disabled = true; button.textContent = t('reg_senden_laeuft'); }
 
   const { error } = await sbClient.auth.updateUser({ password: pw });
+
+  if (button) { button.disabled = false; button.textContent = altText; }
+
   if (error) {
     fehlerEl.textContent = t('setpw_fehler') + error.message;
-    fehlerEl.style.display = 'block';
-    return;
+    fehlerEl.style.display = 'block'; return;
   }
 
+  // Erfolg: Passwort ist gesetzt und der User ist über diese Session eingeloggt.
+  // App-Auth-Status explizit setzen (UI + Baum laden) und Token aus der URL entfernen.
+  history.replaceState(null, '', window.location.pathname + window.location.search);
   erfolgEl.textContent = t('setpw_erfolg');
   erfolgEl.style.display = 'block';
-  // URL-Hash (Token) entfernen
-  history.replaceState(null, '', window.location.pathname + window.location.search);
-  setTimeout(() => document.getElementById('setpw-modal').classList.remove('aktiv'), 1800);
+  document.getElementById('setpw-passwort').value = '';
+  document.getElementById('setpw-passwort2').value = '';
+  const { data: { session: s2 } } = await sbClient.auth.getSession();
+  if (s2) await setzeUser(s2.user);   // meldet den User in der Oberfläche an
+  setTimeout(() => document.getElementById('setpw-modal').classList.remove('aktiv'), 1500);
 }
 
 // Familien-Suchfeld erst freigeben, wenn Land, Stadt, Gemeinde und Geburtsort
@@ -1882,6 +2010,9 @@ function regVorhandenWechsel() {
   const ja = !sel || sel.value === 'ja';
   document.getElementById('reg-block-ja').style.display   = ja ? '' : 'none';
   document.getElementById('reg-block-nein').style.display = ja ? 'none' : '';
+  // Button-Beschriftung passend zum Modus: Anfrage senden (Ja) vs. Konto anlegen (Nein)
+  const btn = document.getElementById('reg-submit');
+  if (btn) btn.textContent = ja ? t('reg_absenden') : t('reg_konto_anlegen');
 }
 
 let regSucheTimer = null;
@@ -2080,21 +2211,39 @@ async function regNeueFamilieAnlegen() {
     }
   };
 
-  let error = null;
+  // Direkter fetch statt functions.invoke: so lesen wir den JSON-Body der
+  // Function zuverlässig selbst (supabase-js verschluckt bei non-2xx sonst die
+  // eigentliche Fehlermeldung im FunctionsHttpError).
+  let ok = false, fnCode = null, fnMsg = null;
   try {
-    const res = await sbClient.functions.invoke('neue-familie-anlegen', { body: payload });
-    error = res.error || (res.data && res.data.error) || null;
+    const resp = await fetch(SUPABASE_URL + '/functions/v1/neue-familie-anlegen', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+    const body = await resp.json().catch(() => ({}));
+    ok = resp.ok && !body.error;
+    fnCode = body.code || null;
+    fnMsg  = body.error || (!resp.ok ? ('HTTP ' + resp.status) : null);
   } catch (e) {
-    error = e;
+    fnMsg = e.message || String(e);
   }
 
   button.disabled = false;
   button.textContent = altText;
 
-  if (error) {
-    console.error('Neue-Familie-Fehler:', error);
-    fehlerEl.textContent = t('reg_fehler') + (error.message || error);
+  if (!ok) {
+    console.error('Neue-Familie-Fehler:', fnCode, fnMsg);
+    const low = (fnMsg || '').toLowerCase();
+    const emailExists = fnCode === 'email_exists'
+      || low.includes('already') || low.includes('registered') || low.includes('exist');
+    fehlerEl.textContent = emailExists ? t('reg_email_existiert') : (t('reg_fehler') + (fnMsg || ''));
     fehlerEl.style.display = 'block';
+    fehlerEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -2248,7 +2397,7 @@ const TEXTE = {
     event_cancel: 'Abbrechen',
     event_edit: 'Bearbeiten',
     event_upload: 'Hochladen',
-    event_admin_hint: 'Nur Super Admin und Familien-Admin können hier ändern.',
+    event_admin_hint: 'Nur Administratoren können hier ändern.',
     event_uploading: 'Dateien werden hochgeladen…',
     event_saved: 'Änderungen gespeichert.',
     event_no_media: 'Noch keine Medien hochgeladen.',
@@ -2293,6 +2442,8 @@ const TEXTE = {
     reg_facebook: 'Facebook',
     reg_instagram: 'Instagram',
     reg_absenden: 'Anfrage absenden',
+    reg_konto_anlegen: 'Konto anlegen',
+    reg_email_existiert: 'Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an oder verwende eine andere Adresse.',
     reg_erfolg: 'Anfrage gesendet! Nach Bestätigung durch den Familien-Admin erhältst du eine E-Mail.',
     reg_pflicht: 'Bitte E-Mail, Familie und Rolle ausfüllen.',
     reg_fehler: 'Fehler beim Senden: ',
@@ -2311,12 +2462,24 @@ const TEXTE = {
     mv_bereits: 'Diese Person ist bereits Mitglied dieser Familie.',
     mv_suche: 'Suche nach E-Mail oder Rolle…',
     mv_deaktivieren: 'Deaktivieren', mv_aktivieren: 'Aktivieren', mv_inaktiv: 'inaktiv',
-    mv_legende: 'Super-Admin: alles · Familien-Admin: eigene Familie verwalten · Mitglied: nur lesen',
+    mv_legende: 'Familien-Admin: eigene Familie verwalten · Mitglied: nur lesen',
+    mv_aktualisiert: 'Status aktualisiert.',
+    mv_entfernt: 'Mitglied entfernt.',
+    mv_fehlgeschlagen: 'Aktion fehlgeschlagen.',
     mv_entfernen_frage: 'Sind Sie sicher, dass Sie dieses Mitglied entfernen möchten?',
     mv_rolle_gespeichert: 'Rolle gespeichert.',
     mv_hinzugefuegt: 'Mitglied hinzugefügt.',
     mv_keine: 'Keine Mitglieder gefunden.',
+    mv_familie_label: 'Familie',
+    mv_familie_ph: 'Familie suchen…',
+    mv_familie_waehlen: 'Bitte eine Familie auswählen.',
+    mv_familie_aktiv: 'Familie: {name}',
+    mv_keine_in_familie: 'Keine Mitglieder in dieser Familie vorhanden.',
     admin_einstellungen: 'Admin-Einstellungen',
+    admin_baum_loeschen: 'Stammbaum löschen',
+    baum_loeschen_frage: 'Willst du den Stammbaum „{name}" wirklich KOMPLETT löschen? Alle Personen und Verbindungen dieses Baums werden unwiderruflich aus der Datenbank entfernt.',
+    baum_geloescht: 'Stammbaum gelöscht.',
+    baum_kein_aktiver: 'Es ist kein Stammbaum ausgewählt.',
     mv_add_titel: 'Mitglied hinzufügen',
     admin_benachrichtigungen: 'Benachrichtigungen (bald)',
     admin_familieneinst: 'Familieneinstellungen (bald)',
@@ -2324,6 +2487,9 @@ const TEXTE = {
     ma_info: 'Lege ein neues Mitglied an. Es erhält eine Einladungs-E-Mail mit einem Link, um ein eigenes Passwort zu setzen.',
     ma_erfolg: 'Einladung versendet. Das Mitglied erhält eine E-Mail zum Passwort-Setzen.',
     setpw_erfolg: 'Passwort gesetzt. Du bist jetzt angemeldet.',
+    setpw_neu2: 'Passwort wiederholen',
+    setpw_ungleich: 'Die Passwörter stimmen nicht überein.',
+    setpw_keine_session: 'Sitzung abgelaufen. Bitte öffne den Link aus der E-Mail erneut.',
     setpw_fehler: 'Fehler: ',
     kinder: 'Kinder',
     geschwister: 'Geschwister',
@@ -2429,7 +2595,7 @@ const TEXTE = {
     event_cancel: 'Откажи',
     event_edit: 'Уреди',
     event_upload: 'Отпреми',
-    event_admin_hint: 'Само Супер Админ и Породични Админ могу овде мењати.',
+    event_admin_hint: 'Само администратори могу овде мењати.',
     event_uploading: 'Отпремање датотека…',
     event_saved: 'Промене сачуване.',
     event_no_media: 'Још нема отпремљених медија.',
@@ -2474,6 +2640,8 @@ const TEXTE = {
     reg_facebook: 'Фејсбук',
     reg_instagram: 'Инстаграм',
     reg_absenden: 'Пошаљи захтев',
+    reg_konto_anlegen: 'Креирај налог',
+    reg_email_existiert: 'Ова имејл адреса је већ регистрована. Пријави се или користи другу адресу.',
     reg_erfolg: 'Захтев послат! Након потврде админа породице добићеш имејл.',
     reg_pflicht: 'Унеси имејл, породицу и улогу.',
     reg_fehler: 'Грешка при слању: ',
@@ -2492,12 +2660,24 @@ const TEXTE = {
     mv_bereits: 'Ова особа је већ члан ове породице.',
     mv_suche: 'Претрага по имејлу или улози…',
     mv_deaktivieren: 'Деактивирај', mv_aktivieren: 'Активирај', mv_inaktiv: 'неактиван',
-    mv_legende: 'Супер-админ: све · Админ породице: своја породица · Члан: само читање',
+    mv_legende: 'Админ породице: своја породица · Члан: само читање',
+    mv_aktualisiert: 'Статус ажуриран.',
+    mv_entfernt: 'Члан уклоњен.',
+    mv_fehlgeschlagen: 'Радња није успела.',
     mv_entfernen_frage: 'Да ли сте сигурни да желите да уклоните овог члана?',
     mv_rolle_gespeichert: 'Улога сачувана.',
     mv_hinzugefuegt: 'Члан додат.',
     mv_keine: 'Нема чланова.',
+    mv_familie_label: 'Породица',
+    mv_familie_ph: 'Претражи породицу…',
+    mv_familie_waehlen: 'Изабери породицу.',
+    mv_familie_aktiv: 'Породица: {name}',
+    mv_keine_in_familie: 'У овој породици нема чланова.',
     admin_einstellungen: 'Админ-подешавања',
+    admin_baum_loeschen: 'Обриши стабло',
+    baum_loeschen_frage: 'Да ли заиста желиш да ПОТПУНО обришеш стабло „{name}"? Све особе и везе овог стабла биће неповратно уклоњене из базе.',
+    baum_geloescht: 'Стабло обрисано.',
+    baum_kein_aktiver: 'Није изабрано ниједно стабло.',
     mv_add_titel: 'Додај члана',
     admin_benachrichtigungen: 'Обавештења (ускоро)',
     admin_familieneinst: 'Подешавања породице (ускоро)',
@@ -2505,6 +2685,9 @@ const TEXTE = {
     ma_info: 'Направи новог члана. Добиће имејл са линком да постави сопствену лозинку.',
     ma_erfolg: 'Позивница послата. Члан добија имејл за постављање лозинке.',
     setpw_erfolg: 'Лозинка постављена. Сада си пријављен.',
+    setpw_neu2: 'Понови лозинку',
+    setpw_ungleich: 'Лозинке се не подударају.',
+    setpw_keine_session: 'Сесија је истекла. Отвори линк из имејла поново.',
     setpw_fehler: 'Грешка: ',
     kinder: 'Деца',
     geschwister: 'Браћа и сестре',
@@ -2610,7 +2793,7 @@ const TEXTE = {
     event_cancel: 'Odustani',
     event_edit: 'Uredi',
     event_upload: 'Otpremi',
-    event_admin_hint: 'Samo Super Admin i Admin obitelji mogu ovdje mijenjati.',
+    event_admin_hint: 'Samo administratori mogu ovdje mijenjati.',
     event_uploading: 'Preuzimanje datoteka…',
     event_saved: 'Promjene spremljene.',
     event_no_media: 'Još nema učitanih medija.',
@@ -2655,6 +2838,8 @@ const TEXTE = {
     reg_facebook: 'Facebook',
     reg_instagram: 'Instagram',
     reg_absenden: 'Pošalji zahtjev',
+    reg_konto_anlegen: 'Kreiraj račun',
+    reg_email_existiert: 'Ova e-mail adresa već je registrirana. Prijavi se ili upotrijebi drugu adresu.',
     reg_erfolg: 'Zahtjev poslan! Nakon potvrde administratora obitelji dobit ćeš e-mail.',
     reg_pflicht: 'Unesi e-mail, obitelj i ulogu.',
     reg_fehler: 'Greška pri slanju: ',
@@ -2673,12 +2858,27 @@ const TEXTE = {
     mv_bereits: 'Ova osoba je već član ove obitelji.',
     mv_suche: 'Pretraga po e-mailu ili ulozi…',
     mv_deaktivieren: 'Deaktiviraj', mv_aktivieren: 'Aktiviraj', mv_inaktiv: 'neaktivan',
-    mv_legende: 'Super-admin: sve · Admin obitelji: vlastita obitelj · Član: samo čitanje',
+    mv_legende: 'Admin obitelji: vlastita obitelj · Član: samo čitanje',
+    mv_aktualisiert: 'Status ažuriran.',
+    mv_entfernt: 'Član uklonjen.',
+    mv_fehlgeschlagen: 'Radnja nije uspjela.',
     mv_entfernen_frage: 'Jeste li sigurni da želite ukloniti ovog člana?',
     mv_rolle_gespeichert: 'Uloga spremljena.',
     mv_hinzugefuegt: 'Član dodan.',
     mv_keine: 'Nema članova.',
     admin_einstellungen: 'Admin postavke',
+    admin_baum_loeschen: 'Obriši stablo',
+    baum_loeschen_frage: 'Želiš li doista POTPUNO obrisati stablo „{name}"? Sve osobe i veze ovog stabla bit će nepovratno uklonjene iz baze.',
+    baum_geloescht: 'Stablo obrisano.',
+    baum_kein_aktiver: 'Nije odabrano nijedno stablo.',
+    mv_familie_label: 'Obitelj',
+    mv_familie_ph: 'Pretraži obitelj…',
+    mv_familie_waehlen: 'Odaberi obitelj.',
+    mv_familie_aktiv: 'Obitelj: {name}',
+    mv_keine_in_familie: 'U ovoj obitelji nema članova.',
+    setpw_neu2: 'Ponovi lozinku',
+    setpw_ungleich: 'Lozinke se ne podudaraju.',
+    setpw_keine_session: 'Sesija je istekla. Otvori poveznicu iz e-maila ponovno.',
     mv_add_titel: 'Dodaj člana',
     admin_benachrichtigungen: 'Obavijesti (uskoro)',
     admin_familieneinst: 'Postavke obitelji (uskoro)',
@@ -2791,7 +2991,7 @@ const TEXTE = {
     event_cancel: 'Odustani',
     event_edit: 'Uredi',
     event_upload: 'Otpremi',
-    event_admin_hint: 'Samo Super Admin i Admin porodice mogu ovdje mijenjati.',
+    event_admin_hint: 'Samo administratori mogu ovdje mijenjati.',
     event_uploading: 'Otpremanje datoteka…',
     event_saved: 'Promjene sačuvane.',
     event_no_media: 'Još nema učitanih medija.',
@@ -2836,6 +3036,8 @@ const TEXTE = {
     reg_facebook: 'Facebook',
     reg_instagram: 'Instagram',
     reg_absenden: 'Pošalji zahtjev',
+    reg_konto_anlegen: 'Kreiraj nalog',
+    reg_email_existiert: 'Ova e-mail adresa je već registrovana. Prijavi se ili koristi drugu adresu.',
     reg_erfolg: 'Zahtjev poslan! Nakon potvrde administratora porodice dobit ćeš e-mail.',
     reg_pflicht: 'Unesi e-mail, porodicu i ulogu.',
     reg_fehler: 'Greška pri slanju: ',
@@ -2854,12 +3056,27 @@ const TEXTE = {
     mv_bereits: 'Ova osoba je već član ove porodice.',
     mv_suche: 'Pretraga po e-mailu ili ulozi…',
     mv_deaktivieren: 'Deaktiviraj', mv_aktivieren: 'Aktiviraj', mv_inaktiv: 'neaktivan',
-    mv_legende: 'Super-admin: sve · Admin porodice: vlastita porodica · Član: samo čitanje',
+    mv_legende: 'Admin porodice: vlastita porodica · Član: samo čitanje',
+    mv_aktualisiert: 'Status ažuriran.',
+    mv_entfernt: 'Član uklonjen.',
+    mv_fehlgeschlagen: 'Radnja nije uspjela.',
     mv_entfernen_frage: 'Jeste li sigurni da želite ukloniti ovog člana?',
     mv_rolle_gespeichert: 'Uloga sačuvana.',
     mv_hinzugefuegt: 'Član dodan.',
     mv_keine: 'Nema članova.',
     admin_einstellungen: 'Admin postavke',
+    admin_baum_loeschen: 'Obriši stablo',
+    baum_loeschen_frage: 'Želiš li zaista POTPUNO obrisati stablo „{name}"? Sve osobe i veze ovog stabla bit će nepovratno uklonjene iz baze.',
+    baum_geloescht: 'Stablo obrisano.',
+    baum_kein_aktiver: 'Nije odabrano nijedno stablo.',
+    mv_familie_label: 'Porodica',
+    mv_familie_ph: 'Pretraži porodicu…',
+    mv_familie_waehlen: 'Odaberi porodicu.',
+    mv_familie_aktiv: 'Porodica: {name}',
+    mv_keine_in_familie: 'U ovoj porodici nema članova.',
+    setpw_neu2: 'Ponovi lozinku',
+    setpw_ungleich: 'Lozinke se ne podudaraju.',
+    setpw_keine_session: 'Sesija je istekla. Otvori link iz e-maila ponovo.',
     mv_add_titel: 'Dodaj člana',
     admin_benachrichtigungen: 'Obavijesti (uskoro)',
     admin_familieneinst: 'Postavke porodice (uskoro)',
@@ -2972,7 +3189,7 @@ const TEXTE = {
     event_cancel: 'Cancel',
     event_edit: 'Edit',
     event_upload: 'Upload',
-    event_admin_hint: 'Only Super Admin and Family Admin can edit here.',
+    event_admin_hint: 'Only administrators can edit here.',
     event_uploading: 'Uploading files…',
     event_saved: 'Changes saved.',
     event_no_media: 'No media uploaded yet.',
@@ -3017,6 +3234,8 @@ const TEXTE = {
     reg_facebook: 'Facebook',
     reg_instagram: 'Instagram',
     reg_absenden: 'Send request',
+    reg_konto_anlegen: 'Create account',
+    reg_email_existiert: 'This email address is already registered. Please sign in or use a different address.',
     reg_erfolg: 'Request sent! After approval by the family admin you will receive an email.',
     reg_pflicht: 'Please fill in email, family and role.',
     reg_fehler: 'Error while sending: ',
@@ -3035,12 +3254,24 @@ const TEXTE = {
     mv_bereits: 'This person is already a member of this family.',
     mv_suche: 'Search by email or role…',
     mv_deaktivieren: 'Deactivate', mv_aktivieren: 'Activate', mv_inaktiv: 'inactive',
-    mv_legende: 'Super admin: everything · Family admin: manage own family · Member: read only',
+    mv_legende: 'Family admin: manage own family · Member: read only',
+    mv_aktualisiert: 'Status updated.',
+    mv_entfernt: 'Member removed.',
+    mv_fehlgeschlagen: 'Action failed.',
     mv_entfernen_frage: 'Are you sure you want to remove this member?',
     mv_rolle_gespeichert: 'Role saved.',
     mv_hinzugefuegt: 'Member added.',
     mv_keine: 'No members found.',
+    mv_familie_label: 'Family',
+    mv_familie_ph: 'Search family…',
+    mv_familie_waehlen: 'Please select a family.',
+    mv_familie_aktiv: 'Family: {name}',
+    mv_keine_in_familie: 'No members in this family.',
     admin_einstellungen: 'Admin settings',
+    admin_baum_loeschen: 'Delete family tree',
+    baum_loeschen_frage: 'Do you really want to COMPLETELY delete the tree “{name}”? All persons and connections of this tree will be irreversibly removed from the database.',
+    baum_geloescht: 'Family tree deleted.',
+    baum_kein_aktiver: 'No family tree selected.',
     mv_add_titel: 'Add member',
     admin_benachrichtigungen: 'Notifications (soon)',
     admin_familieneinst: 'Family settings (soon)',
@@ -3048,6 +3279,9 @@ const TEXTE = {
     ma_info: 'Create a new member. They receive an invitation email with a link to set their own password.',
     ma_erfolg: 'Invitation sent. The member receives an email to set their password.',
     setpw_erfolg: 'Password set. You are now signed in.',
+    setpw_neu2: 'Repeat password',
+    setpw_ungleich: 'The passwords do not match.',
+    setpw_keine_session: 'Session expired. Please open the link from the email again.',
     setpw_fehler: 'Error: ',
     kinder: 'Children',
     geschwister: 'Siblings',

@@ -113,8 +113,12 @@ Deno.serve(async (req) => {
       type: "invite", email, options: { redirectTo: APP_URL },
     });
     if (linkErr) {
-      // E-Mail evtl. schon registriert -> nicht doppelt anlegen
-      return jsonResp({ error: linkErr.message }, 400);
+      // E-Mail evtl. schon registriert -> stabilen Code mitgeben, damit das
+      // Frontend eine lokalisierte, sprechende Meldung zeigen kann.
+      const m = (linkErr.message || "").toLowerCase();
+      const code = (m.includes("already") || m.includes("registered") || m.includes("exist"))
+        ? "email_exists" : "invite_failed";
+      return jsonResp({ error: linkErr.message, code }, 400);
     }
     const userId = linkData.user?.id;
     const setPasswortUrl = linkData.properties?.action_link ?? APP_URL;
