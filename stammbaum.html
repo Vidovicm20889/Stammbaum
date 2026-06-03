@@ -701,7 +701,7 @@ footer {
           <div class="admin-titel" data-i18n="admin_einstellungen"></div>
           <button class="account-btn" data-i18n="mv_titel" onclick="zeigeMitglieder()"></button>
           <button class="account-btn" data-i18n="mv_add_titel" onclick="zeigeMitgliedHinzufuegen()"></button>
-          <button class="account-btn admin-danger" type="button" data-i18n="admin_baum_loeschen" onclick="loescheStammbaum()"></button>
+          <button class="account-btn admin-danger" type="button" id="baum-loeschen-btn" data-i18n="admin_baum_loeschen" onclick="loescheStammbaum()"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_benachrichtigungen"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_familieneinst"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
@@ -1199,7 +1199,8 @@ async function ladeAuth() {
 // Rang einer Rolle: je höher, desto mehr Rechte. Wird genutzt, um bei
 // mehreren Mitgliedschaften (verschiedene Familien) die höchste zu wählen.
 const ROLLEN_RANG = {
-  super_admin: 3,
+  super_admin: 4,
+  familien_owner: 3,
   familien_admin: 2,
   familien_mitglied: 1
 };
@@ -1268,7 +1269,7 @@ function normalizeRolle(rolle) {
 
 // Zentrale Admin-Prüfung: nur super_admin und familien_admin dürfen bearbeiten/hochladen
 function istAdmin() {
-  return ['super_admin', 'familien_admin'].includes(normalizeRolle(aktuelleRolle || ''));
+  return ['super_admin', 'familien_owner', 'familien_admin'].includes(normalizeRolle(aktuelleRolle || ''));
 }
 
 // DEBUG: Hilfsfunction zum Setzen der Debug-Rolle (nur für lokales Testen)
@@ -1312,6 +1313,10 @@ function aktualisiereAuthUI() {
     if (shortsTab)   shortsTab.style.display = '';   // Events nur eingeloggt sichtbar
     if (accountBtn)  accountBtn.style.display = 'none';   // eingeloggt: kein "Account anlegen"
     if (adminBereich) adminBereich.style.display = istAdmin() ? '' : 'none';   // nur Admins
+    // "Stammbaum löschen" EXKLUSIV für Eigentümer (familien_owner) bzw. Super-Admin (Betrieb)
+    const baumDelBtn = document.getElementById('baum-loeschen-btn');
+    if (baumDelBtn) baumDelBtn.style.display =
+      ['familien_owner','super_admin'].includes(normalizeRolle(aktuelleRolle || '')) ? '' : 'none';
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
@@ -1455,16 +1460,21 @@ function renderMitglieder() {
     liste.innerHTML = `<p style="color:#8a7a5a">${t('mv_keine_in_familie')}</p>`;
     return;
   }
-  liste.innerHTML = gefiltert.map(m => `
+  liste.innerHTML = gefiltert.map(m => {
+    // Owner ist geschützt: keine Rollenänderung/Deaktivierung/Entfernung über die GUI.
+    const istOwner = m.rolle === 'familien_owner';
+    return `
     <div class="mv-row${m.aktiv ? '' : ' inaktiv'}">
       <span class="mv-email">${m.name ? `<strong>${escapeHtml(m.name)}</strong> · ` : ''}${escapeHtml(m.email)}${m.aktiv ? '' : ` <span class="mv-status">${escapeHtml(t('mv_inaktiv'))}</span>`}</span>
+      ${istOwner ? `<span class="mv-rolle-text">${escapeHtml(t('rolle_familien_owner'))}</span>` : `
       <select onchange="aendereRolle('${m.mitgliedschaft_id}', this.value)">
         <option value="familien_mitglied" ${m.rolle === 'familien_mitglied' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_mitglied'))}</option>
         <option value="familien_admin" ${m.rolle === 'familien_admin' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_admin'))}</option>
       </select>
       <button class="mv-toggle" onclick="toggleAktiv('${m.mitgliedschaft_id}', ${m.aktiv ? 'false' : 'true'})">${escapeHtml(m.aktiv ? t('mv_deaktivieren') : t('mv_aktivieren'))}</button>
-      <button class="mv-del" onclick="entferneMitglied('${m.mitgliedschaft_id}','${escapeHtml(m.email)}')">${escapeHtml(t('mv_entfernen'))}</button>
-    </div>`).join('');
+      <button class="mv-del" onclick="entferneMitglied('${m.mitgliedschaft_id}','${escapeHtml(m.email)}')">${escapeHtml(t('mv_entfernen'))}</button>`}
+    </div>`;
+  }).join('');
 }
 
 // Erfolgshinweis im Mitglieder-Overlay (blendet sich selbst wieder aus)
@@ -2508,6 +2518,7 @@ const TEXTE = {
     login_fehler_prefix: 'Anmeldung fehlgeschlagen: ',
     rolle_super_admin: 'Super Admin',
     rolle_familien_admin: 'Familien-Admin',
+    rolle_familien_owner: 'Eigentümer',
     rolle_familien_mitglied: 'Mitglied'
   },
   sr: {
@@ -2706,6 +2717,7 @@ const TEXTE = {
     login_fehler_prefix: 'Пријава није успела: ',
     rolle_super_admin: 'Супер админ',
     rolle_familien_admin: 'Админ породице',
+    rolle_familien_owner: 'Власник',
     rolle_familien_mitglied: 'Члан'
   },
   hr: {
@@ -2904,6 +2916,7 @@ const TEXTE = {
     login_fehler_prefix: 'Prijava nije uspjela: ',
     rolle_super_admin: 'Super admin',
     rolle_familien_admin: 'Admin obitelji',
+    rolle_familien_owner: 'Vlasnik',
     rolle_familien_mitglied: 'Član'
   },
   ba: {
@@ -3102,6 +3115,7 @@ const TEXTE = {
     login_fehler_prefix: 'Prijava nije uspjela: ',
     rolle_super_admin: 'Super admin',
     rolle_familien_admin: 'Admin porodice',
+    rolle_familien_owner: 'Vlasnik',
     rolle_familien_mitglied: 'Član'
   },
   en: {
@@ -3300,6 +3314,7 @@ const TEXTE = {
     login_fehler_prefix: 'Sign-in failed: ',
     rolle_super_admin: 'Super Admin',
     rolle_familien_admin: 'Family Admin',
+    rolle_familien_owner: 'Owner',
     rolle_familien_mitglied: 'Member'
   }
 };

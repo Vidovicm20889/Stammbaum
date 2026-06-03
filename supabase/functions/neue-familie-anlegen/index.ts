@@ -164,9 +164,9 @@ Deno.serve(async (req) => {
     await admin.from("stammbaeume")
       .update({ wurzel_person_id: pers.id }).eq("id", stammbaum_id);
 
-    // 5) Mitgliedschaft als Familien-Admin
+    // 5) Mitgliedschaft als Eigentümer (familien_owner) — der Ersteller des Baums
     const { error: mErr } = await admin.from("mitgliedschaften").insert({
-      user_id: userId, familie_id, rolle: "familien_admin", aktiv: true,
+      user_id: userId, familie_id, rolle: "familien_owner", aktiv: true,
     });
     if (mErr) throw mErr;
 
