@@ -846,7 +846,8 @@ footer {
         <label class="login-label reg-feld-voll" style="position:relative"><span data-i18n="reg_familie"></span> *
           <input type="hidden" id="reg-familie">
           <input type="text" id="reg-familie-suche" class="login-feld" autocomplete="off" disabled
-            oninput="sucheFamilienDebounced()" onfocus="sucheFamilienDebounced()">
+            oninput="sucheFamilienDebounced()"
+            onfocus="if(!document.getElementById('reg-familie').value) sucheFamilienDebounced()">
           <div id="reg-familie-ergebnisse" class="reg-autocomplete"></div></label>
         <label class="login-label"><span data-i18n="reg_rolle"></span> *
           <select id="reg-rolle" class="login-feld">
