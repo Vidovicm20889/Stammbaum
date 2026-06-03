@@ -838,7 +838,7 @@ footer {
       <div class="reg-gruppe-titel" data-i18n="reg_familie_finden"></div>
       <div class="reg-grid">
         <label class="login-label"><span data-i18n="reg_land"></span> *
-          <input type="text" id="reg-land" class="login-feld" oninput="pruefeFamilieFreigabe()"></label>
+          <select id="reg-land" class="login-feld" onchange="pruefeFamilieFreigabe()"></select></label>
         <label class="login-label"><span data-i18n="reg_stadt"></span> *
           <input type="text" id="reg-stadt" class="login-feld" oninput="pruefeFamilieFreigabe()"></label>
         <label class="login-label"><span data-i18n="reg_gemeinde"></span> *
@@ -2113,6 +2113,7 @@ function zeigeRegistrierModal() {
   const jaRadio = document.querySelector('input[name="reg-vorhanden"][value="ja"]');
   if (jaRadio) jaRadio.checked = true;   // Standard: vorhandene Familie finden
   regVorhandenWechsel();                 // Ja/Nein-Blöcke korrekt ein-/ausblenden
+  fuelleLandSelect();                    // Länder-Dropdown in aktueller Sprache füllen
   pruefeFamilieFreigabe();   // Suchfeld initial sperren + Hinweistext setzen
   setTimeout(() => document.getElementById('reg-email').focus(), 50);
 }
@@ -2226,12 +2227,14 @@ async function sucheFamilien() {
   // Sobald der User tippt, ist eine evtl. frühere Auswahl ungültig
   document.getElementById('reg-familie').value = '';
 
+  // Namen/Orte werden in der DB lateinisch gespeichert -> kyrillische Eingaben
+  // vor der Suche nach Latein wandeln (Latein-Eingaben bleiben unverändert).
   const { data, error } = await sbClient.rpc('suche_familien', {
-    p_land:       v('reg-land')       || null,
-    p_stadt:      v('reg-stadt')      || null,
-    p_gemeinde:   v('reg-gemeinde')   || null,
-    p_geburtsort: v('reg-geburtsort') || null,
-    p_query:      v('reg-familie-suche') || null
+    p_land:       v('reg-land')                  || null,   // Dropdown: bereits deutsche Kanonform
+    p_stadt:      srCyr2Lat(v('reg-stadt'))      || null,
+    p_gemeinde:   srCyr2Lat(v('reg-gemeinde'))   || null,
+    p_geburtsort: srCyr2Lat(v('reg-geburtsort')) || null,
+    p_query:      srCyr2Lat(v('reg-familie-suche')) || null
   });
   if (error) {
     console.warn('Familien-Suche fehlgeschlagen:', error);
@@ -2246,16 +2249,17 @@ async function sucheFamilien() {
   regFamilienCache = {};
   box.innerHTML = (data || []).map(f => {
     regFamilienCache[f.id] = f.name;
-    const meta = [f.land, f.stadt, f.gemeinde].filter(Boolean).join(' · ');
+    // Land übersetzen, Stadt/Gemeinde (Eigennamen) bei 'sr' transliterieren
+    const meta = [uebersetzeOrt(f.land), nm(f.stadt), nm(f.gemeinde)].filter(Boolean).join(' · ');
     return `<div class="reg-autocomplete-item" onclick="waehleFamilie('${f.id}')">` +
-      `${escapeHtml(f.name)}${meta ? `<span class="meta">${escapeHtml(meta)}</span>` : ''}</div>`;
+      `${escapeHtml(nm(f.name))}${meta ? `<span class="meta">${escapeHtml(meta)}</span>` : ''}</div>`;
   }).join('');
   box.classList.add('aktiv');
 }
 
 function waehleFamilie(id) {
   document.getElementById('reg-familie').value = id;
-  document.getElementById('reg-familie-suche').value = regFamilienCache[id] || '';
+  document.getElementById('reg-familie-suche').value = nm(regFamilienCache[id] || '');
   document.getElementById('reg-familie-ergebnisse').classList.remove('aktiv');
 }
 
@@ -2623,6 +2627,7 @@ const TEXTE = {
     reg_familie_select: '— Familie wählen —',
     reg_familie_finden: 'Familie finden',
     reg_land: 'Land',
+    reg_land_waehlen: 'Land wählen…',
     reg_stadt: 'Stadt',
     reg_gemeinde: 'Gemeinde',
     reg_familie_ph: 'Familie suchen…',
@@ -2851,6 +2856,7 @@ const TEXTE = {
     reg_familie_select: '— Изабери породицу —',
     reg_familie_finden: 'Пронађи породицу',
     reg_land: 'Држава',
+    reg_land_waehlen: 'Изабери државу…',
     reg_stadt: 'Град',
     reg_gemeinde: 'Општина',
     reg_familie_ph: 'Претражи породицу…',
@@ -3079,6 +3085,7 @@ const TEXTE = {
     reg_familie_select: '— Odaberi obitelj —',
     reg_familie_finden: 'Pronađi obitelj',
     reg_land: 'Država',
+    reg_land_waehlen: 'Odaberi državu…',
     reg_stadt: 'Grad',
     reg_gemeinde: 'Općina',
     reg_familie_ph: 'Pretraži obitelj…',
@@ -3307,6 +3314,7 @@ const TEXTE = {
     reg_familie_select: '— Odaberi porodicu —',
     reg_familie_finden: 'Pronađi porodicu',
     reg_land: 'Država',
+    reg_land_waehlen: 'Odaberi državu…',
     reg_stadt: 'Grad',
     reg_gemeinde: 'Općina',
     reg_familie_ph: 'Pretraži porodicu…',
@@ -3535,6 +3543,7 @@ const TEXTE = {
     reg_familie_select: '— Choose family —',
     reg_familie_finden: 'Find family',
     reg_land: 'Country',
+    reg_land_waehlen: 'Select country…',
     reg_stadt: 'City',
     reg_gemeinde: 'Municipality',
     reg_familie_ph: 'Search family…',
@@ -3712,6 +3721,23 @@ function srLat2Cyr(text) {
   for (const ch of out) result += (SR_BUCHSTABEN[ch] !== undefined ? SR_BUCHSTABEN[ch] : ch);
   return result;
 }
+// Rückrichtung Kyrillisch -> Latein (für Suche: DB speichert Namen lateinisch).
+// Latein-Eingaben bleiben unverändert (nur kyrillische Zeichen werden ersetzt).
+const SR_CYR2LAT_DIGRAFEN = [['Џ','Dž'],['џ','dž'],['Љ','Lj'],['љ','lj'],['Њ','Nj'],['њ','nj']];
+const SR_CYR2LAT = (() => {
+  const m = {};
+  Object.entries(SR_BUCHSTABEN).forEach(([lat, cyr]) => { if (!(cyr in m)) m[cyr] = lat; });
+  return m;
+})();
+function srCyr2Lat(text) {
+  if (!text) return text;
+  let out = text;
+  SR_CYR2LAT_DIGRAFEN.forEach(([cyr, lat]) => { out = out.split(cyr).join(lat); });
+  let result = '';
+  for (const ch of out) result += (SR_CYR2LAT[ch] !== undefined ? SR_CYR2LAT[ch] : ch);
+  return result;
+}
+
 // Anzeigename: bei Auswahl "Српски" kyrillisch, sonst unverändert
 function nm(text) {
   return aktuelleSprache === 'sr' ? srLat2Cyr(text) : text;
@@ -3762,6 +3788,21 @@ function uebersetzeOrt(text) {
   }).join(', ');
 }
 
+// Befüllt das Länder-Dropdown im Familien-Finder: Anzeige in der aktuellen
+// Sprache, der gespeicherte WERT bleibt die deutsche Kanonform (die in
+// familien.land steht) -> die Suche matcht sprachunabhängig.
+function fuelleLandSelect() {
+  const sel = document.getElementById('reg-land');
+  if (!sel) return;
+  const alt = sel.value;   // bisherige (kanonische) Auswahl merken
+  const laender = ORT_LEXIKON
+    .map(e => ({ wert: e.de, label: e[aktuelleSprache] || e.de }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  sel.innerHTML = `<option value="">${escapeHtml(t('reg_land_waehlen'))}</option>` +
+    laender.map(l => `<option value="${escapeHtml(l.wert)}">${escapeHtml(l.label)}</option>`).join('');
+  sel.value = alt;   // Auswahl (deutscher Wert) wiederherstellen
+}
+
 function wechselSprache(lang) {
   aktuelleSprache = lang;
   localStorage.setItem('vidovic_lang', lang);
@@ -3801,6 +3842,7 @@ function wechselSprache(lang) {
   if (typeof regVorhandenWechsel === 'function' &&
       document.getElementById('registrier-modal')?.classList.contains('aktiv')) {
     regVorhandenWechsel();
+    fuelleLandSelect();   // Länder-Labels in neuer Sprache
   }
 }
 
@@ -4083,12 +4125,13 @@ function ssInitPanel() {
   ssList.addEventListener('click', (e) => { const li = e.target.closest('.ss-opt'); if (li) ssWaehle(li.dataset.val); });
 }
 
-// Liste füllen: <2 Zeichen = alle; sonst Teilstring (case-insensitive)
+// Liste füllen: <2 Zeichen = alle; sonst Teilstring (case- UND schrift-insensitiv:
+// beide Seiten nach Latein wandeln, damit Latein-Eingaben kyrillische Labels finden).
 function ssRender(filter) {
   if (!ssAktivSelect) return;
-  const f = (filter || '').trim().toLowerCase();
+  const f = srCyr2Lat((filter || '').trim()).toLowerCase();
   const opts = Array.from(ssAktivSelect.options);
-  const vis = f.length < 2 ? opts : opts.filter(o => (o.textContent || '').toLowerCase().includes(f));
+  const vis = f.length < 2 ? opts : opts.filter(o => srCyr2Lat(o.textContent || '').toLowerCase().includes(f));
   if (vis.length === 0) {
     ssList.innerHTML = '<li class="ss-empty">' + escapeHtml(t('ss_keine')) + '</li>';
     return;
