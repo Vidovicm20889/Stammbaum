@@ -22,7 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Stammbaum Vidović <onboarding@resend.dev>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <onboarding@resend.dev>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 
 const CORS = {
@@ -36,27 +36,27 @@ const CORS = {
 // ---------------------------------------------------------------------------
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    subject: "Dein Stammbaum wurde angelegt – Stammbaum Vidović",
+    subject: "Dein Stammbaum wurde angelegt – Vidović AI",
     body: "Dein neuer Stammbaum wurde angelegt und du bist sein Administrator. Klicke auf den folgenden Link, um dein Passwort zu setzen und dich anzumelden:",
     btn: "Passwort setzen",
   },
   sr: {
-    subject: "Твоје стабло је направљено – Стабло Видовић",
+    subject: "Твоје стабло је направљено – Vidović AI",
     body: "Твоје ново стабло је направљено и ти си његов администратор. Кликни на следећи линк да поставиш лозинку и пријавиш се:",
     btn: "Постави лозинку",
   },
   hr: {
-    subject: "Tvoje stablo je izrađeno – Stablo Vidović",
+    subject: "Tvoje stablo je izrađeno – Vidović AI",
     body: "Tvoje novo stablo je izrađeno i ti si njegov administrator. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
     btn: "Postavi lozinku",
   },
   ba: {
-    subject: "Tvoje stablo je kreirano – Stablo Vidović",
+    subject: "Tvoje stablo je kreirano – Vidović AI",
     body: "Tvoje novo stablo je kreirano i ti si njegov administrator. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
     btn: "Postavi lozinku",
   },
   en: {
-    subject: "Your family tree was created – Vidović Family Tree",
+    subject: "Your family tree was created – Vidović AI",
     body: "Your new family tree has been created and you are its administrator. Click the link below to set your password and sign in:",
     btn: "Set password",
   },
@@ -70,7 +70,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Stammbaum Vidović</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;

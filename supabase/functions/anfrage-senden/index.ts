@@ -8,22 +8,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Stammbaum Vidović <onboarding@resend.dev>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <onboarding@resend.dev>";
 
 // ---------------------------------------------------------------------------
 // Mehrsprachige Texte
 // ---------------------------------------------------------------------------
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    admin_subject: "Neue Zugangsanfrage – Stammbaum Vidović",
-    admin_intro: "Eine Person möchte Zugang zum Stammbaum Vidović:",
+    admin_subject: "Neue Zugangsanfrage – Vidović AI",
+    admin_intro: "Eine Person möchte Zugang zum Vidović AI:",
     lbl_email: "E-Mail", lbl_familie: "Familie", lbl_rolle: "Gewünschte Rolle",
     btn_ok: "Bestätigen", btn_no: "Ablehnen",
     admin_hint: "Bei Bestätigung wird ein Zugang angelegt; die Person erhält eine E-Mail zum Passwort-Setzen. Bei Ablehnung wird die Anfrage storniert.",
     rolle_familien_admin: "Familien-Admin", rolle_familien_mitglied: "Mitglied",
   },
   sr: {
-    admin_subject: "Нови захтев за приступ – Стабло Видовић",
+    admin_subject: "Нови захтев за приступ – Vidović AI",
     admin_intro: "Особа жели приступ стаблу Видовић:",
     lbl_email: "Имејл", lbl_familie: "Породица", lbl_rolle: "Жељена улога",
     btn_ok: "Потврди", btn_no: "Одбиј",
@@ -31,7 +31,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     rolle_familien_admin: "Админ породице", rolle_familien_mitglied: "Члан",
   },
   hr: {
-    admin_subject: "Novi zahtjev za pristup – Stablo Vidović",
+    admin_subject: "Novi zahtjev za pristup – Vidović AI",
     admin_intro: "Osoba želi pristup stablu Vidović:",
     lbl_email: "E-mail", lbl_familie: "Obitelj", lbl_rolle: "Željena uloga",
     btn_ok: "Potvrdi", btn_no: "Odbij",
@@ -39,7 +39,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     rolle_familien_admin: "Admin obitelji", rolle_familien_mitglied: "Član",
   },
   ba: {
-    admin_subject: "Novi zahtjev za pristup – Stablo Vidović",
+    admin_subject: "Novi zahtjev za pristup – Vidović AI",
     admin_intro: "Osoba želi pristup stablu Vidović:",
     lbl_email: "E-mail", lbl_familie: "Porodica", lbl_rolle: "Željena uloga",
     btn_ok: "Potvrdi", btn_no: "Odbij",
@@ -47,7 +47,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     rolle_familien_admin: "Admin porodice", rolle_familien_mitglied: "Član",
   },
   en: {
-    admin_subject: "New access request – Vidović Family Tree",
+    admin_subject: "New access request – Vidović AI",
     admin_intro: "Someone is requesting access to the Vidović family tree:",
     lbl_email: "Email", lbl_familie: "Family", lbl_rolle: "Requested role",
     btn_ok: "Approve", btn_no: "Reject",
@@ -64,7 +64,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Stammbaum Vidović</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;

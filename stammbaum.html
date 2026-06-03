@@ -568,6 +568,38 @@ footer {
   .reg-grid { grid-template-columns: 1fr; }
 }
 
+/* Suchbare Dropdowns (ersetzen native <select>) */
+.ss-native { display: none !important; }
+/* Doppelte Klasse = höhere Spezifität als .login-feld/.filter (gewinnt für display),
+   aber inline style.display='none' kann das Steuerelement weiterhin ausblenden. */
+.ss-control.ss-control {
+  display: inline-flex; align-items: center; justify-content: space-between;
+  gap: 8px; cursor: pointer; box-sizing: border-box;
+}
+.ss-control.ss-disabled { opacity: 0.5; cursor: not-allowed; }
+.ss-control .ss-control-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-control .ss-caret { flex: 0 0 auto; font-size: 11px; color: var(--gold); }
+.ss-control.ss-open { outline: none; border-color: var(--gold); }
+.ss-panel {
+  position: fixed; z-index: 5000; background: var(--paper);
+  border: 1px solid var(--gold); box-shadow: 0 10px 26px rgba(44,36,24,0.28);
+  max-height: 280px; display: flex; flex-direction: column; overflow: hidden;
+}
+.ss-panel .ss-search {
+  border: none; border-bottom: 1px solid var(--linie); padding: 10px 12px;
+  font-family: inherit; font-size: 14px; background: var(--paper); color: var(--ink); outline: none;
+}
+.ss-list {
+  list-style: none; margin: 0; padding: 4px 0; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--gold) transparent;
+}
+.ss-list::-webkit-scrollbar { width: 8px; }
+.ss-list::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 8px; }
+.ss-opt { padding: 9px 12px; cursor: pointer; font-size: 14px; color: var(--ink); }
+.ss-opt:hover { background: var(--gold-hell); }
+.ss-opt.ss-selected { font-weight: bold; color: var(--akzent); }
+.ss-empty { padding: 12px; color: #8a7a5a; font-size: 13px; text-align: center; }
+
 /* Login-Modal eigene Stile */
 .login-feld {
   display: block; width: 100%; padding: 10px;
@@ -631,6 +663,7 @@ footer {
 /* Personen-Aktionen im Detail-Overlay (hinzufügen / löschen) */
 .pa-aktionen { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;
   padding-top: 14px; border-top: 1px solid var(--linie); }
+.event-aktionen { display: flex; gap: 8px; flex-wrap: wrap; }
 .pa-add-btn, .pa-del-btn {
   flex: 1; min-width: 140px; padding: 10px 14px; cursor: pointer;
   font-family: inherit; font-size: 13px; letter-spacing: 1px;
@@ -667,47 +700,48 @@ footer {
     <select class="filter" id="tree-select" title="Stammbaum wählen" onchange="waehleStammbaum(this.value)"></select>
     <select class="filter" id="filter-nachname"></select>
 
-    <!-- Menü-Dropdown: bündelt Sprache, Anmelden/Account und GEDCOM -->
-    <div class="nav-menu" id="nav-menu">
+    <!-- Sprach-Dropdown — direkt in der Leiste -->
+    <div class="sprach-dropdown" id="sprach-dropdown">
+      <button class="sprach-toggle" id="sprach-toggle" aria-haspopup="listbox" aria-expanded="false">
+        <span class="flagge" id="aktive-flagge"></span>
+        <span id="aktive-sprache"></span>
+        <span class="pfeil">▾</span>
+      </button>
+      <ul class="sprach-menu" id="sprach-menu" role="listbox"></ul>
+    </div>
+
+    <!-- Anmelden / Benutzer — direkt in der Leiste -->
+    <div class="auth-bereich" id="auth-bereich">
+      <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
+      <div class="user-badge" id="user-badge" style="display:none">
+        <span class="user-email" id="user-email"></span>
+        <span class="user-rolle" id="user-rolle"></span>
+        <button class="abmelden-btn" data-i18n="abmelden" onclick="abmelden()"></button>
+      </div>
+      <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
+    </div>
+
+    <!-- Einstellungs-Dropdown: NUR administrative Funktionen (nur für Admins sichtbar) -->
+    <div class="nav-menu" id="nav-menu" style="display:none">
       <button class="nav-menu-toggle" id="nav-menu-toggle" onclick="toggleNavMenu(event)"
-              aria-haspopup="true" aria-expanded="false" aria-label="Menü">
-        <span class="nav-menu-icon">☰</span><span class="pfeil">▾</span>
+              aria-haspopup="true" aria-expanded="false" aria-label="Admin-Einstellungen">
+        <span class="nav-menu-icon">⚙</span><span class="pfeil">▾</span>
       </button>
       <div class="nav-menu-panel" id="nav-menu-panel">
-
-        <!-- Sprach-Dropdown mit Flaggen -->
-        <div class="sprach-dropdown" id="sprach-dropdown">
-          <button class="sprach-toggle" id="sprach-toggle" aria-haspopup="listbox" aria-expanded="false">
-            <span class="flagge" id="aktive-flagge"></span>
-            <span id="aktive-sprache"></span>
-            <span class="pfeil">▾</span>
-          </button>
-          <ul class="sprach-menu" id="sprach-menu" role="listbox"></ul>
-        </div>
-
-        <!-- Anmelden / Benutzer -->
-        <div class="auth-bereich" id="auth-bereich">
-          <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
-          <div class="user-badge" id="user-badge" style="display:none">
-            <span class="user-email" id="user-email"></span>
-            <span class="user-rolle" id="user-rolle"></span>
-            <button class="abmelden-btn" data-i18n="abmelden" onclick="abmelden()"></button>
-          </div>
-          <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
-        </div>
 
         <!-- Admin-Einstellungen (nur Admins) -->
         <div class="admin-bereich" id="admin-bereich" style="display:none">
           <div class="admin-titel" data-i18n="admin_einstellungen"></div>
-          <button class="account-btn" data-i18n="mv_titel" onclick="zeigeMitglieder()"></button>
-          <button class="account-btn" data-i18n="mv_add_titel" onclick="zeigeMitgliedHinzufuegen()"></button>
+          <button class="account-btn" id="menu-mv-btn" data-i18n="mv_titel" onclick="zeigeMitglieder()"></button>
+          <button class="account-btn" id="menu-add-btn" data-i18n="mv_add_titel" onclick="zeigeMitgliedHinzufuegen()"></button>
+          <button class="account-btn" type="button" id="baum-anlegen-btn" data-i18n="admin_baum_anlegen" onclick="zeigeBaumNeu()"></button>
           <button class="account-btn admin-danger" type="button" id="baum-loeschen-btn" data-i18n="admin_baum_loeschen" onclick="loescheStammbaum()"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_benachrichtigungen"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_familieneinst"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
         </div>
 
-        <!-- GEDCOM -->
+        <!-- GEDCOM (Admin) -->
         <label class="upload-btn" for="gedcom-input" data-i18n="upload_btn"></label>
         <input type="file" id="gedcom-input" accept=".ged">
       </div>
@@ -741,6 +775,8 @@ footer {
   <div class="shorts-header">
     <h2 data-i18n="shorts_titel"></h2>
     <p class="shorts-hinweis" data-i18n="shorts_hinweis"></p>
+    <button class="pa-add-btn" id="event-neu-btn" style="display:none;margin:10px auto 0;max-width:280px"
+      onclick="zeigeEventNeu()">＋ <span data-i18n="event_neu"></span></button>
   </div>
   <div class="shorts-grid" id="shorts-grid"></div>
 </section>
@@ -763,7 +799,7 @@ footer {
   <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseLoginModal()">×</button>
     <h2 data-i18n="anmelden"></h2>
-    <p class="sub-name">Stammbaum Vidović</p>
+    <p class="sub-name">Vidović AI</p>
     <div id="login-fehler" class="login-fehler"></div>
     <label class="login-label"><span data-i18n="login_email"></span>
       <input type="email" id="login-email" class="login-feld" placeholder="name@beispiel.de" onkeydown="if(event.key==='Enter')anmelden()">
@@ -780,9 +816,9 @@ footer {
 <div class="modal" id="registrier-modal">
   <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseRegistrierModal()">×</button>
-    <h2 data-i18n="reg_titel"></h2>
-    <p class="sub-name">Stammbaum Vidović</p>
-    <p class="login-label" data-i18n="reg_intro" style="margin-top:0"></p>
+    <h2 id="reg-titel" data-i18n="reg_titel"></h2>
+    <p class="sub-name">Vidović AI</p>
+    <p class="login-label" id="reg-intro" data-i18n="reg_intro" style="margin-top:0"></p>
 
     <div class="reg-grid">
       <label class="login-label reg-feld-voll"><span data-i18n="reg_email"></span> *
@@ -881,7 +917,7 @@ footer {
 <div class="modal" id="setpw-modal">
   <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
     <h2 data-i18n="setpw_titel"></h2>
-    <p class="sub-name">Stammbaum Vidović</p>
+    <p class="sub-name">Vidović AI</p>
     <div id="setpw-fehler" class="login-fehler"></div>
     <label class="login-label"><span data-i18n="setpw_neu"></span>
       <input type="password" id="setpw-passwort" class="login-feld" placeholder="••••••••"
@@ -1108,6 +1144,72 @@ footer {
   </div>
 </div>
 
+<!-- Stammbaum löschen: Auswahl (bei mehreren) + Warnung (nur Owner/Super) -->
+<div class="modal" id="baum-del-modal">
+  <div class="modal-inhalt" style="max-width:460px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseBaumDel()">×</button>
+    <h2 data-i18n="bd_titel"></h2>
+    <label class="login-label" id="bd-auswahl-wrap"><span data-i18n="bd_welcher"></span>
+      <select id="bd-auswahl" class="login-feld"></select></label>
+    <div id="bd-warnung" class="login-fehler" style="display:block;margin-top:14px"></div>
+    <button class="login-submit admin-danger" id="bd-submit" style="background:#9b2226;color:#fff"
+      data-i18n="bd_loeschen_btn" onclick="bestaetigeBaumLoeschen()"></button>
+  </div>
+</div>
+
+<!-- Stammbaum anlegen (Owner) -->
+<div class="modal" id="baum-neu-modal">
+  <div class="modal-inhalt" style="max-width:460px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseBaumNeu()">×</button>
+    <h2 data-i18n="bn_titel"></h2>
+    <p class="login-label" data-i18n="bn_info" style="margin-top:0"></p>
+    <label class="login-label"><span data-i18n="bn_name"></span> *
+      <input type="text" id="bn-name" class="login-feld" placeholder="z. B. Marković"></label>
+    <div class="reg-gruppe-titel" data-i18n="bn_erste_person"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="reg_vorname"></span>
+        <input type="text" id="bn-vorname" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="reg_nachname"></span>
+        <input type="text" id="bn-nachname" class="login-feld"></label>
+    </div>
+    <div id="bn-fehler" class="login-fehler"></div>
+    <button class="login-submit" id="bn-submit" data-i18n="bn_anlegen_btn" onclick="erstelleStammbaum()"></button>
+    <div id="bn-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Event anlegen/bearbeiten (pro Stammbaum, nur Admins) -->
+<div class="modal" id="event-modal" style="z-index:200">
+  <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseEventModal()">×</button>
+    <h2 id="event-modal-titel"></h2>
+    <input type="hidden" id="ev-id">
+    <label class="login-label"><span data-i18n="event_titel"></span> *
+      <input type="text" id="ev-titel" class="login-feld"></label>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="event_datum"></span>
+        <input type="text" id="ev-datum" class="login-feld" placeholder="TT.MM.JJJJ"></label>
+      <label class="login-label"><span data-i18n="event_ort"></span>
+        <input type="text" id="ev-ort" class="login-feld"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="event_typ"></span>
+        <select id="ev-typ" class="login-feld">
+          <option value="" data-i18n="evt_sonstiges"></option>
+          <option value="geburt" data-i18n="evt_geburt"></option>
+          <option value="taufe" data-i18n="evt_taufe"></option>
+          <option value="hochzeit" data-i18n="evt_hochzeit"></option>
+          <option value="jubilaeum" data-i18n="evt_jubilaeum"></option>
+          <option value="treffen" data-i18n="evt_treffen"></option>
+          <option value="tod" data-i18n="evt_tod"></option>
+        </select></label>
+    </div>
+    <label class="login-label"><span data-i18n="event_beschreibung"></span>
+      <textarea id="ev-beschreibung" class="login-feld" rows="4"></textarea></label>
+    <div id="ev-fehler" class="login-fehler"></div>
+    <button class="login-submit" id="ev-submit" data-i18n="event_speichern_btn" onclick="speichereEvent()"></button>
+    <div id="ev-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
 <!-- Mitglieder-Verwaltung (Admins) -->
 <div class="modal" id="mitglieder-modal">
   <div class="modal-inhalt" style="max-width:640px" onclick="event.stopPropagation()">
@@ -1300,8 +1402,9 @@ function aktualisiereAuthUI() {
   const rolleEl     = document.getElementById('user-rolle');
   const uploadLabel = document.querySelector('label[for="gedcom-input"]');
   const shortsTab   = document.getElementById('tab-shorts');   // Events-Tab
-  const accountBtn  = document.getElementById('account-btn');   // "Account anlegen" im ☰-Menü
+  const accountBtn  = document.getElementById('account-btn');   // "Account anlegen" in der Leiste
   const adminBereich = document.getElementById('admin-bereich'); // "Admin-Einstellungen"
+  const navMenu      = document.getElementById('nav-menu');       // ⚙ Einstellungs-Dropdown (nur Admins)
 
   if (aktuellerUser) {
     anmeldenBtn.style.display = 'none';
@@ -1312,11 +1415,23 @@ function aktualisiereAuthUI() {
     if (uploadLabel) uploadLabel.style.display = istAdmin() ? '' : 'none';
     if (shortsTab)   shortsTab.style.display = '';   // Events nur eingeloggt sichtbar
     if (accountBtn)  accountBtn.style.display = 'none';   // eingeloggt: kein "Account anlegen"
-    if (adminBereich) adminBereich.style.display = istAdmin() ? '' : 'none';   // nur Admins
-    // "Stammbaum löschen" EXKLUSIV für Eigentümer (familien_owner) bzw. Super-Admin (Betrieb)
+    const rolleNorm = normalizeRolle(aktuelleRolle || '');
+    const istAdm = istAdmin();
+    const istOwnerOderSuper = ['familien_owner','super_admin'].includes(rolleNorm);
+    // tree-los = eingeloggt, aber (noch) keine Rolle/Familie -> darf einen Baum anlegen
+    const treeLos = !!aktuellerUser && rolleNorm === '';
+    // Panel für Admins ODER tree-lose User (zum Neu-Anlegen) zeigen
+    if (adminBereich) adminBereich.style.display = (istAdm || treeLos) ? '' : 'none';
+    const mvBtn  = document.getElementById('menu-mv-btn');
+    const addBtn = document.getElementById('menu-add-btn');
     const baumDelBtn = document.getElementById('baum-loeschen-btn');
-    if (baumDelBtn) baumDelBtn.style.display =
-      ['familien_owner','super_admin'].includes(normalizeRolle(aktuelleRolle || '')) ? '' : 'none';
+    const baumNeuBtn = document.getElementById('baum-anlegen-btn');
+    if (mvBtn)  mvBtn.style.display  = istAdm ? '' : 'none';   // Verwalten: nur Admins
+    if (addBtn) addBtn.style.display = istAdm ? '' : 'none';   // Hinzufügen: nur Admins
+    if (baumDelBtn) baumDelBtn.style.display = istOwnerOderSuper ? '' : 'none';        // Löschen: Owner/Super
+    if (baumNeuBtn) baumNeuBtn.style.display = (istOwnerOderSuper || treeLos) ? '' : 'none'; // Anlegen: Owner/Super/tree-los
+    // Das ganze ⚙-Dropdown nur für Admins (oder tree-lose Owner zum Neu-Anlegen)
+    if (navMenu) { navMenu.style.display = (istAdm || treeLos) ? '' : 'none'; if (!(istAdm || treeLos)) navMenu.classList.remove('offen'); }
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
@@ -1324,6 +1439,7 @@ function aktualisiereAuthUI() {
     if (shortsTab)   shortsTab.style.display = 'none';
     if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
     if (adminBereich) adminBereich.style.display = 'none';
+    if (navMenu) { navMenu.style.display = 'none'; navMenu.classList.remove('offen'); }
     // Falls der ausgeloggte User gerade auf der Events-Ansicht war -> zurück auf Baum
     if (typeof aktuelleAnsicht !== 'undefined' && aktuelleAnsicht === 'shorts') aktuelleAnsicht = 'baum';
   }
@@ -1475,6 +1591,7 @@ function renderMitglieder() {
       <button class="mv-del" onclick="entferneMitglied('${m.mitgliedschaft_id}','${escapeHtml(m.email)}')">${escapeHtml(t('mv_entfernen'))}</button>`}
     </div>`;
   }).join('');
+  macheAlleSelectsSuchbar(liste);   // neu erzeugte Rollen-Selects suchbar machen
 }
 
 // Erfolgshinweis im Mitglieder-Overlay (blendet sich selbst wieder aus)
@@ -1588,25 +1705,88 @@ async function fuegeMitgliedEinladen() {
   infoEl.textContent = t('ma_erfolg'); infoEl.style.display = 'block';
 }
 
-// Kompletten (aktuell ausgewählten) Stammbaum löschen — Personen + Beziehungen
-// + Baum-Eintrag, über eine SECURITY-DEFINER-RPC. Nur Admins.
+// Stammbaum löschen — nur Owner/Super. Bei mehreren eigenen Bäumen: Auswahl;
+// bei genau einem: deutliche Warnung. Danach zweite Sicherheitsabfrage.
+let bdBaeume = [];
 async function loescheStammbaum() {
   if (!istAdmin()) return;
   const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
-  const treeId = aktuellerStammbaumId;
-  if (!treeId) { await zeigeHinweis(t('baum_kein_aktiver')); return; }
-  const name = nm(stammbaeumeListe[treeId] || '?');
 
-  const ok = await zeigeBestaetigung(t('baum_loeschen_frage', { name }));
+  const { data, error } = await sbClient.rpc('meine_owner_baeume');
+  if (error) { await zeigeHinweis(t('reg_fehler') + error.message); return; }
+  bdBaeume = data || [];
+  if (bdBaeume.length === 0) { await zeigeHinweis(t('bd_keine')); return; }
+
+  const einzeln = bdBaeume.length === 1;
+  const sel  = document.getElementById('bd-auswahl');
+  sel.innerHTML = bdBaeume.map(b =>
+    `<option value="${b.stammbaum_id}">${escapeHtml(nm(b.stammbaum_name || '?'))} (${b.personen ?? 0})</option>`
+  ).join('');
+  document.getElementById('bd-auswahl-wrap').style.display = einzeln ? 'none' : '';
+  document.getElementById('bd-warnung').textContent = einzeln ? t('bd_warnung_einzeln') : t('bd_warnung_mehrere');
+  document.getElementById('baum-del-modal').classList.add('aktiv');
+}
+
+function schliesseBaumDel() {
+  document.getElementById('baum-del-modal').classList.remove('aktiv');
+}
+
+// Zweite Sicherheitsabfrage, dann löschen.
+async function bestaetigeBaumLoeschen() {
+  const sel = document.getElementById('bd-auswahl');
+  const treeId = sel.value || (bdBaeume[0] && bdBaeume[0].stammbaum_id);
+  if (!treeId) return;
+  const b = bdBaeume.find(x => x.stammbaum_id === treeId);
+  const name = nm((b && b.stammbaum_name) || '?');
+
+  const ok = await zeigeBestaetigung(t('bd_sicher', { name }));
   if (!ok) return;
 
   const { data, error } = await sbClient.rpc('stammbaum_loeschen', { p_tree: treeId });
   if (error) { await zeigeHinweis(t('reg_fehler') + error.message); return; }
 
-  // Frisch laden (wählt automatisch einen verbleibenden Baum)
+  schliesseBaumDel();
   aktuellerStammbaumId = null;
-  await ladeBaumDaten();
+  await setzeUser(aktuellerUser);   // Rolle + Baum + Menü neu laden (ggf. jetzt tree-los)
   await zeigeHinweis(t('baum_geloescht'));
+}
+
+// ---- Stammbaum anlegen (Owner; auch tree-lose eingeloggte User) ----
+function zeigeBaumNeu() {
+  if (!aktuellerUser) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  ['bn-name','bn-vorname','bn-nachname'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('bn-fehler').style.display = 'none';
+  document.getElementById('bn-erfolg').style.display = 'none';
+  document.getElementById('baum-neu-modal').classList.add('aktiv');
+  setTimeout(() => document.getElementById('bn-name').focus(), 60);
+}
+function schliesseBaumNeu() {
+  document.getElementById('baum-neu-modal').classList.remove('aktiv');
+}
+
+async function erstelleStammbaum() {
+  if (!aktuellerUser) return;
+  const fehlerEl = document.getElementById('bn-fehler');
+  const erfolgEl = document.getElementById('bn-erfolg');
+  const button   = document.getElementById('bn-submit');
+  fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  const v = id => document.getElementById(id).value.trim();
+  const name = v('bn-name');
+  if (!name) { fehlerEl.textContent = t('bn_pflicht'); fehlerEl.style.display = 'block'; return; }
+
+  const altText = button.textContent;
+  button.disabled = true; button.textContent = t('reg_senden_laeuft');
+  const { data, error } = await sbClient.rpc('stammbaum_anlegen',
+    { p_name: name, p_vorname: v('bn-vorname'), p_nachname: v('bn-nachname') });
+  button.disabled = false; button.textContent = altText;
+  if (error) { fehlerEl.textContent = t('reg_fehler') + error.message; fehlerEl.style.display = 'block'; return; }
+
+  erfolgEl.textContent = t('bn_erfolg'); erfolgEl.style.display = 'block';
+  aktuellerStammbaumId = null;
+  await setzeUser(aktuellerUser);   // jetzt Owner -> Rolle/Menü + Baum neu laden
+  if (data && stammbaeumeListe[data]) waehleStammbaum(data);   // neuen Baum direkt anzeigen
+  setTimeout(() => schliesseBaumNeu(), 900);
 }
 
 // ============================================================
@@ -2020,9 +2200,15 @@ function regVorhandenWechsel() {
   const ja = !sel || sel.value === 'ja';
   document.getElementById('reg-block-ja').style.display   = ja ? '' : 'none';
   document.getElementById('reg-block-nein').style.display = ja ? 'none' : '';
-  // Button-Beschriftung passend zum Modus: Anfrage senden (Ja) vs. Konto anlegen (Nein)
-  const btn = document.getElementById('reg-submit');
-  if (btn) btn.textContent = ja ? t('reg_absenden') : t('reg_konto_anlegen');
+  // Titel + Einleitung + Button passend zum Modus:
+  //   Ja  = Zugang beantragen (Anfrage an Admin)
+  //   Nein = Konto anlegen (Self-Service, eigene Passwort-Mail – KEINE Admin-Freigabe)
+  const titel = document.getElementById('reg-titel');
+  const intro = document.getElementById('reg-intro');
+  const btn   = document.getElementById('reg-submit');
+  if (titel) titel.textContent = ja ? t('reg_titel') : t('reg_titel_neu');
+  if (intro) intro.textContent = ja ? t('reg_intro') : t('reg_intro_neu');
+  if (btn)   btn.textContent   = ja ? t('reg_absenden') : t('reg_konto_anlegen');
 }
 
 let regSucheTimer = null;
@@ -2406,6 +2592,17 @@ const TEXTE = {
     event_save: 'Speichern',
     event_cancel: 'Abbrechen',
     event_edit: 'Bearbeiten',
+    event_neu: 'Neues Event', event_bearbeiten: 'Event bearbeiten',
+    event_titel: 'Titel / Betreff', event_datum: 'Datum', event_ort: 'Ort',
+    event_typ: 'Event-Typ', event_beschreibung: 'Beschreibung',
+    event_speichern_btn: 'Speichern', event_loeschen_btn: 'Löschen',
+    event_keine: 'Noch keine Events für diesen Stammbaum.',
+    event_kein_baum: 'Bitte zuerst einen Stammbaum auswählen.',
+    event_pflicht: 'Bitte einen Titel angeben.',
+    event_gespeichert: 'Event gespeichert.', event_geloescht: 'Event gelöscht.',
+    event_loeschen_frage: 'Dieses Event wirklich löschen?',
+    evt_sonstiges: 'Sonstiges', evt_geburt: 'Geburt', evt_taufe: 'Taufe',
+    evt_hochzeit: 'Hochzeit', evt_jubilaeum: 'Jubiläum', evt_treffen: 'Treffen', evt_tod: 'Todesfall',
     event_upload: 'Hochladen',
     event_admin_hint: 'Nur Administratoren können hier ändern.',
     event_uploading: 'Dateien werden hochgeladen…',
@@ -2418,6 +2615,8 @@ const TEXTE = {
     account_anlegen: 'Account anlegen',
     reg_titel: 'Zugang beantragen',
     reg_intro: 'Deine Anfrage geht an den Familien-Admin. Nach Bestätigung erhältst du eine E-Mail zur Kontoerstellung.',
+    reg_titel_neu: 'Konto anlegen',
+    reg_intro_neu: 'Du legst einen eigenen, neuen Stammbaum an und erhältst direkt eine E-Mail, um dein Passwort zu setzen – keine Freigabe nötig.',
     reg_email: 'E-Mail-Adresse',
     reg_familie: 'Zugehörige Familie',
     reg_familie_select: '— Familie wählen —',
@@ -2430,7 +2629,7 @@ const TEXTE = {
     reg_keine_familien: 'Keine Familie gefunden',
     reg_vorhanden_frage: 'Stammbaum schon vorhanden?',
     reg_familie_anlegen: 'Neuen Stammbaum anlegen',
-    reg_familie_anlegen_info: 'Du legst einen neuen, leeren Stammbaum an und wirst dessen Administrator. Danach kannst du weitere Personen hinzufügen.',
+    reg_familie_anlegen_info: 'Du legst einen neuen, leeren Stammbaum an und wirst dessen Eigentümer. Danach kannst du weitere Personen hinzufügen.',
     reg_neue_familie: 'Name der Familie / des Stammbaums',
     reg_neue_erfolg: 'Stammbaum angelegt! Du erhältst eine E-Mail mit einem Link zum Passwort-Setzen.',
     login_hinweis_titel: 'Anmeldung erforderlich',
@@ -2487,6 +2686,21 @@ const TEXTE = {
     mv_keine_in_familie: 'Keine Mitglieder in dieser Familie vorhanden.',
     admin_einstellungen: 'Admin-Einstellungen',
     admin_baum_loeschen: 'Stammbaum löschen',
+    admin_baum_anlegen: 'Stammbaum anlegen',
+    bd_titel: 'Stammbaum löschen',
+    bd_welcher: 'Welchen Stammbaum löschen?',
+    bd_warnung_einzeln: 'Achtung: Dies ist dein einziger Stammbaum. Alle Personen und Daten gehen unwiderruflich verloren — du musst danach alles neu anlegen.',
+    bd_warnung_mehrere: 'Wähle den Stammbaum, der gelöscht werden soll. Alle Personen und Verbindungen dieses Baums gehen unwiderruflich verloren.',
+    bd_loeschen_btn: 'Endgültig löschen',
+    bd_sicher: 'Bist du dir sicher? „{name}" wird unwiderruflich gelöscht.',
+    bd_keine: 'Du besitzt keinen löschbaren Stammbaum.',
+    bn_titel: 'Stammbaum anlegen',
+    bn_info: 'Lege einen neuen, eigenen Stammbaum an. Du wirst dessen Eigentümer und kannst danach weitere Personen hinzufügen.',
+    bn_name: 'Name des Stammbaums',
+    bn_erste_person: 'Erste Person (optional)',
+    bn_anlegen_btn: 'Anlegen',
+    bn_pflicht: 'Bitte einen Namen für den Stammbaum angeben.',
+    bn_erfolg: 'Stammbaum angelegt.',
     baum_loeschen_frage: 'Willst du den Stammbaum „{name}" wirklich KOMPLETT löschen? Alle Personen und Verbindungen dieses Baums werden unwiderruflich aus der Datenbank entfernt.',
     baum_geloescht: 'Stammbaum gelöscht.',
     baum_kein_aktiver: 'Es ist kein Stammbaum ausgewählt.',
@@ -2507,7 +2721,8 @@ const TEXTE = {
     zurueck: 'Zurück',
     auswahl_titel: 'Mehrere Personen gefunden',
     auswahl_hinweis: 'Bitte wähle die gesuchte Person aus:',
-    footer: 'Sastavljeno s ljubavlju · Mit Liebe zusammengestellt',
+    footer: 'Vidović AI · Sastavljeno s ljubavlju · Mit Liebe zusammengestellt',
+    ss_keine: 'Keine Ergebnisse gefunden', ss_suche: 'Suchen…',
     upload_erfolg: 'Erfolgreich geladen: {p} Personen, {f} Familien.',
     upload_fehler: 'Fehler beim Laden: ',
     anmelden: 'Anmelden',
@@ -2605,6 +2820,17 @@ const TEXTE = {
     event_save: 'Сачувај',
     event_cancel: 'Откажи',
     event_edit: 'Уреди',
+    event_neu: 'Нови догађај', event_bearbeiten: 'Уреди догађај',
+    event_titel: 'Наслов / Тема', event_datum: 'Датум', event_ort: 'Место',
+    event_typ: 'Тип догађаја', event_beschreibung: 'Опис',
+    event_speichern_btn: 'Сачувај', event_loeschen_btn: 'Обриши',
+    event_keine: 'Још нема догађаја за ово стабло.',
+    event_kein_baum: 'Прво изабери стабло.',
+    event_pflicht: 'Унеси наслов.',
+    event_gespeichert: 'Догађај сачуван.', event_geloescht: 'Догађај обрисан.',
+    event_loeschen_frage: 'Заиста обрисати овај догађај?',
+    evt_sonstiges: 'Остало', evt_geburt: 'Рођење', evt_taufe: 'Крштење',
+    evt_hochzeit: 'Венчање', evt_jubilaeum: 'Јубилеј', evt_treffen: 'Окупљање', evt_tod: 'Смрт',
     event_upload: 'Отпреми',
     event_admin_hint: 'Само администратори могу овде мењати.',
     event_uploading: 'Отпремање датотека…',
@@ -2617,6 +2843,8 @@ const TEXTE = {
     account_anlegen: 'Направи налог',
     reg_titel: 'Затражи приступ',
     reg_intro: 'Твој захтев иде админу породице. Након потврде добићеш имејл за креирање налога.',
+    reg_titel_neu: 'Креирај налог',
+    reg_intro_neu: 'Правиш сопствено, ново стабло и одмах добијаш имејл да поставиш лозинку – без икаквог одобрења.',
     reg_email: 'Имејл адреса',
     reg_familie: 'Припадајућа породица',
     reg_familie_select: '— Изабери породицу —',
@@ -2629,7 +2857,7 @@ const TEXTE = {
     reg_keine_familien: 'Породица није пронађена',
     reg_vorhanden_frage: 'Стабло већ постоји?',
     reg_familie_anlegen: 'Направи ново стабло',
-    reg_familie_anlegen_info: 'Правиш ново, празно стабло и постајеш његов администратор. Након тога можеш додавати особе.',
+    reg_familie_anlegen_info: 'Правиш ново, празно стабло и постајеш његов власник. Након тога можеш додавати особе.',
     reg_neue_familie: 'Назив породице / стабла',
     reg_neue_erfolg: 'Стабло направљено! Добићеш имејл са линком за постављање лозинке.',
     login_hinweis_titel: 'Потребна пријава',
@@ -2686,6 +2914,21 @@ const TEXTE = {
     mv_keine_in_familie: 'У овој породици нема чланова.',
     admin_einstellungen: 'Админ-подешавања',
     admin_baum_loeschen: 'Обриши стабло',
+    admin_baum_anlegen: 'Направи стабло',
+    bd_titel: 'Обриши стабло',
+    bd_welcher: 'Које стабло обрисати?',
+    bd_warnung_einzeln: 'Пажња: ово је твоје једино стабло. Све особе и подаци биће неповратно изгубљени — мораћеш све поново да направиш.',
+    bd_warnung_mehrere: 'Изабери стабло које желиш да обришеш. Све особе и везе тог стабла биће неповратно изгубљене.',
+    bd_loeschen_btn: 'Трајно обриши',
+    bd_sicher: 'Да ли си сигуран? „{name}" ће бити неповратно обрисано.',
+    bd_keine: 'Немаш стабло које можеш обрисати.',
+    bn_titel: 'Направи стабло',
+    bn_info: 'Направи ново, сопствено стабло. Постајеш његов власник и можеш затим додавати особе.',
+    bn_name: 'Назив стабла',
+    bn_erste_person: 'Прва особа (опционо)',
+    bn_anlegen_btn: 'Направи',
+    bn_pflicht: 'Унеси назив стабла.',
+    bn_erfolg: 'Стабло направљено.',
     baum_loeschen_frage: 'Да ли заиста желиш да ПОТПУНО обришеш стабло „{name}"? Све особе и везе овог стабла биће неповратно уклоњене из базе.',
     baum_geloescht: 'Стабло обрисано.',
     baum_kein_aktiver: 'Није изабрано ниједно стабло.',
@@ -2706,7 +2949,8 @@ const TEXTE = {
     zurueck: 'Назад',
     auswahl_titel: 'Пронађено више особа',
     auswahl_hinweis: 'Изабери коју особу тражиш:',
-    footer: 'Састављено с љубављу',
+    footer: 'Vidović AI · Састављено с љубављу',
+    ss_keine: 'Нема резултата', ss_suche: 'Претрага…',
     upload_erfolg: 'Успешно учитано: {p} особа, {f} породица.',
     upload_fehler: 'Грешка при учитавању: ',
     anmelden: 'Пријава',
@@ -2807,6 +3051,17 @@ const TEXTE = {
     event_upload: 'Otpremi',
     event_admin_hint: 'Samo administratori mogu ovdje mijenjati.',
     event_uploading: 'Preuzimanje datoteka…',
+    event_neu: 'Novi događaj', event_bearbeiten: 'Uredi događaj',
+    event_titel: 'Naslov / Tema', event_datum: 'Datum', event_ort: 'Mjesto',
+    event_typ: 'Vrsta događaja', event_beschreibung: 'Opis',
+    event_speichern_btn: 'Spremi', event_loeschen_btn: 'Obriši',
+    event_keine: 'Još nema događaja za ovo stablo.',
+    event_kein_baum: 'Najprije odaberi stablo.',
+    event_pflicht: 'Unesi naslov.',
+    event_gespeichert: 'Događaj spremljen.', event_geloescht: 'Događaj obrisan.',
+    event_loeschen_frage: 'Stvarno obrisati ovaj događaj?',
+    evt_sonstiges: 'Ostalo', evt_geburt: 'Rođenje', evt_taufe: 'Krštenje',
+    evt_hochzeit: 'Vjenčanje', evt_jubilaeum: 'Obljetnica', evt_treffen: 'Okupljanje', evt_tod: 'Smrt',
     event_saved: 'Promjene spremljene.',
     event_no_media: 'Još nema učitanih medija.',
     confirm_delete: 'Stvarno obrisati ovu datoteku?',
@@ -2816,6 +3071,8 @@ const TEXTE = {
     account_anlegen: 'Otvori račun',
     reg_titel: 'Zatraži pristup',
     reg_intro: 'Tvoj zahtjev ide administratoru obitelji. Nakon potvrde dobit ćeš e-mail za izradu računa.',
+    reg_titel_neu: 'Kreiraj račun',
+    reg_intro_neu: 'Izrađuješ vlastito, novo stablo i odmah dobivaš e-mail da postaviš lozinku – bez ikakvog odobrenja.',
     reg_email: 'E-mail adresa',
     reg_familie: 'Pripadajuća obitelj',
     reg_familie_select: '— Odaberi obitelj —',
@@ -2828,7 +3085,7 @@ const TEXTE = {
     reg_keine_familien: 'Obitelj nije pronađena',
     reg_vorhanden_frage: 'Stablo već postoji?',
     reg_familie_anlegen: 'Izradi novo stablo',
-    reg_familie_anlegen_info: 'Izrađuješ novo, prazno stablo i postaješ njegov administrator. Nakon toga možeš dodavati osobe.',
+    reg_familie_anlegen_info: 'Izrađuješ novo, prazno stablo i postaješ njegov vlasnik. Nakon toga možeš dodavati osobe.',
     reg_neue_familie: 'Naziv obitelji / stabla',
     reg_neue_erfolg: 'Stablo izrađeno! Dobit ćeš e-mail s poveznicom za postavljanje lozinke.',
     login_hinweis_titel: 'Potrebna prijava',
@@ -2881,6 +3138,21 @@ const TEXTE = {
     admin_einstellungen: 'Admin postavke',
     admin_baum_loeschen: 'Obriši stablo',
     baum_loeschen_frage: 'Želiš li doista POTPUNO obrisati stablo „{name}"? Sve osobe i veze ovog stabla bit će nepovratno uklonjene iz baze.',
+    admin_baum_anlegen: 'Izradi stablo',
+    bd_titel: 'Obriši stablo',
+    bd_welcher: 'Koje stablo obrisati?',
+    bd_warnung_einzeln: 'Pozor: ovo je tvoje jedino stablo. Sve osobe i podaci bit će nepovratno izgubljeni — nakon toga moraš sve iznova izraditi.',
+    bd_warnung_mehrere: 'Odaberi stablo koje želiš obrisati. Sve osobe i veze tog stabla bit će nepovratno izgubljene.',
+    bd_loeschen_btn: 'Trajno obriši',
+    bd_sicher: 'Jesi li siguran? „{name}" će biti nepovratno obrisano.',
+    bd_keine: 'Nemaš stablo koje možeš obrisati.',
+    bn_titel: 'Izradi stablo',
+    bn_info: 'Izradi novo, vlastito stablo. Postaješ njegov vlasnik i možeš zatim dodavati osobe.',
+    bn_name: 'Naziv stabla',
+    bn_erste_person: 'Prva osoba (opcionalno)',
+    bn_anlegen_btn: 'Izradi',
+    bn_pflicht: 'Unesi naziv stabla.',
+    bn_erfolg: 'Stablo izrađeno.',
     baum_geloescht: 'Stablo obrisano.',
     baum_kein_aktiver: 'Nije odabrano nijedno stablo.',
     mv_familie_label: 'Obitelj',
@@ -2905,7 +3177,8 @@ const TEXTE = {
     zurueck: 'Natrag',
     auswahl_titel: 'Pronađeno više osoba',
     auswahl_hinweis: 'Izaberi koju osobu tražiš:',
-    footer: 'Sastavljeno s ljubavlju',
+    footer: 'Vidović AI · Sastavljeno s ljubavlju',
+    ss_keine: 'Nema rezultata', ss_suche: 'Pretraži…',
     upload_erfolg: 'Uspješno učitano: {p} osoba, {f} obitelji.',
     upload_fehler: 'Greška pri učitavanju: ',
     anmelden: 'Prijava',
@@ -3006,6 +3279,17 @@ const TEXTE = {
     event_upload: 'Otpremi',
     event_admin_hint: 'Samo administratori mogu ovdje mijenjati.',
     event_uploading: 'Otpremanje datoteka…',
+    event_neu: 'Novi događaj', event_bearbeiten: 'Uredi događaj',
+    event_titel: 'Naslov / Tema', event_datum: 'Datum', event_ort: 'Mjesto',
+    event_typ: 'Vrsta događaja', event_beschreibung: 'Opis',
+    event_speichern_btn: 'Sačuvaj', event_loeschen_btn: 'Obriši',
+    event_keine: 'Još nema događaja za ovo stablo.',
+    event_kein_baum: 'Najprije odaberi stablo.',
+    event_pflicht: 'Unesi naslov.',
+    event_gespeichert: 'Događaj sačuvan.', event_geloescht: 'Događaj obrisan.',
+    event_loeschen_frage: 'Stvarno obrisati ovaj događaj?',
+    evt_sonstiges: 'Ostalo', evt_geburt: 'Rođenje', evt_taufe: 'Krštenje',
+    evt_hochzeit: 'Vjenčanje', evt_jubilaeum: 'Godišnjica', evt_treffen: 'Okupljanje', evt_tod: 'Smrt',
     event_saved: 'Promjene sačuvane.',
     event_no_media: 'Još nema učitanih medija.',
     confirm_delete: 'Stvarno obrisati ovu datoteku?',
@@ -3015,6 +3299,8 @@ const TEXTE = {
     account_anlegen: 'Otvori račun',
     reg_titel: 'Zatraži pristup',
     reg_intro: 'Tvoj zahtjev ide administratoru porodice. Nakon potvrde dobit ćeš e-mail za kreiranje računa.',
+    reg_titel_neu: 'Kreiraj nalog',
+    reg_intro_neu: 'Kreiraš vlastito, novo stablo i odmah dobivaš e-mail da postaviš lozinku – bez ikakvog odobrenja.',
     reg_email: 'E-mail adresa',
     reg_familie: 'Pripadajuća porodica',
     reg_familie_select: '— Odaberi porodicu —',
@@ -3027,7 +3313,7 @@ const TEXTE = {
     reg_keine_familien: 'Porodica nije pronađena',
     reg_vorhanden_frage: 'Stablo već postoji?',
     reg_familie_anlegen: 'Kreiraj novo stablo',
-    reg_familie_anlegen_info: 'Kreiraš novo, prazno stablo i postaješ njegov administrator. Nakon toga možeš dodavati osobe.',
+    reg_familie_anlegen_info: 'Kreiraš novo, prazno stablo i postaješ njegov vlasnik. Nakon toga možeš dodavati osobe.',
     reg_neue_familie: 'Naziv porodice / stabla',
     reg_neue_erfolg: 'Stablo kreirano! Dobit ćeš e-mail s linkom za postavljanje lozinke.',
     login_hinweis_titel: 'Potrebna prijava',
@@ -3080,6 +3366,21 @@ const TEXTE = {
     admin_einstellungen: 'Admin postavke',
     admin_baum_loeschen: 'Obriši stablo',
     baum_loeschen_frage: 'Želiš li zaista POTPUNO obrisati stablo „{name}"? Sve osobe i veze ovog stabla bit će nepovratno uklonjene iz baze.',
+    admin_baum_anlegen: 'Kreiraj stablo',
+    bd_titel: 'Obriši stablo',
+    bd_welcher: 'Koje stablo obrisati?',
+    bd_warnung_einzeln: 'Pažnja: ovo je tvoje jedino stablo. Sve osobe i podaci bit će nepovratno izgubljeni — nakon toga moraš sve iznova kreirati.',
+    bd_warnung_mehrere: 'Odaberi stablo koje želiš obrisati. Sve osobe i veze tog stabla bit će nepovratno izgubljene.',
+    bd_loeschen_btn: 'Trajno obriši',
+    bd_sicher: 'Jesi li siguran? „{name}" će biti nepovratno obrisano.',
+    bd_keine: 'Nemaš stablo koje možeš obrisati.',
+    bn_titel: 'Kreiraj stablo',
+    bn_info: 'Kreiraj novo, vlastito stablo. Postaješ njegov vlasnik i možeš zatim dodavati osobe.',
+    bn_name: 'Naziv stabla',
+    bn_erste_person: 'Prva osoba (opcionalno)',
+    bn_anlegen_btn: 'Kreiraj',
+    bn_pflicht: 'Unesi naziv stabla.',
+    bn_erfolg: 'Stablo kreirano.',
     baum_geloescht: 'Stablo obrisano.',
     baum_kein_aktiver: 'Nije odabrano nijedno stablo.',
     mv_familie_label: 'Porodica',
@@ -3104,7 +3405,8 @@ const TEXTE = {
     zurueck: 'Nazad',
     auswahl_titel: 'Pronađeno više osoba',
     auswahl_hinweis: 'Izaberi koju osobu tražiš:',
-    footer: 'Sastavljeno s ljubavlju',
+    footer: 'Vidović AI · Sastavljeno s ljubavlju',
+    ss_keine: 'Nema rezultata', ss_suche: 'Pretraži…',
     upload_erfolg: 'Uspješno učitano: {p} osoba, {f} porodica.',
     upload_fehler: 'Greška pri učitavanju: ',
     anmelden: 'Prijava',
@@ -3202,6 +3504,17 @@ const TEXTE = {
     event_save: 'Save',
     event_cancel: 'Cancel',
     event_edit: 'Edit',
+    event_neu: 'New event', event_bearbeiten: 'Edit event',
+    event_titel: 'Title / Subject', event_datum: 'Date', event_ort: 'Place',
+    event_typ: 'Event type', event_beschreibung: 'Description',
+    event_speichern_btn: 'Save', event_loeschen_btn: 'Delete',
+    event_keine: 'No events for this tree yet.',
+    event_kein_baum: 'Please select a family tree first.',
+    event_pflicht: 'Please enter a title.',
+    event_gespeichert: 'Event saved.', event_geloescht: 'Event deleted.',
+    event_loeschen_frage: 'Really delete this event?',
+    evt_sonstiges: 'Other', evt_geburt: 'Birth', evt_taufe: 'Baptism',
+    evt_hochzeit: 'Wedding', evt_jubilaeum: 'Anniversary', evt_treffen: 'Gathering', evt_tod: 'Death',
     event_upload: 'Upload',
     event_admin_hint: 'Only administrators can edit here.',
     event_uploading: 'Uploading files…',
@@ -3214,6 +3527,8 @@ const TEXTE = {
     account_anlegen: 'Create account',
     reg_titel: 'Request access',
     reg_intro: 'Your request goes to the family admin. After approval you will receive an email to create your account.',
+    reg_titel_neu: 'Create account',
+    reg_intro_neu: 'You create your own new family tree and receive an email right away to set your password – no approval needed.',
     reg_email: 'Email address',
     reg_familie: 'Your family',
     reg_familie_select: '— Choose family —',
@@ -3226,7 +3541,7 @@ const TEXTE = {
     reg_keine_familien: 'No family found',
     reg_vorhanden_frage: 'Family tree already exists?',
     reg_familie_anlegen: 'Create new tree',
-    reg_familie_anlegen_info: 'Create a new, empty tree and become its administrator. Afterwards you can add more people.',
+    reg_familie_anlegen_info: 'Create a new, empty tree and become its owner. Afterwards you can add more people.',
     reg_neue_familie: 'Name of the family / tree',
     reg_neue_erfolg: 'Tree created! You will receive an email with a link to set your password.',
     login_hinweis_titel: 'Login required',
@@ -3283,6 +3598,21 @@ const TEXTE = {
     mv_keine_in_familie: 'No members in this family.',
     admin_einstellungen: 'Admin settings',
     admin_baum_loeschen: 'Delete family tree',
+    admin_baum_anlegen: 'Create family tree',
+    bd_titel: 'Delete family tree',
+    bd_welcher: 'Which tree to delete?',
+    bd_warnung_einzeln: 'Warning: this is your only family tree. All persons and data will be permanently lost — you will have to start over afterwards.',
+    bd_warnung_mehrere: 'Choose the tree to delete. All persons and connections of this tree will be permanently lost.',
+    bd_loeschen_btn: 'Delete permanently',
+    bd_sicher: 'Are you sure? “{name}” will be permanently deleted.',
+    bd_keine: 'You have no family tree to delete.',
+    bn_titel: 'Create family tree',
+    bn_info: 'Create a new family tree of your own. You become its owner and can then add more persons.',
+    bn_name: 'Tree name',
+    bn_erste_person: 'First person (optional)',
+    bn_anlegen_btn: 'Create',
+    bn_pflicht: 'Please enter a name for the tree.',
+    bn_erfolg: 'Family tree created.',
     baum_loeschen_frage: 'Do you really want to COMPLETELY delete the tree “{name}”? All persons and connections of this tree will be irreversibly removed from the database.',
     baum_geloescht: 'Family tree deleted.',
     baum_kein_aktiver: 'No family tree selected.',
@@ -3303,7 +3633,8 @@ const TEXTE = {
     zurueck: 'Back',
     auswahl_titel: 'Multiple people found',
     auswahl_hinweis: 'Please select the person you are looking for:',
-    footer: 'Made with love',
+    footer: 'Vidović AI · Made with love',
+    ss_keine: 'No results found', ss_suche: 'Search…',
     upload_erfolg: 'Successfully loaded: {p} people, {f} families.',
     upload_fehler: 'Loading error: ',
     anmelden: 'Sign in',
@@ -3385,6 +3716,51 @@ function nm(text) {
   return aktuelleSprache === 'sr' ? srLat2Cyr(text) : text;
 }
 
+// ============================================================
+// ORTS-/LÄNDER-ÜBERSETZUNG (kuratiertes Wörterbuch, kostenlos)
+// Übersetzt nur bekannte Länder/Orte in die GUI-Sprache. Original-Daten
+// bleiben unverändert — es entsteht nur eine übersetzte ANZEIGE.
+// Freitexte (Beschreibungen/Notizen) bleiben unangetastet (später KI).
+// ============================================================
+const ORT_LEXIKON = [
+  { de:'Bosnien und Herzegowina', sr:'Босна и Херцеговина', hr:'Bosna i Hercegovina', ba:'Bosna i Hercegovina', en:'Bosnia and Herzegovina' },
+  { de:'Kroatien',        sr:'Хрватска',     hr:'Hrvatska',      ba:'Hrvatska',      en:'Croatia' },
+  { de:'Serbien',         sr:'Србија',       hr:'Srbija',        ba:'Srbija',        en:'Serbia' },
+  { de:'Slowenien',       sr:'Словенија',    hr:'Slovenija',     ba:'Slovenija',     en:'Slovenia' },
+  { de:'Montenegro',      sr:'Црна Гора',    hr:'Crna Gora',     ba:'Crna Gora',     en:'Montenegro' },
+  { de:'Nordmazedonien',  sr:'Северна Македонија', hr:'Sjeverna Makedonija', ba:'Sjeverna Makedonija', en:'North Macedonia' },
+  { de:'Kosovo',          sr:'Косово',       hr:'Kosovo',        ba:'Kosovo',        en:'Kosovo' },
+  { de:'Jugoslawien',     sr:'Југославија',  hr:'Jugoslavija',   ba:'Jugoslavija',   en:'Yugoslavia' },
+  { de:'Deutschland',     sr:'Немачка',      hr:'Njemačka',      ba:'Njemačka',      en:'Germany' },
+  { de:'Österreich',      sr:'Аустрија',     hr:'Austrija',      ba:'Austrija',      en:'Austria' },
+  { de:'Schweiz',         sr:'Швајцарска',   hr:'Švicarska',     ba:'Švicarska',     en:'Switzerland' },
+  { de:'Italien',         sr:'Италија',      hr:'Italija',       ba:'Italija',       en:'Italy' },
+  { de:'Frankreich',      sr:'Француска',    hr:'Francuska',     ba:'Francuska',     en:'France' },
+  { de:'Schweden',        sr:'Шведска',      hr:'Švedska',       ba:'Švedska',       en:'Sweden' },
+  { de:'Niederlande',     sr:'Холандија',    hr:'Nizozemska',    ba:'Holandija',     en:'Netherlands' },
+  { de:'Belgien',         sr:'Белгија',      hr:'Belgija',       ba:'Belgija',       en:'Belgium' },
+  { de:'Vereinigtes Königreich', sr:'Уједињено Краљевство', hr:'Ujedinjeno Kraljevstvo', ba:'Ujedinjeno Kraljevstvo', en:'United Kingdom' },
+  { de:'Vereinigte Staaten', sr:'Сједињене Државе', hr:'Sjedinjene Države', ba:'Sjedinjene Države', en:'United States' },
+  { de:'Kanada',          sr:'Канада',       hr:'Kanada',        ba:'Kanada',        en:'Canada' },
+  { de:'Australien',      sr:'Аустралија',   hr:'Australija',    ba:'Australija',    en:'Australia' },
+];
+// Lookup: jede Sprachvariante (kleingeschrieben) -> Eintrag
+const ortLookup = (() => {
+  const m = {};
+  ORT_LEXIKON.forEach(e => ['de','sr','hr','ba','en'].forEach(l => { if (e[l]) m[e[l].toLowerCase()] = e; }));
+  return m;
+})();
+
+// Übersetzt bekannte Orte/Länder in die aktuelle GUI-Sprache (Teil-für-Teil bei
+// kommagetrennten Werten); Unbekanntes bleibt im Original.
+function uebersetzeOrt(text) {
+  if (!text) return text;
+  return String(text).split(/\s*,\s*/).map(teil => {
+    const e = ortLookup[teil.trim().toLowerCase()];
+    return e ? (e[aktuelleSprache] || e.de || teil) : teil;
+  }).join(', ');
+}
+
 function wechselSprache(lang) {
   aktuelleSprache = lang;
   localStorage.setItem('vidovic_lang', lang);
@@ -3419,6 +3795,12 @@ function wechselSprache(lang) {
   else aktualisiereBaumInfo();
   zeichneBaumNeu();
   aktualisiereAuthUI();
+  // Falls das Registrier-Overlay offen ist: Titel/Intro/Button passend zum
+  // Ja/Nein-Modus neu setzen (data-i18n hätte sie sonst auf den Ja-Text zurückgesetzt).
+  if (typeof regVorhandenWechsel === 'function' &&
+      document.getElementById('registrier-modal')?.classList.contains('aktiv')) {
+    regVorhandenWechsel();
+  }
 }
 
 // Wurzel des aktuell gewählten Stammbaums (Fallback: klassische Wurzel I500009)
@@ -3674,8 +4056,157 @@ function initSprachDropdown() {
 // ============================================================
 // INITIALISIERUNG
 // ============================================================
+// ============================================================
+// SUCHBARE DROPDOWNS — wiederverwendbar für ALLE <select>
+// Reichert jedes <select> mit Suchfeld (Teilstring, ab 2 Zeichen,
+// case-insensitive, Echtzeit) an. Das native <select> bleibt die
+// Wahrheit: value/onchange/IDs funktionieren unverändert weiter.
+// Ein einziges, geteiltes Panel (kein Leak bei dynamischen Listen).
+// ============================================================
+let ssPanel, ssSearch, ssList, ssAktivSelect = null;
+
+function ssInitPanel() {
+  if (ssPanel) return;
+  ssPanel = document.createElement('div');
+  ssPanel.className = 'ss-panel';
+  ssPanel.style.display = 'none';
+  ssPanel.innerHTML = '<input type="text" class="ss-search" autocomplete="off"><ul class="ss-list"></ul>';
+  document.body.appendChild(ssPanel);
+  ssSearch = ssPanel.querySelector('.ss-search');
+  ssList   = ssPanel.querySelector('.ss-list');
+  ssSearch.addEventListener('input', () => ssRender(ssSearch.value));
+  ssSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') ssSchliesse();
+    else if (e.key === 'Enter') { e.preventDefault(); const f = ssList.querySelector('.ss-opt'); if (f) ssWaehle(f.dataset.val); }
+  });
+  ssList.addEventListener('click', (e) => { const li = e.target.closest('.ss-opt'); if (li) ssWaehle(li.dataset.val); });
+}
+
+// Liste füllen: <2 Zeichen = alle; sonst Teilstring (case-insensitive)
+function ssRender(filter) {
+  if (!ssAktivSelect) return;
+  const f = (filter || '').trim().toLowerCase();
+  const opts = Array.from(ssAktivSelect.options);
+  const vis = f.length < 2 ? opts : opts.filter(o => (o.textContent || '').toLowerCase().includes(f));
+  if (vis.length === 0) {
+    ssList.innerHTML = '<li class="ss-empty">' + escapeHtml(t('ss_keine')) + '</li>';
+    return;
+  }
+  ssList.innerHTML = vis.map(o =>
+    '<li class="ss-opt' + (o.value === ssAktivSelect.value ? ' ss-selected' : '') +
+    '" data-val="' + escapeHtml(o.value) + '">' + escapeHtml(o.textContent) + '</li>'
+  ).join('');
+}
+
+function ssPositioniere(select) {
+  const r  = select._ssControl.getBoundingClientRect();
+  const ph = ssPanel.offsetHeight;
+  const platzUnten = window.innerHeight - r.bottom;
+  const obenAuf = platzUnten < ph + 8 && r.top > platzUnten;   // nach oben klappen, wenn unten kein Platz
+  ssPanel.style.left  = r.left + 'px';
+  ssPanel.style.width = r.width + 'px';
+  ssPanel.style.top   = (obenAuf ? Math.max(4, r.top - ph - 2) : r.bottom + 2) + 'px';
+}
+
+function ssOeffne(select) {
+  ssSchliesse();
+  ssAktivSelect = select;
+  ssSearch.value = '';
+  ssSearch.placeholder = t('ss_suche');
+  ssRender('');
+  ssPanel.style.visibility = 'hidden';   // erst messen, dann sichtbar -> kein Flackern
+  ssPanel.style.display = 'flex';
+  ssPositioniere(select);
+  ssPanel.style.visibility = '';
+  select._ssControl.classList.add('ss-open');
+  setTimeout(() => ssSearch.focus(), 30);
+}
+
+function ssSchliesse() {
+  if (!ssAktivSelect) return;
+  ssPanel.style.display = 'none';
+  if (ssAktivSelect._ssControl) ssAktivSelect._ssControl.classList.remove('ss-open');
+  ssAktivSelect = null;
+}
+
+function ssWaehle(val) {
+  const s = ssAktivSelect;
+  if (!s) return;
+  s.value = val;                                   // intercepted -> Label-Sync
+  ssSchliesse();
+  s.dispatchEvent(new Event('change', { bubbles: true }));   // bestehende onchange-Handler auslösen
+}
+
+function ssSyncLabel(select) {
+  if (!select._ssControl) return;
+  const o = select.options[select.selectedIndex];
+  select._ssControl.querySelector('.ss-control-text').textContent = o ? o.textContent : '';
+}
+
+function macheSelectSuchbar(select) {
+  if (select._ssControl || select.classList.contains('no-search')) return;
+  // Steuerelement, das das native <select> ersetzt (kopiert dessen Klassen -> gleiches Aussehen)
+  const control = document.createElement('div');
+  control.className = (select.className ? select.className + ' ' : '') + 'ss-control';
+  control.tabIndex = 0;
+  control.setAttribute('role', 'button');
+  control.innerHTML = '<span class="ss-control-text"></span><span class="ss-caret">▾</span>';
+  select.parentNode.insertBefore(control, select.nextSibling);
+  select.classList.add('ss-native');
+  select._ssControl = control;
+
+  // value-Interception: Label bleibt auch bei programmatischer Wertänderung synchron
+  const desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  Object.defineProperty(select, 'value', {
+    configurable: true,
+    get() { return desc.get.call(this); },
+    set(v) { desc.set.call(this, v); ssSyncLabel(this); }
+  });
+
+  const toggle = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (select.disabled) return;
+    if (ssAktivSelect === select) ssSchliesse(); else ssOeffne(select);
+  };
+  control.addEventListener('click', toggle);
+  control.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') toggle(e); });
+
+  // Native Sichtbarkeit/disabled auf das Steuerelement spiegeln
+  const spiegele = () => {
+    control.style.display = (select.style.display === 'none') ? 'none' : '';
+    control.classList.toggle('ss-disabled', select.disabled);
+  };
+  spiegele();
+
+  // Reagiere auf: dynamische Optionen, style/disabled-Änderungen
+  new MutationObserver(() => {
+    ssSyncLabel(select);
+    spiegele();
+    if (ssAktivSelect === select) ssRender(ssSearch.value);
+  }).observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'disabled'] });
+
+  ssSyncLabel(select);
+}
+
+function macheAlleSelectsSuchbar(root) {
+  (root || document).querySelectorAll('select:not(.ss-native):not(.no-search)').forEach(macheSelectSuchbar);
+}
+
+function initSuchbareSelects() {
+  ssInitPanel();
+  macheAlleSelectsSuchbar(document);
+  // Schließen bei Klick außerhalb, Resize oder Scroll (Position würde sonst wandern)
+  document.addEventListener('click', (e) => {
+    if (ssAktivSelect && !ssPanel.contains(e.target) &&
+        e.target !== ssAktivSelect._ssControl && !ssAktivSelect._ssControl.contains(e.target)) ssSchliesse();
+  });
+  window.addEventListener('resize', ssSchliesse);
+  window.addEventListener('scroll', (e) => { if (ssAktivSelect && !ssPanel.contains(e.target)) ssSchliesse(); }, true);
+}
+
 function init() {
   initSprachDropdown();
+  initSuchbareSelects();   // alle <select> mit Suchfunktion ausstatten
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => wechselAnsicht(t.dataset.ansicht));
   });
@@ -3686,6 +4217,13 @@ function init() {
   document.addEventListener('click', (e) => {
     const menu = document.getElementById('nav-menu');
     if (menu && !menu.contains(e.target)) menu.classList.remove('offen');
+    // Familien-Autocomplete (Registrierung) bei Klick daneben schließen,
+    // damit es nicht offen bleibt und andere Felder verdeckt.
+    const box = document.getElementById('reg-familie-ergebnisse');
+    const inp = document.getElementById('reg-familie-suche');
+    if (box && box.classList.contains('aktiv') && e.target !== inp && !box.contains(e.target)) {
+      box.classList.remove('aktiv');
+    }
   });
   
   initBaum();
@@ -3787,7 +4325,7 @@ function zentriereAufPerson(personId) {
 
 function zeigAuswahlDialog(treffer) {
   const liste = treffer.map(p => {
-    const info = [p.birth_date ? '* ' + p.birth_date : '', p.birth_place].filter(Boolean).join(', ');
+    const info = [p.birth_date ? '* ' + p.birth_date : '', uebersetzeOrt(p.birth_place)].filter(Boolean).join(', ');
     return `<span class="verwandter" onclick="waehleAusBaum('${p.id}')">${escapeHtml(nm(p.name))}${info ? ' <small style="color:#888">(' + escapeHtml(info) + ')</small>' : ''}</span>`;
   }).join('');
 
@@ -3887,7 +4425,7 @@ function zeigeKarten() {
       <h3>${escapeHtml(nm(p.given || '?'))}</h3>
       <p class="nachname">${escapeHtml(nm(p.surname || ''))}</p>
       ${lebensdaten ? `<div class="daten">${lebensdaten}</div>` : ''}
-      ${p.birth_place ? `<div class="daten">📍 ${escapeHtml(p.birth_place)}</div>` : ''}
+      ${p.birth_place ? `<div class="daten">📍 ${escapeHtml(uebersetzeOrt(p.birth_place))}</div>` : ''}
     `;
     grid.appendChild(karte);
   });
@@ -4070,37 +4608,111 @@ function zeigeBestaetigung(text) {
   });
 }
 
-function zeigeShorts() {
-  const suche = document.getElementById('suche').value.toLowerCase();
+// Events des aktuell gewählten Stammbaums (aus der DB) anzeigen.
+let eventsCache = [];
+async function zeigeShorts() {
   const grid = document.getElementById('shorts-grid');
-  const events = EVENTS_DATA[aktuelleSprache] || EVENTS_DATA.de;
+  const btn  = document.getElementById('event-neu-btn');
+  const darfBearbeiten = istAdmin();
+  if (btn) btn.style.display = (darfBearbeiten && aktuellerStammbaumId) ? '' : 'none';
 
-  const gefiltert = events.filter(event => {
-    const current = getEventConfig(event.id);
-    const searchable = [current.title, current.subtitle, current.organizers, current.location, current.details].join(' ').toLowerCase();
-    return !suche || searchable.includes(suche);
-  });
+  if (!aktuellerStammbaumId) { grid.innerHTML = `<div class="keine-treffer">${t('event_kein_baum')}</div>`; eventsCache = []; return; }
 
-  if (gefiltert.length === 0) {
-    grid.innerHTML = `<div class="keine-treffer">${t('keine_treffer')}</div>`;
+  grid.innerHTML = `<div class="keine-treffer">…</div>`;
+  const { data, error } = await sbClient.rpc('events_fuer_stammbaum', { p_tree: aktuellerStammbaumId });
+  if (error) { grid.innerHTML = `<div class="keine-treffer">${escapeHtml(error.message)}</div>`; eventsCache = []; return; }
+  eventsCache = data || [];
+
+  const suche = (document.getElementById('suche').value || '').toLowerCase();
+  const liste = eventsCache.filter(ev =>
+    !suche || [ev.titel, ev.ort, ev.beschreibung, ev.typ].filter(Boolean).join(' ').toLowerCase().includes(suche));
+
+  if (liste.length === 0) {
+    grid.innerHTML = `<div class="keine-treffer">${t(eventsCache.length ? 'keine_treffer' : 'event_keine')}</div>`;
     return;
   }
 
-  grid.innerHTML = '';
-  gefiltert.forEach(event => {
-    const item = getEventConfig(event.id);
-    const karte = document.createElement('div');
-    karte.className = 'short-card';
-    karte.onclick = () => zeigeShort(event.id);
-    karte.innerHTML = `
-      <div class="thumb">▶</div>
-      <h3>${escapeHtml(nm(item.title))}</h3>
-      <p>${escapeHtml(nm(item.location))}</p>
-      <div class="meta">${escapeHtml(nm(item.subtitle))}</div>
-      <div class="meta" style="margin-top:12px; font-size: 12px; color: #7a6a50;">${escapeHtml(nm(item.organizers))}</div>
-    `;
-    grid.appendChild(karte);
+  grid.innerHTML = liste.map(ev => `
+    <div class="short-card">
+      <div class="thumb">🗓</div>
+      <h3>${escapeHtml(ev.titel)}</h3>
+      ${(ev.datum || ev.ort) ? `<p>${escapeHtml([ev.datum, uebersetzeOrt(ev.ort)].filter(Boolean).join(' · '))}</p>` : ''}
+      ${ev.typ ? `<div class="meta">${escapeHtml(t('evt_' + ev.typ))}</div>` : ''}
+      ${ev.beschreibung ? `<div class="meta" style="margin-top:10px;font-size:13px;color:#5e4b35;line-height:1.5">${escapeHtml(ev.beschreibung)}</div>` : ''}
+      ${darfBearbeiten ? `<div class="event-aktionen" style="margin-top:14px">
+        <button class="mv-toggle" type="button" onclick="zeigeEventBearbeiten('${ev.id}')">${escapeHtml(t('event_edit'))}</button>
+        <button class="mv-del" type="button" onclick="loescheEvent('${ev.id}')">${escapeHtml(t('event_loeschen_btn'))}</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+// ---- Event anlegen/bearbeiten/löschen (pro Stammbaum) ----
+function zeigeEventNeu() {
+  if (!istAdmin() || !aktuellerStammbaumId) return;
+  document.getElementById('ev-id').value = '';
+  ['ev-titel','ev-datum','ev-ort','ev-beschreibung'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ev-typ').value = '';
+  document.getElementById('ev-fehler').style.display = 'none';
+  document.getElementById('ev-erfolg').style.display = 'none';
+  document.getElementById('event-modal-titel').textContent = t('event_neu');
+  document.getElementById('event-modal').classList.add('aktiv');
+  setTimeout(() => document.getElementById('ev-titel').focus(), 60);
+}
+
+function zeigeEventBearbeiten(eventId) {
+  if (!istAdmin()) return;
+  const ev = (eventsCache || []).find(e => e.id === eventId);
+  if (!ev) return;
+  document.getElementById('ev-id').value          = ev.id;
+  document.getElementById('ev-titel').value        = ev.titel || '';
+  document.getElementById('ev-datum').value        = ev.datum || '';
+  document.getElementById('ev-ort').value          = ev.ort || '';
+  document.getElementById('ev-typ').value          = ev.typ || '';
+  document.getElementById('ev-beschreibung').value = ev.beschreibung || '';
+  document.getElementById('ev-fehler').style.display = 'none';
+  document.getElementById('ev-erfolg').style.display = 'none';
+  document.getElementById('event-modal-titel').textContent = t('event_bearbeiten');
+  document.getElementById('event-modal').classList.add('aktiv');
+}
+
+function schliesseEventModal() {
+  document.getElementById('event-modal').classList.remove('aktiv');
+}
+
+async function speichereEvent() {
+  if (!istAdmin() || !aktuellerStammbaumId) return;
+  const v = id => document.getElementById(id).value.trim();
+  const fehlerEl = document.getElementById('ev-fehler');
+  const erfolgEl = document.getElementById('ev-erfolg');
+  const button   = document.getElementById('ev-submit');
+  fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  const titel = v('ev-titel');
+  if (!titel) { fehlerEl.textContent = t('event_pflicht'); fehlerEl.style.display = 'block'; return; }
+
+  const id = document.getElementById('ev-id').value || null;
+  const alt = button.textContent; button.disabled = true; button.textContent = t('reg_senden_laeuft');
+  const { error } = await sbClient.rpc('event_speichern', {
+    p_id: id, p_tree: aktuellerStammbaumId, p_titel: titel,
+    p_beschreibung: v('ev-beschreibung') || null, p_datum: v('ev-datum') || null,
+    p_ort: v('ev-ort') || null, p_typ: document.getElementById('ev-typ').value || null,
+    p_sprache: aktuelleSprache
   });
+  button.disabled = false; button.textContent = alt;
+  if (error) { fehlerEl.textContent = t('reg_fehler') + error.message; fehlerEl.style.display = 'block'; return; }
+
+  erfolgEl.textContent = t('event_gespeichert'); erfolgEl.style.display = 'block';
+  await zeigeShorts();                       // Liste sofort aktualisieren
+  setTimeout(() => schliesseEventModal(), 800);
+}
+
+async function loescheEvent(eventId) {
+  if (!istAdmin()) return;
+  const ok = await zeigeBestaetigung(t('event_loeschen_frage'));
+  if (!ok) return;
+  const { error } = await sbClient.rpc('event_loeschen', { p_id: eventId });
+  if (error) { await zeigeHinweis(t('reg_fehler') + error.message); return; }
+  await zeigeShorts();
+  await zeigeHinweis(t('event_geloescht'));
 }
 
 async function zeigeShort(shortId) {
@@ -4402,17 +5014,17 @@ function zeigeDetails(personId) {
     <p class="sub-name">${escapeHtml(nm(p.surname || ''))}</p>
 
     ${p.birth_date ? `<div class="info-zeile"><strong>${t('geboren')}</strong> ${escapeHtml(p.birth_date)}</div>` : ''}
-    ${p.birth_place ? `<div class="info-zeile"><strong>${t('geburtsort')}</strong> ${escapeHtml(p.birth_place)}</div>` : ''}
+    ${p.birth_place ? `<div class="info-zeile"><strong>${t('geburtsort')}</strong> ${escapeHtml(uebersetzeOrt(p.birth_place))}</div>` : ''}
     ${p.deceased || p.death_date ? `<div class="info-zeile"><strong>${t('verstorben')}</strong> ${escapeHtml(p.death_date || t('ja'))}</div>` : ''}
-    ${p.death_place ? `<div class="info-zeile"><strong>${t('sterbeort')}</strong> ${escapeHtml(p.death_place)}</div>` : ''}
+    ${p.death_place ? `<div class="info-zeile"><strong>${t('sterbeort')}</strong> ${escapeHtml(uebersetzeOrt(p.death_place))}</div>` : ''}
     <div class="info-zeile"><strong>${t('geschlecht')}</strong> ${geschlechtText}</div>
-    ${p.geburtsland ? `<div class="info-zeile"><strong>${t('reg_geburtsland')}:</strong> ${escapeHtml(p.geburtsland)}</div>` : ''}
+    ${p.geburtsland ? `<div class="info-zeile"><strong>${t('reg_geburtsland')}:</strong> ${escapeHtml(uebersetzeOrt(p.geburtsland))}</div>` : ''}
     ${p.getauft ? `<div class="info-zeile"><strong>${t('reg_getauft')}:</strong> ${escapeHtml(p.getauft)}</div>` : ''}
     ${(p.beziehung && p.beziehung !== 'unbekannt') ? `<div class="info-zeile"><strong>${t('pe_beziehung')}:</strong> ${escapeHtml(p.beziehung === 'sonstige' ? (p.beziehung_sonstige || t('bz_sonstige')) : t('bz_' + p.beziehung))}</div>` : ''}
     ${(p.hochzeit_standesamt || p.hochzeit_kirchlich || p.hochzeitsort) ? `<div class="info-zeile"><strong>${t('pe_hochzeit_standesamt')}:</strong> ${escapeHtml([p.hochzeit_standesamt, p.hochzeit_kirchlich, p.hochzeitsort].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.beruf ? `<div class="info-zeile"><strong>${t('pe_beruf')}:</strong> ${escapeHtml(p.beruf)}</div>` : ''}
     ${p.ausbildung ? `<div class="info-zeile"><strong>${t('pe_ausbildung')}:</strong> ${escapeHtml(p.ausbildung)}</div>` : ''}
-    ${(p.adresse || p.wohnort_stadt || p.wohnort_land) ? `<div class="info-zeile"><strong>${t('pe_g_wohnen')}:</strong> ${escapeHtml([p.adresse, p.wohnort_stadt, p.wohnort_land].filter(Boolean).join(', '))}</div>` : ''}
+    ${(p.adresse || p.wohnort_stadt || p.wohnort_land) ? `<div class="info-zeile"><strong>${t('pe_g_wohnen')}:</strong> ${escapeHtml(uebersetzeOrt([p.adresse, p.wohnort_stadt, p.wohnort_land].filter(Boolean).join(', ')))}</div>` : ''}
     ${(p.email || p.telefon || p.facebook || p.instagram) ? `<div class="info-zeile"><strong>${t('reg_kontakt')}:</strong> ${escapeHtml([p.email, p.telefon, p.facebook, p.instagram].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.beschreibung ? `<div class="info-zeile"><strong>${t('pe_beschreibung')}:</strong> ${escapeHtml(p.beschreibung)}</div>` : ''}
 
