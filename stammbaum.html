@@ -2318,7 +2318,11 @@ async function sendeRegistrierAnfrage() {
   button.disabled = true;
   button.textContent = t('reg_senden_laeuft');
 
+  // ID clientseitig erzeugen: So brauchen wir KEIN .select() nach dem Insert
+  // (das würde ein RETURNING/SELECT auslösen, das anon per RLS nicht lesen darf -> 42501).
+  const anfrageId = (crypto.randomUUID ? crypto.randomUUID() : ('' + Date.now() + Math.random()));
   const anfrage = {
+    id:             anfrageId,
     email,
     familie_id,
     rolle,
@@ -2339,8 +2343,8 @@ async function sendeRegistrierAnfrage() {
     status:         'offen'
   };
 
-  const { data, error } = await sbClient
-    .from('registrierungs_anfragen').insert(anfrage).select('id').single();
+  const { error } = await sbClient
+    .from('registrierungs_anfragen').insert(anfrage);   // KEIN .select() -> return=minimal
 
   if (error) {
     button.disabled = false;
@@ -2354,7 +2358,7 @@ async function sendeRegistrierAnfrage() {
   // Admins per E-Mail benachrichtigen (Edge Function). Schlägt der Versand fehl,
   // ist die Anfrage trotzdem gespeichert und für Admins sichtbar -> nicht kritisch.
   try {
-    await sbClient.functions.invoke('anfrage-senden', { body: { id: data.id } });
+    await sbClient.functions.invoke('anfrage-senden', { body: { id: anfrageId } });
   } catch (e) {
     console.warn('Benachrichtigung fehlgeschlagen:', e);
   }
