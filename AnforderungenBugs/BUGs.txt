@@ -1,0 +1,133 @@
+1. BUG Prompt: Dropdown „Porodica“ im Overlay „Upravljanje članovima“ zeigt unvollständige Familienliste
+
+Problembeschreibung
+
+Im Overlay „Upravljanje članovima“ ist das Dropdown-Feld „Porodica“ fehlerhaft implementiert.
+
+Obwohl der Benutzer als Super Admin angemeldet ist, werden im Dropdown nur folgende Familien angezeigt:
+
+Vidovic
+Petrovic
+Testeric
+
+Dies entspricht nicht der erwarteten Datenbasis.
+
+Erwartetes Verhalten
+
+Das Dropdown „Porodica“ muss alle Familien anzeigen, auf die der aktuelle Benutzer mindestens eine der folgenden Berechtigungen besitzt:
+
+super_admin → Zugriff auf alle Familien
+familien_owner → Zugriff auf alle zugewiesenen Familien
+familien_admin → Zugriff auf alle verwalteten Familien
+
+➡️ Ergebnis: Der Benutzer soll eine vollständige Liste aller relevanten Familien sehen, nicht nur eine Teilmenge.
+
+Mögliche Ursachen (zu prüfen)
+Falscher API-Filter (z. B. nur „aktive“ oder „zugewiesene“ Familien statt berechtigungsbasierter Abfrage)
+Caching alter Rollen-/Rechtestruktur
+Frontend filtert Dropdown-Einträge zusätzlich unnötig
+Super-Admin wird nicht korrekt als „global access“ behandelt
+Query basiert auf User-Relation statt Role-Based Access Control
+Anforderungen an die Korrektur
+1. Backend / API Logik
+Wenn User super_admin ist:
+→ alle Familien ohne Einschränkung laden
+Wenn User familien_owner oder familien_admin ist:
+→ alle zugewiesenen Familien laden
+Keine harte Limitierung auf einzelne Familiennamen
+2. Frontend Dropdown Logik
+Dropdown darf keine zusätzliche Filterung durchführen
+Alle vom Backend gelieferten Familien müssen angezeigt werden
+Sortierung optional alphabetisch
+3. Berechtigungsprüfung
+Einheitliche zentrale Funktion verwenden:
+getAccessibleFamilies(userId)
+Diese Funktion muss alle Rollen korrekt berücksichtigen
+Erwartetes Ergebnis
+Super Admin sieht wirklich alle Familien
+Familien Owner/Admin sehen alle ihnen zugeordneten Familien
+Dropdown „Porodica“ im Overlay Upravljanje članovima ist vollständig und korrekt synchronisiert mit Berechtigungen
+Keine fehlenden oder versteckten Familien mehr
+Testfälle
+Login als Super Admin → alle Familien sichtbar
+Login als Familien Owner → nur zugewiesene Familien sichtbar
+Login als Familien Admin → nur verwaltete Familien sichtbar
+Vergleich Backend Response vs Dropdown UI
+Sicherstellen, dass keine Frontend-Filterung Daten entfernt
+Test auf Android, iOS und Desktop
+Ziel
+
+Das Dropdown „Porodica“ soll jederzeit eine vollständige, berechtigungsbasierte Liste aller zugänglichen Familien anzeigen und keine künstliche Einschränkung durch UI- oder Backend-Fehler enthalten.
+
+BUG 2 BUG Prompt: Real-Time Updates für „Obavještenje“ (Live Notifications ohne Reload)
+
+Problembeschreibung
+
+Im aktuellen System werden neue Einträge im Bereich „Obavještenje“ (Benachrichtigungen) nicht in Echtzeit angezeigt, wenn der Benutzer bereits in einer aktiven Session ist.
+
+👉 Aktuell erforderlich:
+
+User muss die Seite manuell neu laden (F5), damit neue Benachrichtigungen sichtbar werden
+
+👉 Erwartetes Verhalten:
+
+Neue Obavještenje sollen sofort in der UI erscheinen, ohne Reload
+Ziel
+
+Implementiere ein Live-Update-System, sodass neue Benachrichtigungen automatisch in der Oberfläche erscheinen, während der User aktiv eingeloggt ist.
+
+Anforderungen
+1. Echtzeit-Update Mechanismus
+
+Die Anwendung muss neue Obavještenje automatisch empfangen und darstellen über:
+
+WebSocket (bevorzugt) oder
+Server-Sent Events (SSE) oder
+Polling als Fallback (z. B. alle 10–15 Sekunden)
+2. UI-Verhalten
+
+Sobald eine neue Benachrichtigung eintrifft:
+
+sofort im Obavještenje-Feed anzeigen
+visuell markieren als:
+„neu“
+Highlight (z. B. Hintergrundfarbe oder Badge)
+optional Animation (fade-in / slide-in)
+3. Counter / Badge Update
+Notification-Zähler im Header / Icon muss sich live aktualisieren
+keine Verzögerung bis zum Reload
+4. Verhalten bei aktiver Session
+User bleibt auf derselben Seite
+keine Navigation oder Reload
+nur UI-Update der Liste
+Technische Anforderungen
+Backend
+Endpoint oder Channel für neue Obavještenje Events
+Push-Mechanismus bei:
+neuer Anfrage
+Statusänderung
+Admin-Aktion
+Frontend
+Subscription auf Notification Stream
+State-Update ohne Full Reload
+Deduplication (keine doppelten Einträge)
+Edge Cases
+User hat mehrere Tabs offen → Synchronisation zwischen Tabs
+User wechselt zwischen Seiten → Notifications bleiben erhalten
+Netzwerkunterbruch → Reconnect + Sync fehlender Notifications
+Nach Login → initiales Laden + danach Live-Stream aktiv
+Qualitätssicherung
+Neue Anfrage kommt rein → erscheint sofort im UI
+Kein F5 nötig
+Counter aktualisiert sich live
+Mehrere Tabs zeigen konsistente Daten
+Funktioniert auf:
+Android
+iOS
+Desktop (Edge/Chrome)
+Kein Duplikat-Rendering
+Erwartetes Ergebnis
+
+Das System von „Obavještenje“ wird in Echtzeit aktualisiert. Benutzer sehen neue Benachrichtigungen sofort in der UI, ohne die Seite neu laden zu müssen. Dadurch entsteht ein modernes, chat-ähnliches Live-Erlebnis innerhalb der Anwendung.
+
+BUG 3

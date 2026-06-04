@@ -1,0 +1,529 @@
+1. Feature-Erweiterung: Aktivierung des bestehenden Buttons „Podešavanje porodice“
+
+## Ausgangssituation
+
+Der Button **„Podešavanje porodice“** ist bereits in den Einstellungen vorhanden, jedoch aktuell ausgegraut bzw. ohne Funktion. Dieser Button soll nun vollständig implementiert und mit den entsprechenden Funktionen verbunden werden.
+
+---
+
+## Ziel
+
+Der bestehende Button **„Podešavanje porodice“** soll aktiviert werden und als zentrale Verwaltungsstelle für Stammdaten eines Stammbaums dienen.
+
+Beim Klick auf den Button sollen Familien-Administratoren, Familien-Owner und Super-Admins die Stammdaten ihrer Familien verwalten können.
+
+---
+
+## Verhalten beim Klick
+
+### Fall 1: Benutzer verwaltet genau einen Stammbaum
+
+Beim Klick auf **„Podešavanje porodice“** öffnet sich direkt das Overlay zur Bearbeitung dieses Stammbaums.
+
+### Fall 2: Benutzer verwaltet mehrere Stammbäume
+
+Wenn der Benutzer Administrator oder Owner mehrerer Stammbäume ist, soll zunächst ein Auswahl-Overlay erscheinen:
+
+**„Welchen Stammbaum möchten Sie bearbeiten?“**
+
+Anschließend werden alle Stammbäume angezeigt, für die der Benutzer Verwaltungsrechte besitzt.
+
+Beispiel:
+
+* Vidović
+* Knežević
+* Petrović
+
+Nach Auswahl eines Stammbaums öffnet sich das entsprechende Bearbeitungs-Overlay.
+
+---
+
+2. Overlay „Podešavanje porodice“
+
+Folgende Informationen sollen gespeichert und bearbeitet werden können:
+
+### Allgemeine Informationen
+
+* Familienname / Stammbaumname
+* Beschreibung der Familie
+* Herkunftsland
+* Bundesland / Region
+* Gemeinde
+* Stadt
+* Dorf (optional)
+
+### Familieninformationen
+
+* Familiengeschichte
+* Ursprung der Familie
+* Historischer Hintergrund
+* Bedeutende Ereignisse
+* Bekannte Familienmitglieder
+* Familienmotto
+
+### Medien
+
+* Familienfoto hochladen
+* Familienwappen hochladen
+
+### Kontaktinformationen
+
+* Ansprechpartner
+* Kontakt-E-Mail
+* Webseite (optional)
+
+---
+
+## Benutzeroberfläche
+
+* Modernes Overlay-Design analog zu den übrigen Einstellungen.
+* Vollständige Mehrsprachigkeit.
+* Mobile Optimierung für Android und iOS.
+* Responsive Darstellung auf Desktop-Geräten.
+* Scrollbarer Inhalt bei längeren Eingaben.
+
+Buttons:
+
+* Speichern
+* Abbrechen
+
+---
+
+## Datenbank
+
+Für jeden Stammbaum soll ein eigener Datensatz angelegt bzw. aktualisiert werden.
+
+Alle Änderungen müssen dauerhaft gespeichert und beim erneuten Öffnen automatisch geladen werden.
+
+---
+
+## Berechtigungen
+
+### familien_admin
+
+Darf ausschließlich Stammbäume bearbeiten, für die er Administratorrechte besitzt.
+
+### familien_owner
+
+Darf Stammdaten aller ihm zugewiesenen Stammbäume bearbeiten.
+
+### super_admin
+
+Darf sämtliche Stammbäume der Anwendung bearbeiten.
+
+### familien_mitglied
+
+Der Button bleibt sichtbar, jedoch deaktiviert oder es erscheint ein Hinweis, dass keine Berechtigung zur Bearbeitung vorhanden ist.
+
+---
+
+## Technische Anforderungen
+
+* Den bereits vorhandenen, ausgegrauten Button aktivieren.
+* Vorhandene UI-Komponente weiterverwenden und mit echter Funktionalität verbinden.
+* Keine neue Schaltfläche erstellen.
+* Bestehende Designrichtlinien der Anwendung beibehalten.
+* Berechtigungen bereits beim Öffnen prüfen.
+
+---
+
+## Qualitätssicherung
+
+1. Prüfen, dass der bisher inaktive Button nun korrekt reagiert.
+2. Öffnen des Overlays funktioniert für berechtigte Benutzer.
+3. Auswahl eines Stammbaums funktioniert bei mehreren Administrationsrechten.
+4. Speichern und erneutes Laden der Daten funktioniert korrekt.
+5. Upload von Bildern funktioniert.
+6. Mehrsprachigkeit wird berücksichtigt.
+7. Tests auf Android, iOS und Edge durchführen.
+
+## Erwartetes Ergebnis
+
+Der bereits vorhandene Button **„Podešavanje porodice“** wird vollständig aktiviert und dient als zentrale Verwaltungsoberfläche für Stammdaten eines oder mehrerer Stammbäume. Berechtigte Benutzer können Familieninformationen, Herkunftsdaten, Historie und Medien pflegen, ohne dass zusätzliche Menüpunkte oder neue Buttons erforderlich sind.
+
+Feature / Bugfix Prompt: Validierung aller E-Mail-Felder (Global Email Format Check)
+
+Ziel
+
+In der gesamten Anwendung müssen alle E-Mail-Felder verpflichtend auf ein korrektes E-Mail-Format validiert werden, um fehlerhafte Eingaben zu verhindern und Datenqualität sicherzustellen.
+
+Scope (wo gilt die Regel)
+
+
+3. Die Validierung muss für alle E-Mail-Eingabefelder in der gesamten Anwendung gelten, insbesondere:
+
+Login / Registrierung
+Benutzerverwaltung
+„Upravljanje članovima“
+Anfrage-Formulare (Zatraži pristup)
+Familien-/Stammbaum-Einstellungen
+Admin Panels
+Account–Namenskarte Verknüpfung
+Kontaktfelder innerhalb der Familienstruktur
+Validierungsregel
+
+Jede E-Mail muss folgendes Format erfüllen:
+
+enthält genau ein @
+enthält einen gültigen Domain-Teil (z. B. domain.com)
+keine Leerzeichen
+mindestens ein Punkt im Domain-Teil
+keine ungültigen Sonderzeichen außerhalb erlaubter E-Mail-Syntax
+Beispiele
+✅ gültig
+user@gmail.com
+name.surname@domain.at
+test_user@sub.domain.com
+❌ ungültig
+usergmail.com (kein @)
+user@domain (kein TLD)
+user@@domain.com (doppelt @)
+user@ domain.com (Leerzeichen)
+user@domain..com (ungültig)
+UI/UX Verhalten
+
+Wenn eine ungültige E-Mail eingegeben wird:
+
+sofortige Fehlermeldung unter dem Feld:
+„Bitte geben Sie eine gültige E-Mail-Adresse ein.“
+Feld wird visuell markiert (rot / error state)
+Formular darf nicht abgesendet werden
+Fokus bleibt im fehlerhaften Feld
+
+Optional:
+
+Live-Validation (während der Eingabe)
+Backend Validation (Pflicht)
+
+Zusätzlich zur Frontend-Validierung:
+
+Backend MUSS ebenfalls E-Mail-Format prüfen
+niemals nur Frontend-Validation vertrauen
+fehlerhafte Requests müssen abgelehnt werden (HTTP 400)
+Technische Anforderungen
+zentrale Validierungsfunktion verwenden:
+isValidEmail(email: string): boolean
+keine doppelten Implementierungen in einzelnen Komponenten
+einheitliche Regex / Validator-Logik
+
+Beispiel (logische Regel, nicht binding):
+
+RFC-konforme vereinfachte Email-Regex
+Qualitätssicherung
+Test mit allen Formularen mit E-Mail-Feldern
+Eingabe ungültiger E-Mails → Fehler wird angezeigt
+Validierung verhindert Submit
+Backend lehnt ungültige E-Mails ab
+Validierung funktioniert auf:
+Android
+iOS
+Desktop (Edge/Chrome)
+Edge Cases testen (Leerzeichen, Sonderzeichen, doppelte @)
+Erwartetes Ergebnis
+
+Alle E-Mail-Felder in der Anwendung sind konsistent validiert. Benutzer können nur korrekt formatierte E-Mail-Adressen eingeben, wodurch Datenfehler, Login-Probleme und fehlerhafte Benutzerzuweisungen verhindert werden.
+
+4. Feature-Prompt: Umbenennung „Bracno Prezime“ → „Djevojačko Prezime“ + Anzeige im Stammbaum
+
+Ziel
+
+Das bestehende Feld „Bracno Prezime“ soll systemweit umbenannt und funktional erweitert werden zu:
+
+👉 „Djevojačko Prezime“ (Mädchenname)
+
+Zusätzlich soll dieser Wert, sobald er befüllt ist, direkt sichtbar in der Namenskarte im Stammbaum angezeigt werden.
+
+1. UI-Änderung (Umbenennung)
+Globale Anpassung:
+Alle Labels, Formulare und Overlays:
+„Bracno Prezime“ → „Djevojačko Prezime“
+Betroffene Bereiche:
+Namenskarte (Person Card)
+„Upravljanje članovima“
+Stammdaten / Edit-Overlays
+Anfrage-Formulare (Zatraži pristup)
+Admin Panels
+2. Funktionale Erweiterung
+Verhalten des Feldes
+Feld bleibt optional
+Wenn ausgefüllt:
+wird es als „Mädchenname“ gespeichert
+Wenn leer:
+keine Anzeige im Stammbaum
+3. Anzeige im Stammbaum (Namenskarte)
+Neues Verhalten:
+
+Sobald Djevojačko Prezime vorhanden ist, wird es:
+
+direkt auf der Namenskarte angezeigt
+visuell unter dem Hauptnamen dargestellt
+Beispiel Darstellung:
+
+Milan Petrović
+(Djevojačko Prezime: Vidović)
+
+Oder kompakter:
+
+Milan Petrović (Vidović)
+4. UI/UX Regeln
+Anzeige nur wenn Feld nicht leer ist
+kleinere, sekundäre Schrift (de-emphasized)
+darf nicht den Hauptnamen ersetzen
+responsive Darstellung für:
+Android
+iOS
+Desktop
+5. Datenmodell
+
+Kein neues Feld erforderlich, nur Umbenennung:
+
+{
+  "firstName": "Ana",
+  "lastName": "Petrović",
+  "maidenName": "Vidović"
+}
+6. Migration / Bestandsdaten
+Bestehende Daten aus „Bracno Prezime“ müssen migriert werden
+1:1 Mapping:
+Bracno Prezime → Djevojačko Prezime
+Keine Datenverluste zulässig
+7. Qualitätssicherung
+Alle Labels korrekt umbenannt
+Alte Bezeichnung ist vollständig entfernt
+Mädchenname wird korrekt gespeichert
+Anzeige erscheint nur bei vorhandenen Daten
+Darstellung korrekt im Stammbaum (Namenskarte)
+Migration bestehender Daten erfolgreich
+Test auf Android, iOS, Desktop
+Erwartetes Ergebnis
+
+Das Feld „Bracno Prezime“ wird vollständig durch „Djevojačko Prezime“ ersetzt. Sobald ein Mädchenname eingetragen ist, wird dieser automatisch und sauber in der Namenskarte im Stammbaum angezeigt, ohne den Hauptnamen zu überschreiben.
+
+Feature Nr. 5: Umstellung Anfrage-Bearbeitung auf App-only über bestehendes „Obavještenje“
+Ziel
+
+Die bisherige Möglichkeit, Anfragen direkt per E-Mail zu akzeptieren oder abzulehnen, wird vollständig entfernt.
+
+Stattdessen gilt:
+👉 E-Mail = nur Benachrichtigung
+👉 Entscheidung = ausschließlich in der App über bestehendes „Obavještenje“
+
+1. Entfernte Funktion
+❌ Komplett deaktivieren:
+„Annehmen“ / „Ablehnen“ Buttons in E-Mails
+jede Art von Action-Link zur Statusänderung
+externe Bearbeitung von Anfragen außerhalb der App
+2. Neue E-Mail Logik (nur Notification)
+
+Wenn eine neue Anfrage eingeht:
+
+Der Admin erhält eine E-Mail mit:
+
+Hinweis: „Neue Anfrage eingegangen“
+Kontext:
+Familie / Stammbaum
+anfragende Person
+Button / Link:
+
+👉 „App öffnen“
+
+3. Deep Link Verhalten
+
+Der Link in der E-Mail:
+
+Flow:
+Öffnet App
+Falls nicht eingeloggt → Login
+Danach automatische Navigation zu:
+
+👉 bestehendem Bereich „Obavještenje“
+
+4. Nutzung von bestehendem „Obavještenje“
+
+Da das System bereits korrekt existiert:
+
+keine neue UI bauen
+keine neue Struktur wie „Obavještenje2“ nötig
+bestehende Liste / Inbox bleibt unverändert
+5. Neue Anforderung im „Obavještenje“-Bereich
+
+Innerhalb der bestehenden UI:
+
+neue Anfrage erscheint als unbearbeitet / pending
+klare Kennzeichnung (z. B. Badge „NEW“ oder Highlight)
+Admin kann dort:
+Anfrage öffnen
+Details prüfen
+Entscheidung treffen:
+✔ akzeptieren
+❌ ablehnen
+6. Berechtigungen
+
+Nur folgende Rollen dürfen Anfragen im „Obavještenje“ bearbeiten:
+
+familien_admin
+familien_owner
+super_admin
+7. Technische Anpassungen
+E-Mail-System
+Entferne alle Action-Endpoints für:
+accept
+reject
+Nur noch:
+notification + deep link
+Routing
+Deep Link muss direkt in:
+bestehende Obavještenje-Ansicht
+spezifische Anfrage (optional anchor / ID)
+8. Verhalten bei Login über Link
+User landet nach Login direkt im relevanten Obavještenje-Eintrag
+Anfrage wird dort hervorgehoben
+9. Qualitätssicherung
+E-Mail enthält keine Action-Buttons mehr
+Link öffnet korrekt die App
+Login Redirect funktioniert
+User landet im bestehenden Obavještenje
+Anfrage ist sichtbar und korrekt markiert
+Entscheidung nur in der App möglich
+Test auf Android, iOS, Desktop
+Erwartetes Ergebnis
+
+E-Mail dient ausschließlich als Benachrichtigungssystem. Die gesamte Anfragebearbeitung ist zentral im bestehenden „Obavještenje“ in der App gebündelt, wodurch ein konsistenter, sicherer und nachvollziehbarer Workflow entsteht.
+
+Feeature 6 
+---
+# Neues Feature: Intelligente Dubletten- und Verknüpfungserkennung
+
+## Ziel
+
+Die Anwendung soll künftig automatisch erkennen, wenn eine Person möglicherweise bereits in einem anderen Stammbaum existiert.
+
+Dadurch sollen doppelte Stammbäume und doppelte Personen vermieden werden.
+
+## Prüfkriterien
+
+Beim Anlegen einer Person oder eines neuen Stammbaums soll automatisch geprüft werden:
+
+* Vorname
+* Nachname
+* Geburtsdatum
+* Land
+
+Optional zusätzlich:
+
+* Geburtsort
+* Sterbedatum
+
+---
+
+## Mögliche Treffer
+
+Wenn eine Übereinstimmung gefunden wird:
+
+### Beispiel
+
+Neue Person:
+
+* Vorname: Mićo
+* Nachname: Dujković
+* Geburtsdatum: 01.01.1950
+* Land: Bosnien und Herzegowina
+
+
+
+
+Existiert bereits im Stammbaum Vidović.
+
+
+
+---
+
+## Benutzerhinweis
+
+Anzeige eines Dialogs:
+
+„Möglicherweise existiert diese Person bereits in einem anderen Stammbaum.“
+
+Gefundene Übereinstimmungen anzeigen.
+
+---
+
+## Benutzeroptionen
+
+### Option 1
+
+„Trotzdem neue Person anlegen“
+
+→ System verhält sich wie bisher.
+
+### Option 2
+
+„Verknüpfung anfragen“
+
+→ Benutzer möchte beide Stammbäume verbinden.
+
+---
+
+## Genehmigungsprozess
+
+Eine Verknüpfung darf niemals automatisch erfolgen.
+
+Der Administrator bzw. Familien-Owner des betroffenen Stammbaums muss zustimmen.
+
+---
+
+## Ablauf
+
+1. Benutzer beantragt Verknüpfung.
+2. Anfrage wird erstellt.
+3. Anfrage erscheint im bestehenden Bereich „Obavještenje“.
+4. Verantwortlicher Admin erhält Benachrichtigung.
+5. Admin kann die Anfrage öffnen.
+
+---
+
+## Vorschau vor Entscheidung
+
+Der Admin soll vor der Freigabe sehen können:
+
+* betroffene Person
+* Herkunftsstammbaum
+* Zielstammbaum
+* Familienstruktur des Antragstellers
+* Vorschau der zu verbindenden Personen
+
+Dadurch kann geprüft werden, ob die Verknüpfung sinnvoll ist.
+
+---
+
+## Entscheidung
+
+### Genehmigen
+
+* Stammbäume werden verknüpft
+* Beziehungen werden erstellt
+* Daten bleiben erhalten
+
+### Ablehnen
+
+* Keine Änderung
+* Antragsteller erhält Benachrichtigung
+
+---
+
+## Benachrichtigungssystem
+
+Die gesamte Logik soll über das bereits vorhandene System „Obavještenje“ laufen.
+
+Es sollen keine E-Mail-Bestätigungen oder externen Freigaben verwendet werden.
+
+E-Mails dienen ausschließlich zur Information über neue offene Anfragen.
+
+---
+
+## Erwartetes Ergebnis
+
+Die Anwendung erkennt künftig mögliche Doppelanlagen von Personen oder Familien frühzeitig. Benutzer können eine Verknüpfung beantragen, während der zuständige Familien-Admin oder Familien-Owner die finale Entscheidung über das bestehende Obavještenje-System trifft. Dadurch entstehen langfristig weniger Dubletten und ein sauber vernetztes Familienbaum-System.
+
+Feature 7
+

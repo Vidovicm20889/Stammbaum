@@ -1747,13 +1747,14 @@ function renderMitglieder() {
     // Owner ist geschützt: keine Rollenänderung/Deaktivierung/Entfernung über die GUI.
     const istOwner = m.rolle === 'familien_owner';
     return `
-    <div class="mv-row${m.aktiv ? '' : ' inaktiv'}">
+    <div class="mv-row${m.aktiv ? '' : ' inaktiv'}" id="mv-row-${m.user_id}">
       <span class="mv-email">${m.name ? `<strong>${escapeHtml(m.name)}</strong> · ` : ''}${escapeHtml(m.email)}${m.aktiv ? '' : ` <span class="mv-status">${escapeHtml(t('mv_inaktiv'))}</span>`}</span>
       ${istOwner ? `<span class="mv-rolle-text">${escapeHtml(t('rolle_familien_owner'))}</span>` : `
       <select onchange="aendereRolle('${m.mitgliedschaft_id}', this.value)">
         <option value="familien_mitglied" ${m.rolle === 'familien_mitglied' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_mitglied'))}</option>
         <option value="familien_admin" ${m.rolle === 'familien_admin' ? 'selected' : ''}>${escapeHtml(t('rolle_familien_admin'))}</option>
       </select>
+      <button class="mv-toggle" type="button" title="${escapeHtml(t('mv_verknuepfung'))}" onclick="mvVerknuepfungStart('${m.user_id}','${m.familie_id}')">🔗</button>
       <button class="mv-toggle" onclick="toggleAktiv('${m.mitgliedschaft_id}', ${m.aktiv ? 'false' : 'true'})">${escapeHtml(m.aktiv ? t('mv_deaktivieren') : t('mv_aktivieren'))}</button>
       <button class="mv-del" onclick="entferneMitglied('${m.mitgliedschaft_id}','${escapeHtml(m.email)}')">${escapeHtml(t('mv_entfernen'))}</button>`}
     </div>`;
@@ -1767,6 +1768,44 @@ function zeigeMvInfo(msg) {
   const el = document.getElementById('mv-info');
   el.textContent = msg; el.style.display = 'block';
   setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+// Verknüpfung Konto <-> Namenskarte ändern/entfernen (Inline-Editor in der Zeile)
+async function mvVerknuepfungStart(userId, familieId) {
+  const row = document.getElementById('mv-row-' + userId); if (!row) return;
+  row.innerHTML = `<span class="mv-email">…</span>`;
+  const [pRes, vRes] = await Promise.all([
+    sbClient.rpc('personen_fuer_verknuepfung', { p_familie: familieId }),
+    sbClient.rpc('verknuepfte_person', { p_user: userId })
+  ]);
+  const personen = pRes.error ? [] : (pRes.data || []);
+  const aktuell  = vRes.error ? null : vRes.data;
+  const opts = personen.map(p =>
+    `<option value="${escapeHtml(p.id)}" ${p.id === aktuell ? 'selected' : ''}>${escapeHtml(nm(p.name))}</option>`).join('');
+  row.innerHTML = `
+    <label class="login-label" style="margin:0;flex:1;min-width:160px"><span>${escapeHtml(t('obav_person_label'))}</span>
+      <select id="mv-verkn-sel-${userId}" class="login-feld">
+        <option value="">${escapeHtml(t('obav_ohne_person'))}</option>${opts}</select></label>
+    <button class="mv-toggle" type="button" onclick="mvVerknuepfungSpeichern('${userId}')">${escapeHtml(t('event_save'))}</button>
+    <button class="mv-del" type="button" onclick="mvVerknuepfungEntfernen('${userId}')">${escapeHtml(t('mv_verkn_entfernen'))}</button>
+    <button class="mv-toggle" type="button" onclick="renderMitglieder()">${escapeHtml(t('event_cancel'))}</button>`;
+  macheAlleSelectsSuchbar(row);
+}
+async function mvVerknuepfungSpeichern(userId) {
+  const sel = document.getElementById('mv-verkn-sel-' + userId);
+  const personId = sel ? (sel.value || null) : null;
+  const res = personId
+    ? await sbClient.rpc('person_user_verknuepfen', { p_person: personId, p_user: userId })
+    : await sbClient.rpc('person_user_loesen', { p_user: userId });
+  if (res.error) { zeigeMvFehler(res.error.message); return; }
+  zeigeMvInfo(t('mv_aktualisiert'));
+  await ladeMitglieder();
+}
+async function mvVerknuepfungEntfernen(userId) {
+  const res = await sbClient.rpc('person_user_loesen', { p_user: userId });
+  if (res.error) { zeigeMvFehler(res.error.message); return; }
+  zeigeMvInfo(t('mv_aktualisiert'));
+  await ladeMitglieder();
 }
 
 // Schreiboperationen laufen über SECURITY-DEFINER-RPCs (verlässlich trotz RLS).
@@ -1937,8 +1976,9 @@ async function obavAkzeptierenStart(id, familieId) {
     <label class="login-label" style="margin-top:0;width:100%"><span>${escapeHtml(t('obav_person_label'))}</span>
       <select id="obav-person-${id}" class="login-feld">
         <option value="">${escapeHtml(t('obav_ohne_person'))}</option>${opts}</select></label>
-    <div style="display:flex;gap:10px;margin-top:8px">
+    <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
       <button class="mv-toggle" type="button" onclick="obavAkzeptierenBestaetigen('${id}')">${escapeHtml(t('obav_akzeptieren'))}</button>
+      <button class="mv-toggle" type="button" onclick="obavNeueKarteStart('${id}','${familieId}')">＋ ${escapeHtml(t('obav_neue_karte'))}</button>
       <button class="mv-del" type="button" onclick="renderObavListe()">${escapeHtml(t('event_cancel'))}</button>
     </div>`;
   macheAlleSelectsSuchbar(akt);
@@ -1946,6 +1986,44 @@ async function obavAkzeptierenStart(id, familieId) {
 function obavAkzeptierenBestaetigen(id) {
   const sel = document.getElementById('obav-person-' + id);
   anfrageEntscheiden(id, 'bestaetigen', sel ? (sel.value || null) : null);
+}
+
+// Option 2 bei der Genehmigung: eine NEUE Namenskarte anlegen und damit verknüpfen
+async function obavNeueKarteStart(id, familieId) {
+  const karte = document.getElementById('obav-' + id); if (!karte) return;
+  const akt = karte.querySelector('.obav-aktionen');
+  akt.innerHTML = `<div class="event-media-empty">…</div>`;
+  const { data, error } = await sbClient.rpc('stammbaeume_der_familie', { p_familie: familieId });
+  const baeume = error ? [] : (data || []);
+  const baumOpts = baeume.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name))}</option>`).join('');
+  const a = (offeneAnfragenCache || []).find(x => x.id === id) || {};
+  akt.innerHTML = `
+    <div class="kosten-form" style="margin-top:0">
+      <input type="text" id="nk-vorname-${id}" class="login-feld" placeholder="${escapeHtml(t('reg_vorname'))}" value="${escapeHtml(a.vorname || '')}">
+      <input type="text" id="nk-nachname-${id}" class="login-feld" placeholder="${escapeHtml(t('reg_nachname'))}" value="${escapeHtml(a.nachname || '')}">
+      <input type="text" id="nk-geburt-${id}" class="login-feld dp-input voll" placeholder="${escapeHtml(t('reg_geburtsdatum'))}" value="${escapeHtml(a.geburtsdatum || '')}">
+      <label class="login-label voll" style="margin-top:0"><span>${escapeHtml(t('nk_stammbaum'))}</span>
+        <select id="nk-baum-${id}" class="login-feld">${baumOpts}</select></label>
+      <div class="voll" style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="mv-toggle" type="button" onclick="obavNeueKarteBestaetigen('${id}')">${escapeHtml(t('obav_akzeptieren'))}</button>
+        <button class="mv-del" type="button" onclick="obavAkzeptierenStart('${id}','${familieId}')">${escapeHtml(t('event_cancel'))}</button>
+      </div>
+    </div>`;
+  macheAlleSelectsSuchbar(akt);
+  macheAlleDatumsfelder(akt);
+}
+async function obavNeueKarteBestaetigen(id) {
+  const vor  = (document.getElementById('nk-vorname-' + id)?.value || '').trim();
+  const nach = (document.getElementById('nk-nachname-' + id)?.value || '').trim();
+  const baum = document.getElementById('nk-baum-' + id)?.value || null;
+  const geb  = datumWert(document.getElementById('nk-geburt-' + id)) || null;
+  if (!vor && !nach) { await zeigeHinweis(t('reg_pflicht')); return; }
+  if (!baum) { await zeigeHinweis(t('nk_stammbaum')); return; }
+  const { data: personId, error } = await sbClient.rpc('namenskarte_anlegen', {
+    p_stammbaum: baum, p_vorname: vor, p_nachname: nach, p_geburtsdatum: geb
+  });
+  if (error || !personId) { await zeigeHinweis(t('reg_fehler') + (error ? error.message : '')); return; }
+  anfrageEntscheiden(id, 'bestaetigen', personId);   // neue Karte direkt verknüpfen
 }
 
 async function anfrageEntscheiden(id, aktion, personId = null) {
@@ -3039,6 +3117,12 @@ const TEXTE = {
     obav_abgelehnt: 'Anfrage abgelehnt. Die Person erhält eine E-Mail.',
     obav_person_label: 'Person im Stammbaum (Rechte entlang der Blutlinie)',
     obav_ohne_person: 'Ohne Verknüpfung',
+    obav_neue_karte: 'Neue Namenskarte erstellen',
+    obav_bestehende_karte: 'Bestehende Karte',
+    mv_verknuepfung: 'Verknüpfung',
+    mv_verkn_entfernen: 'Verknüpfung entfernen',
+    nk_stammbaum: 'Stammbaum',
+    kein_konto: 'Kein Account verbunden',
     admin_familieneinst: 'Familieneinstellungen (bald)',
     admin_weitere: 'Weitere Admin-Funktionen (bald)',
     ma_info: 'Lege ein neues Mitglied an. Es erhält eine Einladungs-E-Mail mit einem Link, um ein eigenes Passwort zu setzen.',
@@ -3311,6 +3395,12 @@ const TEXTE = {
     obav_abgelehnt: 'Захтев одбијен. Особа ће добити имејл.',
     obav_person_label: 'Особа у стаблу (права дуж крвне линије)',
     obav_ohne_person: 'Без повезивања',
+    obav_neue_karte: 'Направи нову картицу',
+    obav_bestehende_karte: 'Постојећа картица',
+    mv_verknuepfung: 'Повезивање',
+    mv_verkn_entfernen: 'Уклони повезивање',
+    nk_stammbaum: 'Стабло',
+    kein_konto: 'Нема повезаног налога',
     admin_familieneinst: 'Подешавања породице (ускоро)',
     admin_weitere: 'Остале админ-функције (ускоро)',
     ma_info: 'Направи новог члана. Добиће имејл са линком да постави сопствену лозинку.',
@@ -3586,6 +3676,12 @@ const TEXTE = {
     obav_abgelehnt: 'Zahtjev odbijen. Osoba će dobiti e-mail.',
     obav_person_label: 'Osoba u stablu (prava uz krvnu liniju)',
     obav_ohne_person: 'Bez povezivanja',
+    obav_neue_karte: 'Izradi novu karticu',
+    obav_bestehende_karte: 'Postojeća kartica',
+    mv_verknuepfung: 'Povezivanje',
+    mv_verkn_entfernen: 'Ukloni povezivanje',
+    nk_stammbaum: 'Stablo',
+    kein_konto: 'Nema povezanog računa',
     admin_familieneinst: 'Postavke obitelji (uskoro)',
     admin_weitere: 'Ostale admin funkcije (uskoro)',
     ma_info: 'Izradi novog člana. Dobit će e-mail s poveznicom da postavi vlastitu lozinku.',
@@ -3858,6 +3954,12 @@ const TEXTE = {
     obav_abgelehnt: 'Zahtjev odbijen. Osoba će dobiti e-mail.',
     obav_person_label: 'Osoba u stablu (prava uz krvnu liniju)',
     obav_ohne_person: 'Bez povezivanja',
+    obav_neue_karte: 'Napravi novu karticu',
+    obav_bestehende_karte: 'Postojeća kartica',
+    mv_verknuepfung: 'Povezivanje',
+    mv_verkn_entfernen: 'Ukloni povezivanje',
+    nk_stammbaum: 'Stablo',
+    kein_konto: 'Nema povezanog računa',
     admin_familieneinst: 'Postavke porodice (uskoro)',
     admin_weitere: 'Ostale admin funkcije (uskoro)',
     ma_info: 'Kreiraj novog člana. Dobit će e-mail s linkom da postavi vlastitu lozinku.',
@@ -4127,6 +4229,12 @@ const TEXTE = {
     obav_abgelehnt: 'Request rejected. The person will receive an email.',
     obav_person_label: 'Person in the tree (rights along the bloodline)',
     obav_ohne_person: 'Without linking',
+    obav_neue_karte: 'Create new name card',
+    obav_bestehende_karte: 'Existing card',
+    mv_verknuepfung: 'Link',
+    mv_verkn_entfernen: 'Remove link',
+    nk_stammbaum: 'Family tree',
+    kein_konto: 'No account linked',
     admin_familieneinst: 'Family settings (soon)',
     admin_weitere: 'More admin functions (soon)',
     ma_info: 'Create a new member. They receive an invitation email with a link to set their own password.',
@@ -4379,7 +4487,7 @@ function zeichneBaumNeu() {
 // ============================================================
 async function ladeBaumAusSupabase() {
   const [pRes, bRes, sRes] = await Promise.all([
-    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id'),
+    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id'),
     sbClient.from('beziehungen').select('person_a, person_b, typ'),
     sbClient.from('stammbaeume').select('id, name')
   ]);
@@ -4404,6 +4512,7 @@ async function ladeBaumAusSupabase() {
       ...sd, id: ext, families_spouse: [], families_child: [],
       _uuid: row.id,
       _tree: row.stammbaum_id || null,
+      _hatKonto: !!row.user_id,
       _pos: (row.pos_x != null && row.pos_y != null) ? { x: row.pos_x, y: row.pos_y } : null
     };
   });
@@ -6252,6 +6361,7 @@ function zeigeDetails(personId) {
     ${p.deceased || p.death_date ? `<div class="info-zeile"><strong>${t('verstorben')}</strong> ${escapeHtml(formatDatumLang(p.death_date) || t('ja'))}</div>` : ''}
     ${p.death_place ? `<div class="info-zeile"><strong>${t('sterbeort')}</strong> ${escapeHtml(uebersetzeOrt(p.death_place))}</div>` : ''}
     <div class="info-zeile"><strong>${t('geschlecht')}</strong> ${geschlechtText}</div>
+    ${istAdmin() ? `<div class="info-zeile" style="color:#8a7a5a">${p._hatKonto ? '🔗' : '🔓 ' + escapeHtml(t('kein_konto'))}</div>` : ''}
     ${p.geburtsland ? `<div class="info-zeile"><strong>${t('reg_geburtsland')}:</strong> ${escapeHtml(uebersetzeOrt(p.geburtsland))}</div>` : ''}
     ${p.getauft ? `<div class="info-zeile"><strong>${t('reg_getauft')}:</strong> ${escapeHtml(formatDatumLang(p.getauft))}</div>` : ''}
     ${(p.beziehung && p.beziehung !== 'unbekannt') ? `<div class="info-zeile"><strong>${t('pe_beziehung')}:</strong> ${escapeHtml(p.beziehung === 'sonstige' ? (p.beziehung_sonstige || t('bz_sonstige')) : t('bz_' + p.beziehung))}</div>` : ''}
