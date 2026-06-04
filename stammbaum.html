@@ -1567,6 +1567,7 @@ function aktualisiereAuthUI() {
     if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
     if (adminBereich) adminBereich.style.display = 'none';
     if (navMenu) { navMenu.style.display = 'none'; navMenu.classList.remove('offen'); }
+    offeneAnfragenCache = []; renderObavBadges();   // Badges leeren (ausgeloggt)
     // Falls der ausgeloggte User gerade auf der Events-Ansicht war -> zurück auf Baum
     if (typeof aktuelleAnsicht !== 'undefined' && aktuelleAnsicht === 'shorts') aktuelleAnsicht = 'baum';
   }
