@@ -27,6 +27,23 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Personennamen über `nm()` (wird bei 'sr' nach Kyrillisch transliteriert).
 - Bei der Umsetzung immer sicherstellen, dass alle sichtbaren Inhalte korrekt in alle Sprachen übersetzt werden
 
+## Frontend-Komponenten & UI-Konventionen (IMMER einhalten)
+- **Dropdowns**: Jedes `<select>` wird automatisch zu einem suchbaren Dropdown
+  (`macheAlleSelectsSuchbar`/`init`). Nach dynamischem Befüllen in einem Overlay ggf.
+  `macheAlleSelectsSuchbar(overlay)` aufrufen. **Touch-sicher (Android/iOS) — nicht zurückbauen:**
+  Außerhalb-Schließen über `pointerdown` (NICHT `click`, sonst schließt der Ghost-Click sofort);
+  Auswahl in scrollbaren Listen über `tippAuswahl` (Tap selektiert, Wischen scrollt);
+  `resize`/`scroll` schließen Panels NICHT, sondern positionieren neu (mobile Tastatur = Resize).
+- **Datumsfelder**: `<input class="login-feld dp-input">` → eigener Vanilla-Kalender,
+  sprachabhängiges Format. Werte über `datumWert`/`datumSetzen`, Anzeige `formatDatumLang`
+  (Speicherung als ISO, siehe Backend-/Daten-Regeln).
+- **Sprachwechsel**: `wechselSprache` MUSS dynamisch gerenderte Inhalte/Dropdowns neu aufbauen
+  (Stammbaum-Dropdown, Orientierungs-Banner, offene Overlays wie Mitglieder/Kosten/Obavještenja).
+  Neue dynamische Listen dort einhängen — sonst bleiben sie nach Sprachwechsel in der alten Sprache.
+- **Session/Aktualität**: Auto-Logout nach 30 Min Inaktivität (Warnung 1 Min vorher); nach
+  Re-Login harter Reload (`hardReload` = `?v=timestamp`, umgeht den HTML-Cache); Update-Banner bei
+  neuer `app-version`. Diese Logik bei UI-Änderungen nicht brechen.
+
 ## Architektur-Regeln
 - **Keine NEUEN externen Libraries/Dienste ohne ausdrückliche Absprache.**
   Bereits abgestimmt und erlaubt: Supabase (Backend), Resend (Mail), per CDN
@@ -39,6 +56,14 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
     Stammbaum löschen/anlegen. Nicht über normale Rollenänderung vergeb-/entfernbar.
   - `familien_admin`: verwaltet Baum/Mitglieder, darf NICHT löschen, keinen Owner ändern.
   - `familien_mitglied`: nur Lesen.
+- **Blutlinien-Rechte (additiv, auto):** Wird ein Konto mit einer Baum-Person verknüpft
+  (`personen.user_id`, z. B. bei Anfrage-Genehmigung), bekommen automatisch ALLE Familien der
+  **direkten Blutlinie** (Vorfahren + Nachkommen über `elternteil`-Kanten, **nur eigener Verbund**)
+  die Rolle `familien_admin`. Streng **additiv**: `familien_owner` und **manuell** gesetzte Rollen
+  (`mitgliedschaften.auto = false`) werden NIE überschrieben/herabgestuft; nur `auto = true`-Rollen
+  werden neu berechnet/entzogen. Neuberechnung läuft **automatisch** bei Baumänderungen (DB-Trigger
+  auf `personen`/`beziehungen`) sowie bei Verknüpfung. „Familie" = `familien`-Zeile (Nachnamen-Baum),
+  NICHT konto-/verbundübergreifend (Isolation bleibt gewahrt).
 - Familien-Isolation: jede Familie sieht nur eigene Daten (verbundweit), außer Super-Admin.
 - Datenmodell: `familien` = Konto/Mandant; `stammbaeume` = Bäume (familie_id); `personen`/
   `beziehungen` referenzieren `stammbaum_id`/`familie_id`. Rollen liegen in `mitgliedschaften`
@@ -51,7 +76,11 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
     `beziehungen`, `personen`, `stammbaeume`, `mitgliedschaften`, `familien`,
     `registrierungs_anfragen` (und ggf. `auth.users`) in FK-sicherer Reihenfolge mit
     abräumen (Kinder vor Eltern). Referenz: `stammbaum_loeschen` löscht den letzten Baum
-    samt Familie + Mitgliedschaften.
+    samt Familie + Mitgliedschaften. Event-Daten (`events`, `event_teilnehmer`, `event_kosten`)
+    hängen per `ON DELETE CASCADE` am Event/Baum.
+  - **Nicht-DB-Stores nicht vergessen:** Event-**Medien** liegen im **Storage-Bucket `events`**
+    (Ordner je Event-id) und werden NICHT per CASCADE entfernt → beim Event-/Baum-Löschen im
+    Frontend mit `loescheEventMedien` mit-abräumen (sonst verwaiste Storage-Dateien).
   - **Anlegen**: alle Pflicht-Verknüpfungen setzen (`familie_id`, `stammbaum_id`,
     Owner-/Mitgliedschaft), damit nichts „losgelöst" entsteht (z. B. Person ohne
     `stammbaum_id` taucht sonst nicht im Baum-Dropdown auf).
@@ -62,8 +91,11 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Änderungen an, die nicht gespeichert wurden.
 - Kein Hardcode-Check auf eine bestimmte Wurzelperson (z. B. I500009) — sonst sehen fremde
   Konten ihre eigenen Daten nicht.
-- Datums-Freitext gehört in `stammbaum_daten` (jsonb); die `date`-Spalte `geburtsdatum`
-  bleibt NULL (sonst Fehler 22008). `geschlecht`-Spalte bleibt NULL (CHECK); sex in `stammbaum_daten`.
+- Datumswerte gehören in `stammbaum_daten` (jsonb), **kanonisch als ISO `YYYY-MM-DD`** (Eingabe
+  über Datumsfelder mit Klasse `dp-input` = Vanilla-Kalender; Lesen/Schreiben via
+  `datumWert`/`datumSetzen`, Anzeige via `formatDatumLang`; nicht-parsebare Altwerte bleiben
+  Freitext, Migration lazy beim nächsten Speichern). Die `date`-Spalte `geburtsdatum` bleibt NULL
+  (sonst Fehler 22008). `geschlecht`-Spalte bleibt NULL (CHECK); sex in `stammbaum_daten`.
 - `supabase/.env` (RESEND_API_KEY etc.) ist gitignored und darf NIE committet werden.
 
 ## Arbeitsumgebung & Sicherheit (Unternehmens-Defender) — IMMER einhalten
@@ -82,6 +114,10 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 
 ## Deploy & Versionierung
 - **Frontend**: Commit nach `main` → automatisch live auf GitHub Pages. Commits als „Version X.Y - …".
+- **Bei JEDEM Frontend-Deploy `<meta name="app-version" content="X.Y">` im `<head>` hochzählen**
+  (passend zur Commit-Versionsnummer). Die App vergleicht diese Version regelmäßig mit der
+  Server-Version und zeigt sonst KEIN „neue Version verfügbar"-Banner. Vergisst man das Hochzählen,
+  bemerken Nutzer neue Releases nicht aktiv.
 - **DB-Änderungen**: als idempotente `.sql`-Datei im Repo ablegen → im Supabase SQL-Editor ausführen.
 - **Edge Functions**: über das Supabase-Dashboard deployen (Supabase-CLI durch Citrix-Firewall blockiert).
 - **Push/Commit nur auf ausdrückliche Anweisung** des Users; vorher kein Veröffentlichen.
@@ -98,6 +134,10 @@ Nach JEDER Änderung:
 
 ## Roadmap-Kontext
 - Phase 1 (kostenlos/statisch) und Phase 2 (Auth/Supabase, Familien-Isolation, Rollen,
-  Self-Service-Stammbäume, Owner-Konzept) sind umgesetzt bzw. laufend.
-- Offen/Ausblick: Abo-Modell (Stripe), weitere Admin-Funktionen (Benachrichtigungen,
-  Familieneinstellungen).
+  Self-Service-Stammbäume, Owner-Konzept) sind umgesetzt.
+- Umgesetzt (Frontend live bzw. lokal fertig): einheitliche Datumsfelder mit Kalender;
+  Event-System (Medien Bild/Video/PDF im Storage, „Organizovano od", Kostenübersicht mit
+  automatischer Aufteilung/Ausgleich/PDF); **Obavještenja** (offene Anfragen + Akzeptieren/Ablehnen
+  + Mail, Badge); Sofort-Sprachwechsel; touch-sichere Dropdowns; Session-Auto-Logout +
+  Update-/Versions-Erkennung.
+- Offen/Ausblick: Abo-Modell (Stripe); weitere Admin-Funktionen (Familieneinstellungen).

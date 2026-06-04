@@ -73,7 +73,7 @@ async function sendMail(to: string, subject: string, html: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { id, aktion } = await req.json();
+    const { id, aktion, person_id } = await req.json();
     if (!id || (aktion !== "bestaetigen" && aktion !== "ablehnen"))
       return json({ error: "id/aktion fehlt oder ungültig" }, 400);
 
@@ -112,7 +112,12 @@ Deno.serve(async (req) => {
       if (userId) {
         await admin.from("mitgliedschaften").insert({ user_id: userId, familie_id: a.familie_id, rolle: a.rolle });
       }
-      if (a.vorname || a.nachname) {
+      // Person verknüpfen: wenn der Admin eine bestehende Baum-Person gewählt hat ->
+      // personen.user_id setzen (DB-Trigger berechnet daraus die Blutlinien-Admin-Rechte).
+      // Sonst (keine Auswahl) wie bisher eine eigenständige Person aus den Anfragedaten anlegen.
+      if (userId && person_id) {
+        await admin.from("personen").update({ user_id: userId }).eq("id", person_id);
+      } else if (a.vorname || a.nachname) {
         await admin.from("personen").insert({
           familie_id: a.familie_id, vorname: a.vorname ?? "", nachname: a.nachname ?? "",
           geburtsdatum: a.geburtsdatum ?? null,

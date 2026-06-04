@@ -2,6 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
+<meta name="app-version" content="5.8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -517,6 +518,20 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .obav-karte .obav-meta strong { color: #8a7a5a; font-weight: normal; }
 .obav-karte .obav-aktionen { display: flex; gap: 10px; margin-top: 12px; }
 
+/* ---- Update-Banner (neue Version verfügbar) ---- */
+#update-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;
+  background: var(--akzent); color: var(--paper); padding: 10px 16px;
+  font-size: 14px; letter-spacing: .5px; box-shadow: 0 3px 12px rgba(44,36,24,0.4);
+}
+#update-banner button {
+  background: var(--gold-hell); color: var(--ink); border: none; border-radius: 8px;
+  padding: 7px 16px; font-family: inherit; font-size: 13px; font-weight: bold;
+  letter-spacing: .5px; cursor: pointer;
+}
+#update-banner button:hover { background: var(--paper); }
+
 @media print {
   body * { visibility: hidden !important; }
   #kosten-modal, #kosten-modal * { visibility: visible !important; }
@@ -875,7 +890,6 @@ footer {
 <section id="ansicht-baum">
   <div id="baum-tree-hinweis" class="baum-tree-hinweis" style="display:none">
     <span id="baum-tree-hinweis-text"></span>
-    <button class="baum-tree-hinweis-x" onclick="schliesseBaumHinweis()" aria-label="schließen">×</button>
   </div>
   <div id="baum-container">
     <div id="baum-bg"></div>
@@ -1383,6 +1397,20 @@ footer {
   </div>
 </div>
 
+<!-- Update-Banner: eine neue Version ist verfügbar (Cache-/Deploy-Erkennung) -->
+<div id="update-banner" style="display:none">
+  <span data-i18n="update_text"></span>
+  <button type="button" onclick="hardReload()" data-i18n="update_jetzt"></button>
+</div>
+
+<!-- Session-Ablauf-Warnung bei Inaktivität -->
+<div class="modal" id="session-warn-modal" style="z-index:300">
+  <div class="modal-inhalt" style="max-width:420px;text-align:center" onclick="event.stopPropagation()">
+    <p style="margin:6px 0 20px;color:var(--ink);font-size:16px;line-height:1.5" data-i18n="session_warn_text"></p>
+    <button class="login-submit" style="margin-top:0" type="button" onclick="sessionVerlaengern()" data-i18n="session_bleiben"></button>
+  </div>
+</div>
+
 <footer>
   <p data-i18n="footer"></p>
 </footer>
@@ -1431,6 +1459,13 @@ const ROLLEN_RANG = {
 };
 
 async function setzeUser(user) {
+  // Login nach Auto-Logout (Inaktivität) -> harter Reload, damit die neueste
+  // App-Version geladen wird (kein veralteter Cache). Flag wird einmalig verbraucht.
+  if (sessionStorage.getItem('reloadNachLogin')) {
+    sessionStorage.removeItem('reloadNachLogin');
+    hardReload();
+    return;
+  }
   aktuellerUser = user;
 
   // Alle Mitgliedschaften des Users laden (User kann in mehreren Familien sein).
@@ -1483,9 +1518,12 @@ async function setzeUser(user) {
     '(raw:', rawRolle, ', Mitgliedschaften:', (data || []).length, ')');
 
   aktualisiereAuthUI();
+  sessLetzteAktivitaet = Date.now();   // Startzeitpunkt für die Inaktivitäts-Messung
+  resetInaktivTimer();                 // Inaktivitäts-Überwachung für den eingeloggten Nutzer starten
 
   // Phase A2: Sobald Session + Rolle stehen, Baum aus Supabase laden (Fallback bleibt FAMILY_DATA)
-  ladeBaumDaten();
+  // awaiten, damit Aufrufer (z.B. erstelleStammbaum) danach mit aktueller Baumliste arbeiten können.
+  await ladeBaumDaten();
 }
 
 function normalizeRolle(rolle) {
@@ -1516,6 +1554,7 @@ function loescheUser() {
   aktuellerUser = null;
   aktuelleRolle = null;
   aktualisiereAuthUI();
+  resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
 }
 
 function aktualisiereAuthUI() {
@@ -1879,18 +1918,41 @@ function renderObavListe() {
         <div><strong>${escapeHtml(t('obav_datum'))}:</strong> ${escapeHtml(formatDatumLang((a.created_at || '').slice(0, 10)))}</div>
       </div>
       <div class="obav-aktionen">
-        <button class="mv-toggle" type="button" onclick="anfrageEntscheiden('${a.id}','bestaetigen')">${escapeHtml(t('obav_akzeptieren'))}</button>
+        <button class="mv-toggle" type="button" onclick="obavAkzeptierenStart('${a.id}','${a.familie_id}')">${escapeHtml(t('obav_akzeptieren'))}</button>
         <button class="mv-del" type="button" onclick="anfrageEntscheiden('${a.id}','ablehnen')">${escapeHtml(t('obav_ablehnen'))}</button>
       </div>
     </div>`;
   }).join('');
 }
 
-async function anfrageEntscheiden(id, aktion) {
+// Akzeptieren: zuerst die Person im Baum wählen (für Rechte entlang der Blutlinie)
+async function obavAkzeptierenStart(id, familieId) {
+  const karte = document.getElementById('obav-' + id); if (!karte) return;
+  const akt = karte.querySelector('.obav-aktionen');
+  akt.innerHTML = `<div class="event-media-empty">…</div>`;
+  const { data, error } = await sbClient.rpc('personen_fuer_verknuepfung', { p_familie: familieId });
+  const personen = error ? [] : (data || []);
+  const opts = personen.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(nm(p.name))}</option>`).join('');
+  akt.innerHTML = `
+    <label class="login-label" style="margin-top:0;width:100%"><span>${escapeHtml(t('obav_person_label'))}</span>
+      <select id="obav-person-${id}" class="login-feld">
+        <option value="">${escapeHtml(t('obav_ohne_person'))}</option>${opts}</select></label>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="mv-toggle" type="button" onclick="obavAkzeptierenBestaetigen('${id}')">${escapeHtml(t('obav_akzeptieren'))}</button>
+      <button class="mv-del" type="button" onclick="renderObavListe()">${escapeHtml(t('event_cancel'))}</button>
+    </div>`;
+  macheAlleSelectsSuchbar(akt);
+}
+function obavAkzeptierenBestaetigen(id) {
+  const sel = document.getElementById('obav-person-' + id);
+  anfrageEntscheiden(id, 'bestaetigen', sel ? (sel.value || null) : null);
+}
+
+async function anfrageEntscheiden(id, aktion, personId = null) {
   if (aktion === 'ablehnen') { const ok = await zeigeBestaetigung(t('obav_ablehnen_frage')); if (!ok) return; }
   const karte = document.getElementById('obav-' + id);
   if (karte) { karte.style.opacity = '0.5'; karte.style.pointerEvents = 'none'; }
-  const { data, error } = await sbClient.functions.invoke('anfrage-bearbeiten', { body: { id, aktion } });
+  const { data, error } = await sbClient.functions.invoke('anfrage-bearbeiten', { body: { id, aktion, person_id: personId } });
   if (error || (data && data.error)) {
     if (karte) { karte.style.opacity = ''; karte.style.pointerEvents = ''; }
     await zeigeHinweis(t('reg_fehler') + (error ? error.message : data.error));
@@ -1988,12 +2050,18 @@ async function erstelleStammbaum() {
   const { data, error } = await sbClient.rpc('stammbaum_anlegen',
     { p_name: name, p_vorname: v('bn-vorname'), p_nachname: v('bn-nachname') });
   button.disabled = false; button.textContent = altText;
-  if (error) { fehlerEl.textContent = t('reg_fehler') + error.message; fehlerEl.style.display = 'block'; return; }
+  if (error) {
+    const msg = error.message || '';
+    // Dublette: RPC meldet 'stammbaum_name_existiert' -> freundliche Meldung
+    fehlerEl.textContent = /stammbaum_name_existiert/i.test(msg) ? t('bn_existiert') : (t('reg_fehler') + msg);
+    fehlerEl.style.display = 'block'; return;
+  }
 
   erfolgEl.textContent = t('bn_erfolg'); erfolgEl.style.display = 'block';
   aktuellerStammbaumId = null;
-  await setzeUser(aktuellerUser);   // jetzt Owner -> Rolle/Menü + Baum neu laden
-  if (data && stammbaeumeListe[data]) waehleStammbaum(data);   // neuen Baum direkt anzeigen
+  await setzeUser(aktuellerUser);   // Rolle (jetzt Owner) + Baumliste/Dropdown frisch (awaited in setzeUser)
+  if (data && stammbaeumeListe[data]) waehleStammbaum(data);   // neuen Baum sofort auswählen + Überschrift aktualisieren
+  else befuelleStammbaumAuswahl();
   setTimeout(() => schliesseBaumNeu(), 900);
 }
 
@@ -2458,7 +2526,8 @@ async function sucheFamilien() {
     regFamilienCache[f.id] = f.name;
     // Land übersetzen, Stadt/Gemeinde (Eigennamen) bei 'sr' transliterieren
     const meta = [uebersetzeOrt(f.land), nm(f.stadt), nm(f.gemeinde)].filter(Boolean).join(' · ');
-    return `<div class="reg-autocomplete-item" onclick="waehleFamilie('${f.id}')">` +
+    // Auswahl via delegiertem pointerdown-Handler (data-id) — touch-sicher, kein Ghost-Click
+    return `<div class="reg-autocomplete-item" data-id="${escapeHtml(f.id)}">` +
       `${escapeHtml(nm(f.name))}${meta ? `<span class="meta">${escapeHtml(meta)}</span>` : ''}</div>`;
   }).join('');
   box.classList.add('aktiv');
@@ -2837,6 +2906,11 @@ const TEXTE = {
     kosten_schuldet: 'schuldet',
     kosten_ausgeglichen: 'Alles ausgeglichen.',
     kosten_pdf: 'Als PDF / Drucken',
+    session_warn_text: 'Ihre Sitzung läuft in Kürze ab. Möchten Sie angemeldet bleiben?',
+    session_bleiben: 'Angemeldet bleiben',
+    session_abgemeldet: 'Sie wurden wegen Inaktivität abgemeldet.',
+    update_text: 'Eine neue Version der Anwendung ist verfügbar.',
+    update_jetzt: 'Jetzt aktualisieren',
     event_save: 'Speichern',
     event_cancel: 'Abbrechen',
     event_edit: 'Bearbeiten',
@@ -2950,6 +3024,7 @@ const TEXTE = {
     bn_anlegen_btn: 'Anlegen',
     bn_pflicht: 'Bitte einen Namen für den Stammbaum angeben.',
     bn_erfolg: 'Stammbaum angelegt.',
+    bn_existiert: 'Ein Stammbaum mit diesem Namen existiert bereits.',
     baum_loeschen_frage: 'Willst du den Stammbaum „{name}" wirklich KOMPLETT löschen? Alle Personen und Verbindungen dieses Baums werden unwiderruflich aus der Datenbank entfernt.',
     baum_geloescht: 'Stammbaum gelöscht.',
     baum_kein_aktiver: 'Es ist kein Stammbaum ausgewählt.',
@@ -2962,6 +3037,8 @@ const TEXTE = {
     obav_ablehnen_frage: 'Diese Anfrage wirklich ablehnen?',
     obav_akzeptiert: 'Anfrage akzeptiert. Die Person erhält eine E-Mail.',
     obav_abgelehnt: 'Anfrage abgelehnt. Die Person erhält eine E-Mail.',
+    obav_person_label: 'Person im Stammbaum (Rechte entlang der Blutlinie)',
+    obav_ohne_person: 'Ohne Verknüpfung',
     admin_familieneinst: 'Familieneinstellungen (bald)',
     admin_weitere: 'Weitere Admin-Funktionen (bald)',
     ma_info: 'Lege ein neues Mitglied an. Es erhält eine Einladungs-E-Mail mit einem Link, um ein eigenes Passwort zu setzen.',
@@ -3101,6 +3178,11 @@ const TEXTE = {
     kosten_schuldet: 'дугује',
     kosten_ausgeglichen: 'Све је измирено.',
     kosten_pdf: 'PDF / Штампај',
+    session_warn_text: 'Ваша сесија ускоро истиче. Желите ли да останете пријављени?',
+    session_bleiben: 'Остани пријављен',
+    session_abgemeldet: 'Одјављени сте због неактивности.',
+    update_text: 'Доступна је нова верзија апликације.',
+    update_jetzt: 'Ажурирај сада',
     event_save: 'Сачувај',
     event_cancel: 'Откажи',
     event_edit: 'Уреди',
@@ -3214,6 +3296,7 @@ const TEXTE = {
     bn_anlegen_btn: 'Направи',
     bn_pflicht: 'Унеси назив стабла.',
     bn_erfolg: 'Стабло направљено.',
+    bn_existiert: 'Стабло са овим именом већ постоји.',
     baum_loeschen_frage: 'Да ли заиста желиш да ПОТПУНО обришеш стабло „{name}"? Све особе и везе овог стабла биће неповратно уклоњене из базе.',
     baum_geloescht: 'Стабло обрисано.',
     baum_kein_aktiver: 'Није изабрано ниједно стабло.',
@@ -3226,6 +3309,8 @@ const TEXTE = {
     obav_ablehnen_frage: 'Стварно одбити овај захтев?',
     obav_akzeptiert: 'Захтев прихваћен. Особа ће добити имејл.',
     obav_abgelehnt: 'Захтев одбијен. Особа ће добити имејл.',
+    obav_person_label: 'Особа у стаблу (права дуж крвне линије)',
+    obav_ohne_person: 'Без повезивања',
     admin_familieneinst: 'Подешавања породице (ускоро)',
     admin_weitere: 'Остале админ-функције (ускоро)',
     ma_info: 'Направи новог члана. Добиће имејл са линком да постави сопствену лозинку.',
@@ -3365,6 +3450,11 @@ const TEXTE = {
     kosten_schuldet: 'duguje',
     kosten_ausgeglichen: 'Sve je podmireno.',
     kosten_pdf: 'PDF / Ispis',
+    session_warn_text: 'Vaša sesija uskoro istječe. Želite li ostati prijavljeni?',
+    session_bleiben: 'Ostani prijavljen',
+    session_abgemeldet: 'Odjavljeni ste zbog neaktivnosti.',
+    update_text: 'Dostupna je nova verzija aplikacije.',
+    update_jetzt: 'Ažuriraj sada',
     event_save: 'Spremi',
     event_cancel: 'Odustani',
     event_edit: 'Uredi',
@@ -3474,6 +3564,7 @@ const TEXTE = {
     bn_anlegen_btn: 'Izradi',
     bn_pflicht: 'Unesi naziv stabla.',
     bn_erfolg: 'Stablo izrađeno.',
+    bn_existiert: 'Stablo s ovim imenom već postoji.',
     baum_geloescht: 'Stablo obrisano.',
     baum_kein_aktiver: 'Nije odabrano nijedno stablo.',
     mv_familie_label: 'Obitelj',
@@ -3493,6 +3584,8 @@ const TEXTE = {
     obav_ablehnen_frage: 'Stvarno odbiti ovaj zahtjev?',
     obav_akzeptiert: 'Zahtjev prihvaćen. Osoba će dobiti e-mail.',
     obav_abgelehnt: 'Zahtjev odbijen. Osoba će dobiti e-mail.',
+    obav_person_label: 'Osoba u stablu (prava uz krvnu liniju)',
+    obav_ohne_person: 'Bez povezivanja',
     admin_familieneinst: 'Postavke obitelji (uskoro)',
     admin_weitere: 'Ostale admin funkcije (uskoro)',
     ma_info: 'Izradi novog člana. Dobit će e-mail s poveznicom da postavi vlastitu lozinku.',
@@ -3629,6 +3722,11 @@ const TEXTE = {
     kosten_schuldet: 'duguje',
     kosten_ausgeglichen: 'Sve je izmireno.',
     kosten_pdf: 'PDF / Štampaj',
+    session_warn_text: 'Vaša sesija uskoro ističe. Želite li ostati prijavljeni?',
+    session_bleiben: 'Ostani prijavljen',
+    session_abgemeldet: 'Odjavljeni ste zbog neaktivnosti.',
+    update_text: 'Dostupna je nova verzija aplikacije.',
+    update_jetzt: 'Ažuriraj sada',
     event_save: 'Sačuvaj',
     event_cancel: 'Odustani',
     event_edit: 'Uredi',
@@ -3738,6 +3836,7 @@ const TEXTE = {
     bn_anlegen_btn: 'Kreiraj',
     bn_pflicht: 'Unesi naziv stabla.',
     bn_erfolg: 'Stablo kreirano.',
+    bn_existiert: 'Stablo s ovim imenom već postoji.',
     baum_geloescht: 'Stablo obrisano.',
     baum_kein_aktiver: 'Nije odabrano nijedno stablo.',
     mv_familie_label: 'Porodica',
@@ -3757,6 +3856,8 @@ const TEXTE = {
     obav_ablehnen_frage: 'Stvarno odbiti ovaj zahtjev?',
     obav_akzeptiert: 'Zahtjev prihvaćen. Osoba će dobiti e-mail.',
     obav_abgelehnt: 'Zahtjev odbijen. Osoba će dobiti e-mail.',
+    obav_person_label: 'Osoba u stablu (prava uz krvnu liniju)',
+    obav_ohne_person: 'Bez povezivanja',
     admin_familieneinst: 'Postavke porodice (uskoro)',
     admin_weitere: 'Ostale admin funkcije (uskoro)',
     ma_info: 'Kreiraj novog člana. Dobit će e-mail s linkom da postavi vlastitu lozinku.',
@@ -3893,6 +3994,11 @@ const TEXTE = {
     kosten_schuldet: 'owes',
     kosten_ausgeglichen: 'All settled.',
     kosten_pdf: 'PDF / Print',
+    session_warn_text: 'Your session is about to expire. Do you want to stay signed in?',
+    session_bleiben: 'Stay signed in',
+    session_abgemeldet: 'You were signed out due to inactivity.',
+    update_text: 'A new version of the app is available.',
+    update_jetzt: 'Update now',
     event_save: 'Save',
     event_cancel: 'Cancel',
     event_edit: 'Edit',
@@ -4006,6 +4112,7 @@ const TEXTE = {
     bn_anlegen_btn: 'Create',
     bn_pflicht: 'Please enter a name for the tree.',
     bn_erfolg: 'Family tree created.',
+    bn_existiert: 'A family tree with this name already exists.',
     baum_loeschen_frage: 'Do you really want to COMPLETELY delete the tree “{name}”? All persons and connections of this tree will be irreversibly removed from the database.',
     baum_geloescht: 'Family tree deleted.',
     baum_kein_aktiver: 'No family tree selected.',
@@ -4018,6 +4125,8 @@ const TEXTE = {
     obav_ablehnen_frage: 'Really reject this request?',
     obav_akzeptiert: 'Request accepted. The person will receive an email.',
     obav_abgelehnt: 'Request rejected. The person will receive an email.',
+    obav_person_label: 'Person in the tree (rights along the bloodline)',
+    obav_ohne_person: 'Without linking',
     admin_familieneinst: 'Family settings (soon)',
     admin_weitere: 'More admin functions (soon)',
     ma_info: 'Create a new member. They receive an invitation email with a link to set their own password.',
@@ -4223,11 +4332,18 @@ function wechselSprache(lang) {
   // Dynamische Inhalte neu rendern
   aktualisiereStats();
   baueNachnameFilter();
+  befuelleStammbaumAuswahl();    // Stammbaum-Dropdown: Namen je Sprache (sr -> kyrillisch)
+  aktualisiereBaumHinweis();     // Orientierungs-Banner in neuer Sprache
   if (aktuelleAnsicht === 'karten') zeigeKarten();
   else if (aktuelleAnsicht === 'shorts') zeigeShorts();
   else aktualisiereBaumInfo();
   zeichneBaumNeu();
   aktualisiereAuthUI();
+  // Bereits geöffnete Overlays mit dynamischen Inhalten in der neuen Sprache neu rendern
+  const offen = id => document.getElementById(id)?.classList.contains('aktiv');
+  if (offen('mitglieder-modal') && typeof ladeMitglieder  === 'function') ladeMitglieder();   // Familien-Dropdown + Liste neu (nm)
+  if (offen('kosten-modal')     && typeof renderKosten     === 'function') renderKosten();
+  if (offen('obav-modal')       && typeof renderObavListe  === 'function') renderObavListe();
   // Falls das Registrier-Overlay offen ist: Titel/Intro/Button passend zum
   // Ja/Nein-Modus neu setzen (data-i18n hätte sie sonst auf den Ja-Text zurückgesetzt).
   if (typeof regVorhandenWechsel === 'function' &&
@@ -4435,17 +4551,14 @@ function aktualisiereBaumHinweis() {
   const el  = document.getElementById('baum-tree-hinweis');
   const txt = document.getElementById('baum-tree-hinweis-text');
   if (!el || !txt) return;
-  if (!aktuellerUser || !aktuellerStammbaumId || sessionStorage.getItem('baum_hinweis_zu')) {
+  // Banner ist immer sichtbar, solange man eingeloggt in einem Stammbaum ist
+  // (kein Schließen-Button mehr). Wichtig zur Orientierung.
+  if (!aktuellerUser || !aktuellerStammbaumId) {
     el.style.display = 'none';
     return;
   }
   txt.textContent = t('baum_wechsel_hinweis', { name: nm(stammbaeumeListe[aktuellerStammbaumId] || '') });
   el.style.display = 'flex';
-}
-function schliesseBaumHinweis() {
-  sessionStorage.setItem('baum_hinweis_zu', '1');
-  const el = document.getElementById('baum-tree-hinweis');
-  if (el) el.style.display = 'none';
 }
 
 // ============================================================
@@ -4513,7 +4626,8 @@ function ssInitPanel() {
     if (e.key === 'Escape') ssSchliesse();
     else if (e.key === 'Enter') { e.preventDefault(); const f = ssList.querySelector('.ss-opt'); if (f) ssWaehle(f.dataset.val); }
   });
-  ssList.addEventListener('click', (e) => { const li = e.target.closest('.ss-opt'); if (li) ssWaehle(li.dataset.val); });
+  // Touch-sichere Auswahl: Tap selektiert, Scrollen nicht (siehe tippAuswahl).
+  tippAuswahl(ssList, '.ss-opt', li => ssWaehle(li.dataset.val));
 }
 
 // Liste füllen: <2 Zeichen = alle; sonst Teilstring (case- UND schrift-insensitiv:
@@ -4554,7 +4668,10 @@ function ssOeffne(select) {
   ssPositioniere(select);
   ssPanel.style.visibility = '';
   select._ssControl.classList.add('ss-open');
-  setTimeout(() => ssSearch.focus(), 30);
+  // Auto-Fokus (Tastatur) nur auf Desktop; auf Touch würde die Tastatur die Liste
+  // verdecken + Reflows auslösen — der Nutzer tippt das Suchfeld bei Bedarf selbst an.
+  const grob = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if (!grob) setTimeout(() => ssSearch.focus(), 30);
   ssRaf = requestAnimationFrame(ssSichtbarkeitsWaechter);   // schließt Panel, wenn Overlay/Menü zugeht
 }
 
@@ -4639,16 +4756,38 @@ function macheAlleSelectsSuchbar(root) {
   (root || document).querySelectorAll('select:not(.ss-native):not(.no-search)').forEach(macheSelectSuchbar);
 }
 
+// Touch-sichere Auswahl in (scrollbaren) Listen: selektiert NUR bei einem echten
+// Tap (kaum Bewegung), nicht beim Scroll-Wischen; feuert auf pointerup, also VOR
+// dem verzögerten Ghost-Click und vor Tastatur-Reflow. Funktioniert auch mit Maus.
+function tippAuswahl(container, selector, handler) {
+  let sx = 0, sy = 0, item = null, moved = false;
+  container.addEventListener('pointerdown', (e) => {
+    item = e.target.closest(selector); sx = e.clientX; sy = e.clientY; moved = false;
+  });
+  container.addEventListener('pointermove', (e) => {
+    if (item && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)) moved = true;
+  });
+  container.addEventListener('pointerup', (e) => {
+    const ziel = e.target.closest(selector);
+    if (item && ziel === item && !moved) { e.preventDefault(); handler(item); }
+    item = null;
+  });
+  container.addEventListener('pointercancel', () => { item = null; });   // Scroll-Übernahme -> kein Select
+}
+
 function initSuchbareSelects() {
   ssInitPanel();
   macheAlleSelectsSuchbar(document);
-  // Schließen bei Klick außerhalb, Resize oder Scroll (Position würde sonst wandern)
-  document.addEventListener('click', (e) => {
+  // Schließen bei Tipp/Klick außerhalb. WICHTIG: pointerdown statt click — feuert
+  // sofort am echten Punkt, vor Tastatur-Reflow/Scroll/Ghost-Click (Android-Bug).
+  document.addEventListener('pointerdown', (e) => {
     if (ssAktivSelect && !ssPanel.contains(e.target) &&
         e.target !== ssAktivSelect._ssControl && !ssAktivSelect._ssControl.contains(e.target)) ssSchliesse();
   });
-  window.addEventListener('resize', ssSchliesse);
-  window.addEventListener('scroll', (e) => { if (ssAktivSelect && !ssPanel.contains(e.target)) ssSchliesse(); }, true);
+  // Resize/Scroll NICHT schließen (mobile Tastatur löst Resize aus!) -> nur neu positionieren,
+  // damit das Panel am Steuerelement „klebt".
+  window.addEventListener('resize', () => { if (ssAktivSelect) ssPositioniere(ssAktivSelect); });
+  window.addEventListener('scroll', (e) => { if (ssAktivSelect && !ssPanel.contains(e.target)) ssPositioniere(ssAktivSelect); }, true);
 }
 
 // ============================================================
@@ -4858,9 +4997,99 @@ function aktualisiereDatumsfelder() {
   if (dpAktivInput) dpRender();
 }
 
+// ============================================================
+// SESSION- & VERSIONS-MANAGEMENT
+// - Auto-Logout nach 30 Min Inaktivität (mit Warnung 1 Min vorher)
+// - Nach Auto-Logout + erneutem Login: harter Reload -> neueste Version
+// - Versionsprüfung erkennt neue Deployments -> Update-Banner
+// - Harter Reload via Cache-Busting (?v=timestamp): Single-File auf GitHub Pages
+//   hat keine separat gehashten Assets; der Query-Param umgeht den HTML-Cache.
+// ============================================================
+const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '';
+
+function hardReload() {
+  const basis = location.href.replace(/[?#].*$/, '');   // bestehende Query/Hash entfernen
+  location.replace(basis + '?v=' + Date.now());          // frischer Param -> umgeht HTML-Cache
+}
+
+// ---- Inaktivitäts-Überwachung ----
+const SESSION_INAKTIV_MS = 30 * 60 * 1000;
+const SESSION_WARN_MS    = 60 * 1000;            // 1 Minute vor Logout warnen
+let sessIdleTimer = null, sessWarnTimer = null, sessLetzteAktivitaet = 0;
+
+function resetInaktivTimer() {
+  clearTimeout(sessIdleTimer); clearTimeout(sessWarnTimer);
+  versteckeSessionWarnung();
+  if (!aktuellerUser) return;                    // nur für eingeloggte Nutzer
+  sessWarnTimer = setTimeout(zeigeSessionWarnung, SESSION_INAKTIV_MS - SESSION_WARN_MS);
+  sessIdleTimer = setTimeout(sessionAutoLogout, SESSION_INAKTIV_MS);
+}
+function sessAktivitaet() {
+  if (!aktuellerUser) return;
+  const now = Date.now();
+  if (now - sessLetzteAktivitaet < 2000) return;  // throttle (mousemove/scroll feuern oft)
+  sessLetzteAktivitaet = now;
+  resetInaktivTimer();
+}
+function zeigeSessionWarnung() {
+  if (aktuellerUser) document.getElementById('session-warn-modal').classList.add('aktiv');
+}
+function versteckeSessionWarnung() {
+  const m = document.getElementById('session-warn-modal');
+  if (m) m.classList.remove('aktiv');
+}
+function sessionVerlaengern() { versteckeSessionWarnung(); resetInaktivTimer(); }
+async function sessionAutoLogout() {
+  versteckeSessionWarnung();
+  clearTimeout(sessIdleTimer); clearTimeout(sessWarnTimer);
+  sessionStorage.setItem('reloadNachLogin', '1');   // nächster Login -> harter Reload (neueste Version)
+  try { await sbClient.auth.signOut(); } catch (e) {}   // -> onAuthStateChange -> loescheUser
+  zeigeHinweis(t('session_abgemeldet'));
+}
+function initSessionUeberwachung() {
+  ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(ev =>
+    document.addEventListener(ev, sessAktivitaet, { passive: true, capture: true }));
+  // Bei Rückkehr in den Tab: Hintergrund-Tabs drosseln Timer -> reale verstrichene
+  // Zeit prüfen und ggf. sofort abmelden (statt auf den evtl. „eingefrorenen" Timer zu warten).
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || !aktuellerUser) return;
+    if (sessLetzteAktivitaet && Date.now() - sessLetzteAktivitaet >= SESSION_INAKTIV_MS) sessionAutoLogout();
+    else sessAktivitaet();
+  });
+}
+
+// ---- Versionsprüfung (neues Deployment erkennen) ----
+let updateGemeldet = false, letzteVersionsPruefung = 0;
+async function pruefeNeueVersion() {
+  if (updateGemeldet) return;
+  const now = Date.now();
+  if (now - letzteVersionsPruefung < 5 * 60 * 1000) return;   // höchstens alle 5 Min
+  letzteVersionsPruefung = now;
+  try {
+    // Range: nur die ersten KB (app-version-Meta steht oben im <head>); no-store = nie aus Cache.
+    const res = await fetch(location.pathname + '?vc=' + now, { cache: 'no-store', headers: { 'Range': 'bytes=0-4095' } });
+    if (!res.ok && res.status !== 206) return;
+    const text = await res.text();
+    const m = text.match(/<meta name="app-version" content="([^"]+)">/);
+    const serverVersion = m ? m[1] : '';
+    if (serverVersion && APP_VERSION && serverVersion !== APP_VERSION) {
+      updateGemeldet = true;
+      const b = document.getElementById('update-banner');
+      if (b) b.style.display = 'flex';
+    }
+  } catch (e) { /* offline / Fehler -> ignorieren */ }
+}
+function initVersionsPruefung() {
+  setTimeout(pruefeNeueVersion, 60 * 1000);            // ~1 Min nach Start
+  setInterval(pruefeNeueVersion, 20 * 60 * 1000);      // alle 20 Min
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pruefeNeueVersion(); });
+}
+
 function init() {
   initSprachDropdown();
   initSuchbareSelects();   // alle <select> mit Suchfunktion ausstatten
+  initSessionUeberwachung();   // Aktivitäts-Tracking (Auto-Logout bei Inaktivität)
+  initVersionsPruefung();      // neue Deployments erkennen -> Update-Banner
   macheAlleDatumsfelder(document);   // alle Datumsfelder mit Kalender ausstatten
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => wechselAnsicht(t.dataset.ansicht));
@@ -4868,23 +5097,28 @@ function init() {
   document.getElementById('suche').addEventListener('input', handleSuche);
   document.getElementById('filter-nachname').addEventListener('change', zeigeKarten);
   document.getElementById('gedcom-input').addEventListener('change', handleGedcomUpload);
-  // Klick außerhalb schließt das Menü-Dropdown
-  document.addEventListener('click', (e) => {
+  // Tipp/Klick außerhalb schließt offene Dropdowns. pointerdown (nicht click!) feuert
+  // sofort am echten Punkt — vor Tastatur-Reflow/Scroll/Ghost-Click auf Android/iOS.
+  document.addEventListener('pointerdown', (e) => {
     const menu = document.getElementById('nav-menu');
     if (menu && !menu.contains(e.target)) menu.classList.remove('offen');
-    // Familien-Autocomplete (Registrierung) bei Klick daneben schließen,
+    // Familien-Autocomplete (Registrierung) bei Tipp daneben schließen,
     // damit es nicht offen bleibt und andere Felder verdeckt.
     const box = document.getElementById('reg-familie-ergebnisse');
     const inp = document.getElementById('reg-familie-suche');
     if (box && box.classList.contains('aktiv') && e.target !== inp && !box.contains(e.target)) {
       box.classList.remove('aktiv');
     }
-    // Kalender schließen bei Klick außerhalb von Panel und aktivem Datumsfeld
+    // Kalender schließen bei Tipp außerhalb von Panel und aktivem Datumsfeld
     if (dpAktivInput && dpPanel && !dpPanel.contains(e.target) &&
         !(dpAktivInput._dpWrap && dpAktivInput._dpWrap.contains(e.target))) dpSchliesse();
   });
-  window.addEventListener('resize', () => { if (dpAktivInput) dpSchliesse(); });
-  window.addEventListener('scroll', (e) => { if (dpAktivInput && !dpPanel.contains(e.target)) dpSchliesse(); }, true);
+  // Familie touch-sicher auswählen (Tap selektiert, Scrollen der Liste bleibt möglich)
+  const regBox = document.getElementById('reg-familie-ergebnisse');
+  if (regBox) tippAuswahl(regBox, '.reg-autocomplete-item', item => { if (item.dataset.id) waehleFamilie(item.dataset.id); });
+  // Resize/Scroll NICHT schließen (mobile Tastatur = Resize) -> Kalender neu positionieren
+  window.addEventListener('resize', () => { if (dpAktivInput) dpPositioniere(dpAktivInput._dpWrap || dpAktivInput); });
+  window.addEventListener('scroll', (e) => { if (dpAktivInput && !dpPanel.contains(e.target)) dpPositioniere(dpAktivInput._dpWrap || dpAktivInput); }, true);
 
   initBaum();
   wechselSprache(aktuelleSprache);
@@ -6413,7 +6647,6 @@ function schliesseModalUndZeigeBaum(personId) {
     aktuellerStammbaumId = p._tree;
     const sel = document.getElementById('tree-select');
     if (sel) sel.value = p._tree;
-    sessionStorage.removeItem('baum_hinweis_zu');   // beim Baumwechsel Hinweis wieder zeigen
   }
   fokusPersonId = personId;
   document.getElementById('suche').value = '';
