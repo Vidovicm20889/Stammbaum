@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="5.8">
+<meta name="app-version" content="7.2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -752,6 +752,32 @@ footer {
 .mv-del { background: none; border: 1px solid var(--linie); color: #9b2226; padding: 6px 10px; cursor: pointer; font-size: 12px; }
 .mv-del:hover { background: #9b2226; color: #fff; }
 .mv-legende { font-size: 12px; color: #8a7a5a; margin: -4px 0 12px; line-height: 1.4; }
+/* Bäume verbinden / Dubletten-Merge */
+.merge-btn-zeile { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.merge-btn-zeile .login-submit { margin-top: 0; }
+.merge-btn-inline { flex: 1 1 auto; }
+.mg-kandidat { border: 1px solid var(--linie); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.mg-kandidat.fix { border-color: var(--akzent); background: rgba(176,141,87,0.08); }
+.mg-kandidat label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.mg-kandidat-body { display: block; }
+.mg-kandidat .mg-grund { display: block; font-size: 12px; color: var(--akzent); font-weight: bold; margin-bottom: 5px; }
+.mg-person { padding: 2px 0; }
+.mg-person .mg-namen { font-weight: bold; }
+.mg-person .mg-meta { display: block; font-size: 12px; color: #8a7a5a; margin-top: 1px; line-height: 1.4; }
+.mg-vs { display: block; text-align: center; color: var(--akzent); font-weight: bold; margin: 2px 0; }
+.mg-kandidat .mg-meta { font-size: 12px; color: #8a7a5a; margin-top: 3px; line-height: 1.4; }
+.mg-konflikt { border: 1px solid var(--linie); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.mg-konflikt .mg-feld { font-weight: bold; color: var(--akzent); margin-bottom: 6px; }
+.mg-konflikt .mg-opt { display: flex; gap: 8px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
+.mg-konflikt .mg-opt input[type="text"] { flex: 1 1 140px; }
+.mg-auto-row { font-size: 13px; color: #6a7a55; padding: 3px 0; }
+.mg-auto-row b { color: var(--akzent); }
+.mg-survivor-opt { display: inline-flex; gap: 6px; align-items: center; margin-right: 16px; cursor: pointer; }
+/* Gleiche Person über Bäume */
+.gp-zwilling { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.gp-loesen { background: none; border: 1px solid #9b2226; color: #9b2226; border-radius: 6px; cursor: pointer; font-size: 12px; line-height: 1; padding: 2px 6px; }
+.gp-loesen:hover { background: #9b2226; color: #fff; }
+.gp-kand { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
 .mv-familie-aktiv {
   font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
   color: var(--akzent); border-bottom: 1px solid var(--linie);
@@ -843,6 +869,8 @@ footer {
           <button class="account-btn" type="button" id="baum-anlegen-btn" data-i18n="admin_baum_anlegen" onclick="zeigeBaumNeu()"></button>
           <button class="account-btn admin-danger" type="button" id="baum-loeschen-btn" data-i18n="admin_baum_loeschen" onclick="loescheStammbaum()"></button>
           <button class="account-btn" type="button" id="menu-obav-btn" onclick="zeigeObavModal()"><span data-i18n="admin_benachrichtigungen"></span><span class="obav-badge" id="obav-badge-btn" style="display:none"></span></button>
+          <button class="account-btn" type="button" id="menu-merge-btn" data-i18n="merge_titel" onclick="zeigeMergeModal()" style="display:none"></button>
+          <button class="account-btn" type="button" id="menu-gp-btn" data-i18n="gp_verknuepfen_titel" onclick="zeigeGleichePersonModal()" style="display:none"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_familieneinst"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
         </div>
@@ -1350,6 +1378,117 @@ footer {
   </div>
 </div>
 
+<!-- Dubletten-Früherkennung beim Anlegen / Bearbeiten -->
+<div class="modal" id="dubletten-modal" style="z-index:216">
+  <div class="modal-inhalt" style="max-width:540px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseDublettenModal()">×</button>
+    <h2 data-i18n="dub_titel"></h2>
+    <p class="mv-legende" data-i18n="dub_intro"></p>
+    <div id="dub-liste"></div>
+    <div id="dub-fehler" class="login-fehler"></div>
+    <div class="merge-btn-zeile">
+      <button class="login-hinweis-btn sekundaer" type="button" data-i18n="dub_abbrechen" onclick="schliesseDublettenModal()"></button>
+      <button class="login-submit merge-btn-inline" type="button" data-i18n="dub_trotzdem" onclick="dubTrotzdem()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Bäume verbinden / Dubletten-Merge (nur Super-Admin) -->
+<div class="modal" id="merge-modal" style="z-index:215">
+  <div class="modal-inhalt" style="max-width:680px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseMergeModal()">×</button>
+    <h2 data-i18n="merge_titel"></h2>
+
+    <!-- Schritt 1: zwei Personen wählen -->
+    <div id="merge-step1">
+      <p class="mv-legende" data-i18n="merge_intro"></p>
+      <div class="reg-grid">
+        <label class="login-label"><span data-i18n="merge_baum_a"></span>
+          <select id="mg-baum-a" class="login-feld" onchange="mgWaehleBaum('a')"></select></label>
+        <label class="login-label"><span data-i18n="merge_person_a"></span>
+          <select id="mg-person-a" class="login-feld"></select></label>
+        <label class="login-label"><span data-i18n="merge_baum_b"></span>
+          <select id="mg-baum-b" class="login-feld" onchange="mgWaehleBaum('b')"></select></label>
+        <label class="login-label"><span data-i18n="merge_person_b"></span>
+          <select id="mg-person-b" class="login-feld"></select></label>
+      </div>
+      <div id="merge-fehler1" class="login-fehler"></div>
+      <button class="login-submit" data-i18n="merge_pruefen" onclick="mgPruefen()"></button>
+    </div>
+
+    <!-- Schritt 2: Kandidatenliste -->
+    <div id="merge-step2" style="display:none">
+      <div class="reg-gruppe-titel" data-i18n="merge_kandidaten_titel"></div>
+      <p class="mv-legende" data-i18n="merge_step2_hilfe"></p>
+      <div id="mg-kandidaten"></div>
+      <div id="merge-fehler2" class="login-fehler"></div>
+      <div class="merge-btn-zeile">
+        <button class="login-hinweis-btn sekundaer" type="button" data-i18n="merge_zurueck" onclick="mgZurueckZu(1)"></button>
+        <button class="login-submit merge-btn-inline" type="button" data-i18n="merge_weiter" onclick="mgWeiterZuKonflikt()"></button>
+      </div>
+    </div>
+
+    <!-- Schritt 3: Konfliktauflösung je Paar -->
+    <div id="merge-step3" style="display:none">
+      <p class="sub-name" id="mg-paar-zaehler" style="margin-bottom:4px"></p>
+      <div class="reg-gruppe-titel" data-i18n="merge_survivor"></div>
+      <div id="mg-survivor"></div>
+      <p class="mv-legende" data-i18n="merge_behalten_hinweis"></p>
+      <div id="mg-konflikte"></div>
+      <div id="mg-auto"></div>
+      <div id="merge-fehler3" class="login-fehler"></div>
+      <div class="merge-btn-zeile">
+        <button class="login-hinweis-btn sekundaer" type="button" data-i18n="merge_zurueck" onclick="mgZurueckZu(2)"></button>
+        <button class="login-submit merge-btn-inline" id="mg-merge-btn" type="button" data-i18n="merge_zusammenfuehren" onclick="mgMergeAktuelles()"></button>
+      </div>
+    </div>
+
+    <!-- Schritt 4: optional die beiden Stammbäume zusammenführen (Duplikat-Baum auflösen) -->
+    <div id="merge-step4" style="display:none">
+      <div class="reg-gruppe-titel" data-i18n="merge_tree_titel"></div>
+      <p class="mv-legende" data-i18n="merge_tree_hilfe"></p>
+      <div id="mg-tree-merge" class="merge-btn-zeile" style="flex-direction:column"></div>
+      <div id="merge-fehler4" class="login-fehler"></div>
+    </div>
+
+    <div id="merge-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Gleiche Person über Bäume verknüpfen (nur Super-Admin) -->
+<div class="modal" id="gp-modal" style="z-index:215">
+  <div class="modal-inhalt" style="max-width:680px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseGleichePersonModal()">×</button>
+    <h2 data-i18n="gp_verknuepfen_titel"></h2>
+
+    <!-- Schritt 1: zwei Bäume wählen -> Dubletten dazwischen -->
+    <div id="gp-step1">
+      <p class="mv-legende" data-i18n="gp_modal_intro"></p>
+      <div class="reg-grid">
+        <label class="login-label"><span data-i18n="merge_baum_a"></span>
+          <select id="gp-baum-a" class="login-feld" onchange="gpWaehleBaum()"></select></label>
+        <label class="login-label"><span data-i18n="merge_baum_b"></span>
+          <select id="gp-baum-b" class="login-feld" onchange="gpWaehleBaum()"></select></label>
+      </div>
+      <div id="gp-modal-fehler" class="login-fehler"></div>
+      <div id="gp-dubletten" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Schritt 2: Konfliktauflösung (analog Baum zusammenlegen) -->
+    <div id="gp-step2" style="display:none">
+      <div id="gp-konflikte"></div>
+      <div id="gp-auto"></div>
+      <div id="gp-modal-fehler2" class="login-fehler"></div>
+      <div class="merge-btn-zeile">
+        <button class="login-hinweis-btn sekundaer" type="button" data-i18n="merge_zurueck" onclick="gpZeigeSchritt(1)"></button>
+        <button class="login-submit merge-btn-inline" type="button" data-i18n="gp_verknuepfen" onclick="gpModalVerknuepfen()"></button>
+      </div>
+    </div>
+
+    <div id="gp-modal-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
 <!-- Mitglieder-Verwaltung (Admins) -->
 <div class="modal" id="mitglieder-modal">
   <div class="modal-inhalt" style="max-width:640px" onclick="event.stopPropagation()">
@@ -1534,6 +1673,10 @@ function normalizeRolle(rolle) {
 function istAdmin() {
   return ['super_admin', 'familien_owner', 'familien_admin'].includes(normalizeRolle(aktuelleRolle || ''));
 }
+// Nur der Super-Admin (Betrieb/Wartung) — für GUI-Funktionen, die normalen Nutzern verborgen bleiben.
+function istSuperAdmin() {
+  return normalizeRolle(aktuelleRolle || '') === 'super_admin';
+}
 
 // DEBUG: Hilfsfunction zum Setzen der Debug-Rolle (nur für lokales Testen)
 function setDebugRolle(rolle) {
@@ -1597,6 +1740,11 @@ function aktualisiereAuthUI() {
     // Obavještenja: nur Admins -> Button zeigen + offene Anfragen (Badge) laden
     const obavBtn = document.getElementById('menu-obav-btn');
     if (obavBtn) obavBtn.style.display = istAdm ? '' : 'none';
+    // Bäume verbinden / Dubletten-Merge: ausschließlich Super-Admin (für normale Nutzer unsichtbar)
+    const mergeBtn = document.getElementById('menu-merge-btn');
+    if (mergeBtn) mergeBtn.style.display = istSuperAdmin() ? '' : 'none';
+    const gpBtn = document.getElementById('menu-gp-btn');
+    if (gpBtn) gpBtn.style.display = istSuperAdmin() ? '' : 'none';
     if (istAdm) ladeOffeneAnfragen(); else { offeneAnfragenCache = []; renderObavBadges(); }
   } else {
     anmeldenBtn.style.display = '';
@@ -1917,17 +2065,23 @@ async function fuegeMitgliedEinladen() {
 // anfrage-bearbeiten (Rechteprüfung + Mail + Protokoll). Badge = Anzahl.
 // ============================================================
 let offeneAnfragenCache = [];
+let vknAnfragenCache = [];   // offene Verknüpfungs-Anträge (für den Ziel-Familie-Admin)
 
 async function ladeOffeneAnfragen() {
-  if (!aktuellerUser || !istAdmin()) { offeneAnfragenCache = []; renderObavBadges(); return; }
-  const { data, error } = await sbClient.rpc('offene_anfragen');
-  if (error) console.warn('offene_anfragen:', error.message);
-  offeneAnfragenCache = error ? [] : (data || []);
+  if (!aktuellerUser || !istAdmin()) { offeneAnfragenCache = []; vknAnfragenCache = []; renderObavBadges(); return; }
+  const [r1, r2] = await Promise.all([
+    sbClient.rpc('offene_anfragen'),
+    sbClient.rpc('verknuepfungs_anfragen_offen')
+  ]);
+  if (r1.error) console.warn('offene_anfragen:', r1.error.message);
+  if (r2.error) console.warn('verknuepfungs_anfragen_offen:', r2.error.message);
+  offeneAnfragenCache = r1.error ? [] : (r1.data || []);
+  vknAnfragenCache    = r2.error ? [] : (r2.data || []);
   renderObavBadges();
 }
 
 function renderObavBadges() {
-  const n = offeneAnfragenCache.length;
+  const n = offeneAnfragenCache.length + vknAnfragenCache.length;
   ['obav-badge-toggle', 'obav-badge-btn'].forEach(id => {
     const b = document.getElementById(id);
     if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; }
@@ -1944,9 +2098,10 @@ function schliesseObavModal() { document.getElementById('obav-modal').classList.
 
 function renderObavListe() {
   const box = document.getElementById('obav-liste'); if (!box) return;
-  const liste = offeneAnfragenCache;
-  if (!liste.length) { box.innerHTML = `<div class="event-media-empty">${escapeHtml(t('obav_keine'))}</div>`; return; }
-  box.innerHTML = liste.map(a => {
+  if (!offeneAnfragenCache.length && !vknAnfragenCache.length) {
+    box.innerHTML = `<div class="event-media-empty">${escapeHtml(t('obav_keine'))}</div>`; return;
+  }
+  const regHtml = offeneAnfragenCache.map(a => {
     const name = ((a.vorname || '') + ' ' + (a.nachname || '')).trim() || a.email;
     return `<div class="obav-karte" id="obav-${a.id}">
       <div class="obav-name">${escapeHtml(nm(name))}</div>
@@ -1962,6 +2117,86 @@ function renderObavListe() {
       </div>
     </div>`;
   }).join('');
+  box.innerHTML = regHtml + vknAnfragenCache.map(vknKarteHtml).join('');
+}
+
+// Eine Verknüpfungs-Antrag-Karte (Vorschau für den Ziel-Familie-Admin)
+function vknKarteHtml(v) {
+  const bez = v.bez_typ ? t('bzt_' + v.bez_typ) : '';
+  const modus = t(v.modus === 'merge' ? 'vkn_modus_merge' : 'vkn_modus_beziehung');
+  return `<div class="obav-karte vkn-karte" id="obav-vkn-${v.id}">
+    <div class="obav-name">🔗 ${escapeHtml(t('vkn_obav_titel'))}</div>
+    <div class="obav-meta">
+      <div><strong>${escapeHtml(t('vkn_antragsteller'))}:</strong> ${escapeHtml(nm(v.kontext_name || '—'))}${v.quelle_baum_name ? ` (${escapeHtml(nm(v.quelle_baum_name))})` : ''}</div>
+      <div><strong>${escapeHtml(t('vkn_ziel'))}:</strong> ${escapeHtml(nm(v.ziel_name || '—'))}${v.ziel_baum_name ? ` (${escapeHtml(nm(v.ziel_baum_name))})` : ''}</div>
+      ${bez ? `<div><strong>${escapeHtml(t('vkn_beziehung'))}:</strong> ${escapeHtml(bez)}</div>` : ''}
+      <div><strong>${escapeHtml(t('vkn_modus'))}:</strong> ${escapeHtml(modus)}</div>
+      ${v.antragsteller_email ? `<div><strong>${escapeHtml(t('reg_email'))}:</strong> ${escapeHtml(v.antragsteller_email)}</div>` : ''}
+      <div><strong>${escapeHtml(t('obav_datum'))}:</strong> ${escapeHtml(formatDatumLang((v.created_at || '').slice(0, 10)))}</div>
+    </div>
+    <div class="obav-aktionen">
+      <button class="mv-toggle" type="button" onclick="vknEntscheiden('${v.id}','genehmigt')">${escapeHtml(t('vkn_genehmigen'))}</button>
+      <button class="mv-del" type="button" onclick="vknEntscheiden('${v.id}','abgelehnt')">${escapeHtml(t('vkn_ablehnen'))}</button>
+    </div>
+  </div>`;
+}
+
+async function vknEntscheiden(id, aktion) {
+  if (aktion === 'abgelehnt') { const ok = await zeigeBestaetigung(t('vkn_ablehnen_frage')); if (!ok) return; }
+  const karte = document.getElementById('obav-vkn-' + id);
+  if (karte) { karte.style.opacity = '0.5'; karte.style.pointerEvents = 'none'; }
+  const { error } = await sbClient.rpc('verknuepfung_entscheiden', { p_id: id, p_aktion: aktion });
+  if (error) {
+    if (karte) { karte.style.opacity = ''; karte.style.pointerEvents = ''; }
+    await zeigeHinweis(t('reg_fehler') + error.message); return;
+  }
+  vknAnfragenCache = vknAnfragenCache.filter(v => v.id !== id);
+  renderObavBadges(); renderObavListe();
+  if (aktion === 'genehmigt' && typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  await zeigeHinweis(t(aktion === 'genehmigt' ? 'vkn_genehmigt' : 'vkn_abgelehnt'));
+}
+
+// ============================================================
+// DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+// ============================================================
+let dubKontext = null;   // { modus, kontext, typ, zweiter, proceed, onLinked }
+
+function schliesseDublettenModal() { document.getElementById('dubletten-modal').classList.remove('aktiv'); }
+
+function zeigeDublettenDialog(matches, kontext) {
+  dubKontext = kontext;
+  const fehler = document.getElementById('dub-fehler'); fehler.style.display = 'none'; fehler.textContent = '';
+  const box = document.getElementById('dub-liste');
+  box.innerHTML = (matches || []).map(m => {
+    const wo = m.sichtbar
+      ? `${escapeHtml(nm(m.name || ''))}${m.baum ? ` — ${escapeHtml(t('merge_info_baum'))}: ${escapeHtml(nm(m.baum))}` : ''}`
+      : `${escapeHtml(nm(m.name || ''))} — ${escapeHtml(t('dub_fremde_familie'))}`;
+    return `<div class="mg-kandidat">
+      <div class="mg-person"><span class="mg-namen">${wo}</span></div>
+      <button class="mv-toggle" type="button" onclick="dubVerknuepfen('${m.match_id}')">${escapeHtml(t('dub_verknuepfen'))}</button>
+    </div>`;
+  }).join('');
+  document.getElementById('dubletten-modal').classList.add('aktiv');
+}
+
+function dubTrotzdem() {
+  const k = dubKontext; dubKontext = null;
+  schliesseDublettenModal();
+  if (k && typeof k.proceed === 'function') k.proceed();
+}
+
+async function dubVerknuepfen(matchId) {
+  const k = dubKontext; if (!k) return;
+  const fehler = document.getElementById('dub-fehler'); fehler.style.display = 'none';
+  const { data, error } = await sbClient.rpc('verknuepfung_anfragen', {
+    p_modus: k.modus, p_kontext: k.kontext, p_ziel: matchId, p_typ: k.typ || null, p_zweiter: k.zweiter || null
+  });
+  if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
+  dubKontext = null;
+  schliesseDublettenModal();
+  if (data === 'sofort' && typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  if (k && typeof k.onLinked === 'function') await k.onLinked();
+  await zeigeHinweis(t(data === 'sofort' ? 'vkn_sofort' : 'vkn_angefragt'));
 }
 
 // Akzeptieren: zuerst die Person im Baum wählen (für Rechte entlang der Blutlinie)
@@ -2391,6 +2626,327 @@ async function korrigiereNachnamen() {
   return { petrovic: r1, knezevic: r2, parandilovic: r3 };
 }
 window.korrigiereNachnamen = korrigiereNachnamen;
+
+// ============================================================
+// BÄUME VERBINDEN / DUBLETTEN-MERGE (nur Super-Admin)
+// GUI über die RPCs aus supabase_merge_gui.sql:
+//   dubletten_scan(baum_a, baum_b) -> Kandidatenpaare
+//   personen_feld_diff(a, b)       -> Feldvergleich (nur_a/nur_b/gleich/konflikt)
+//   person_merge_aufgeloest(behalten, dublette, aufloesung) -> Merge inkl. Konfliktauflösung
+// Bäume bleiben separat; nur die Dublette wird gelöscht (Beziehungen/Konto/Medien bleiben).
+// ============================================================
+let mgScanPaare = [];      // alle Kandidaten vom Scan
+let mgFixPaar   = null;    // das explizit gewählte A/B-Paar (immer oben)
+let mgAusgewaehlt = [];    // ausgewählte Paare [{a,b,name_a,name_b}]
+let mgIndex = 0;           // aktuelles Paar in Schritt 3
+let mgDiff = [];           // aktueller Feld-Diff
+let mgSurvivor = 'a';      // welche Karte bleibt: 'a' | 'b'
+let mgInfo = {};           // id -> Personen-Kontext (Baum, *Datum, Eltern, Partner, Kinder)
+let mgBaumA = null, mgBaumB = null, mgBaumAName = '', mgBaumBName = '';   // gewählte Bäume (für Schritt 4)
+
+// Kanonische Felder -> i18n-Schlüssel (für Labels). Reihenfolge = Anzeige.
+const MG_FELDER = {
+  given:'reg_vorname', surname:'reg_nachname', sex:'pe_geschlecht', titel:'pe_titel',
+  namenszusatz:'pe_namenszusatz', ehename:'pe_ehename', birth_date:'reg_geburtsdatum',
+  birth_place:'reg_geburtsort', geburtsland:'reg_geburtsland', getauft:'reg_getauft',
+  death_date:'pe_sterbedatum', hochzeitsort:'pe_hochzeitsort',
+  hochzeit_standesamt:'pe_hochzeit_standesamt', hochzeit_kirchlich:'pe_hochzeit_kirchlich',
+  beziehung:'pe_beziehung', email:'reg_kontakt_email', telefon:'reg_telefon',
+  facebook:'reg_facebook', instagram:'reg_instagram', wohnort_land:'pe_wohnland',
+  wohnort_stadt:'pe_wohnstadt', adresse:'pe_adresse', beruf:'pe_beruf',
+  ausbildung:'pe_ausbildung', beschreibung:'pe_beschreibung'
+};
+const MG_DATUM = ['birth_date','death_date','getauft','hochzeit_standesamt','hochzeit_kirchlich'];
+function mgFeldLabel(f){ return t(MG_FELDER[f] || f).replace(/[:*]\s*$/,'').trim(); }
+function mgWertAnzeige(f, wert){
+  if (!wert) return '—';
+  return MG_DATUM.includes(f) ? (formatDatumLang(wert) || wert) : wert;
+}
+function mgRohName(a, b){ return ((a||'') + ' ' + (b||'')).trim(); }
+
+async function zeigeMergeModal(){
+  if (!istSuperAdmin()) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  mgScanPaare = []; mgFixPaar = null; mgAusgewaehlt = []; mgIndex = 0; mgDiff = [];
+  document.getElementById('merge-erfolg').style.display = 'none';
+  ['merge-fehler1','merge-fehler2','merge-fehler3'].forEach(id => {
+    const e = document.getElementById(id); e.style.display = 'none'; e.textContent = '';
+  });
+  mgZeigeSchritt(1);
+  document.getElementById('merge-modal').classList.add('aktiv');
+  mgFuelleBaeume();   // erst nach dem Einblenden (suchbare Dropdowns korrekt positionieren)
+}
+function schliesseMergeModal(){ document.getElementById('merge-modal').classList.remove('aktiv'); }
+function mgZeigeSchritt(n){
+  [1,2,3,4].forEach(i => { document.getElementById('merge-step'+i).style.display = (i===n) ? '' : 'none'; });
+}
+function mgZurueckZu(n){ mgZeigeSchritt(n); }
+
+// Baum-Dropdowns aus der bereits geladenen Baumliste füllen
+function mgFuelleBaeume(){
+  const eintraege = Object.entries(stammbaeumeListe || {})
+    .sort((a, b) => nm(a[1] || '').localeCompare(nm(b[1] || '')));
+  const opts = '<option value=""></option>' + eintraege.map(([id, name]) =>
+    `<option value="${escapeHtml(id)}">${escapeHtml(nm(name))}</option>`).join('');
+  ['mg-baum-a','mg-baum-b'].forEach(id => { const s = document.getElementById(id); s.innerHTML = opts; s.value = ''; });
+  ['mg-person-a','mg-person-b'].forEach(id => { const s = document.getElementById(id); s.innerHTML = '<option value=""></option>'; s.value = ''; });
+  macheAlleSelectsSuchbar(document.getElementById('merge-modal'));
+}
+
+// Personen eines Baums in das zugehörige Personen-Dropdown laden
+async function mgWaehleBaum(seite){
+  const baumId = document.getElementById('mg-baum-' + seite).value;
+  const sel = document.getElementById('mg-person-' + seite);
+  sel.innerHTML = '<option value=""></option>'; sel.value = '';
+  if (baumId){
+    const { data, error } = await sbClient.from('personen')
+      .select('id, vorname, nachname, stammbaum_daten').eq('stammbaum_id', baumId);
+    if (!error){
+      const liste = (data || []).map(p => {
+        const bd = (p.stammbaum_daten || {}).birth_date;
+        const lab = nm(mgRohName(p.vorname, p.nachname)) + (bd ? ' (* ' + (formatDatumLang(bd) || bd) + ')' : '');
+        return { id: p.id, lab };
+      }).sort((a, b) => a.lab.localeCompare(b.lab));
+      sel.innerHTML = '<option value=""></option>' + liste.map(p =>
+        `<option value="${escapeHtml(p.id)}">${escapeHtml(p.lab)}</option>`).join('');
+    }
+  }
+  macheAlleSelectsSuchbar(document.getElementById('merge-modal'));
+  sel.value = '';
+}
+
+// Schritt 1 -> Scan über beide Bäume
+async function mgPruefen(){
+  const fehler = document.getElementById('merge-fehler1'); fehler.style.display = 'none';
+  const ba = document.getElementById('mg-baum-a').value, bb = document.getElementById('mg-baum-b').value;
+  const pa = document.getElementById('mg-person-a').value, pb = document.getElementById('mg-person-b').value;
+  if (!ba || !bb || !pa || !pb){ fehler.textContent = t('merge_baeume_waehlen'); fehler.style.display = 'block'; return; }
+  if (ba === bb){ fehler.textContent = t('merge_gleicher_baum'); fehler.style.display = 'block'; return; }
+
+  mgBaumA = ba; mgBaumB = bb;
+  mgBaumAName = stammbaeumeListe[ba] || ''; mgBaumBName = stammbaeumeListe[bb] || '';
+
+  const { data, error } = await sbClient.rpc('dubletten_scan', { p_baum_a: ba, p_baum_b: bb });
+  if (error){ fehler.textContent = t('merge_fehler') + error.message; fehler.style.display = 'block'; return; }
+  mgScanPaare = data || [];
+
+  // Rohnamen des explizit gewählten A/B-Paares holen (für saubere nm()-Anzeige)
+  const { data: fixP } = await sbClient.from('personen').select('id, vorname, nachname').in('id', [pa, pb]);
+  const rohName = id => { const r = (fixP || []).find(x => x.id === id); return r ? mgRohName(r.vorname, r.nachname) : ''; };
+  mgFixPaar = { a: pa, b: pb, name_a: rohName(pa), name_b: rohName(pb) };
+
+  // Personen-Kontext (Baum, Geburtsdatum, Eltern, Partner, Kinder) für alle Beteiligten laden
+  const ids = new Set([pa, pb]);
+  mgScanPaare.forEach(p => { ids.add(p.id_a); ids.add(p.id_b); });
+  await mgLadeInfo([...ids]);
+
+  mgRenderKandidaten();
+  mgZeigeSchritt(2);
+}
+
+async function mgLadeInfo(ids){
+  mgInfo = {};
+  if (!ids.length) return;
+  const { data } = await sbClient.rpc('merge_person_info', { p_ids: ids });
+  (data || []).forEach(r => { mgInfo[r.id] = r; });
+}
+
+// Eine Personenzeile mit Kontext (für Kandidatenliste): Baum · *Datum · Eltern · Partner · Kinder
+function mgInfoZeile(id, fallbackName){
+  const inf = mgInfo[id];
+  const name = inf && inf.name ? inf.name : fallbackName;
+  const det = [];
+  if (inf){
+    if (inf.baum)       det.push(`${t('merge_info_baum')}: ${escapeHtml(nm(inf.baum))}`);
+    if (inf.geboren)    det.push(`* ${escapeHtml(formatDatumLang(inf.geboren) || inf.geboren)}`);
+    if (inf.geburtsort) det.push(escapeHtml(inf.geburtsort));
+    if (inf.eltern)     det.push(`${t('merge_info_eltern')}: ${escapeHtml(nm(inf.eltern))}`);
+    if (inf.partner)    det.push(`${t('merge_info_partner')}: ${escapeHtml(nm(inf.partner))}`);
+    if (inf.kinder)     det.push(`${t('merge_info_kinder')}: ${inf.kinder}`);
+  }
+  return `<span class="mg-person"><span class="mg-namen">${escapeHtml(nm(name))}</span>` +
+    (det.length ? `<span class="mg-meta">${det.join(' · ')}</span>` : '') + `</span>`;
+}
+
+function mgRenderKandidaten(){
+  const box = document.getElementById('mg-kandidaten');
+  let html = mgKandidatHtml(mgFixPaar, true, null);
+  const weitere = mgScanPaare.filter(p => !(p.id_a === mgFixPaar.a && p.id_b === mgFixPaar.b));
+  if (weitere.length === 0){
+    html += `<p class="mv-legende">${t('merge_keine_kandidaten')}</p>`;
+  } else {
+    weitere.forEach(p => { html += mgKandidatHtml({ a: p.id_a, b: p.id_b, name_a: p.name_a, name_b: p.name_b }, false, p); });
+  }
+  box.innerHTML = html;
+}
+function mgKandidatHtml(paar, fix, scan){
+  let grund;
+  if (scan){
+    const gruende = (scan.gruende || []).map(g => t('merge_grund_' + g)).join(', ');
+    grund = `${t('merge_score')}: ${scan.score}${gruende ? ' · ' + escapeHtml(gruende) : ''}`;
+  } else {
+    grund = escapeHtml(t('merge_ab_paar'));
+  }
+  return `<div class="mg-kandidat${fix ? ' fix' : ''}">
+    <label><input type="checkbox" class="mg-cb" data-a="${escapeHtml(paar.a)}" data-b="${escapeHtml(paar.b)}" ${fix ? 'checked' : ''}>
+      <span class="mg-kandidat-body">
+        <span class="mg-grund">${grund}</span>
+        ${mgInfoZeile(paar.a, paar.name_a)}
+        <span class="mg-vs">⟷</span>
+        ${mgInfoZeile(paar.b, paar.name_b)}
+      </span></label>
+  </div>`;
+}
+
+// Schritt 2 -> ausgewählte Paare übernehmen, Schritt 3 starten
+function mgWeiterZuKonflikt(){
+  const fehler = document.getElementById('merge-fehler2'); fehler.style.display = 'none';
+  const cbs = [...document.querySelectorAll('#mg-kandidaten .mg-cb:checked')];
+  if (cbs.length === 0){ fehler.textContent = t('merge_keine_auswahl'); fehler.style.display = 'block'; return; }
+  mgAusgewaehlt = cbs.map(cb => {
+    const a = cb.dataset.a, b = cb.dataset.b;
+    if (mgFixPaar && a === mgFixPaar.a && b === mgFixPaar.b) return { a, b, name_a: mgFixPaar.name_a, name_b: mgFixPaar.name_b };
+    const sc = mgScanPaare.find(p => p.id_a === a && p.id_b === b);
+    return { a, b, name_a: sc ? sc.name_a : '', name_b: sc ? sc.name_b : '' };
+  });
+  mgIndex = 0;
+  mgZeigeSchritt(3);
+  mgRenderPaar();
+}
+
+async function mgRenderPaar(){
+  const fehler = document.getElementById('merge-fehler3'); fehler.style.display = 'none';
+  const paar = mgAusgewaehlt[mgIndex];
+  document.getElementById('mg-paar-zaehler').textContent =
+    t('merge_paar_von', { n: mgIndex + 1, gesamt: mgAusgewaehlt.length });
+
+  const { data: diff, error } = await sbClient.rpc('personen_feld_diff', { p_a: paar.a, p_b: paar.b });
+  if (error){
+    // Eine Karte existiert evtl. nicht mehr (durch vorherigen Merge) -> Paar überspringen
+    console.warn('Paar übersprungen:', error.message);
+    if (mgIndex < mgAusgewaehlt.length - 1){ mgIndex++; return mgRenderPaar(); }
+    return mgFertig();
+  }
+  mgDiff = diff || [];
+  const nurA = mgDiff.filter(d => d.status === 'nur_a').length;
+  const nurB = mgDiff.filter(d => d.status === 'nur_b').length;
+  mgSurvivor = (nurB > nurA) ? 'b' : 'a';   // Default: vollständigere Karte bleibt
+  mgRenderSurvivor(paar);
+  mgRenderKonflikte();
+  mgRenderAuto();
+}
+function mgSurvLabel(id, fallbackName){
+  const inf = mgInfo[id];
+  const name = inf && inf.name ? inf.name : fallbackName;
+  const baum = inf && inf.baum ? ' (' + nm(inf.baum) + ')' : '';
+  return escapeHtml(nm(name) + baum);
+}
+function mgRenderSurvivor(paar){
+  document.getElementById('mg-survivor').innerHTML =
+    `<label class="mg-survivor-opt"><input type="radio" name="mg-surv" value="a" ${mgSurvivor==='a'?'checked':''} onchange="mgSetSurvivor('a')"> ${mgSurvLabel(paar.a, paar.name_a)}</label>` +
+    `<label class="mg-survivor-opt"><input type="radio" name="mg-surv" value="b" ${mgSurvivor==='b'?'checked':''} onchange="mgSetSurvivor('b')"> ${mgSurvLabel(paar.b, paar.name_b)}</label>`;
+}
+function mgSetSurvivor(s){ mgSurvivor = s; mgRenderKonflikte(); mgRenderAuto(); }
+
+function mgRenderKonflikte(){
+  const box = document.getElementById('mg-konflikte');
+  const konf = mgDiff.filter(d => d.status === 'konflikt');
+  if (konf.length === 0){ box.innerHTML = ''; return; }
+  let html = `<div class="reg-gruppe-titel">${t('merge_konflikt_titel')}</div>`;
+  konf.forEach(d => {
+    const f = d.feld, def = mgSurvivor;
+    html += `<div class="mg-konflikt">
+      <div class="mg-feld">${escapeHtml(mgFeldLabel(f))}</div>
+      <div class="mg-opt"><label><input type="radio" name="mg-k-${f}" value="a" ${def==='a'?'checked':''}> ${t('merge_wert_a')}: ${escapeHtml(mgWertAnzeige(f, d.wert_a))}</label></div>
+      <div class="mg-opt"><label><input type="radio" name="mg-k-${f}" value="b" ${def==='b'?'checked':''}> ${t('merge_wert_b')}: ${escapeHtml(mgWertAnzeige(f, d.wert_b))}</label></div>
+      <div class="mg-opt"><label><input type="radio" name="mg-k-${f}" value="m"> ${t('merge_manuell')}</label>
+        <input type="text" class="login-feld mg-man" data-feld="${f}" value="${escapeHtml(d['wert_'+def] || '')}"></div>
+    </div>`;
+  });
+  box.innerHTML = html;
+}
+function mgRenderAuto(){
+  const box = document.getElementById('mg-auto');
+  const auto = mgDiff.filter(d => d.status !== 'konflikt');
+  if (auto.length === 0){ box.innerHTML = ''; return; }
+  let html = `<div class="reg-gruppe-titel">${t('merge_auto_titel')}</div>`;
+  auto.forEach(d => {
+    const f = d.feld;
+    const wert = d.status === 'nur_b' ? d.wert_b : d.wert_a;   // gleich/nur_a: A; nur_b: B
+    html += `<div class="mg-auto-row"><b>${escapeHtml(mgFeldLabel(f))}:</b> ${escapeHtml(mgWertAnzeige(f, wert))}</div>`;
+  });
+  box.innerHTML = html;
+}
+
+async function mgMergeAktuelles(){
+  const fehler = document.getElementById('merge-fehler3'); fehler.style.display = 'none';
+  const btn = document.getElementById('mg-merge-btn'); const alt = btn.textContent;
+  const paar = mgAusgewaehlt[mgIndex];
+  const behalten = mgSurvivor === 'a' ? paar.a : paar.b;
+  const dublette = mgSurvivor === 'a' ? paar.b : paar.a;
+
+  // Konfliktauflösung sammeln (für jedes Konfliktfeld den gewählten Endwert)
+  const aufloesung = {};
+  mgDiff.filter(d => d.status === 'konflikt').forEach(d => {
+    const f = d.feld;
+    const sel = document.querySelector(`input[name="mg-k-${f}"]:checked`);
+    const wahl = sel ? sel.value : mgSurvivor;
+    let val;
+    if (wahl === 'a') val = d.wert_a;
+    else if (wahl === 'b') val = d.wert_b;
+    else { const man = document.querySelector(`.mg-man[data-feld="${f}"]`); val = man ? man.value.trim() : ''; }
+    aufloesung[f] = val || '';
+  });
+
+  btn.disabled = true; btn.textContent = t('merge_laeuft');
+  const { error } = await sbClient.rpc('person_merge_aufgeloest',
+    { p_behalten: behalten, p_dublette: dublette, p_aufloesung: aufloesung });
+  btn.disabled = false; btn.textContent = alt;
+  if (error){ fehler.textContent = t('merge_fehler') + error.message; fehler.style.display = 'block'; return; }
+
+  if (mgIndex < mgAusgewaehlt.length - 1){ mgIndex++; mgRenderPaar(); }
+  else { await mgFertig(); }
+}
+
+async function mgFertig(){
+  mgZeigeSchritt(0);   // Schritte 1–3 ausblenden
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  // Personen sind zusammengeführt. Optional: die beiden (evtl. doppelten) Stammbäume zu einem machen.
+  if (mgBaumA && mgBaumB && mgBaumA !== mgBaumB && stammbaeumeListe[mgBaumA] && stammbaeumeListe[mgBaumB]){
+    mgRenderTreeMerge();
+    mgZeigeSchritt(4);
+  } else {
+    mgErfolgUndZu(t('merge_fertig'));
+  }
+}
+
+// Schritt 4: optionale Baum-Konsolidierung anbieten
+function mgRenderTreeMerge(){
+  const erfolg = document.getElementById('merge-erfolg');
+  erfolg.textContent = t('merge_fertig'); erfolg.style.display = 'block';
+  document.getElementById('merge-fehler4').style.display = 'none';
+  const a = escapeHtml(nm(mgBaumAName)), b = escapeHtml(nm(mgBaumBName));
+  document.getElementById('mg-tree-merge').innerHTML =
+    `<button class="login-submit" type="button" style="margin-top:0" onclick="mgTreeMerge('a')">${t('merge_tree_a_bleibt', { a, b })}</button>` +
+    `<button class="login-submit" type="button" style="margin-top:0" onclick="mgTreeMerge('b')">${t('merge_tree_b_bleibt', { a, b })}</button>` +
+    `<button class="login-hinweis-btn sekundaer" type="button" onclick="mgTreeNein()">${t('merge_tree_nein')}</button>`;
+}
+async function mgTreeMerge(zielSeite){
+  const fehler = document.getElementById('merge-fehler4'); fehler.style.display = 'none';
+  const ziel   = zielSeite === 'a' ? mgBaumA : mgBaumB;
+  const quelle = zielSeite === 'a' ? mgBaumB : mgBaumA;
+  const { error } = await sbClient.rpc('stammbaeume_zusammenfuehren', { p_quelle: quelle, p_ziel: ziel });
+  if (error){ fehler.textContent = t('merge_fehler') + error.message; fehler.style.display = 'block'; return; }
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  mgErfolgUndZu(t('merge_tree_fertig'));
+}
+function mgTreeNein(){ mgErfolgUndZu(t('merge_fertig')); }
+function mgErfolgUndZu(msg){
+  mgZeigeSchritt(0);
+  const erfolg = document.getElementById('merge-erfolg');
+  erfolg.textContent = msg; erfolg.style.display = 'block';
+  setTimeout(() => schliesseMergeModal(), 1400);
+}
 
 async function anmelden() {
   const email    = document.getElementById('login-email').value.trim();
@@ -2876,6 +3432,75 @@ const EVENTS_DATA = {
 // ============================================================
 const TEXTE = {
   de: {
+    merge_titel: 'Bäume verbinden (Dubletten)',
+    merge_intro: 'Zwei Personen wählen, die dieselbe reale Person sind. Danach prüft das System automatisch auf weitere Dubletten über beide Bäume.',
+    merge_baum_a: 'Stammbaum 1', merge_baum_b: 'Stammbaum 2',
+    merge_person_a: 'Person aus Baum 1', merge_person_b: 'Person aus Baum 2',
+    merge_pruefen: 'Dubletten prüfen',
+    merge_kandidaten_titel: 'Gefundene Dublettenpaare',
+    merge_keine_kandidaten: 'Keine weiteren Dubletten gefunden.',
+    merge_ab_paar: 'Ausgewähltes Paar (gleiche Person)',
+    merge_score: 'Übereinstimmung',
+    merge_grund_vorname: 'Vorname', merge_grund_nachname: 'Nachname', merge_grund_geburtsdatum: 'Geburtsdatum',
+    merge_grund_eltern: 'gleiche Eltern', merge_grund_kinder: 'gleiche Kinder', merge_grund_partner: 'gleicher Ehepartner',
+    merge_paar_von: 'Paar {n} von {gesamt}',
+    merge_survivor: 'Welche Karte bleibt bestehen?',
+    merge_behalten_hinweis: 'Die andere Karte wird gelöscht; alle Beziehungen, Konten und Medien bleiben erhalten.',
+    merge_konflikt_titel: 'Unterschiedliche Werte – bitte entscheiden',
+    merge_auto_titel: 'Wird automatisch übernommen / ergänzt',
+    merge_wert_a: 'Wert A', merge_wert_b: 'Wert B', merge_manuell: 'Manuell',
+    merge_zusammenfuehren: 'Zusammenführen', merge_weiter: 'Weiter', merge_zurueck: 'Zurück',
+    merge_laeuft: 'Wird zusammengeführt…',
+    merge_fertig: 'Zusammenführung abgeschlossen.',
+    merge_fehler: 'Fehler: ',
+    merge_keine_auswahl: 'Bitte mindestens ein Paar auswählen.',
+    merge_baeume_waehlen: 'Bitte zwei Personen aus zwei Bäumen wählen.',
+    merge_gleicher_baum: 'Bitte zwei verschiedene Stammbäume wählen.',
+    merge_step2_hilfe: 'Angehakte Paare werden im nächsten Schritt zusammengeführt: Die unvollständigere Karte wird gelöscht, ihre Daten, Beziehungen und Verknüpfungen wandern in die bleibende Karte. Prüfe Baum, Geburtsdatum, Eltern und Partner, ob es wirklich dieselbe Person ist.',
+    merge_info_baum: 'Baum', merge_info_eltern: 'Eltern', merge_info_partner: 'Partner', merge_info_kinder: 'Kinder',
+    merge_tree_titel: 'Stammbäume zusammenführen?',
+    merge_tree_hilfe: 'Nur ausführen, wenn beide Bäume DIESELBE Familie sind (Duplikat). Alle Personen des überflüssigen Baums werden in den bleibenden verschoben, der leere Baum wird gelöscht.',
+    merge_tree_a_bleibt: '„{a}" behalten, „{b}" löschen',
+    merge_tree_b_bleibt: '„{b}" behalten, „{a}" löschen',
+    merge_tree_nein: 'Nein, Bäume getrennt lassen',
+    merge_tree_fertig: 'Stammbäume zusammengeführt.',
+    dub_titel: 'Mögliche Dublette gefunden',
+    dub_intro: 'Möglicherweise existiert diese Person bereits in einem anderen Stammbaum. Du kannst trotzdem neu anlegen oder eine Verknüpfung beantragen.',
+    dub_fremde_familie: 'in einer anderen Familie',
+    dub_verknuepfen: 'Verknüpfung anfragen',
+    dub_trotzdem: 'Trotzdem neu anlegen',
+    dub_abbrechen: 'Abbrechen',
+    vkn_obav_titel: 'Verknüpfungs-Antrag',
+    vkn_antragsteller: 'Antragsteller',
+    vkn_ziel: 'Bestehende Person',
+    vkn_beziehung: 'Geplante Beziehung',
+    vkn_modus: 'Art',
+    vkn_modus_merge: 'Personen zusammenführen',
+    vkn_modus_beziehung: 'Person einbinden (verknüpfen)',
+    vkn_genehmigen: 'Genehmigen',
+    vkn_ablehnen: 'Ablehnen',
+    vkn_ablehnen_frage: 'Diesen Verknüpfungs-Antrag wirklich ablehnen?',
+    vkn_genehmigt: 'Verknüpfung genehmigt.',
+    vkn_abgelehnt: 'Antrag abgelehnt.',
+    vkn_sofort: 'Verknüpfung wurde durchgeführt.',
+    vkn_angefragt: 'Verknüpfungs-Antrag gesendet. Ein Admin des anderen Stammbaums muss zustimmen.',
+    gp_auch_in: 'Dieselbe Person auch in',
+    gp_verknuepfen_titel: 'Gleiche Person verknüpfen',
+    gp_verknuepfen: 'Verknüpfen',
+    gp_manuell: 'Person manuell auswählen',
+    gp_loesen: 'Verknüpfung lösen',
+    gp_loesen_frage: 'Verknüpfung „gleiche Person" wirklich lösen?',
+    gp_verknuepft: 'Als gleiche Person verknüpft.',
+    gp_geloest: 'Verknüpfung gelöst.',
+    gp_select_leer: 'Bitte eine Person auswählen.',
+    gp_select_gleich: 'Bitte zwei verschiedene Personen wählen.',
+    gp_modal_intro: 'Zwei Karten derselben realen Person wählen (z. B. dieselbe Frau in zwei Bäumen). Sie werden als gleiche Person verknüpft, die Daten angeglichen und die Bäume verbunden — beide Karten bleiben sichtbar.',
+    gp_keine_konflikte: 'Keine widersprüchlichen Felder — die Daten werden angeglichen.',
+    gp_dub_titel: 'Noch doppelt vorhanden (zum Verknüpfen):',
+    gp_verknuepft_weiter: 'Personen verknüpft. Du kannst weitere Personen verknüpfen.',
+    gp_alle_verknuepfen: 'Ausgewählte verknüpfen',
+    gp_einzeln: 'Einzeln',
+    gp_keine_dubletten: 'Keine Dubletten zwischen diesen Bäumen gefunden.',
     untertitel: 'Stammbaum',
     stats: '{p} PERSONEN · {f} FAMILIEN',
     stats_baum: '{p} PERSONEN',
@@ -3154,6 +3779,75 @@ const TEXTE = {
     rolle_familien_mitglied: 'Mitglied'
   },
   sr: {
+    merge_titel: 'Спајање стабала (дупликати)',
+    merge_intro: 'Изаберите две особе које су иста стварна особа. Систем затим аутоматски проверава додатне дупликате у оба стабла.',
+    merge_baum_a: 'Стабло 1', merge_baum_b: 'Стабло 2',
+    merge_person_a: 'Особа из стабла 1', merge_person_b: 'Особа из стабла 2',
+    merge_pruefen: 'Провери дупликате',
+    merge_kandidaten_titel: 'Пронађени парови дупликата',
+    merge_keine_kandidaten: 'Нема додатних дупликата.',
+    merge_ab_paar: 'Изабрани пар (иста особа)',
+    merge_score: 'Подударање',
+    merge_grund_vorname: 'Име', merge_grund_nachname: 'Презиме', merge_grund_geburtsdatum: 'Датум рођења',
+    merge_grund_eltern: 'исти родитељи', merge_grund_kinder: 'иста деца', merge_grund_partner: 'исти супружник',
+    merge_paar_von: 'Пар {n} од {gesamt}',
+    merge_survivor: 'Која картица остаје?',
+    merge_behalten_hinweis: 'Друга картица се брише; све везе, налози и медији остају сачувани.',
+    merge_konflikt_titel: 'Различите вредности – одлучите',
+    merge_auto_titel: 'Аутоматски се преузима / допуњава',
+    merge_wert_a: 'Вредност А', merge_wert_b: 'Вредност Б', merge_manuell: 'Ручно',
+    merge_zusammenfuehren: 'Споји', merge_weiter: 'Даље', merge_zurueck: 'Назад',
+    merge_laeuft: 'Спајање у току…',
+    merge_fertig: 'Спајање завршено.',
+    merge_fehler: 'Грешка: ',
+    merge_keine_auswahl: 'Изаберите бар један пар.',
+    merge_baeume_waehlen: 'Изаберите две особе из два стабла.',
+    merge_gleicher_baum: 'Изаберите два различита стабла.',
+    merge_step2_hilfe: 'Означени парови ће у следећем кораку бити спојени: непотпунија картица се брише, њени подаци, везе и налози прелазе на картицу која остаје. Проверите стабло, датум рођења, родитеље и партнера да ли је заиста иста особа.',
+    merge_info_baum: 'Стабло', merge_info_eltern: 'Родитељи', merge_info_partner: 'Партнер', merge_info_kinder: 'Деца',
+    merge_tree_titel: 'Спојити стабла?',
+    merge_tree_hilfe: 'Изврши само ако су оба стабла ИСТА породица (дупликат). Све особе из сувишног стабла прелазе у стабло које остаје, празно стабло се брише.',
+    merge_tree_a_bleibt: 'Задржи „{a}", обриши „{b}"',
+    merge_tree_b_bleibt: 'Задржи „{b}", обриши „{a}"',
+    merge_tree_nein: 'Не, остави стабла одвојено',
+    merge_tree_fertig: 'Стабла спојена.',
+    dub_titel: 'Могући дупликат пронађен',
+    dub_intro: 'Можда ова особа већ постоји у другом стаблу. Можете ипак направити нову или затражити повезивање.',
+    dub_fremde_familie: 'у другој породици',
+    dub_verknuepfen: 'Затражи повезивање',
+    dub_trotzdem: 'Ипак направи нову',
+    dub_abbrechen: 'Откажи',
+    vkn_obav_titel: 'Захтев за повезивање',
+    vkn_antragsteller: 'Подносилац',
+    vkn_ziel: 'Постојећа особа',
+    vkn_beziehung: 'Планирана веза',
+    vkn_modus: 'Врста',
+    vkn_modus_merge: 'Спајање особа',
+    vkn_modus_beziehung: 'Укључивање особе (повезивање)',
+    vkn_genehmigen: 'Одобри',
+    vkn_ablehnen: 'Одбиј',
+    vkn_ablehnen_frage: 'Стварно одбити овај захтев за повезивање?',
+    vkn_genehmigt: 'Повезивање одобрено.',
+    vkn_abgelehnt: 'Захтев одбијен.',
+    vkn_sofort: 'Повезивање је извршено.',
+    vkn_angefragt: 'Захтев за повезивање послат. Админ другог стабла мора да одобри.',
+    gp_auch_in: 'Иста особа и у',
+    gp_verknuepfen_titel: 'Повежи као исту особу',
+    gp_verknuepfen: 'Повежи',
+    gp_manuell: 'Ручно изабери особу',
+    gp_loesen: 'Раскини везу',
+    gp_loesen_frage: 'Стварно раскинути везу „иста особа"?',
+    gp_verknuepft: 'Повезано као иста особа.',
+    gp_geloest: 'Веза раскинута.',
+    gp_select_leer: 'Изаберите особу.',
+    gp_select_gleich: 'Изаберите две различите особе.',
+    gp_modal_intro: 'Изаберите две картице исте стварне особе (нпр. иста жена у два стабла). Биће повезане као иста особа, подаци усклађени и стабла повезана — обе картице остају видљиве.',
+    gp_keine_konflikte: 'Нема противречних поља — подаци ће бити усклађени.',
+    gp_dub_titel: 'Још увек дупло (за повезивање):',
+    gp_verknuepft_weiter: 'Особе повезане. Можете повезати још особа.',
+    gp_alle_verknuepfen: 'Повежи изабране',
+    gp_einzeln: 'Појединачно',
+    gp_keine_dubletten: 'Нема дупликата између ова два стабла.',
     untertitel: 'Породично стабло',
     stats: '{p} ОСОБА · {f} ПОРОДИЦА',
     stats_baum: '{p} ОСОБА',
@@ -3432,6 +4126,75 @@ const TEXTE = {
     rolle_familien_mitglied: 'Члан'
   },
   hr: {
+    merge_titel: 'Povezivanje stabala (duplikati)',
+    merge_intro: 'Odaberite dvije osobe koje su ista stvarna osoba. Sustav zatim automatski provjerava dodatne duplikate u oba stabla.',
+    merge_baum_a: 'Stablo 1', merge_baum_b: 'Stablo 2',
+    merge_person_a: 'Osoba iz stabla 1', merge_person_b: 'Osoba iz stabla 2',
+    merge_pruefen: 'Provjeri duplikate',
+    merge_kandidaten_titel: 'Pronađeni parovi duplikata',
+    merge_keine_kandidaten: 'Nema dodatnih duplikata.',
+    merge_ab_paar: 'Odabrani par (ista osoba)',
+    merge_score: 'Podudaranje',
+    merge_grund_vorname: 'Ime', merge_grund_nachname: 'Prezime', merge_grund_geburtsdatum: 'Datum rođenja',
+    merge_grund_eltern: 'isti roditelji', merge_grund_kinder: 'ista djeca', merge_grund_partner: 'isti bračni partner',
+    merge_paar_von: 'Par {n} od {gesamt}',
+    merge_survivor: 'Koja kartica ostaje?',
+    merge_behalten_hinweis: 'Druga kartica se briše; sve veze, računi i mediji ostaju sačuvani.',
+    merge_konflikt_titel: 'Različite vrijednosti – odlučite',
+    merge_auto_titel: 'Automatski se preuzima / dopunjava',
+    merge_wert_a: 'Vrijednost A', merge_wert_b: 'Vrijednost B', merge_manuell: 'Ručno',
+    merge_zusammenfuehren: 'Spoji', merge_weiter: 'Dalje', merge_zurueck: 'Natrag',
+    merge_laeuft: 'Spajanje u tijeku…',
+    merge_fertig: 'Spajanje završeno.',
+    merge_fehler: 'Greška: ',
+    merge_keine_auswahl: 'Odaberite barem jedan par.',
+    merge_baeume_waehlen: 'Odaberite dvije osobe iz dva stabla.',
+    merge_gleicher_baum: 'Odaberite dva različita stabla.',
+    merge_step2_hilfe: 'Označeni parovi bit će u sljedećem koraku spojeni: nepotpunija kartica se briše, njezini podaci, veze i računi prelaze na karticu koja ostaje. Provjerite stablo, datum rođenja, roditelje i partnera je li doista ista osoba.',
+    merge_info_baum: 'Stablo', merge_info_eltern: 'Roditelji', merge_info_partner: 'Partner', merge_info_kinder: 'Djeca',
+    merge_tree_titel: 'Spojiti stabla?',
+    merge_tree_hilfe: 'Izvrši samo ako su oba stabla ISTA obitelj (duplikat). Sve osobe suvišnog stabla premještaju se u ono koje ostaje, prazno stablo se briše.',
+    merge_tree_a_bleibt: 'Zadrži „{a}", obriši „{b}"',
+    merge_tree_b_bleibt: 'Zadrži „{b}", obriši „{a}"',
+    merge_tree_nein: 'Ne, ostavi stabla odvojeno',
+    merge_tree_fertig: 'Stabla spojena.',
+    dub_titel: 'Mogući duplikat pronađen',
+    dub_intro: 'Možda ova osoba već postoji u drugom stablu. Možete ipak izraditi novu ili zatražiti povezivanje.',
+    dub_fremde_familie: 'u drugoj obitelji',
+    dub_verknuepfen: 'Zatraži povezivanje',
+    dub_trotzdem: 'Ipak izradi novu',
+    dub_abbrechen: 'Odustani',
+    vkn_obav_titel: 'Zahtjev za povezivanje',
+    vkn_antragsteller: 'Podnositelj',
+    vkn_ziel: 'Postojeća osoba',
+    vkn_beziehung: 'Planirana veza',
+    vkn_modus: 'Vrsta',
+    vkn_modus_merge: 'Spajanje osoba',
+    vkn_modus_beziehung: 'Uključivanje osobe (povezivanje)',
+    vkn_genehmigen: 'Odobri',
+    vkn_ablehnen: 'Odbij',
+    vkn_ablehnen_frage: 'Stvarno odbiti ovaj zahtjev za povezivanje?',
+    vkn_genehmigt: 'Povezivanje odobreno.',
+    vkn_abgelehnt: 'Zahtjev odbijen.',
+    vkn_sofort: 'Povezivanje je izvršeno.',
+    vkn_angefragt: 'Zahtjev za povezivanje poslan. Admin drugog stabla mora odobriti.',
+    gp_auch_in: 'Ista osoba i u',
+    gp_verknuepfen_titel: 'Poveži kao istu osobu',
+    gp_verknuepfen: 'Poveži',
+    gp_manuell: 'Ručno odaberi osobu',
+    gp_loesen: 'Raskini vezu',
+    gp_loesen_frage: 'Stvarno raskinuti vezu „ista osoba"?',
+    gp_verknuepft: 'Povezano kao ista osoba.',
+    gp_geloest: 'Veza raskinuta.',
+    gp_select_leer: 'Odaberite osobu.',
+    gp_select_gleich: 'Odaberite dvije različite osobe.',
+    gp_modal_intro: 'Odaberite dvije kartice iste stvarne osobe (npr. ista žena u dva stabla). Bit će povezane kao ista osoba, podaci usklađeni i stabla povezana — obje kartice ostaju vidljive.',
+    gp_keine_konflikte: 'Nema proturječnih polja — podaci će biti usklađeni.',
+    gp_dub_titel: 'Još uvijek dvostruko (za povezivanje):',
+    gp_verknuepft_weiter: 'Osobe povezane. Možete povezati još osoba.',
+    gp_alle_verknuepfen: 'Poveži odabrane',
+    gp_einzeln: 'Pojedinačno',
+    gp_keine_dubletten: 'Nema duplikata između ova dva stabla.',
     untertitel: 'Obiteljsko stablo',
     stats: '{p} OSOBA · {f} OBITELJI',
     stats_baum: '{p} OSOBA',
@@ -3710,6 +4473,75 @@ const TEXTE = {
     rolle_familien_mitglied: 'Član'
   },
   ba: {
+    merge_titel: 'Povezivanje stabala (duplikati)',
+    merge_intro: 'Odaberite dvije osobe koje su ista stvarna osoba. Sistem zatim automatski provjerava dodatne duplikate u oba stabla.',
+    merge_baum_a: 'Stablo 1', merge_baum_b: 'Stablo 2',
+    merge_person_a: 'Osoba iz stabla 1', merge_person_b: 'Osoba iz stabla 2',
+    merge_pruefen: 'Provjeri duplikate',
+    merge_kandidaten_titel: 'Pronađeni parovi duplikata',
+    merge_keine_kandidaten: 'Nema dodatnih duplikata.',
+    merge_ab_paar: 'Odabrani par (ista osoba)',
+    merge_score: 'Podudaranje',
+    merge_grund_vorname: 'Ime', merge_grund_nachname: 'Prezime', merge_grund_geburtsdatum: 'Datum rođenja',
+    merge_grund_eltern: 'isti roditelji', merge_grund_kinder: 'ista djeca', merge_grund_partner: 'isti bračni partner',
+    merge_paar_von: 'Par {n} od {gesamt}',
+    merge_survivor: 'Koja kartica ostaje?',
+    merge_behalten_hinweis: 'Druga kartica se briše; sve veze, računi i mediji ostaju sačuvani.',
+    merge_konflikt_titel: 'Različite vrijednosti – odlučite',
+    merge_auto_titel: 'Automatski se preuzima / dopunjava',
+    merge_wert_a: 'Vrijednost A', merge_wert_b: 'Vrijednost B', merge_manuell: 'Ručno',
+    merge_zusammenfuehren: 'Spoji', merge_weiter: 'Dalje', merge_zurueck: 'Nazad',
+    merge_laeuft: 'Spajanje u toku…',
+    merge_fertig: 'Spajanje završeno.',
+    merge_fehler: 'Greška: ',
+    merge_keine_auswahl: 'Odaberite barem jedan par.',
+    merge_baeume_waehlen: 'Odaberite dvije osobe iz dva stabla.',
+    merge_gleicher_baum: 'Odaberite dva različita stabla.',
+    merge_step2_hilfe: 'Označeni parovi bit će u sljedećem koraku spojeni: nepotpunija kartica se briše, njeni podaci, veze i računi prelaze na karticu koja ostaje. Provjerite stablo, datum rođenja, roditelje i partnera da li je zaista ista osoba.',
+    merge_info_baum: 'Stablo', merge_info_eltern: 'Roditelji', merge_info_partner: 'Partner', merge_info_kinder: 'Djeca',
+    merge_tree_titel: 'Spojiti stabla?',
+    merge_tree_hilfe: 'Izvrši samo ako su oba stabla ISTA porodica (duplikat). Sve osobe suvišnog stabla premještaju se u ono koje ostaje, prazno stablo se briše.',
+    merge_tree_a_bleibt: 'Zadrži „{a}", obriši „{b}"',
+    merge_tree_b_bleibt: 'Zadrži „{b}", obriši „{a}"',
+    merge_tree_nein: 'Ne, ostavi stabla odvojeno',
+    merge_tree_fertig: 'Stabla spojena.',
+    dub_titel: 'Mogući duplikat pronađen',
+    dub_intro: 'Možda ova osoba već postoji u drugom stablu. Možete ipak napraviti novu ili zatražiti povezivanje.',
+    dub_fremde_familie: 'u drugoj porodici',
+    dub_verknuepfen: 'Zatraži povezivanje',
+    dub_trotzdem: 'Ipak napravi novu',
+    dub_abbrechen: 'Odustani',
+    vkn_obav_titel: 'Zahtjev za povezivanje',
+    vkn_antragsteller: 'Podnosilac',
+    vkn_ziel: 'Postojeća osoba',
+    vkn_beziehung: 'Planirana veza',
+    vkn_modus: 'Vrsta',
+    vkn_modus_merge: 'Spajanje osoba',
+    vkn_modus_beziehung: 'Uključivanje osobe (povezivanje)',
+    vkn_genehmigen: 'Odobri',
+    vkn_ablehnen: 'Odbij',
+    vkn_ablehnen_frage: 'Stvarno odbiti ovaj zahtjev za povezivanje?',
+    vkn_genehmigt: 'Povezivanje odobreno.',
+    vkn_abgelehnt: 'Zahtjev odbijen.',
+    vkn_sofort: 'Povezivanje je izvršeno.',
+    vkn_angefragt: 'Zahtjev za povezivanje poslan. Admin drugog stabla mora odobriti.',
+    gp_auch_in: 'Ista osoba i u',
+    gp_verknuepfen_titel: 'Poveži kao istu osobu',
+    gp_verknuepfen: 'Poveži',
+    gp_manuell: 'Ručno odaberi osobu',
+    gp_loesen: 'Raskini vezu',
+    gp_loesen_frage: 'Stvarno raskinuti vezu „ista osoba"?',
+    gp_verknuepft: 'Povezano kao ista osoba.',
+    gp_geloest: 'Veza raskinuta.',
+    gp_select_leer: 'Odaberite osobu.',
+    gp_select_gleich: 'Odaberite dvije različite osobe.',
+    gp_modal_intro: 'Odaberite dvije kartice iste stvarne osobe (npr. ista žena u dva stabla). Bit će povezane kao ista osoba, podaci usklađeni i stabla povezana — obje kartice ostaju vidljive.',
+    gp_keine_konflikte: 'Nema protivrječnih polja — podaci će biti usklađeni.',
+    gp_dub_titel: 'Još uvijek duplo (za povezivanje):',
+    gp_verknuepft_weiter: 'Osobe povezane. Možete povezati još osoba.',
+    gp_alle_verknuepfen: 'Poveži odabrane',
+    gp_einzeln: 'Pojedinačno',
+    gp_keine_dubletten: 'Nema duplikata između ova dva stabla.',
     untertitel: 'Porodično stablo',
     stats: '{p} OSOBA · {f} PORODICA',
     stats_baum: '{p} OSOBA',
@@ -3988,6 +4820,75 @@ const TEXTE = {
     rolle_familien_mitglied: 'Član'
   },
   en: {
+    merge_titel: 'Connect trees (duplicates)',
+    merge_intro: 'Select two people who are the same real person. The system then automatically checks for further duplicates across both trees.',
+    merge_baum_a: 'Tree 1', merge_baum_b: 'Tree 2',
+    merge_person_a: 'Person from tree 1', merge_person_b: 'Person from tree 2',
+    merge_pruefen: 'Check duplicates',
+    merge_kandidaten_titel: 'Found duplicate pairs',
+    merge_keine_kandidaten: 'No further duplicates found.',
+    merge_ab_paar: 'Selected pair (same person)',
+    merge_score: 'Match',
+    merge_grund_vorname: 'First name', merge_grund_nachname: 'Last name', merge_grund_geburtsdatum: 'Date of birth',
+    merge_grund_eltern: 'same parents', merge_grund_kinder: 'same children', merge_grund_partner: 'same spouse',
+    merge_paar_von: 'Pair {n} of {gesamt}',
+    merge_survivor: 'Which card remains?',
+    merge_behalten_hinweis: 'The other card is deleted; all relationships, accounts and media are preserved.',
+    merge_konflikt_titel: 'Differing values – please decide',
+    merge_auto_titel: 'Filled in automatically',
+    merge_wert_a: 'Value A', merge_wert_b: 'Value B', merge_manuell: 'Manual',
+    merge_zusammenfuehren: 'Merge', merge_weiter: 'Next', merge_zurueck: 'Back',
+    merge_laeuft: 'Merging…',
+    merge_fertig: 'Merge completed.',
+    merge_fehler: 'Error: ',
+    merge_keine_auswahl: 'Please select at least one pair.',
+    merge_baeume_waehlen: 'Please select two people from two trees.',
+    merge_gleicher_baum: 'Please select two different trees.',
+    merge_step2_hilfe: 'Checked pairs will be merged in the next step: the less complete card is deleted; its data, relationships and accounts move to the remaining card. Check tree, date of birth, parents and partner to confirm it is really the same person.',
+    merge_info_baum: 'Tree', merge_info_eltern: 'Parents', merge_info_partner: 'Partner', merge_info_kinder: 'Children',
+    merge_tree_titel: 'Merge trees?',
+    merge_tree_hilfe: 'Only do this if both trees are the SAME family (duplicate). All people from the superfluous tree are moved into the remaining one; the empty tree is deleted.',
+    merge_tree_a_bleibt: 'Keep “{a}", delete “{b}"',
+    merge_tree_b_bleibt: 'Keep “{b}", delete “{a}"',
+    merge_tree_nein: 'No, keep trees separate',
+    merge_tree_fertig: 'Trees merged.',
+    dub_titel: 'Possible duplicate found',
+    dub_intro: 'This person may already exist in another tree. You can create a new one anyway or request a link.',
+    dub_fremde_familie: 'in another family',
+    dub_verknuepfen: 'Request link',
+    dub_trotzdem: 'Create new anyway',
+    dub_abbrechen: 'Cancel',
+    vkn_obav_titel: 'Link request',
+    vkn_antragsteller: 'Requested by',
+    vkn_ziel: 'Existing person',
+    vkn_beziehung: 'Planned relationship',
+    vkn_modus: 'Type',
+    vkn_modus_merge: 'Merge persons',
+    vkn_modus_beziehung: 'Attach person (link)',
+    vkn_genehmigen: 'Approve',
+    vkn_ablehnen: 'Reject',
+    vkn_ablehnen_frage: 'Really reject this link request?',
+    vkn_genehmigt: 'Link approved.',
+    vkn_abgelehnt: 'Request rejected.',
+    vkn_sofort: 'Link has been applied.',
+    vkn_angefragt: 'Link request sent. An admin of the other tree must approve.',
+    gp_auch_in: 'Same person also in',
+    gp_verknuepfen_titel: 'Link as same person',
+    gp_verknuepfen: 'Link',
+    gp_manuell: 'Select person manually',
+    gp_loesen: 'Unlink',
+    gp_loesen_frage: 'Really remove the "same person" link?',
+    gp_verknuepft: 'Linked as the same person.',
+    gp_geloest: 'Link removed.',
+    gp_select_leer: 'Please select a person.',
+    gp_select_gleich: 'Please select two different people.',
+    gp_modal_intro: 'Select two cards of the same real person (e.g. the same woman in two trees). They are linked as one person, the data is unified and the trees connected — both cards stay visible.',
+    gp_keine_konflikte: 'No conflicting fields — the data will be unified.',
+    gp_dub_titel: 'Still duplicated (link them):',
+    gp_verknuepft_weiter: 'People linked. You can link more people.',
+    gp_alle_verknuepfen: 'Link selected',
+    gp_einzeln: 'Individually',
+    gp_keine_dubletten: 'No duplicates between these two trees.',
     untertitel: 'Family Tree',
     stats: '{p} PEOPLE · {f} FAMILIES',
     stats_baum: '{p} PEOPLE',
@@ -4452,6 +5353,16 @@ function wechselSprache(lang) {
   if (offen('mitglieder-modal') && typeof ladeMitglieder  === 'function') ladeMitglieder();   // Familien-Dropdown + Liste neu (nm)
   if (offen('kosten-modal')     && typeof renderKosten     === 'function') renderKosten();
   if (offen('obav-modal')       && typeof renderObavListe  === 'function') renderObavListe();
+  // Merge-Wizard: dynamische Inhalte des sichtbaren Schritts in neuer Sprache neu aufbauen
+  if (offen('merge-modal')) {
+    if (document.getElementById('merge-step2').style.display !== 'none' && mgFixPaar) mgRenderKandidaten();
+    if (document.getElementById('merge-step3').style.display !== 'none' && mgAusgewaehlt[mgIndex]) {
+      const paar = mgAusgewaehlt[mgIndex];
+      document.getElementById('mg-paar-zaehler').textContent = t('merge_paar_von', { n: mgIndex + 1, gesamt: mgAusgewaehlt.length });
+      mgRenderSurvivor(paar); mgRenderKonflikte(); mgRenderAuto();
+    }
+    if (document.getElementById('merge-step4').style.display !== 'none') mgRenderTreeMerge();
+  }
   // Falls das Registrier-Overlay offen ist: Titel/Intro/Button passend zum
   // Ja/Nein-Modus neu setzen (data-i18n hätte sie sonst auf den Ja-Text zurückgesetzt).
   if (typeof regVorhandenWechsel === 'function' &&
@@ -4487,7 +5398,7 @@ function zeichneBaumNeu() {
 // ============================================================
 async function ladeBaumAusSupabase() {
   const [pRes, bRes, sRes] = await Promise.all([
-    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id'),
+    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id'),
     sbClient.from('beziehungen').select('person_a, person_b, typ'),
     sbClient.from('stammbaeume').select('id, name')
   ]);
@@ -4512,6 +5423,7 @@ async function ladeBaumAusSupabase() {
       ...sd, id: ext, families_spouse: [], families_child: [],
       _uuid: row.id,
       _tree: row.stammbaum_id || null,
+      _ident: row.identitaet_id || null,   // gleiche reale Person über Bäume (logische Verknüpfung)
       _hatKonto: !!row.user_id,
       _pos: (row.pos_x != null && row.pos_y != null) ? { x: row.pos_x, y: row.pos_y } : null
     };
@@ -6375,6 +7287,7 @@ function zeigeDetails(personId) {
     ${eltern.length ? `<div class="beziehungen"><h3>${t('eltern')}</h3>${buildVerwandte(eltern)}</div>` : ''}
     ${eheHtml}
     ${geschwister.length ? `<div class="beziehungen"><h3>${t('geschwister')}</h3>${buildVerwandte(geschwister)}</div>` : ''}
+    ${gpTwinHtml(p)}
 
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
@@ -6399,6 +7312,216 @@ function geheZurueck() {
     aktuelleModalPersonId = null;
     zeigeDetails(vorherige);
   }
+}
+
+// ============================================================
+// GLEICHE PERSON ÜBER BÄUME (logische Verknüpfung)
+// Karten mit gleicher _ident = dieselbe reale Person (in mehreren Bäumen).
+// ============================================================
+// Zwillingskarten (gleiche reale Person, andere Karte) der Person p.
+function findeZwillinge(p) {
+  if (!p || !p._ident) return [];
+  const out = [];
+  Object.values(aktuelleDaten.persons).forEach(q => {
+    if (q._uuid && q._uuid !== p._uuid && q._ident === p._ident) {
+      out.push({ extId: q.id, uuid: q._uuid, name: q.name || q.given || '', treeId: q._tree,
+                 treeName: (q._tree && stammbaeumeListe[q._tree]) || '' });
+    }
+  });
+  return out;
+}
+
+// Detail-Block: "auch in Baum X" (Navigation) + (Super-Admin) Verknüpfung lösen.
+function gpTwinHtml(p) {
+  const tw = findeZwillinge(p);
+  if (!tw.length) return '';
+  const zeilen = tw.map(z =>
+    `<div class="gp-zwilling">
+       <span class="verwandter" onclick="springeZuBaumPerson('${z.extId}')">${escapeHtml(nm(z.name))}${z.treeName ? ' — ' + escapeHtml(nm(z.treeName)) : ''}</span>
+       ${istSuperAdmin() ? `<button class="gp-loesen" type="button" title="${escapeHtml(t('gp_loesen'))}" onclick="personUnlink('${z.uuid}')">✕</button>` : ''}
+     </div>`).join('');
+  return `<div class="beziehungen"><h3>↔ ${t('gp_auch_in')}</h3>${zeilen}</div>`;
+}
+
+// In den Baum der Zwillingskarte springen und sie fokussieren.
+function springeZuBaumPerson(extId) {
+  const q = aktuelleDaten.persons[extId];
+  if (!q) return;
+  schliesseModal();
+  if (q._tree) {
+    aktuellerStammbaumId = q._tree;
+    const sel = document.getElementById('tree-select'); if (sel) sel.value = q._tree;
+    aktualisiereKopf(); aktualisiereBaumHinweis();
+  }
+  fokusPersonId = extId;
+  const suche = document.getElementById('suche'); if (suche) suche.value = '';
+  zeichneBaum(extId, 2, 2);
+}
+
+// ----- Overlay "Gleiche Person verknüpfen" (Super-Admin), analog zu "Bäume verbinden" -----
+let gpDiff = [];                                            // Feld-Diff der zwei gewählten Karten
+let gpPairA = null, gpPairB = null, gpRest = [];           // aktuelles Paar (+ weitere Karten der Gruppe)
+const GP_NAME_FELDER = ['name'];   // nur das abgeleitete Feld 'name' ausblenden (wird aus given+surname gebildet)
+
+function zeigeGleichePersonModal() {
+  if (!istSuperAdmin()) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  document.getElementById('gp-modal-erfolg').style.display = 'none';
+  ['gp-modal-fehler', 'gp-modal-fehler2'].forEach(id => { const e = document.getElementById(id); e.style.display = 'none'; e.textContent = ''; });
+  gpZeigeSchritt(1);
+  document.getElementById('gp-modal').classList.add('aktiv');
+  gpFuelleBaeume();
+  gpLadeDubletten();
+}
+function schliesseGleichePersonModal() { document.getElementById('gp-modal').classList.remove('aktiv'); }
+
+// Hinweis: noch nicht verknüpfte Dubletten (gleicher Name + Geburtsdatum über Bäume)
+let gpDubGruppen = [];
+async function gpLadeDubletten() {
+  const box = document.getElementById('gp-dubletten'); if (!box) return;
+  box.innerHTML = '';
+  const a = document.getElementById('gp-baum-a').value;
+  const b = document.getElementById('gp-baum-b').value;
+  if (!a || !b || a === b) return;   // erst vergleichen, wenn zwei verschiedene Bäume gewählt sind
+  const { data, error } = await sbClient.rpc('offene_dubletten', { p_baum_a: a, p_baum_b: b });
+  if (error) return;
+  gpDubGruppen = data || [];
+  if (!gpDubGruppen.length) { box.innerHTML = `<p class="mv-legende">${t('gp_keine_dubletten')}</p>`; return; }
+  box.innerHTML = `<div class="reg-gruppe-titel">${t('gp_dub_titel')}</div>` +
+    gpDubGruppen.map((g, i) => `<div class="gp-kand">
+      <label style="display:flex;gap:8px;align-items:center;flex:1;cursor:pointer">
+        <input type="checkbox" class="gp-dub-cb" data-i="${i}">
+        <span>${escapeHtml(nm(g.person || ''))}${g.geboren ? ` (* ${escapeHtml(formatDatumLang(g.geboren) || g.geboren)})` : ''} — ${escapeHtml(nm(g.baeume || ''))} · ${g.anzahl}×</span>
+      </label>
+      <button class="mv-toggle" type="button" onclick="gpLinkGruppe(${i})">${escapeHtml(t('gp_einzeln'))}</button>
+    </div>`).join('') +
+    `<button class="login-submit" type="button" style="margin-top:10px" onclick="gpVerknuepfeAusgewaehlte()">${escapeHtml(t('gp_alle_verknuepfen'))}</button>`;
+}
+// Mehrere Gruppen ankreuzen -> mit EINEM Klick alle verknüpfen (Auto-Angleich: vollständigste gewinnt).
+async function gpVerknuepfeAusgewaehlte() {
+  const cbs = [...document.querySelectorAll('.gp-dub-cb:checked')];
+  if (!cbs.length) { await zeigeHinweis(t('merge_keine_auswahl')); return; }
+  for (const cb of cbs) {
+    const g = gpDubGruppen[+cb.dataset.i];
+    if (!g || !g.ids || g.ids.length < 2) continue;
+    for (let k = 1; k < g.ids.length; k++) {
+      const { error } = await sbClient.rpc('personen_verknuepfen', { p_a: g.ids[0], p_b: g.ids[k], p_aufloesung: {} });
+      if (error) { await zeigeHinweis(t('reg_fehler') + error.message); return; }
+    }
+  }
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  await gpLadeDubletten();
+  const erfolg = document.getElementById('gp-modal-erfolg');
+  erfolg.textContent = t('gp_verknuepft_weiter'); erfolg.style.display = 'block';
+}
+// Hinweis-Gruppe -> Konflikt-Abfrage für die ersten zwei Karten (Rest wird mit derselben
+// Auflösung angehängt). So wirst du auch bei den Kindern gefragt, welche Daten korrekt sind.
+async function gpLinkGruppe(i) {
+  const g = gpDubGruppen[i];
+  if (!g || !g.ids || g.ids.length < 2) return;
+  await gpStartKonflikt(g.ids[0], g.ids[1], g.ids.slice(2));
+}
+function gpZeigeSchritt(n) {
+  document.getElementById('gp-step1').style.display = (n === 1) ? '' : 'none';
+  document.getElementById('gp-step2').style.display = (n === 2) ? '' : 'none';
+}
+
+// Schritt 1 -> Feld-Diff der zwei Karten laden, Konflikte zeigen (analog Baum zusammenlegen)
+// Konflikt-Schritt für ein Paar starten (+ optional weitere Karten der Gruppe = Auto-Angleich danach)
+async function gpStartKonflikt(a, b, rest) {
+  const fehler = document.getElementById('gp-modal-fehler'); fehler.style.display = 'none';
+  document.getElementById('gp-modal-erfolg').style.display = 'none';
+  const { data: diff, error } = await sbClient.rpc('personen_feld_diff', { p_a: a, p_b: b });
+  if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
+  gpPairA = a; gpPairB = b; gpRest = rest || [];
+  gpDiff = (diff || []).filter(d => !GP_NAME_FELDER.includes(d.feld));   // 'name' ausblenden (abgeleitet)
+  gpRenderKonflikte();
+  gpRenderAuto();
+  gpZeigeSchritt(2);
+}
+function gpRenderKonflikte() {
+  const box = document.getElementById('gp-konflikte');
+  const konf = gpDiff.filter(d => d.status === 'konflikt');
+  if (!konf.length) { box.innerHTML = `<p class="mv-legende">${t('gp_keine_konflikte')}</p>`; return; }
+  let html = `<div class="reg-gruppe-titel">${t('merge_konflikt_titel')}</div>`;
+  konf.forEach(d => {
+    const f = d.feld;
+    html += `<div class="mg-konflikt">
+      <div class="mg-feld">${escapeHtml(mgFeldLabel(f))}</div>
+      <div class="mg-opt"><label><input type="radio" name="gp-k-${f}" value="a" checked> ${t('merge_wert_a')}: ${escapeHtml(mgWertAnzeige(f, d.wert_a))}</label></div>
+      <div class="mg-opt"><label><input type="radio" name="gp-k-${f}" value="b"> ${t('merge_wert_b')}: ${escapeHtml(mgWertAnzeige(f, d.wert_b))}</label></div>
+      <div class="mg-opt"><label><input type="radio" name="gp-k-${f}" value="m"> ${t('merge_manuell')}</label>
+        <input type="text" class="login-feld gp-man" data-feld="${f}" value="${escapeHtml(d.wert_a || '')}"></div>
+    </div>`;
+  });
+  box.innerHTML = html;
+}
+function gpRenderAuto() {
+  const box = document.getElementById('gp-auto');
+  const auto = gpDiff.filter(d => d.status !== 'konflikt');
+  if (!auto.length) { box.innerHTML = ''; return; }
+  let html = `<div class="reg-gruppe-titel">${t('merge_auto_titel')}</div>`;
+  auto.forEach(d => {
+    const wert = d.status === 'nur_b' ? d.wert_b : d.wert_a;
+    html += `<div class="mg-auto-row"><b>${escapeHtml(mgFeldLabel(d.feld))}:</b> ${escapeHtml(mgWertAnzeige(d.feld, wert))}</div>`;
+  });
+  box.innerHTML = html;
+}
+
+function gpFuelleBaeume() {
+  const eintraege = Object.entries(stammbaeumeListe || {})
+    .sort((a, b) => nm(a[1] || '').localeCompare(nm(b[1] || '')));
+  const opts = '<option value=""></option>' + eintraege.map(([id, name]) =>
+    `<option value="${escapeHtml(id)}">${escapeHtml(nm(name))}</option>`).join('');
+  ['gp-baum-a', 'gp-baum-b'].forEach(id => { const s = document.getElementById(id); s.innerHTML = opts; s.value = ''; });
+  macheAlleSelectsSuchbar(document.getElementById('gp-modal'));
+}
+// Baum-Auswahl geändert -> Dubletten zwischen den zwei gewählten Bäumen neu laden.
+function gpWaehleBaum() { gpLadeDubletten(); }
+
+async function gpModalVerknuepfen() {
+  const fehler = document.getElementById('gp-modal-fehler2'); fehler.style.display = 'none';
+  const a = gpPairA, b = gpPairB;
+  if (!a || !b) { fehler.textContent = t('merge_baeume_waehlen'); fehler.style.display = 'block'; return; }
+
+  // Konfliktauflösung sammeln (gewählter Endwert je Konfliktfeld)
+  const aufloesung = {};
+  gpDiff.filter(d => d.status === 'konflikt').forEach(d => {
+    const f = d.feld;
+    const sel = document.querySelector(`input[name="gp-k-${f}"]:checked`);
+    const wahl = sel ? sel.value : 'a';
+    if (wahl === 'a') aufloesung[f] = d.wert_a || '';
+    else if (wahl === 'b') aufloesung[f] = d.wert_b || '';
+    else { const man = document.querySelector(`.gp-man[data-feld="${f}"]`); aufloesung[f] = man ? man.value.trim() : ''; }
+  });
+
+  const { error } = await sbClient.rpc('personen_verknuepfen', { p_a: a, p_b: b, p_aufloesung: aufloesung });
+  if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
+  // Weitere Karten derselben Gruppe (z. B. >2 Bäume) mit der gewählten Auflösung anhängen
+  for (const id of (gpRest || [])) {
+    const { error: e2 } = await sbClient.rpc('personen_verknuepfen', { p_a: a, p_b: id, p_aufloesung: aufloesung });
+    if (e2) { fehler.textContent = t('reg_fehler') + e2.message; fehler.style.display = 'block'; return; }
+  }
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  gpPairA = gpPairB = null; gpRest = [];
+  gpZeigeSchritt(1);
+  gpFuelleBaeume();    // Suchfelder oben leeren -> direkt weitere Personen verknüpfbar
+  gpLadeDubletten();   // Hinweis-Liste aktualisieren
+  const erfolg = document.getElementById('gp-modal-erfolg');
+  erfolg.textContent = t('gp_verknuepft_weiter'); erfolg.style.display = 'block';
+}
+
+// Verknüpfung (von der Karte aus) lösen
+async function personUnlink(uuid) {
+  if (!uuid) return;
+  const ok = await zeigeBestaetigung(t('gp_loesen_frage'));
+  if (!ok) return;
+  const extId = aktuelleModalPersonId;
+  const { error } = await sbClient.rpc('personen_identitaet_aufheben', { p_id: uuid });
+  if (error) { await zeigeHinweis(t('reg_fehler') + error.message); return; }
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  await zeigeHinweis(t('gp_geloest'));
+  if (extId && aktuelleDaten.persons[extId]) { aktuelleModalPersonId = null; zeigeDetails(extId); }
 }
 
 // ============================================================
@@ -6519,6 +7642,25 @@ async function speicherePerson() {
   });
   zeichneBaumNeu();
   erfolgEl.textContent = t('pe_gespeichert'); erfolgEl.style.display = 'block';
+
+  // Verknüpfte Person (gleiche Person über Bäume): Biografie wurde per DB-Trigger auf alle
+  // Zwillinge übertragen -> Baum neu laden, damit die anderen Karten sofort aktualisiert sind.
+  if (pObj._ident && typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+
+  // DUBLETTEN-FRÜHERKENNUNG (Bearbeiten): mit den NEUEN Werten prüfen, eigene Karte ausschließen.
+  // Treffer -> Verknüpfung (modus 'merge': die zwei Karten zu einer zusammenführen).
+  const { data: matches } = await sbClient.rpc('dubletten_check_global', {
+    p_vorname: neu.given, p_nachname: neu.surname, p_birth_date: neu.birth_date,
+    p_land: neu.geburtsland, p_exclude_person: pObj._uuid
+  });
+  if (matches && matches.length) {
+    zeigeDublettenDialog(matches, {
+      modus: 'merge', kontext: pObj._uuid, typ: null, zweiter: null,
+      proceed: () => schliessePersonEdit(),
+      onLinked: async () => { schliessePersonEdit(); if (typeof ladeBaumDaten === 'function') await ladeBaumDaten(); }
+    });
+    return;
+  }
   setTimeout(() => schliessePersonEdit(), 900);
 }
 
@@ -6653,11 +7795,13 @@ async function speichereNeuePerson() {
   const ehe = document.getElementById('pa-beziehung').value;
   const externeId = 'I' + Date.now();
   const name = (vorname + ' ' + nachname).trim();
+  const land = v('pa-geburtsland');
+  const geb  = vd('pa-geburtsdatum');
   const stammbaum_daten = {
     id: externeId, given: vorname, surname: nachname, name, sex,
     titel: v('pa-titel'), namenszusatz: v('pa-namenszusatz'), ehename: v('pa-ehename'),
-    birth_date: vd('pa-geburtsdatum'), birth_place: v('pa-geburtsort'),
-    geburtsland: v('pa-geburtsland'), getauft: vd('pa-getauft'),
+    birth_date: geb, birth_place: v('pa-geburtsort'),
+    geburtsland: land, getauft: vd('pa-getauft'),
     hochzeitsort: v('pa-hochzeitsort'),
     hochzeit_standesamt: vd('pa-hochzeit-standesamt'),
     hochzeit_kirchlich: vd('pa-hochzeit-kirchlich'),
@@ -6669,46 +7813,62 @@ async function speichereNeuePerson() {
     angelegt_aus: 'stammbaum-anlegen'
   };
 
-  // 1) Person anlegen (geschlecht-Spalte bleibt NULL wegen CHECK; sex steckt in stammbaum_daten)
-  const { data: neu, error: pErr } = await sbClient.from('personen').insert({
-    familie_id:   kontext.familie_id,
-    stammbaum_id: kontext.stammbaum_id,
-    externe_id:   externeId,
-    vorname, nachname,
-    geburtsdatum: null,           // Rohdatum bleibt in stammbaum_daten (Freitext)
-    stammbaum_daten
-  }).select('id').single();
-  if (pErr) {
-    button.disabled = false; button.textContent = altText;
-    fehlerEl.textContent = t('reg_fehler') + pErr.message; fehlerEl.style.display = 'block'; return;
-  }
-
-  // 2) Beziehung(en) speichern. elternteil: person_a = Elternteil, person_b = Kind.
-  const fid = kontext.familie_id;
-  const bezRows = [];
-  if (typ === 'elternteil') {
-    bezRows.push({ person_a: neu.id, person_b: aktiv._uuid, typ: 'elternteil', familie_id: fid });
-  } else if (typ === 'partner') {
-    bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'ehepartner', familie_id: fid });
-  } else { // kind: an BEIDE Eltern hängen
-    bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'elternteil', familie_id: fid });
-    // Zweiter Elternteil: 1 Partner -> automatisch; mehrere -> Auswahl (leer = unbekannt)
-    let zweiter = null;
+  // Zweiten Elternteil (bei "Kind") vorab bestimmen — auch für eine evtl. Verknüpfung gebraucht.
+  let zweiter = null;
+  if (typ === 'kind') {
     if (paSpouses.length === 1) zweiter = paSpouses[0].uuid;
     else if (paSpouses.length >= 2) zweiter = document.getElementById('pa-elternteil2').value || null;
-    if (zweiter && zweiter !== aktiv._uuid) {
-      bezRows.push({ person_a: zweiter, person_b: neu.id, typ: 'elternteil', familie_id: fid });
-    }
   }
 
-  const { error: bErr } = await sbClient.from('beziehungen').insert(bezRows);
-  button.disabled = false; button.textContent = altText;
-  if (bErr) { fehlerEl.textContent = t('reg_fehler') + bErr.message; fehlerEl.style.display = 'block'; return; }
+  // Tatsächliches Anlegen (wird ausgeführt, wenn keine Dublette ODER der Nutzer "Trotzdem anlegen" wählt)
+  async function doInsert() {
+    button.disabled = true; button.textContent = t('reg_senden_laeuft');
+    const { data: neu, error: pErr } = await sbClient.from('personen').insert({
+      familie_id:   kontext.familie_id,
+      stammbaum_id: kontext.stammbaum_id,
+      externe_id:   externeId,
+      vorname, nachname,
+      geburtsdatum: null,           // Rohdatum bleibt in stammbaum_daten (Freitext)
+      stammbaum_daten
+    }).select('id').single();
+    if (pErr) {
+      button.disabled = false; button.textContent = altText;
+      fehlerEl.textContent = t('reg_fehler') + pErr.message; fehlerEl.style.display = 'block'; return;
+    }
+    const fid = kontext.familie_id;
+    const bezRows = [];
+    if (typ === 'elternteil') {
+      bezRows.push({ person_a: neu.id, person_b: aktiv._uuid, typ: 'elternteil', familie_id: fid });
+    } else if (typ === 'partner') {
+      bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'ehepartner', familie_id: fid });
+    } else { // kind: an BEIDE Eltern hängen
+      bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'elternteil', familie_id: fid });
+      if (zweiter && zweiter !== aktiv._uuid) {
+        bezRows.push({ person_a: zweiter, person_b: neu.id, typ: 'elternteil', familie_id: fid });
+      }
+    }
+    const { error: bErr } = await sbClient.from('beziehungen').insert(bezRows);
+    button.disabled = false; button.textContent = altText;
+    if (bErr) { fehlerEl.textContent = t('reg_fehler') + bErr.message; fehlerEl.style.display = 'block'; return; }
+    erfolgEl.textContent = t('pa_erfolg'); erfolgEl.style.display = 'block';
+    await reloadBaumBehalteFokus(aktivId);
+    setTimeout(() => schliessePersonAdd(), 800);
+  }
 
-  // 3) UI aktualisieren (Re-Render), Overlay schließen, zurück zum Baum
-  erfolgEl.textContent = t('pa_erfolg'); erfolgEl.style.display = 'block';
-  await reloadBaumBehalteFokus(aktivId);
-  setTimeout(() => schliessePersonAdd(), 800);
+  // DUBLETTEN-FRÜHERKENNUNG: existiert dieselbe Person (Vor/Nach/Geburtsdatum/Geburtsland) bereits?
+  const { data: matches } = await sbClient.rpc('dubletten_check_global', {
+    p_vorname: vorname, p_nachname: nachname, p_birth_date: geb, p_land: land, p_exclude_person: null
+  });
+  button.disabled = false; button.textContent = altText;
+  if (matches && matches.length) {
+    zeigeDublettenDialog(matches, {
+      modus: 'beziehung', kontext: aktiv._uuid, typ, zweiter,
+      proceed: doInsert,
+      onLinked: async () => { await reloadBaumBehalteFokus(aktivId); schliessePersonAdd(); }
+    });
+    return;
+  }
+  await doInsert();
 }
 
 // Person + zugehörige Beziehungen löschen (mit Bestätigung). Keine verwaisten Beziehungen.
@@ -7098,6 +8258,32 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
     return !!(p && p._tree === treeId);
   };
 
+  // Gleiche reale Person über Bäume (identitaet_id): alle Karten einer Gruppe sammeln,
+  // damit ihre Beziehungen (Ehepartner + Kinder) baumübergreifend zusammengeführt werden.
+  const identGruppen = {};
+  Object.values(aktuelleDaten.persons).forEach(q => {
+    if (q._ident) (identGruppen[q._ident] = identGruppen[q._ident] || []).push(q.id);
+  });
+  const twinExtIds = (id) => {
+    const p = aktuelleDaten.persons[id];
+    if (!p || !p._ident) return [id];
+    return identGruppen[p._ident] || [id];
+  };
+  // Kanonische Identität: verknüpfte Karten = EINE Person; sonst die Karte selbst.
+  const kanonId = (id) => {
+    const p = aktuelleDaten.persons[id];
+    return (p && p._ident) ? ('grp:' + p._ident) : (id || '');
+  };
+  // Kind-Schlüssel innerhalb derselben Ehe: verknüpft -> Gruppe; sonst VORNAME.
+  // (Kinder desselben Paares mit gleichem Vornamen = dieselbe Person — unabhängig von
+  //  abweichendem Nachnamen (Mädchen-/Ehename) oder Datumsformat.)
+  const childKey = (id) => {
+    const p = aktuelleDaten.persons[id];
+    if (p && p._ident) return 'grp:' + p._ident;
+    if (!p) return 'x:' + id;
+    return 'gn:' + (p.given || '').trim().toLowerCase();
+  };
+
   function findeWurzel(personId, tiefe) {
     if (tiefe <= 0) return personId;
     const p = aktuelleDaten.persons[personId];
@@ -7115,22 +8301,70 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
   const wurzelId = findeWurzel(rootId, tiefeNachOben);
   const besucht = new Set();
 
-  function baueKnoten(personId, tiefe) {
+  function baueKnoten(personId, tiefe, gebrueckt) {
     if (besucht.has(personId)) return null;
-    besucht.add(personId);
+    const twins = twinExtIds(personId);
+    twins.forEach(tid => besucht.add(tid));   // Person + alle Zwillinge gelten als verarbeitet
     const p = aktuelleDaten.persons[personId];
     if (!p) return null;
+    const myTwins = new Set(twins);
+    const twinsGeordnet = [personId, ...twins.filter(t => t !== personId)];
 
-    const familien = [];
-    p.families_spouse.forEach(famId => {
-      const fam = aktuelleDaten.families[famId];
-      if (!fam) return;
-      const partnerId = fam.husband === personId ? fam.wife : fam.husband;
-      const partner = (partnerId && aktuelleDaten.persons[partnerId] && !besucht.has(partnerId))
-        ? aktuelleDaten.persons[partnerId] : null;
-      if (partner) besucht.add(partnerId);
-      familien.push({ partner, kinderIds: fam.children || [] });
+    // Ehe-Familien ALLER Zwillingskarten sammeln, nach PARTNER (Identität ODER Vorname)
+    // gruppieren und Kinder GLOBAL entdoppeln -> die verknüpfte Person hat in JEDEM Baum
+    // exakt dieselben Kinder (auch wenn pro Baum nur Teile erfasst sind).
+    const partnerSchluessel = (pid) => {
+      const pp = aktuelleDaten.persons[pid];
+      if (!pp) return null;
+      return pp._ident ? ('grp:' + pp._ident) : ('gn:' + (pp.given || '').trim().toLowerCase());
+    };
+    const eheMap = new Map();                    // partnerKey -> { partnerId, partner, kinderIds, bruecke }
+    const ohnePartner = { kinderIds: [], bruecke: false };
+    const globalKinder = new Set();
+    let hauptKey = null;
+    twinsGeordnet.forEach(tid => {
+      const tp = aktuelleDaten.persons[tid];
+      if (!tp) return;
+      const famBruecke = gebrueckt || tid !== personId || !sameTree(tid);
+      (tp.families_spouse || []).forEach(famId => {
+        const fam = aktuelleDaten.families[famId];
+        if (!fam) return;
+        const partnerId = myTwins.has(fam.husband) ? fam.wife : fam.husband;
+        const pk = (partnerId && aktuelleDaten.persons[partnerId]) ? partnerSchluessel(partnerId) : null;
+        let ziel;
+        if (pk) {
+          let e = eheMap.get(pk);
+          if (!e) {
+            const partner = (!besucht.has(partnerId)) ? aktuelleDaten.persons[partnerId] : null;
+            e = { partnerId, partner, kinderIds: [], bruecke: famBruecke };
+            eheMap.set(pk, e);
+            if (hauptKey === null) hauptKey = pk;
+          } else { e.bruecke = e.bruecke || famBruecke; }
+          ziel = e;
+        } else {
+          ohnePartner.bruecke = ohnePartner.bruecke || famBruecke;
+          ziel = ohnePartner;
+        }
+        (fam.children || []).forEach(cid => {
+          const ck = childKey(cid);
+          if (globalKinder.has(ck)) return;     // global entdoppeln (überall dieselben Kinder)
+          globalKinder.add(ck);
+          ziel.kinderIds.push(cid);
+        });
+      });
     });
+    // Kinder ohne erkennbaren Partner an die Hauptehe hängen
+    if (ohnePartner.kinderIds.length) {
+      if (hauptKey) {
+        const h = eheMap.get(hauptKey);
+        h.kinderIds.push(...ohnePartner.kinderIds);
+        h.bruecke = h.bruecke || ohnePartner.bruecke;
+      } else {
+        eheMap.set('__np__', { partnerId: null, partner: null, kinderIds: ohnePartner.kinderIds, bruecke: ohnePartner.bruecke });
+      }
+    }
+    const familien = [...eheMap.values()];
+    familien.forEach(f => { if (f.partner) besucht.add(f.partnerId); });
 
     const partners = familien.map(f => f.partner).filter(Boolean);
     const marriages = familien.length >= 2 ? familien.map(f => ({ partner: f.partner })) : null;
@@ -7140,22 +8374,23 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
 
     if (tiefe <= 0) return knoten;
 
+    // Kind zeigen, wenn es im aktuellen Baum liegt ODER über eine Verknüpfungs-Brücke kommt.
+    const zeigeKind = (cid, bruecke) => bruecke || sameTree(cid);
+
     if (familien.length >= 2) {
       familien.forEach((fam, famIdx) => {
         fam.kinderIds.forEach(cid => {
-          if (!sameTree(cid)) return;   // Kinder anderer Bäume gehören in deren Ansicht
-          const kindKnoten = baueKnoten(cid, tiefe - 1);
+          if (!zeigeKind(cid, fam.bruecke)) return;
+          const kindKnoten = baueKnoten(cid, tiefe - 1, fam.bruecke);
           if (kindKnoten) { kindKnoten.familyIndex = famIdx; knoten.children.push(kindKnoten); }
         });
       });
     } else {
-      const kinderIds = new Set();
-      familien.forEach(fam => fam.kinderIds.forEach(c => kinderIds.add(c)));
-      kinderIds.forEach(cid => {
-        if (!sameTree(cid)) return;
-        const kindKnoten = baueKnoten(cid, tiefe - 1);
+      familien.forEach(fam => fam.kinderIds.forEach(cid => {
+        if (!zeigeKind(cid, fam.bruecke)) return;
+        const kindKnoten = baueKnoten(cid, tiefe - 1, fam.bruecke);
         if (kindKnoten) knoten.children.push(kindKnoten);
-      });
+      }));
     }
 
     // Blutlinien-Kind in die Mitte stellen → Reingold-Tilford zentriert es unter dem Elternteil
@@ -7172,7 +8407,7 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
     return knoten;
   }
 
-  return baueKnoten(wurzelId, tiefeNachOben + tiefeNachUnten);
+  return baueKnoten(wurzelId, tiefeNachOben + tiefeNachUnten, false);
 }
 
 // ============================================================
