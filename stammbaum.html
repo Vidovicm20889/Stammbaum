@@ -2,11 +2,24 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="8.3">
+<meta name="app-version" content="8.7">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
+     weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
+     strikte (XSS-dichte) CSP erforderte ein Refactoring aller Inline-Handler. Diese Policy
+     blockiert dennoch injizierte EXTERNE Skripte, begrenzt Datenabfluss (connect-src) und
+     unterbindet Plugins/<object>. (frame-ancestors/X-Frame-Options sind per <meta> nicht
+     setzbar -> Klickjacking-Schutz nur über HTTP-Header möglich, auf GitHub Pages nicht.) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob: https://*.supabase.co; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'self' blob: https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<!-- CDN-Skripte auf EXAKTE Versionen gepinnt + Subresource Integrity (Lieferketten-Schutz).
+     Versionswechsel erfordert neuen integrity-Hash (sonst lädt der Browser die Datei nicht). -->
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+        integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.js"
+        integrity="sha384-CQbEv3UOeYwlaBLdPF5KqEagCP39Q1KpvJC6Gwa3UGjZAwMvpA+0TFxSSnrgb4MX"
+        crossorigin="anonymous"></script>
 <style>
 :root {
   --bg: #f5ede0; --bg-soft: #ede0cc; --bg-card: #fffaf0;
@@ -35,6 +48,79 @@ header h1 {
 }
 header .untertitel { font-style: italic; opacity: 0.7; letter-spacing: 2px; }
 header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing: 2px; }
+
+/* Live-Indikator (Presence): wer bearbeitet gerade denselben Stammbaum */
+.presence-indikator { position: relative; display: inline-block; margin-top: 14px; }
+.presence-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--bg-soft); color: var(--ink);
+  border: 1px solid var(--linie); border-radius: 999px;
+  padding: 5px 14px; cursor: pointer; font-family: inherit;
+  font-size: 12px; letter-spacing: 1px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.presence-toggle:hover { border-color: var(--gold); }
+.presence-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+  background: #3c9a4e; box-shadow: 0 0 0 0 rgba(60,154,78,0.5);
+  animation: presencePuls 2s infinite;
+}
+@keyframes presencePuls {
+  0%   { box-shadow: 0 0 0 0 rgba(60,154,78,0.5); }
+  70%  { box-shadow: 0 0 0 7px rgba(60,154,78,0); }
+  100% { box-shadow: 0 0 0 0 rgba(60,154,78,0); }
+}
+.presence-panel {
+  display: none; position: absolute; left: 50%; transform: translateX(-50%);
+  top: calc(100% + 8px); z-index: 40;
+  background: var(--bg-card); border: 1px solid var(--linie);
+  box-shadow: 0 6px 20px rgba(44,36,24,0.18);
+  padding: 12px 14px; min-width: 200px; max-width: 80vw; text-align: left;
+}
+.presence-indikator.offen .presence-panel { display: block; }
+.presence-panel .pp-titel {
+  font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 8px; opacity: 0.9;
+}
+.presence-panel ul { list-style: none; margin: 0; padding: 0; }
+.presence-panel li {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0; font-size: 13px; color: var(--ink);
+}
+.presence-panel li .pp-dot { width: 7px; height: 7px; border-radius: 50%; background: #3c9a4e; flex: 0 0 auto; }
+.presence-panel li .pp-sie { color: var(--gold); font-style: italic; opacity: 0.85; }
+@media (max-width: 480px) {
+  .presence-toggle { font-size: 11px; padding: 5px 12px; }
+  .presence-panel { min-width: 170px; }
+}
+
+/* Live-Hinweis in offenen Overlays: „Diese Person wurde soeben aktualisiert" (P3) */
+.sync-hinweis {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: #f3e6c8; border: 1px solid var(--gold); color: var(--ink);
+  padding: 10px 14px; margin-bottom: 14px; font-size: 13px; border-radius: 4px;
+}
+.sync-hinweis .sync-hinweis-btn {
+  margin-left: auto; background: var(--gold); color: #fff; border: none;
+  padding: 6px 14px; cursor: pointer; font-family: inherit; font-size: 12px;
+  letter-spacing: 0.5px; border-radius: 3px; transition: background 0.2s;
+}
+.sync-hinweis .sync-hinweis-btn:hover { background: var(--gold-hell); }
+/* P4: „wird gerade bearbeitet" — Info-Stil (neutral), klar vom „aktualisiert"-Banner getrennt */
+.sync-hinweis.lock-hinweis { background: #e9e2d2; border-color: var(--linie); }
+/* P5: Konflikt-/Vergleichs-Dialog */
+.konflikt-box { max-width: 560px; width: 92vw; text-align: left; }
+.konflikt-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.konflikt-actions button { width: 100%; }
+.konflikt-diff-wrap { max-height: 50vh; overflow: auto; margin-top: 12px; }
+.konflikt-diff { width: 100%; border-collapse: collapse; font-size: 13px; }
+.konflikt-diff th, .konflikt-diff td { border: 1px solid var(--linie); padding: 6px 8px; text-align: left; vertical-align: top; }
+.konflikt-diff th { background: var(--bg-soft); color: var(--gold); font-weight: normal; letter-spacing: 0.5px; position: sticky; top: 0; }
+.konflikt-diff .kd-feld { opacity: 0.8; white-space: nowrap; }
+@media (max-width: 480px) {
+  .sync-hinweis { font-size: 12px; padding: 9px 12px; }
+  .sync-hinweis .sync-hinweis-btn { margin-left: 0; width: 100%; }
+}
 
 /* Fixe Navigationsleiste oben */
 .top-nav {
@@ -227,7 +313,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   /* cover = füllt den Container vollständig; center 25% = Fokus auf die Krone */
   background: url('Hintergrundbilder/Bild4.jpg') center 25% / cover no-repeat, var(--bg-soft);
   border: 1px solid var(--linie);
-  height: 90vh; min-height: 600px; overflow: hidden; position: relative;
+  height: 90vh; min-height: min(600px, 90vh); overflow: hidden; position: relative;
 }
 /* Gradient-Overlay: Krone kaum überlagert, Stamm/Boden etwas mehr → Personen lesbar */
 #baum-bg {
@@ -300,7 +386,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .modal-inhalt {
   background: var(--paper); color: var(--ink);
   max-width: 550px; width: 100%; padding: 40px;
-  position: relative; max-height: 90vh; overflow-y: auto;
+  position: relative; max-height: 90vh; overflow-y: auto; overscroll-behavior: contain;
 }
 .modal-schliessen {
   position: absolute; top: 12px; right: 18px;
@@ -686,7 +772,7 @@ footer {
 .reg-autocomplete {
   position: absolute; left: 0; right: 0; top: 100%; z-index: 50;
   background: var(--paper); border: 1px solid var(--linie); border-top: none;
-  max-height: 200px; overflow-y: auto; display: none;
+  max-height: 200px; overflow-y: auto; overscroll-behavior: contain; display: none;
   box-shadow: 0 8px 20px rgba(0,0,0,0.18);
 }
 .reg-autocomplete.aktiv { display: block; }
@@ -725,7 +811,7 @@ footer {
   font-family: inherit; font-size: 14px; background: var(--paper); color: var(--ink); outline: none;
 }
 .ss-list {
-  list-style: none; margin: 0; padding: 4px 0; overflow-y: auto;
+  list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; overscroll-behavior: contain;
   scrollbar-width: thin; scrollbar-color: var(--gold) transparent;
 }
 .ss-list::-webkit-scrollbar { width: 8px; }
@@ -894,6 +980,14 @@ footer {
   position: absolute; top: 6px; right: 8px; background: none; border: none;
   font-size: 18px; line-height: 1; cursor: pointer; color: #8a7a5a;
 }
+/* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
+   16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks
+   platziert, damit diese Regel (gleiche Spezifität) die früheren .login-feld/
+   .ss-search/.suche-Definitionen in der Quellreihenfolge überschreibt. */
+@media (max-width: 480px) {
+  input, select, textarea,
+  .login-feld, .ss-search, .suche, .filter { font-size: 16px; }
+}
 </style>
 </head>
 <body>
@@ -968,6 +1062,14 @@ footer {
   <h1>VIDOVIĆ</h1>
   <p class="untertitel" data-i18n="untertitel"></p>
   <p class="stats" id="header-stats"></p>
+  <!-- Live-Indikator (P2): wer bearbeitet gerade denselben Stammbaum (Presence) -->
+  <div class="presence-indikator" id="presence-indikator" style="display:none">
+    <button class="presence-toggle" id="presence-toggle" type="button" aria-haspopup="true" aria-expanded="false" onclick="togglePresencePanel(event)">
+      <span class="presence-dot"></span>
+      <span class="presence-text" id="presence-text"></span>
+    </button>
+    <div class="presence-panel" id="presence-panel"></div>
+  </div>
 </header>
 
 <!-- Hinweis, solange nicht eingeloggt (Stammbaum ist privat) -->
@@ -1016,10 +1118,10 @@ footer {
     <p class="sub-name">Vidović AI</p>
     <div id="login-fehler" class="login-fehler"></div>
     <label class="login-label"><span data-i18n="login_email"></span>
-      <input type="email" id="login-email" class="login-feld" placeholder="name@beispiel.de" onkeydown="if(event.key==='Enter')anmelden()">
+      <input type="email" id="login-email" class="login-feld" autocomplete="email" placeholder="name@beispiel.de" onkeydown="if(event.key==='Enter')anmelden()">
     </label>
     <label class="login-label"><span data-i18n="login_passwort"></span>
-      <input type="password" id="login-passwort" class="login-feld" placeholder="••••••••" onkeydown="if(event.key==='Enter')anmelden()">
+      <input type="password" id="login-passwort" class="login-feld" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')anmelden()">
     </label>
     <button class="login-submit" data-i18n="anmelden" onclick="anmelden()"></button>
     <button type="button" class="login-link-btn" data-i18n="pw_vergessen" onclick="passwortVergessen()"></button>
@@ -1130,11 +1232,11 @@ footer {
     <p class="sub-name">Vidović AI</p>
     <div id="setpw-fehler" class="login-fehler"></div>
     <label class="login-label"><span data-i18n="setpw_neu"></span>
-      <input type="password" id="setpw-passwort" class="login-feld" placeholder="••••••••"
+      <input type="password" id="setpw-passwort" class="login-feld" autocomplete="new-password" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')document.getElementById('setpw-passwort2').focus()">
     </label>
     <label class="login-label"><span data-i18n="setpw_neu2"></span>
-      <input type="password" id="setpw-passwort2" class="login-feld" placeholder="••••••••"
+      <input type="password" id="setpw-passwort2" class="login-feld" autocomplete="new-password" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')setzePasswort()">
     </label>
     <button class="login-submit" data-i18n="setpw_btn" onclick="setzePasswort()"></button>
@@ -1865,6 +1967,13 @@ footer {
 
 <footer>
   <p data-i18n="footer"></p>
+  <p style="margin-top:8px;">
+    <button type="button" onclick="zeigeRechtstext('impressum')" data-i18n="footer_impressum"
+      style="background:none;border:none;color:var(--gold);cursor:pointer;font-family:inherit;font-size:inherit;text-decoration:underline;padding:0;"></button>
+    <span style="opacity:.5;margin:0 8px;" aria-hidden="true">·</span>
+    <button type="button" onclick="zeigeRechtstext('datenschutz')" data-i18n="footer_datenschutz"
+      style="background:none;border:none;color:var(--gold);cursor:pointer;font-family:inherit;font-size:inherit;text-decoration:underline;padding:0;"></button>
+  </p>
 </footer>
 
 <script>
@@ -1874,6 +1983,12 @@ footer {
 const SUPABASE_URL  = 'https://tybvzhifvufgvlgjpmyl.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5YnZ6aGlmdnVmZ3ZsZ2pwbXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDIyMDQsImV4cCI6MjA5NTgxODIwNH0.VL1Z5bZN4t73ArS-uKLC1tAkt1yhQqflKJZ7XU5vA5Y';
 const sbClient      = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Diagnose-Logging nur lokal (localhost/127.0.0.1/file://). In Produktion (GitHub Pages)
+// bleibt es still, damit keine internen Daten (Rollen, Signed-URLs, Storage-Pfade) in die
+// Browser-Konsole gelangen. Echte Fehler laufen weiter über console.warn/console.error.
+const IST_LOKAL = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+function dbg(...args) { if (IST_LOKAL) console.log(...args); }
 
 let aktuellerUser  = null;
 let aktuelleRolle  = null;
@@ -1974,7 +2089,7 @@ async function setzeUser(user) {
   }
 
   aktuelleRolle = rawRolle ? normalizeRolle(rawRolle) : null;
-  console.log('aktuelleRolle gesetzt zu:', aktuelleRolle,
+  dbg('aktuelleRolle gesetzt zu:', aktuelleRolle,
     '(raw:', rawRolle, ', Mitgliedschaften:', (data || []).length, ')');
 
   aktualisiereAuthUI();
@@ -1984,6 +2099,9 @@ async function setzeUser(user) {
   // Phase A2: Sobald Session + Rolle stehen, Baum aus Supabase laden (Fallback bleibt FAMILY_DATA)
   // awaiten, damit Aufrufer (z.B. erstelleStammbaum) danach mit aktueller Baumliste arbeiten können.
   await ladeBaumDaten();
+
+  // Live-Sync (P1): Baumänderungen anderer Nutzer ohne Reload empfangen.
+  startRealtimeSync();
 }
 
 function normalizeRolle(rolle) {
@@ -2020,6 +2138,8 @@ function loescheUser() {
   meineRollenProFamilie = {};
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
   stopObavPolling();     // Live-Updates beenden (ausgeloggt)
+  stopRealtimeSync();    // Live-Sync der Baumdaten beenden (ausgeloggt)
+  stopPresence();        // Live-Indikator beenden (ausgeloggt)
   aktualisiereAuthUI();
   resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
 }
@@ -2474,6 +2594,320 @@ function startObavPolling() {
 }
 function stopObavPolling() {
   if (obavPollTimer) { clearInterval(obavPollTimer); obavPollTimer = null; }
+}
+
+// ---- Live-Sync der Baumdaten (P1, Supabase Realtime) -------------------------
+// Abonniert INSERT/UPDATE/DELETE auf personen/beziehungen/stammbaeume und spielt
+// Änderungen ohne Reload (kein F5) ein: bei einem Event wird DEBOUNCED der Baum
+// neu geladen (ladeBaumDaten behält den offenen Baum + rendert Karten/Beziehungen/
+// Dropdown/Statistiken neu). RLS liefert nur sichtbare Zeilen -> Isolation bleibt.
+// WICHTIG: Der Realtime-Callback darf den Inaktivitäts-/Auto-Logout-Timer NICHT
+// zurücksetzen (kein resetInaktivTimer/sessAktivitaet hier) — sonst kein Auto-Logout.
+// Gilt für ALLE eingeloggten Nutzer (auch lesende Mitglieder), nicht nur Admins.
+let realtimeChannel = null;
+let realtimeReloadTimer = null;
+let realtimeReloadLaeuft = false;
+let realtimePendingReload = false;
+
+function startRealtimeSync() {
+  stopRealtimeSync();
+  if (!aktuellerUser) return;
+  try {
+    const handler = () => realtimeReloadAnstossen();
+    realtimeChannel = sbClient
+      .channel('stammbaum-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'personen' },    handler)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'beziehungen' },  handler)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stammbaeume' },  handler)
+      .subscribe();
+  } catch (e) {
+    console.warn('Realtime-Live-Sync nicht verfügbar:', e);
+    realtimeChannel = null;
+  }
+}
+
+function stopRealtimeSync() {
+  if (realtimeReloadTimer) { clearTimeout(realtimeReloadTimer); realtimeReloadTimer = null; }
+  realtimePendingReload = false;
+  if (realtimeChannel) {
+    try { sbClient.removeChannel(realtimeChannel); } catch (e) {}
+    realtimeChannel = null;
+  }
+}
+
+// Debounced: erst ~700 ms nach dem LETZTEN Event neu laden (mehrere Änderungen
+// einer Aktion = ein Reload). Bei verstecktem Tab aufschieben (visibilitychange holt nach).
+function realtimeReloadAnstossen() {
+  if (!aktuellerUser) return;
+  if (document.visibilityState !== 'visible') { realtimePendingReload = true; return; }
+  if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+  realtimeReloadTimer = setTimeout(realtimeReloadAusfuehren, 700);
+}
+
+async function realtimeReloadAusfuehren() {
+  realtimeReloadTimer = null;
+  if (!aktuellerUser) return;
+  if (realtimeReloadLaeuft) { realtimePendingReload = true; return; }  // kein paralleler Reload
+  realtimeReloadLaeuft = true;
+  realtimePendingReload = false;
+  try {
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+    pruefeOverlayAktualitaet();   // P3: offene Personen-Overlays auf Live-Änderungen prüfen
+  } catch (e) {
+    console.warn('Live-Sync-Reload fehlgeschlagen:', e);
+  } finally {
+    realtimeReloadLaeuft = false;
+    if (realtimePendingReload) realtimeReloadAnstossen();   // während Reload kam neues Event
+  }
+}
+
+// ---- Live-Indikator (P2, Supabase Realtime Presence) ------------------------
+// Zeigt, wer gerade DENSELBEN Stammbaum geöffnet hat. Eigener Channel je Baum
+// (presence:tree:<id>) -> beim Baumwechsel wird umgeklinkt. Wie der Live-Sync:
+// KEIN Zurücksetzen des Inaktivitäts-Timers; gilt für ALLE eingeloggten Nutzer.
+let presenceChannel = null;
+let presenceTreeId  = null;
+let presenceUsers   = [];   // [{ user_id, name, email }] — eindeutige Nutzer am Baum
+// P4 (Soft-Lock, exklusiv): wer bearbeitet gerade welche Person (über Presence-Broadcast).
+let presenceLocks   = {};   // externe Personen-ID -> { user_id, name } (NUR fremde Sperren)
+let meinLockPerson  = null; // externe ID der Person, die ICH gerade gesperrt habe (im Editor)
+
+// Eigenen Presence-Stand setzen (inkl. evtl. aktiver Bearbeitungssperre). track() ersetzt die
+// gesamte Nutzlast -> Standardfelder immer mitsenden.
+async function presenceTrack(editing) {
+  if (!presenceChannel || !aktuellerUser) return;
+  meinLockPerson = editing || null;
+  try {
+    await presenceChannel.track({
+      user_id: aktuellerUser.id,
+      name:    nutzerAnzeigeName(),
+      email:   aktuellerUser.email || '',
+      editing: meinLockPerson
+    });
+  } catch (e) {}
+}
+
+// Freundlicher Anzeigename aus der E-Mail (vor dem @; Trenner -> Leerzeichen; Wortanfänge groß)
+function nutzerAnzeigeName() {
+  const mail  = (aktuellerUser && aktuellerUser.email) || '';
+  const lokal = mail.split('@')[0] || mail;
+  const teile = lokal.split(/[._\-]+/).filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1));
+  return teile.join(' ') || mail;
+}
+
+function startPresence(treeId) {
+  if (presenceTreeId === treeId && presenceChannel) return;   // schon auf diesem Baum aktiv
+  stopPresence();
+  if (!aktuellerUser || !treeId) { renderPresenceIndikator(); return; }
+  presenceTreeId = treeId;
+  try {
+    presenceChannel = sbClient.channel('presence:tree:' + treeId, {
+      config: { presence: { key: aktuellerUser.id } }
+    });
+    presenceChannel
+      .on('presence', { event: 'sync' },  presenceAktualisieren)
+      .on('presence', { event: 'join' },  presenceAktualisieren)
+      .on('presence', { event: 'leave' }, presenceAktualisieren)
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED' && presenceChannel) {
+          await presenceTrack(meinLockPerson);   // beim (Wieder-)Verbinden evtl. aktive Sperre erneut anmelden
+        }
+      });
+  } catch (e) {
+    console.warn('Live-Indikator (Presence) nicht verfügbar:', e);
+    presenceChannel = null;
+  }
+}
+
+function stopPresence() {
+  if (presenceChannel) {
+    try { presenceChannel.untrack(); } catch (e) {}
+    try { sbClient.removeChannel(presenceChannel); } catch (e) {}
+    presenceChannel = null;
+  }
+  presenceTreeId = null;
+  presenceUsers  = [];
+  presenceLocks  = {};
+  meinLockPerson = null;
+  renderPresenceIndikator();
+}
+
+// Presence-State -> eindeutige Nutzerliste + Karte fremder Bearbeitungssperren (P4).
+function presenceAktualisieren() {
+  const liste = [];
+  const gesehen = new Set();
+  const locks = {};
+  const meId = aktuellerUser ? aktuellerUser.id : null;
+  try {
+    const state = presenceChannel ? presenceChannel.presenceState() : {};
+    Object.values(state).forEach(metas => {
+      (metas || []).forEach(m => {
+        const uid = m.user_id || m.email || '';
+        if (uid && !gesehen.has(uid)) {
+          gesehen.add(uid);
+          liste.push({ user_id: uid, name: m.name || m.email || '?', email: m.email || '' });
+        }
+        // Fremde Sperre vormerken (eigene zählt nicht als Blockade für mich selbst)
+        if (m.editing && uid !== meId) locks[m.editing] = { user_id: uid, name: m.name || m.email || '?' };
+      });
+    });
+  } catch (e) {}
+  presenceUsers = liste;
+  presenceLocks = locks;
+  renderPresenceIndikator();
+  pruefeLockBanner();   // offene Detailkarte: „wird gerade von X bearbeitet" live ein-/ausblenden
+}
+
+function renderPresenceIndikator() {
+  const box   = document.getElementById('presence-indikator');
+  const txt   = document.getElementById('presence-text');
+  const panel = document.getElementById('presence-panel');
+  if (!box || !txt || !panel) return;
+  const n = presenceUsers.length;
+  // Nur anzeigen, wenn AUSSER mir noch jemand am selben Baum ist (sonst kein Hinweis nötig)
+  if (!aktuellerUser || n < 2) {
+    box.style.display = 'none';
+    box.classList.remove('offen');
+    return;
+  }
+  box.style.display = '';
+  txt.textContent = t('presence_aktiv', { n });
+  const meId = aktuellerUser.id;
+  const zeilen = presenceUsers.slice()
+    .sort((a, b) => (a.user_id === meId ? -1 : b.user_id === meId ? 1 : 0))   // ich zuerst
+    .map(u => {
+      const selbst = u.user_id === meId;
+      const name = escapeHtml(nm(u.name || u.email || '?'));
+      const sie  = selbst ? `<span class="pp-sie">${escapeHtml(t('presence_sie'))}</span>` : '';
+      return `<li><span class="pp-dot"></span><span>${name}</span>${sie}</li>`;
+    }).join('');
+  panel.innerHTML = `<div class="pp-titel">${escapeHtml(t('presence_titel'))}</div><ul>${zeilen}</ul>`;
+}
+
+function togglePresencePanel(e) {
+  if (e) e.stopPropagation();
+  const box = document.getElementById('presence-indikator');
+  if (!box) return;
+  const offen = box.classList.toggle('offen');
+  const toggle = document.getElementById('presence-toggle');
+  if (toggle) toggle.setAttribute('aria-expanded', offen ? 'true' : 'false');
+}
+
+// P4: Darf der aktuelle Nutzer eine FREMDE Sperre übergehen? -> Super-Admin immer,
+// sonst nur der familien_owner der Familie dieser Person (Notausgang gegen AFK-Blockaden).
+function darfSperreUebernehmen(personId) {
+  if (istSuperAdmin()) return true;
+  const p = aktuelleDaten.persons[personId];
+  const fam = p && p._tree ? stammbaumZuFamilie[p._tree] : null;
+  return !!(fam && meineRollenProFamilie[fam] === 'familien_owner');
+}
+
+// P4: In der offenen Detailkarte „🔒 Wird gerade von X bearbeitet" live ein-/ausblenden.
+function pruefeLockBanner() {
+  const offen = document.getElementById('modal')?.classList.contains('aktiv') && detailWatchId;
+  const lock  = offen ? presenceLocks[detailWatchId] : null;
+  let el = document.getElementById('lock-hinweis-detail');
+  if (lock) {
+    const parent = document.getElementById('modal-text');
+    if (!el && parent) {
+      el = document.createElement('div');
+      el.id = 'lock-hinweis-detail';
+      el.className = 'sync-hinweis lock-hinweis';
+      parent.insertBefore(el, parent.firstChild);
+    }
+    if (el) el.innerHTML = `<span>🔒 ${escapeHtml(t('lock_belegt', { name: nm(lock.name) }))}</span>`;
+  } else if (el) {
+    el.remove();
+  }
+}
+
+// ---- Live-Aktualisierung offener Personen-Overlays (P3) ---------------------
+// Wenn ein anderer Nutzer eine Person speichert/löscht, während man ihr Detail-
+// oder Bearbeiten-Overlay offen hat: Hinweis-Banner einblenden (im Editor werden
+// laufende Eingaben NICHT überschrieben — erst auf Klick „Neueste übernehmen").
+// Erkennung über eine stabile Signatur (eigene Felder + Beziehungen via externe IDs;
+// FAM-IDs/Positionen bleiben außen vor, da nicht inhaltlich relevant).
+let detailWatchId = null, detailWatchSig = null;
+let editWatchId   = null, editWatchSig   = null;
+let editBaselineUpdated = null;   // P5: Stand (updated_at) der Person beim Öffnen des Editors
+
+function personSignatur(personId) {
+  const p = aktuelleDaten.persons[personId];
+  if (!p) return null;   // Person existiert nicht mehr (gelöscht)
+  const eigen = {};
+  Object.keys(p)
+    .filter(k => !k.startsWith('_') && k !== 'families_spouse' && k !== 'families_child')
+    .sort()
+    .forEach(k => { eigen[k] = p[k]; });
+  // Beziehungen über STABILE externe IDs (Eltern/Partner/Kinder) — FAM-IDs sind je Reload neu.
+  const rel = new Set();
+  (p.families_child || []).forEach(fid => {
+    const f = aktuelleDaten.families[fid]; if (!f) return;
+    [f.husband, f.wife].forEach(x => { if (x && x !== personId) rel.add('E:' + x); });
+  });
+  (p.families_spouse || []).forEach(fid => {
+    const f = aktuelleDaten.families[fid]; if (!f) return;
+    const partner = f.husband === personId ? f.wife : f.husband;
+    if (partner) rel.add('P:' + partner);
+    (f.children || []).forEach(c => rel.add('K:' + c));
+  });
+  return JSON.stringify(eigen) + '||' + [...rel].sort().join(',');
+}
+
+function syncBannerEinfuegen(parent, id, geloescht, uebernehmenFn) {
+  if (!parent) return;
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = id;
+    el.className = 'sync-hinweis';
+    parent.insertBefore(el, parent.firstChild);
+  }
+  const txt = geloescht ? t('sync_geloescht') : t('sync_aktualisiert');
+  const btnTxt = geloescht ? t('sync_schliessen') : t('sync_uebernehmen');
+  el.innerHTML = `<span>${escapeHtml(txt)}</span>` +
+    `<button type="button" class="sync-hinweis-btn" onclick="${uebernehmenFn}">${escapeHtml(btnTxt)}</button>`;
+}
+
+function detailUebernehmen() {
+  const id = detailWatchId;
+  const ban = document.getElementById('sync-hinweis-detail'); if (ban) ban.remove();
+  if (id && aktuelleDaten.persons[id]) { aktuelleModalPersonId = null; zeigeDetails(id); }  // sauber neu rendern (kein Back-Eintrag)
+  else schliesseModal();
+}
+function editUebernehmen() {
+  const id = editWatchId;
+  const ban = document.getElementById('sync-hinweis-edit'); if (ban) ban.remove();
+  if (id && aktuelleDaten.persons[id]) zeigePersonBearbeiten(id);   // Formular mit frischen Werten neu füllen
+  else schliessePersonEdit();
+}
+
+// Nach einem Live-Reload prüfen, ob eine offen angezeigte Person betroffen ist.
+function pruefeOverlayAktualitaet() {
+  if (document.getElementById('modal')?.classList.contains('aktiv') && detailWatchId) {
+    const neu = personSignatur(detailWatchId);
+    if (neu === null) syncBannerEinfuegen(document.getElementById('modal-text'), 'sync-hinweis-detail', true,  'detailUebernehmen()');
+    else if (neu !== detailWatchSig) syncBannerEinfuegen(document.getElementById('modal-text'), 'sync-hinweis-detail', false, 'detailUebernehmen()');
+  }
+  if (document.getElementById('person-edit-modal')?.classList.contains('aktiv') && editWatchId) {
+    const inhalt = document.querySelector('#person-edit-modal .modal-inhalt');
+    const neu = personSignatur(editWatchId);
+    if (neu === null) syncBannerEinfuegen(inhalt, 'sync-hinweis-edit', true,  'editUebernehmen()');
+    else if (neu !== editWatchSig) syncBannerEinfuegen(inhalt, 'sync-hinweis-edit', false, 'editUebernehmen()');
+  }
+}
+
+// Sprachwechsel: vorhandene Sync-Banner in der neuen Sprache neu beschriften.
+function aktualisiereSyncBannerSprache() {
+  if (document.getElementById('sync-hinweis-detail') && detailWatchId) {
+    syncBannerEinfuegen(document.getElementById('modal-text'), 'sync-hinweis-detail',
+      personSignatur(detailWatchId) === null, 'detailUebernehmen()');
+  }
+  if (document.getElementById('sync-hinweis-edit') && editWatchId) {
+    syncBannerEinfuegen(document.querySelector('#person-edit-modal .modal-inhalt'), 'sync-hinweis-edit',
+      personSignatur(editWatchId) === null, 'editUebernehmen()');
+  }
 }
 
 function zeigeObavModal() {
@@ -4524,6 +4958,26 @@ const TEXTE = {
     untertitel: 'Stammbaum',
     stats: '{p} PERSONEN · {f} FAMILIEN',
     stats_baum: '{p} PERSONEN',
+    presence_aktiv: '{n} aktiv',
+    presence_titel: 'Aktiv an diesem Stammbaum',
+    presence_sie: '(Sie)',
+    sync_aktualisiert: 'Diese Person wurde soeben aktualisiert.',
+    sync_geloescht: 'Diese Person wurde soeben entfernt.',
+    sync_uebernehmen: 'Neueste Änderungen übernehmen',
+    sync_schliessen: 'Schließen',
+    lock_belegt: 'Wird gerade von {name} bearbeitet',
+    lock_blockiert: 'Diese Person wird gerade von {name} bearbeitet — Bearbeitung ist gesperrt.',
+    lock_uebernehmen_frage: 'Diese Person wird gerade von {name} bearbeitet.\nTrotzdem übernehmen? Es kann zu Konflikten kommen.',
+    konflikt_titel: 'Konflikt erkannt',
+    konflikt_text: 'Die Daten wurden zwischenzeitlich von einem anderen Benutzer geändert. Was möchtest du tun?',
+    konflikt_meine: 'Meine Änderungen überschreiben',
+    konflikt_aktuelle: 'Aktuelle Version übernehmen',
+    konflikt_vergleich: 'Unterschiede vergleichen',
+    konflikt_feld: 'Feld',
+    konflikt_spalte_meine: 'Meine',
+    konflikt_spalte_aktuell: 'Aktuell',
+    konflikt_keine_diff: 'Keine Feldunterschiede gefunden.',
+    konflikt_aktuelle_geladen: 'Aktuelle Version geladen.',
     tab_karten: 'Familienmitglieder',
     tab_shorts: 'Events',
     tab_baum: 'Stammbaum',
@@ -4998,6 +5452,26 @@ const TEXTE = {
     untertitel: 'Породично стабло',
     stats: '{p} ОСОБА · {f} ПОРОДИЦА',
     stats_baum: '{p} ОСОБА',
+    presence_aktiv: '{n} активно',
+    presence_titel: 'Активни на овом стаблу',
+    presence_sie: '(Ви)',
+    sync_aktualisiert: 'Ова особа је управо ажурирана.',
+    sync_geloescht: 'Ова особа је управо уклоњена.',
+    sync_uebernehmen: 'Преузми најновије измене',
+    sync_schliessen: 'Затвори',
+    lock_belegt: 'Тренутно уређује {name}',
+    lock_blockiert: 'Ову особу тренутно уређује {name} — уређивање је закључано.',
+    lock_uebernehmen_frage: 'Ову особу тренутно уређује {name}.\nИпак преузети? Може доћи до конфликата.',
+    konflikt_titel: 'Откривен конфликт',
+    konflikt_text: 'Податке је у међувремену променио други корисник. Шта желите да урадите?',
+    konflikt_meine: 'Препиши мојим изменама',
+    konflikt_aktuelle: 'Преузми тренутну верзију',
+    konflikt_vergleich: 'Упореди разлике',
+    konflikt_feld: 'Поље',
+    konflikt_spalte_meine: 'Моје',
+    konflikt_spalte_aktuell: 'Тренутно',
+    konflikt_keine_diff: 'Нема разлика у пољима.',
+    konflikt_aktuelle_geladen: 'Тренутна верзија учитана.',
     tab_karten: 'Чланови породице',
     tab_shorts: 'Догађаји',
     tab_baum: 'Стабло',
@@ -5458,6 +5932,26 @@ const TEXTE = {
     untertitel: 'Obiteljsko stablo',
     stats: '{p} OSOBA · {f} OBITELJI',
     stats_baum: '{p} OSOBA',
+    presence_aktiv: '{n} aktivno',
+    presence_titel: 'Aktivni na ovom stablu',
+    presence_sie: '(Vi)',
+    sync_aktualisiert: 'Ova osoba je upravo ažurirana.',
+    sync_geloescht: 'Ova osoba je upravo uklonjena.',
+    sync_uebernehmen: 'Preuzmi najnovije promjene',
+    sync_schliessen: 'Zatvori',
+    lock_belegt: 'Trenutno uređuje {name}',
+    lock_blockiert: 'Ovu osobu trenutno uređuje {name} — uređivanje je zaključano.',
+    lock_uebernehmen_frage: 'Ovu osobu trenutno uređuje {name}.\nIpak preuzeti? Može doći do sukoba.',
+    konflikt_titel: 'Otkriven sukob',
+    konflikt_text: 'Podatke je u međuvremenu promijenio drugi korisnik. Što želite učiniti?',
+    konflikt_meine: 'Prepiši mojim izmjenama',
+    konflikt_aktuelle: 'Preuzmi trenutnu verziju',
+    konflikt_vergleich: 'Usporedi razlike',
+    konflikt_feld: 'Polje',
+    konflikt_spalte_meine: 'Moje',
+    konflikt_spalte_aktuell: 'Trenutno',
+    konflikt_keine_diff: 'Nema razlika u poljima.',
+    konflikt_aktuelle_geladen: 'Trenutna verzija učitana.',
     tab_karten: 'Članovi obitelji',
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
@@ -5932,6 +6426,26 @@ const TEXTE = {
     untertitel: 'Porodično stablo',
     stats: '{p} OSOBA · {f} PORODICA',
     stats_baum: '{p} OSOBA',
+    presence_aktiv: '{n} aktivno',
+    presence_titel: 'Aktivni na ovom stablu',
+    presence_sie: '(Vi)',
+    sync_aktualisiert: 'Ova osoba je upravo ažurirana.',
+    sync_geloescht: 'Ova osoba je upravo uklonjena.',
+    sync_uebernehmen: 'Preuzmi najnovije izmjene',
+    sync_schliessen: 'Zatvori',
+    lock_belegt: 'Trenutno uređuje {name}',
+    lock_blockiert: 'Ovu osobu trenutno uređuje {name} — uređivanje je zaključano.',
+    lock_uebernehmen_frage: 'Ovu osobu trenutno uređuje {name}.\nIpak preuzeti? Može doći do konflikata.',
+    konflikt_titel: 'Otkriven konflikt',
+    konflikt_text: 'Podatke je u međuvremenu izmijenio drugi korisnik. Šta želite uraditi?',
+    konflikt_meine: 'Prepiši mojim izmjenama',
+    konflikt_aktuelle: 'Preuzmi trenutnu verziju',
+    konflikt_vergleich: 'Uporedi razlike',
+    konflikt_feld: 'Polje',
+    konflikt_spalte_meine: 'Moje',
+    konflikt_spalte_aktuell: 'Trenutno',
+    konflikt_keine_diff: 'Nema razlika u poljima.',
+    konflikt_aktuelle_geladen: 'Trenutna verzija učitana.',
     tab_karten: 'Članovi porodice',
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
@@ -6420,6 +6934,26 @@ const TEXTE = {
     untertitel: 'Family Tree',
     stats: '{p} PEOPLE · {f} FAMILIES',
     stats_baum: '{p} PEOPLE',
+    presence_aktiv: '{n} active',
+    presence_titel: 'Active on this tree',
+    presence_sie: '(You)',
+    sync_aktualisiert: 'This person was just updated.',
+    sync_geloescht: 'This person was just removed.',
+    sync_uebernehmen: 'Apply latest changes',
+    sync_schliessen: 'Close',
+    lock_belegt: 'Currently being edited by {name}',
+    lock_blockiert: 'This person is currently being edited by {name} — editing is locked.',
+    lock_uebernehmen_frage: 'This person is currently being edited by {name}.\nTake over anyway? Conflicts may occur.',
+    konflikt_titel: 'Conflict detected',
+    konflikt_text: 'The data was changed by another user in the meantime. What would you like to do?',
+    konflikt_meine: 'Overwrite with my changes',
+    konflikt_aktuelle: 'Use current version',
+    konflikt_vergleich: 'Compare differences',
+    konflikt_feld: 'Field',
+    konflikt_spalte_meine: 'Mine',
+    konflikt_spalte_aktuell: 'Current',
+    konflikt_keine_diff: 'No field differences found.',
+    konflikt_aktuelle_geladen: 'Current version loaded.',
     tab_karten: 'Family members',
     tab_shorts: 'Events',
     tab_baum: 'Family Tree',
@@ -6781,6 +7315,265 @@ const TEXTE = {
 };
 
 // ============================================================
+// RECHTSTEXTE (Impressum + Datenschutz) — i18n in allen 5 Sprachen.
+// Bewusst als eigenes Objekt (statt in den 5 TEXTE-Blöcken), weil es lange
+// HTML-Blöcke sind; Zugriff weiterhin über `aktuelleSprache`. Die kurzen
+// Labels werden per Object.assign in TEXTE eingehängt, damit t()/data-i18n greifen.
+// ACHTUNG: automatisch erzeugter ENTWURF — vor Veröffentlichung juristisch prüfen
+// und alle [PLATZHALTER] mit echten Betreiberdaten ausfüllen.
+// ============================================================
+Object.assign(TEXTE.de, {
+  footer_impressum: 'Impressum', footer_datenschutz: 'Datenschutz',
+  rechts_entwurf_hinweis: '⚠️ Entwurf (automatisch erstellt) — vor Veröffentlichung juristisch prüfen und alle [PLATZHALTER] ausfüllen.'
+});
+Object.assign(TEXTE.sr, {
+  footer_impressum: 'Импресум', footer_datenschutz: 'Заштита података',
+  rechts_entwurf_hinweis: '⚠️ Нацрт (аутоматски израђен) — пре објаве правно проверити и попунити све [PLATZHALTER].'
+});
+Object.assign(TEXTE.hr, {
+  footer_impressum: 'Impressum', footer_datenschutz: 'Zaštita podataka',
+  rechts_entwurf_hinweis: '⚠️ Nacrt (automatski izrađen) — prije objave pravno provjeriti i ispuniti sve [PLATZHALTER].'
+});
+Object.assign(TEXTE.ba, {
+  footer_impressum: 'Impressum', footer_datenschutz: 'Zaštita podataka',
+  rechts_entwurf_hinweis: '⚠️ Nacrt (automatski izrađen) — prije objave pravno provjeriti i popuniti sve [PLATZHALTER].'
+});
+Object.assign(TEXTE.en, {
+  footer_impressum: 'Legal notice', footer_datenschutz: 'Privacy',
+  rechts_entwurf_hinweis: '⚠️ Draft (auto-generated) — have it legally reviewed and fill in all [PLATZHALTER] before publishing.'
+});
+
+const RECHTSTEXTE = {
+  de: {
+    impressum: `
+      <h2>Impressum</h2>
+      <p><strong>Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)</strong></p>
+      <p>[PLATZHALTER: Vor- und Nachname]<br>[PLATZHALTER: Straße und Hausnummer]<br>[PLATZHALTER: PLZ und Ort]<br>[PLATZHALTER: Land]</p>
+      <p><strong>Kontakt</strong><br>E-Mail: [PLATZHALTER: Kontakt-E-Mail]<br>Telefon: [PLATZHALTER: optional]</p>
+      <p><strong>Verantwortlich für den Inhalt</strong><br>[PLATZHALTER: Name und Anschrift wie oben]</p>
+      <p>Dieses Angebot ist ein privates, nicht-kommerzielles Familienprojekt.</p>
+      <p><strong>Haftung für Inhalte und Links:</strong> Die Inhalte wurden mit Sorgfalt erstellt, für ihre Richtigkeit wird jedoch keine Gewähr übernommen. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich.</p>`,
+    datenschutz: `
+      <h2>Datenschutzerklärung</h2>
+      <h3>1. Verantwortlicher</h3>
+      <p>[PLATZHALTER: Name, Anschrift und E-Mail des Verantwortlichen]</p>
+      <h3>2. Welche Daten wir verarbeiten</h3>
+      <ul>
+        <li>Kontodaten: E-Mail-Adresse, Passwort (verschlüsselt gespeichert), Rolle.</li>
+        <li>Stammbaumdaten: Namen, Geburts-/Tauf-/Hochzeits-/Sterbedaten, Orte, Beruf, Adresse, Telefon, E-Mail, Social-Media-Profile sowie Fotos/Dokumente — auch von Angehörigen.</li>
+        <li>Technische Daten: Spracheinstellung und Sitzungsdaten (im Browser gespeichert) sowie Server-Protokolle der eingesetzten Dienstleister.</li>
+      </ul>
+      <h3>3. Zwecke der Verarbeitung</h3>
+      <p>Betrieb und Darstellung des Familienstammbaums, Anmeldung/Authentifizierung, Verwaltung von Zugriffsrechten sowie Benachrichtigungen (z. B. Zugriffsanfragen).</p>
+      <h3>4. Rechtsgrundlagen (Art. 6 DSGVO)</h3>
+      <p>Einwilligung (Art. 6 Abs. 1 lit. a), Vertrag bzw. Nutzung (lit. b) und berechtigtes Interesse an der Familienforschung (lit. f). Soweit aus Tauf-/Kircheneinträgen Rückschlüsse auf religiöse Überzeugungen möglich sind, erfolgt die Verarbeitung dieser besonderen Kategorien (Art. 9) nur auf Grundlage Ihrer Einwilligung (Art. 9 Abs. 2 lit. a).</p>
+      <h3>5. Empfänger / Auftragsverarbeiter</h3>
+      <ul>
+        <li>Supabase — Hosting, Datenbank, Authentifizierung, Datei-Speicher.</li>
+        <li>Resend — Versand von System-E-Mails.</li>
+        <li>GitHub Pages — Auslieferung der Webseite.</li>
+      </ul>
+      <p>Mit diesen Dienstleistern sind Auftragsverarbeitungsverträge (AVV) abzuschließen.</p>
+      <h3>6. Übermittlung in Drittländer</h3>
+      <p>Einzelne Dienstleister können Daten außerhalb der EU (z. B. USA) verarbeiten. Die Übermittlung wird – soweit erforderlich – auf EU-Standardvertragsklauseln gestützt. [PLATZHALTER: gewählte Serverregion prüfen]</p>
+      <h3>7. Speicherdauer</h3>
+      <p>Daten werden gespeichert, bis das Konto bzw. der Stammbaum gelöscht wird. Eine Löschfunktion steht in der App zur Verfügung.</p>
+      <h3>8. Ihre Rechte</h3>
+      <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch sowie das Recht, eine erteilte Einwilligung jederzeit zu widerrufen. Zudem besteht ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde.</p>
+      <h3>9. Daten von Dritten</h3>
+      <p>Im Stammbaum werden auch Daten lebender Angehöriger durch andere Familienmitglieder eingetragen. Wer solche Daten einträgt, ist dafür verantwortlich, die betroffenen Personen zu informieren und – wo nötig – deren Einwilligung einzuholen.</p>
+      <h3>10. Cookies / lokale Speicherung</h3>
+      <p>Es werden nur technisch notwendige Werte im Browser gespeichert (Sprachwahl, Sitzung). Es findet kein Tracking und keine automatisierte Entscheidungsfindung statt.</p>
+      <h3>11. Kontakt in Datenschutzfragen</h3>
+      <p>[PLATZHALTER: Datenschutz-Kontakt / E-Mail]</p>`
+  },
+  en: {
+    impressum: `
+      <h2>Legal notice</h2>
+      <p><strong>Provider information</strong></p>
+      <p>[PLATZHALTER: first and last name]<br>[PLATZHALTER: street and number]<br>[PLATZHALTER: postal code and city]<br>[PLATZHALTER: country]</p>
+      <p><strong>Contact</strong><br>E-mail: [PLATZHALTER: contact e-mail]<br>Phone: [PLATZHALTER: optional]</p>
+      <p><strong>Responsible for the content</strong><br>[PLATZHALTER: name and address as above]</p>
+      <p>This is a private, non-commercial family project.</p>
+      <p><strong>Liability for content and links:</strong> Content has been prepared with care, but no guarantee is given for its accuracy. Operators of linked external sites are responsible for their own content.</p>`,
+    datenschutz: `
+      <h2>Privacy Policy</h2>
+      <h3>1. Controller</h3>
+      <p>[PLATZHALTER: name, address and e-mail of the controller]</p>
+      <h3>2. What data we process</h3>
+      <ul>
+        <li>Account data: e-mail address, password (stored encrypted), role.</li>
+        <li>Family-tree data: names, birth/baptism/marriage/death dates, places, profession, address, phone, e-mail, social-media profiles and photos/documents — including those of relatives.</li>
+        <li>Technical data: language setting and session data (stored in the browser) and the server logs of the providers used.</li>
+      </ul>
+      <h3>3. Purposes</h3>
+      <p>Operating and displaying the family tree, sign-in/authentication, managing access rights and notifications (e.g. access requests).</p>
+      <h3>4. Legal bases (Art. 6 GDPR)</h3>
+      <p>Consent (Art. 6(1)(a)), contract/use (b) and legitimate interest in genealogy (f). Where baptism/church records allow conclusions about religious beliefs, such special categories (Art. 9) are processed only based on your consent (Art. 9(2)(a)).</p>
+      <h3>5. Recipients / processors</h3>
+      <ul>
+        <li>Supabase — hosting, database, authentication, file storage.</li>
+        <li>Resend — sending of system e-mails.</li>
+        <li>GitHub Pages — delivery of the website.</li>
+      </ul>
+      <p>Data-processing agreements (DPAs) are to be concluded with these providers.</p>
+      <h3>6. Transfers to third countries</h3>
+      <p>Some providers may process data outside the EU (e.g. the USA). Where necessary, such transfers are based on the EU Standard Contractual Clauses. [PLATZHALTER: check the chosen server region]</p>
+      <h3>7. Retention</h3>
+      <p>Data is stored until the account or family tree is deleted. A deletion function is available in the app.</p>
+      <h3>8. Your rights</h3>
+      <p>You have the right to access, rectification, erasure, restriction of processing, data portability and objection, as well as the right to withdraw consent at any time. You also have the right to lodge a complaint with a data-protection supervisory authority.</p>
+      <h3>9. Data about third parties</h3>
+      <p>The tree also contains data about living relatives entered by other family members. Whoever enters such data is responsible for informing the persons concerned and, where necessary, obtaining their consent.</p>
+      <h3>10. Cookies / local storage</h3>
+      <p>Only technically necessary values are stored in the browser (language choice, session). There is no tracking and no automated decision-making.</p>
+      <h3>11. Privacy contact</h3>
+      <p>[PLATZHALTER: privacy contact / e-mail]</p>`
+  },
+  hr: {
+    impressum: `
+      <h2>Impressum</h2>
+      <p><strong>Podaci o pružatelju usluge</strong></p>
+      <p>[PLATZHALTER: ime i prezime]<br>[PLATZHALTER: ulica i broj]<br>[PLATZHALTER: poštanski broj i mjesto]<br>[PLATZHALTER: država]</p>
+      <p><strong>Kontakt</strong><br>E-pošta: [PLATZHALTER: kontakt e-pošta]<br>Telefon: [PLATZHALTER: nije obavezno]</p>
+      <p><strong>Odgovoran za sadržaj</strong><br>[PLATZHALTER: ime i adresa kao gore]</p>
+      <p>Ovo je privatni, nekomercijalni obiteljski projekt.</p>
+      <p><strong>Odgovornost za sadržaj i poveznice:</strong> Sadržaj je izrađen s pažnjom, no ne jamči se njegova točnost. Za sadržaj povezanih vanjskih stranica odgovorni su njihovi vlasnici.</p>`,
+    datenschutz: `
+      <h2>Izjava o zaštiti podataka</h2>
+      <h3>1. Voditelj obrade</h3>
+      <p>[PLATZHALTER: ime, adresa i e-pošta voditelja obrade]</p>
+      <h3>2. Koje podatke obrađujemo</h3>
+      <ul>
+        <li>Podaci računa: e-pošta, lozinka (pohranjena šifrirano), uloga.</li>
+        <li>Podaci stabla: imena, datumi rođenja/krštenja/vjenčanja/smrti, mjesta, zanimanje, adresa, telefon, e-pošta, profili na društvenim mrežama te fotografije/dokumenti — i za članove obitelji.</li>
+        <li>Tehnički podaci: postavka jezika i podaci sesije (pohranjeni u pregledniku) te zapisi poslužitelja korištenih pružatelja usluga.</li>
+      </ul>
+      <h3>3. Svrhe obrade</h3>
+      <p>Rad i prikaz obiteljskog stabla, prijava/autentifikacija, upravljanje pravima pristupa i obavijesti (npr. zahtjevi za pristup).</p>
+      <h3>4. Pravne osnove (čl. 6. GDPR-a)</h3>
+      <p>Privola (čl. 6. st. 1. t. a), ugovor odnosno korištenje (t. b) i legitimni interes za istraživanje obiteljskog stabla (t. f). Ako se iz podataka o krštenju/crkvi mogu izvesti zaključci o vjerskim uvjerenjima, takve posebne kategorije (čl. 9.) obrađuju se samo na temelju vaše privole (čl. 9. st. 2. t. a).</p>
+      <h3>5. Primatelji / izvršitelji obrade</h3>
+      <ul>
+        <li>Supabase — hosting, baza podataka, autentifikacija, pohrana datoteka.</li>
+        <li>Resend — slanje sistemskih e-poruka.</li>
+        <li>GitHub Pages — isporuka web-stranice.</li>
+      </ul>
+      <p>S tim pružateljima usluga potrebno je sklopiti ugovore o obradi (DPA).</p>
+      <h3>6. Prijenos u treće zemlje</h3>
+      <p>Pojedini pružatelji mogu obrađivati podatke izvan EU-a (npr. SAD). Prijenos se, kad je potrebno, temelji na standardnim ugovornim klauzulama EU-a. [PLATZHALTER: provjeriti odabranu regiju poslužitelja]</p>
+      <h3>7. Razdoblje čuvanja</h3>
+      <p>Podaci se čuvaju dok se račun odnosno stablo ne izbriše. Funkcija brisanja dostupna je u aplikaciji.</p>
+      <h3>8. Vaša prava</h3>
+      <p>Imate pravo na pristup, ispravak, brisanje, ograničenje obrade, prenosivost podataka i prigovor te pravo na povlačenje privole u bilo kojem trenutku. Također imate pravo podnijeti pritužbu nadzornom tijelu za zaštitu podataka.</p>
+      <h3>9. Podaci o trećim osobama</h3>
+      <p>U stablu se nalaze i podaci živih članova obitelji koje unose drugi članovi. Tko unosi takve podatke odgovoran je obavijestiti dotične osobe i, gdje je potrebno, pribaviti njihovu privolu.</p>
+      <h3>10. Kolačići / lokalna pohrana</h3>
+      <p>U pregledniku se pohranjuju samo tehnički nužne vrijednosti (izbor jezika, sesija). Nema praćenja ni automatiziranog donošenja odluka.</p>
+      <h3>11. Kontakt za zaštitu podataka</h3>
+      <p>[PLATZHALTER: kontakt za zaštitu podataka / e-pošta]</p>`
+  },
+  ba: {
+    impressum: `
+      <h2>Impressum</h2>
+      <p><strong>Podaci o pružaocu usluge</strong></p>
+      <p>[PLATZHALTER: ime i prezime]<br>[PLATZHALTER: ulica i broj]<br>[PLATZHALTER: poštanski broj i mjesto]<br>[PLATZHALTER: država]</p>
+      <p><strong>Kontakt</strong><br>E-pošta: [PLATZHALTER: kontakt e-pošta]<br>Telefon: [PLATZHALTER: nije obavezno]</p>
+      <p><strong>Odgovoran za sadržaj</strong><br>[PLATZHALTER: ime i adresa kao gore]</p>
+      <p>Ovo je privatni, nekomercijalni porodični projekat.</p>
+      <p><strong>Odgovornost za sadržaj i linkove:</strong> Sadržaj je izrađen s pažnjom, ali se ne garantuje njegova tačnost. Za sadržaj povezanih vanjskih stranica odgovorni su njihovi vlasnici.</p>`,
+    datenschutz: `
+      <h2>Izjava o zaštiti podataka</h2>
+      <h3>1. Rukovalac podacima</h3>
+      <p>[PLATZHALTER: ime, adresa i e-pošta rukovaoca]</p>
+      <h3>2. Koje podatke obrađujemo</h3>
+      <ul>
+        <li>Podaci računa: e-pošta, lozinka (pohranjena šifrirano), uloga.</li>
+        <li>Podaci stabla: imena, datumi rođenja/krštenja/vjenčanja/smrti, mjesta, zanimanje, adresa, telefon, e-pošta, profili na društvenim mrežama te fotografije/dokumenti — i za članove porodice.</li>
+        <li>Tehnički podaci: postavka jezika i podaci sesije (pohranjeni u pregledniku) te zapisi servera korištenih pružalaca usluga.</li>
+      </ul>
+      <h3>3. Svrhe obrade</h3>
+      <p>Rad i prikaz porodičnog stabla, prijava/autentifikacija, upravljanje pravima pristupa i obavijesti (npr. zahtjevi za pristup).</p>
+      <h3>4. Pravni osnovi (čl. 6. GDPR-a)</h3>
+      <p>Saglasnost (čl. 6. st. 1. t. a), ugovor odnosno korištenje (t. b) i legitimni interes za istraživanje porodičnog stabla (t. f). Ako se iz podataka o krštenju/crkvi mogu izvesti zaključci o vjerskim uvjerenjima, takve posebne kategorije (čl. 9.) obrađuju se samo na osnovu vaše saglasnosti (čl. 9. st. 2. t. a).</p>
+      <h3>5. Primaoci / izvršioci obrade</h3>
+      <ul>
+        <li>Supabase — hosting, baza podataka, autentifikacija, pohrana datoteka.</li>
+        <li>Resend — slanje sistemskih e-poruka.</li>
+        <li>GitHub Pages — isporuka web-stranice.</li>
+      </ul>
+      <p>S tim pružaocima usluga potrebno je sklopiti ugovore o obradi (DPA).</p>
+      <h3>6. Prenos u treće zemlje</h3>
+      <p>Pojedini pružaoci mogu obrađivati podatke izvan EU-a (npr. SAD). Prenos se, kada je potrebno, zasniva na standardnim ugovornim klauzulama EU-a. [PLATZHALTER: provjeriti odabranu regiju servera]</p>
+      <h3>7. Period čuvanja</h3>
+      <p>Podaci se čuvaju dok se račun odnosno stablo ne izbriše. Funkcija brisanja dostupna je u aplikaciji.</p>
+      <h3>8. Vaša prava</h3>
+      <p>Imate pravo na pristup, ispravku, brisanje, ograničenje obrade, prenosivost podataka i prigovor te pravo da povučete saglasnost u bilo kojem trenutku. Također imate pravo podnijeti pritužbu nadzornom organu za zaštitu podataka.</p>
+      <h3>9. Podaci o trećim licima</h3>
+      <p>U stablu se nalaze i podaci živih članova porodice koje unose drugi članovi. Ko unosi takve podatke odgovoran je obavijestiti dotične osobe i, gdje je potrebno, pribaviti njihovu saglasnost.</p>
+      <h3>10. Kolačići / lokalna pohrana</h3>
+      <p>U pregledniku se pohranjuju samo tehnički nužne vrijednosti (izbor jezika, sesija). Nema praćenja ni automatiziranog donošenja odluka.</p>
+      <h3>11. Kontakt za zaštitu podataka</h3>
+      <p>[PLATZHALTER: kontakt za zaštitu podataka / e-pošta]</p>`
+  },
+  sr: {
+    impressum: `
+      <h2>Импресум</h2>
+      <p><strong>Подаци о пружаоцу услуге</strong></p>
+      <p>[PLATZHALTER: име и презиме]<br>[PLATZHALTER: улица и број]<br>[PLATZHALTER: поштански број и место]<br>[PLATZHALTER: држава]</p>
+      <p><strong>Контакт</strong><br>Е-пошта: [PLATZHALTER: контакт е-пошта]<br>Телефон: [PLATZHALTER: није обавезно]</p>
+      <p><strong>Одговоран за садржај</strong><br>[PLATZHALTER: име и адреса као горе]</p>
+      <p>Ово је приватни, некомерцијални породични пројекат.</p>
+      <p><strong>Одговорност за садржај и линкове:</strong> Садржај је израђен с пажњом, али се не гарантује његова тачност. За садржај повезаних спољних страница одговорни су њихови власници.</p>`,
+    datenschutz: `
+      <h2>Изјава о заштити података</h2>
+      <h3>1. Руковалац подацима</h3>
+      <p>[PLATZHALTER: име, адреса и е-пошта руковаоца]</p>
+      <h3>2. Које податке обрађујемо</h3>
+      <ul>
+        <li>Подаци налога: е-пошта, лозинка (похрањена шифровано), улога.</li>
+        <li>Подаци стабла: имена, датуми рођења/крштења/венчања/смрти, места, занимање, адреса, телефон, е-пошта, профили на друштвеним мрежама те фотографије/документи — и за чланове породице.</li>
+        <li>Технички подаци: поставка језика и подаци сесије (похрањени у прегледачу) те записи сервера коришћених пружалаца услуга.</li>
+      </ul>
+      <h3>3. Сврхе обраде</h3>
+      <p>Рад и приказ породичног стабла, пријава/аутентификација, управљање правима приступа и обавештења (нпр. захтеви за приступ).</p>
+      <h3>4. Правни основи (чл. 6. ГДПР-а)</h3>
+      <p>Сагласност (чл. 6. ст. 1. т. а), уговор односно коришћење (т. б) и легитимни интерес за истраживање породичног стабла (т. ф). Ако се из података о крштењу/цркви могу извести закључци о верским уверењима, такве посебне категорије (чл. 9.) обрађују се само на основу ваше сагласности (чл. 9. ст. 2. т. а).</p>
+      <h3>5. Примаоци / извршиоци обраде</h3>
+      <ul>
+        <li>Supabase — хостинг, база података, аутентификација, похрана датотека.</li>
+        <li>Resend — слање системских е-порука.</li>
+        <li>GitHub Pages — испорука веб-странице.</li>
+      </ul>
+      <p>С тим пружаоцима услуга потребно је склопити уговоре о обради (DPA).</p>
+      <h3>6. Пренос у треће земље</h3>
+      <p>Поједини пружаоци могу обрађивати податке изван ЕУ (нпр. САД). Пренос се, када је потребно, заснива на стандардним уговорним клаузулама ЕУ. [PLATZHALTER: проверити одабрану регију сервера]</p>
+      <h3>7. Период чувања</h3>
+      <p>Подаци се чувају док се налог односно стабло не избрише. Функција брисања доступна је у апликацији.</p>
+      <h3>8. Ваша права</h3>
+      <p>Имате право на приступ, исправку, брисање, ограничење обраде, преносивост података и приговор те право да повучете сагласност у било ком тренутку. Такође имате право поднети притужбу надзорном органу за заштиту података.</p>
+      <h3>9. Подаци о трећим лицима</h3>
+      <p>У стаблу се налазе и подаци живих чланова породице које уносе други чланови. Ко уноси такве податке одговоран је да обавести дотичне особе и, где је потребно, прибави њихову сагласност.</p>
+      <h3>10. Колачићи / локална похрана</h3>
+      <p>У прегледачу се похрањују само технички неопходне вредности (избор језика, сесија). Нема праћења ни аутоматизованог доношења одлука.</p>
+      <h3>11. Контакт за заштиту података</h3>
+      <p>[PLATZHALTER: контакт за заштиту података / е-пошта]</p>`
+  }
+};
+
+// Öffnet Impressum/Datenschutz im generischen Modal. Render-Zeitpunkt = aktuelle Sprache;
+// der Entwurf-Warnbanner wird automatisch vorangestellt.
+function zeigeRechtstext(welches) {
+  const lang = RECHTSTEXTE[aktuelleSprache] ? aktuelleSprache : 'de';
+  const inhalt = (RECHTSTEXTE[lang] && RECHTSTEXTE[lang][welches]) || '';
+  document.getElementById('modal-text').innerHTML =
+    '<div style="background:var(--gold-hell);border:1px solid var(--gold);color:#5e4b35;' +
+    'padding:10px 12px;border-radius:6px;margin-bottom:16px;font-size:13px;line-height:1.45;">' +
+    escapeHtml(t('rechts_entwurf_hinweis')) + '</div>' + inhalt;
+  document.getElementById('modal').classList.add('aktiv');
+}
+
+// ============================================================
 // SPRACHEN + FLAGGEN (Inline-SVG, plattformübergreifend sichtbar)
 // ============================================================
 const FLAGGEN = {
@@ -7042,6 +7835,8 @@ function wechselSprache(lang, speichern = true) {
   aktualisiereStats();
   befuelleStammbaumAuswahl();    // Stammbaum-Dropdown: Namen je Sprache (sr -> kyrillisch)
   aktualisiereBaumHinweis();     // Orientierungs-Banner in neuer Sprache
+  renderPresenceIndikator();     // Live-Indikator-Texte (Anzahl/Titel/„(Sie)") in neuer Sprache
+  aktualisiereSyncBannerSprache(); // P3: offene „aktualisiert"-Hinweise neu beschriften
   if (aktuelleAnsicht === 'karten') zeigeKarten();
   else if (aktuelleAnsicht === 'shorts') zeigeShorts();
   else aktualisiereBaumInfo();
@@ -7096,7 +7891,7 @@ function zeichneBaumNeu() {
 // ============================================================
 async function ladeBaumAusSupabase() {
   const [pRes, bRes, sRes] = await Promise.all([
-    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id'),
+    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id, updated_at'),
     sbClient.from('beziehungen').select('person_a, person_b, typ'),
     sbClient.from('stammbaeume').select('id, name, familie_id')
   ]);
@@ -7127,7 +7922,8 @@ async function ladeBaumAusSupabase() {
       _tree: row.stammbaum_id || null,
       _ident: row.identitaet_id || null,   // gleiche reale Person über Bäume (logische Verknüpfung)
       _hatKonto: !!row.user_id,
-      _pos: (row.pos_x != null && row.pos_y != null) ? { x: row.pos_x, y: row.pos_y } : null
+      _pos: (row.pos_x != null && row.pos_y != null) ? { x: row.pos_x, y: row.pos_y } : null,
+      _updated: row.updated_at || null   // P5: Stand für Optimistic-Locking-Vergleich
     };
   });
 
@@ -7369,6 +8165,7 @@ function waehleStammbaum(treeId) {
   if (root) zeichneBaum(root, 12, 0);
   else if (baumG) baumG.selectAll('*').remove();
   aktualisiereBaumHinweis();
+  startPresence(treeId);   // Live-Indikator an den jetzt offenen Baum koppeln (P2)
 }
 
 // Hinweis-Banner: in welchem Stammbaum man ist + dass man oben wechseln kann
@@ -7959,6 +8756,15 @@ function init() {
   window.addEventListener('scroll', (e) => { if (dpAktivInput && !dpPanel.contains(e.target)) dpPositioniere(dpAktivInput._dpWrap || dpAktivInput); }, true);
   // Tab wird wieder sichtbar -> Obavještenja sofort aktualisieren (nicht erst beim nächsten Poll-Tick)
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') obavLivePoll(); });
+  // Tab wieder sichtbar -> während verstecktem Tab eingetroffene Live-Sync-Änderungen nachholen
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && realtimePendingReload) realtimeReloadAnstossen();
+  });
+  // Live-Indikator-Panel schließen bei Tipp außerhalb (pointerdown = touch-sicher, kein Ghost-Click)
+  document.addEventListener('pointerdown', (e) => {
+    const box = document.getElementById('presence-indikator');
+    if (box && box.classList.contains('offen') && !box.contains(e.target)) box.classList.remove('offen');
+  });
 
   // Deep-Link aus der Benachrichtigungs-Mail: ?obav=1 merkt vor, dass nach dem
   // Login die Obavještenja-Liste geöffnet werden soll. Param sofort aus der URL
@@ -8177,7 +8983,7 @@ async function uploadEventMedia(eventId, file) {
   try {
     const bucket = 'events';
     const path = `${eventId}/${Date.now()}_${file.name}`;
-    console.log('Upload starten:', { bucket, path, fileType: file.type, fileSize: file.size });
+    dbg('Upload starten:', { bucket, path, fileType: file.type, fileSize: file.size });
     
     const { data, error } = await sbClient.storage.from(bucket).upload(path, file, {
       cacheControl: '3600',
@@ -8189,8 +8995,8 @@ async function uploadEventMedia(eventId, file) {
       return { url: null, error: error.message || 'Upload-Fehler' };
     }
     
-    console.log('Upload erfolgreich:', data);
-    console.log('Full upload response:', JSON.stringify(data));
+    dbg('Upload erfolgreich:', data);
+    dbg('Full upload response:', JSON.stringify(data));
 
     // Use the path returned by the upload response when available —
     // the client may normalize or alter the filename. Fall back to our
@@ -8201,15 +9007,15 @@ async function uploadEventMedia(eventId, file) {
     // strip it (e.g. "events/..." when we already pass the bucket separately).
     if (uploadedPath && uploadedPath.startsWith(bucket + '/')) {
       uploadedPath = uploadedPath.slice(bucket.length + 1);
-      console.log('Stripped bucket prefix from uploadedPath, now:', uploadedPath);
+      dbg('Stripped bucket prefix from uploadedPath, now:', uploadedPath);
     }
 
-    console.log('Using path for signed URL:', uploadedPath);
+    dbg('Using path for signed URL:', uploadedPath);
 
     // Debug: list objects in the target folder to verify the object exists
     try {
       const { data: listData, error: listErr } = await sbClient.storage.from(bucket).list(eventId, { limit: 100 });
-      console.log('List objects in folder', eventId, listData, listErr);
+      dbg('List objects in folder', eventId, listData, listErr);
     } catch (listEx) {
       console.warn('List-exception:', listEx);
     }
@@ -8217,7 +9023,7 @@ async function uploadEventMedia(eventId, file) {
     // Debug: get public URL (works for public buckets) to compare
     try {
       const publicRes = sbClient.storage.from(bucket).getPublicUrl(uploadedPath);
-      console.log('Public URL result:', publicRes);
+      dbg('Public URL result:', publicRes);
     } catch (pubEx) {
       console.warn('PublicUrl-exception:', pubEx);
     }
@@ -8225,7 +9031,7 @@ async function uploadEventMedia(eventId, file) {
     // Try to create a signed URL first
     const { data: urlData, error: signError } = await sbClient.storage.from(bucket).createSignedUrl(uploadedPath, 60 * 60 * 24);
     if (!signError && urlData?.signedUrl) {
-      console.log('Signed URL generiert:', urlData.signedUrl);
+      dbg('Signed URL generiert:', urlData.signedUrl);
       return { url: urlData.signedUrl, error: null, storagePath: uploadedPath };
     }
 
@@ -8235,7 +9041,7 @@ async function uploadEventMedia(eventId, file) {
     try {
       const publicRes = sbClient.storage.from(bucket).getPublicUrl(uploadedPath);
       if (publicRes && publicRes.data && publicRes.data.publicUrl) {
-        console.log('Public URL result:', publicRes.data.publicUrl);
+        dbg('Public URL result:', publicRes.data.publicUrl);
         return { url: publicRes.data.publicUrl, error: null, storagePath: uploadedPath };
       }
     } catch (pubEx) {
@@ -8247,7 +9053,7 @@ async function uploadEventMedia(eventId, file) {
       const { data: downloadData, error: downloadError } = await sbClient.storage.from(bucket).download(uploadedPath);
       if (!downloadError && downloadData) {
         const blobUrl = URL.createObjectURL(downloadData);
-        console.log('Erzeugt blob-URL für Anzeige');
+        dbg('Erzeugt blob-URL für Anzeige');
         return { url: blobUrl, error: null, storagePath: uploadedPath, isBlob: true };
       } else {
         console.warn('Download-Fehler:', downloadError);
@@ -9140,12 +9946,18 @@ function zeigeDetails(personId) {
       </div>` : ''}
   `;
   document.getElementById('modal').classList.add('aktiv');
+  // P3: Stand dieser Person merken, um Live-Änderungen anderer zu erkennen.
+  detailWatchId = personId; detailWatchSig = personSignatur(personId);
+  pruefeLockBanner();   // P4: ggf. „wird gerade von X bearbeitet" anzeigen
 }
 
 function schliesseModal() {
   document.getElementById('modal').classList.remove('aktiv');
   modalVerlauf = [];
   aktuelleModalPersonId = null;
+  detailWatchId = null; detailWatchSig = null;   // P3: Beobachtung beenden
+  const ban = document.getElementById('sync-hinweis-detail'); if (ban) ban.remove();
+  const lockBan = document.getElementById('lock-hinweis-detail'); if (lockBan) lockBan.remove();   // P4
 }
 
 function geheZurueck() {
@@ -9426,10 +10238,21 @@ async function personUnlink(uuid) {
 // ============================================================
 // PERSON BEARBEITEN (nur Admins)
 // ============================================================
-function zeigePersonBearbeiten(personId) {
+async function zeigePersonBearbeiten(personId) {
   if (!istAdmin()) return;
   const p = aktuelleDaten.persons[personId];
   if (!p) return;
+  // P4 (Soft-Lock, exklusiv): Bearbeitet bereits ein ANDERER diese Person?
+  const lock = presenceLocks[personId];
+  if (lock && lock.user_id !== (aktuellerUser && aktuellerUser.id)) {
+    if (!darfSperreUebernehmen(personId)) {        // normale Admins: gesperrt
+      await zeigeHinweis(t('lock_blockiert', { name: nm(lock.name) }));
+      return;
+    }
+    // Owner/Super-Admin: Sperre mit Warnung übernehmen
+    const ok = await zeigeBestaetigung(t('lock_uebernehmen_frage', { name: nm(lock.name) }), { gefahr: true });
+    if (!ok) return;
+  }
   schliesseModal();   // Detail-Fenster schließen, bevor der Editor aufgeht
   // Länder-Dropdowns (Geburtsland / Wohnland) in aktueller Sprache füllen, BEVOR die
   // Werte gesetzt werden (zentrale Komponente; wie Registrier-/Familieneinstellungen-Modal).
@@ -9462,6 +10285,11 @@ function zeigePersonBearbeiten(personId) {
   document.getElementById('pe-erfolg').style.display = 'none';
   pePruefeFelder();   // bedingte Felder (Sterbedatum / Hochzeit / Sonstige) anzeigen
   document.getElementById('person-edit-modal').classList.add('aktiv');
+  // P3: Stand merken + evtl. alten Hinweis entfernen (Formular wurde frisch befüllt).
+  editWatchId = personId; editWatchSig = personSignatur(personId);
+  editBaselineUpdated = p._updated || null;   // P5: Stand beim Öffnen merken (Optimistic Locking)
+  const ban = document.getElementById('sync-hinweis-edit'); if (ban) ban.remove();
+  presenceTrack(personId);   // P4: Bearbeitungssperre für diese Person setzen
 }
 
 // Bedingte Felder im Editor ein-/ausblenden
@@ -9478,9 +10306,12 @@ function pePruefeFelder() {
 
 function schliessePersonEdit() {
   document.getElementById('person-edit-modal').classList.remove('aktiv');
+  editWatchId = null; editWatchSig = null;   // P3: Beobachtung beenden
+  const ban = document.getElementById('sync-hinweis-edit'); if (ban) ban.remove();
+  if (meinLockPerson) presenceTrack(null);   // P4: Bearbeitungssperre freigeben
 }
 
-async function speicherePerson() {
+async function speicherePerson(force) {
   if (!istAdmin()) return;
   const personId = document.getElementById('pe-id').value;
   const pObj     = aktuelleDaten.persons[personId];
@@ -9500,9 +10331,9 @@ async function speicherePerson() {
   const altText = button.textContent;
   button.disabled = true; button.textContent = t('reg_senden_laeuft');
 
-  // Pristine stammbaum_daten holen (rekonstruierte FAMx-Felder NICHT zurückschreiben)
+  // Pristine stammbaum_daten + aktuellen Stand (updated_at) holen
   const { data: row, error: lErr } = await sbClient.from('personen')
-    .select('stammbaum_daten').eq('id', pObj._uuid).single();
+    .select('stammbaum_daten, updated_at').eq('id', pObj._uuid).single();
   if (lErr) {
     button.disabled = false; button.textContent = altText;
     fehlerEl.textContent = t('reg_fehler') + lErr.message; fehlerEl.style.display = 'block'; return;
@@ -9531,10 +10362,18 @@ async function speicherePerson() {
   };
   neu.name = (neu.given + ' ' + neu.surname).trim();
 
+  // P5 (Konflikterkennung / Optimistic Locking): Hat jemand die Zeile seit dem Öffnen geändert?
+  if (!force && editBaselineUpdated && row.updated_at && row.updated_at !== editBaselineUpdated) {
+    button.disabled = false; button.textContent = altText;
+    zeigeKonfliktDialog(personId, neu, row.stammbaum_daten || {});
+    return;
+  }
+
   const { error: uErr } = await sbClient.from('personen')
     .update({ stammbaum_daten: neu, vorname: neu.given, nachname: neu.surname }).eq('id', pObj._uuid);
   button.disabled = false; button.textContent = altText;
   if (uErr) { fehlerEl.textContent = t('reg_fehler') + uErr.message; fehlerEl.style.display = 'block'; return; }
+  editBaselineUpdated = null;   // P5: gespeichert -> kein erneuter Konflikt-Check bis Wieder-Öffnen
 
   // In-memory aktualisieren + neu zeichnen (kein voller Reload, Baumkontext bleibt)
   Object.assign(pObj, {
@@ -9571,6 +10410,94 @@ async function speicherePerson() {
     return;
   }
   setTimeout(() => schliessePersonEdit(), 900);
+}
+
+// ---- P5: Konflikterkennung (Optimistic Locking) + Feld-Diff ----------------
+// Felder, die im Vergleich gegenübergestellt werden (Schlüssel in stammbaum_daten -> i18n-Label).
+const KONFLIKT_FELDER = [
+  ['given','reg_vorname'], ['surname','reg_nachname'], ['titel','pe_titel'],
+  ['namenszusatz','pe_namenszusatz'], ['ehename','pe_ehename'], ['sex','pe_geschlecht'],
+  ['birth_date','reg_geburtsdatum'], ['birth_place','reg_geburtsort'], ['geburtsland','reg_geburtsland'],
+  ['stadt','fe_grad'], ['gemeinde','fe_opstina'], ['getauft','reg_getauft'],
+  ['beziehung','pe_beziehung'], ['beziehung_sonstige','pe_beziehung_sonstige'],
+  ['hochzeitsort','pe_hochzeitsort'], ['hochzeit_standesamt','pe_hochzeit_standesamt'],
+  ['hochzeit_kirchlich','pe_hochzeit_kirchlich'],
+  ['email','reg_kontakt_email'], ['telefon','reg_telefon'], ['facebook','reg_facebook'], ['instagram','reg_instagram'],
+  ['wohnort_land','pe_wohnland'], ['wohnort_stadt','pe_wohnstadt'], ['adresse','pe_adresse'],
+  ['beruf','pe_beruf'], ['ausbildung','pe_ausbildung'], ['beschreibung','pe_beschreibung'],
+  ['deceased','pe_status'], ['death_date','pe_sterbedatum']
+];
+let konfliktPersonId = null, konfliktNeu = null, konfliktTheirs = null;
+
+// Werte menschenlesbar formatieren (Datum/Land/Geschlecht/Status/Beziehung).
+function konfliktWert(key, val) {
+  if (val === undefined || val === null || val === '') return key === 'deceased' ? t('nein') : '—';
+  if (key === 'deceased') return val ? t('ja') : t('nein');
+  if (['birth_date','death_date','getauft','hochzeit_standesamt','hochzeit_kirchlich'].includes(key)) return formatDatumLang(val) || String(val);
+  if (['geburtsland','wohnort_land'].includes(key)) return landAnzeige(val) || String(val);
+  if (key === 'sex') return val === 'M' ? t('maennlich') : (val === 'F' ? t('weiblich') : t('unbekannt'));
+  if (key === 'beziehung') return t('bz_' + val);
+  return String(val);
+}
+
+function konfliktOverlayBau(innerHtml) {
+  let ov = document.getElementById('konflikt-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'konflikt-overlay'; ov.className = 'confirm-overlay'; document.body.appendChild(ov); }
+  ov.innerHTML = `<div class="confirm-box konflikt-box">${innerHtml}</div>`;
+}
+function konfliktSchliessen() {
+  const ov = document.getElementById('konflikt-overlay'); if (ov) ov.remove();
+  konfliktPersonId = null; konfliktNeu = null; konfliktTheirs = null;
+}
+
+function zeigeKonfliktDialog(personId, neu, theirs) {
+  konfliktPersonId = personId; konfliktNeu = neu; konfliktTheirs = theirs;
+  konfliktErsteAnsicht();
+}
+function konfliktErsteAnsicht() {
+  konfliktOverlayBau(`
+    <p class="confirm-text" style="text-align:left"><strong>${escapeHtml(t('konflikt_titel'))}</strong></p>
+    <p class="confirm-text" style="text-align:left">${escapeHtml(t('konflikt_text'))}</p>
+    <div class="konflikt-actions">
+      <button type="button" class="confirm-ja confirm-gefahr" onclick="konfliktMeine()">${escapeHtml(t('konflikt_meine'))}</button>
+      <button type="button" class="confirm-ja" onclick="konfliktAktuelle()">${escapeHtml(t('konflikt_aktuelle'))}</button>
+      <button type="button" class="confirm-nein" onclick="konfliktVergleich()">${escapeHtml(t('konflikt_vergleich'))}</button>
+    </div>`);
+}
+
+function konfliktVergleich() {
+  if (!konfliktNeu || !konfliktTheirs) return;
+  const gleich = (a, b) => String(a ?? '') === String(b ?? '');
+  const zeilen = KONFLIKT_FELDER
+    .filter(([k]) => !gleich(konfliktNeu[k], konfliktTheirs[k]))
+    .map(([k, lk]) => `<tr><td class="kd-feld">${escapeHtml(t(lk))}</td><td>${escapeHtml(konfliktWert(k, konfliktNeu[k]))}</td><td>${escapeHtml(konfliktWert(k, konfliktTheirs[k]))}</td></tr>`)
+    .join('');
+  const tabelle = zeilen
+    ? `<div class="konflikt-diff-wrap"><table class="konflikt-diff"><thead><tr>
+        <th>${escapeHtml(t('konflikt_feld'))}</th><th>${escapeHtml(t('konflikt_spalte_meine'))}</th><th>${escapeHtml(t('konflikt_spalte_aktuell'))}</th>
+        </tr></thead><tbody>${zeilen}</tbody></table></div>`
+    : `<p class="confirm-text" style="text-align:left">${escapeHtml(t('konflikt_keine_diff'))}</p>`;
+  konfliktOverlayBau(`
+    <p class="confirm-text" style="text-align:left"><strong>${escapeHtml(t('konflikt_titel'))}</strong></p>
+    ${tabelle}
+    <div class="konflikt-actions">
+      <button type="button" class="confirm-ja confirm-gefahr" onclick="konfliktMeine()">${escapeHtml(t('konflikt_meine'))}</button>
+      <button type="button" class="confirm-ja" onclick="konfliktAktuelle()">${escapeHtml(t('konflikt_aktuelle'))}</button>
+      <button type="button" class="confirm-nein" onclick="konfliktErsteAnsicht()">${escapeHtml(t('zurueck'))}</button>
+    </div>`);
+}
+
+function konfliktMeine() {
+  konfliktSchliessen();
+  speicherePerson(true);   // Force: meine Werte schreiben, ohne erneuten Konflikt-Check
+}
+async function konfliktAktuelle() {
+  const id = konfliktPersonId;
+  konfliktSchliessen();
+  schliessePersonEdit();                 // eigene (verworfene) Eingaben schließen + Lock freigeben
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  if (id && aktuelleDaten.persons[id]) zeigePersonBearbeiten(id);   // mit frischen Werten neu öffnen
+  await zeigeHinweis(t('konflikt_aktuelle_geladen'));
 }
 
 // ============================================================
