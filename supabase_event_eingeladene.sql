@@ -130,6 +130,9 @@ RETURNS TABLE(
   stammbaum_id uuid, baum_name text, hat_konto boolean, eingeladen boolean
 )
 LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
+  -- Familie ZUVERLÄSSIG über den Stammbaum ableiten (stammbaeume.familie_id ist
+  -- immer gesetzt); personen.familie_id kann bei Altdaten NULL sein und würde die
+  -- Person sonst aus dem INNER JOIN werfen -> leere Liste.
   SELECT pe.id, pe.vorname, pe.nachname,
          pe.stammbaum_daten->>'birth_date' AS geburt,
          pe.stammbaum_id, s.name AS baum_name,
@@ -138,7 +141,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
                   WHERE ee.event_id = p_event AND ee.person_id = pe.id) AS eingeladen
     FROM public.personen pe
     JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
-    JOIN public.familien   f ON f.id = pe.familie_id
+    JOIN public.familien   f ON f.id = s.familie_id
    WHERE f.verbund_id = (
            SELECT f2.verbund_id FROM public.familien f2
             WHERE f2.id = (SELECT familie_id FROM public.events WHERE id = p_event))
@@ -205,11 +208,13 @@ BEGIN
      AND (p_person_ids IS NULL OR NOT (ee.person_id = ANY(p_person_ids)));
 
   -- Neue ergänzen — nur Personen aus dem Verbund der Event-Familie (Isolation).
+  -- Familie über den Stammbaum (zuverlässig), NICHT über personen.familie_id (kann NULL sein).
   IF p_person_ids IS NOT NULL THEN
     INSERT INTO public.event_eingeladene (event_id, person_id, familie_id)
     SELECT p_event, pe.id, v_fam
       FROM public.personen pe
-      JOIN public.familien f ON f.id = pe.familie_id
+      JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
+      JOIN public.familien f ON f.id = s.familie_id
      WHERE pe.id = ANY(p_person_ids)
        AND f.verbund_id = v_verbund
     ON CONFLICT (event_id, person_id) DO NOTHING;

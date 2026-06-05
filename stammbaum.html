@@ -260,8 +260,11 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .shorts-header p { color: #5e4b35; font-size: 14px; max-width: 760px; line-height: 1.6; }
 .shorts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* auto-fit (statt auto-fill): leere Spalten kollabieren -> vorhandene Karten füllen
+     die volle Breite. min(100%, 320px) verhindert Überlauf auf schmalen Handys. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 24px;
+  align-items: start;
 }
 .short-card {
   background: var(--paper); color: var(--ink);
@@ -276,7 +279,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .short-card .thumb {
   background: linear-gradient(135deg, rgba(156,124,60,0.95), rgba(114,47,55,0.95));
   color: #fff; display: flex; align-items: center; justify-content: center;
-  aspect-ratio: 16 / 9; border-radius: 14px; margin-bottom: 16px;
+  aspect-ratio: 16 / 9; max-height: 240px; border-radius: 14px; margin-bottom: 16px;
   font-size: 28px; font-weight: 700;
 }
 .short-card h3 { font-size: 18px; margin-bottom: 8px; }
@@ -401,6 +404,38 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   font-family: inherit; font-size: 13px; padding: 7px 16px; cursor: pointer; border-radius: 6px;
 }
 .etn-mehr-btn:hover { background: var(--akzent); color: var(--paper); }
+
+/* ===== Benachrichtigungen (Profil) ===== */
+.benachr-badge {
+  display: inline-block; min-width: 18px; height: 18px; line-height: 18px;
+  padding: 0 5px; margin-left: 8px; border-radius: 999px;
+  background: #9b2226; color: #fff; font-size: 11px; font-weight: bold; text-align: center;
+  font-family: -apple-system, system-ui, sans-serif; letter-spacing: 0;
+}
+/* kleiner roter Punkt am Profil-Icon in der Leiste, wenn ungelesen */
+.profil-icon-btn { position: relative; }
+.profil-dot {
+  position: absolute; top: -2px; right: -2px; width: 11px; height: 11px;
+  background: #9b2226; border: 2px solid var(--paper); border-radius: 50%;
+}
+.benachr-liste { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; overscroll-behavior: contain; }
+.benachr-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border: 1px solid var(--linie); border-radius: 8px;
+  background: var(--paper); cursor: pointer; transition: background 0.15s;
+}
+.benachr-item:hover { background: var(--gold-hell); }
+.benachr-item.ungelesen { border-color: var(--gold); background: #f6efdd; }
+.benachr-item .bi-dot {
+  flex: 0 0 auto; width: 9px; height: 9px; margin-top: 6px; border-radius: 50%;
+  background: var(--gold);
+}
+.benachr-item.gelesen .bi-dot { background: transparent; border: 1px solid var(--linie); }
+.benachr-item .bi-body { flex: 1; min-width: 0; }
+.benachr-item .bi-titel { font-weight: bold; color: var(--ink); }
+.benachr-item .bi-text { font-size: 13px; color: #5e4b35; margin-top: 2px; }
+.benachr-item .bi-zeit { font-size: 11px; color: #8a7a5a; margin-top: 4px; }
+.benachr-empty { padding: 14px; text-align: center; color: #8a7a5a; font-size: 13px; }
 .baum-hinweis { text-align: center; margin-top: 15px; font-size: 13px; opacity: 0.6; font-style: italic; }
 .baum-tree-hinweis {
   max-width: 920px; margin: 12px auto 0; padding: 10px 14px 10px 18px;
@@ -861,6 +896,24 @@ footer {
   font-size: 11px; opacity: 0.85; transition: transform 0.2s; flex: 0 0 auto;
 }
 .prof-pw-toggle.offen .prof-pw-caret { transform: rotate(180deg); }
+/* Sicherheitsbereich (Letzte Aktivitäten + Sitzungen) */
+.prof-sec-zeile { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0;
+  border-bottom: 1px dashed var(--linie); font-size: 13px; }
+.prof-sec-zeile:last-child { border-bottom: none; }
+.prof-sec-zeile .lbl { color: var(--ink); opacity: 0.7; }
+.prof-sec-zeile .val { color: var(--ink); font-weight: 600; text-align: right; }
+.prof-sec-sess-titel { font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--akzent); font-weight: bold; margin: 14px 0 4px; }
+.prof-sess { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-top: 6px;
+  border: 1px solid var(--linie); border-radius: 8px; }
+.prof-sess.aktuell { border-color: var(--gold); background: var(--gold-hell); }
+.prof-sess-info { min-width: 0; flex: 1 1 auto; }
+.prof-sess-geraet { color: var(--ink); font-weight: 600; font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prof-sess-meta { color: var(--ink); opacity: 0.6; font-size: 12px; }
+.prof-sess-badge { flex: 0 0 auto; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--paper); background: var(--gold); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+#prof-sec-abmelden { margin-top: 12px; }
 /* kleiner Avatar in der Live-Indikator-Liste */
 .pp-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover;
   border: 1px solid var(--gold); vertical-align: middle; margin-right: 6px; }
@@ -1146,6 +1199,7 @@ footer {
         <span class="user-rolle" id="user-rolle"></span>
         <button class="profil-icon-btn" id="profil-icon-btn" type="button" onclick="oeffneProfil()" aria-label="Profileinstellungen">
           <img class="user-avatar" id="user-avatar" alt="">
+          <span class="profil-dot" id="profil-dot" style="display:none"></span>
         </button>
       </div>
       <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
@@ -1419,6 +1473,17 @@ footer {
 
     <div id="prof-fehler" class="login-fehler" style="display:none"></div>
 
+    <!-- Benachrichtigungen (z. B. Event-Einladungen) -->
+    <button type="button" class="reg-gruppe-titel prof-pw-toggle" id="prof-benachr-toggle" onclick="profilBenachrToggle()" aria-expanded="false">
+      <span><span data-i18n="benachr_titel"></span><span class="benachr-badge" id="prof-benachr-badge" style="display:none"></span></span>
+      <span class="prof-pw-caret">▾</span>
+    </button>
+    <div class="prof-pw-box" id="prof-benachr-box" style="display:none">
+      <div id="prof-benachr-liste" class="benachr-liste"></div>
+      <button type="button" class="account-btn" id="prof-benachr-alle" style="margin-top:10px;display:none"
+        data-i18n="benachr_alle_gelesen" onclick="benachrAlleGelesen()"></button>
+    </div>
+
     <!-- Profilbild -->
     <div class="reg-gruppe-titel" data-i18n="prof_bild_titel"></div>
     <div class="prof-avatar-aktionen">
@@ -1488,6 +1553,18 @@ footer {
       </div>
       <button class="login-submit" id="prof-pw-submit" data-i18n="prof_pw_btn" onclick="profilPasswortAendern()"></button>
       <div id="prof-pw-erfolg" class="reg-erfolg" style="display:none"></div>
+    </div>
+
+    <!-- Sicherheit & letzte Aktivitäten (standardmäßig eingeklappt, lädt beim Aufklappen) -->
+    <button type="button" class="reg-gruppe-titel prof-pw-toggle" id="prof-sec-toggle" onclick="profilSecToggle()" aria-expanded="false">
+      <span data-i18n="sec_titel"></span><span class="prof-pw-caret">▾</span>
+    </button>
+    <div class="prof-pw-box" id="prof-sec-box" style="display:none">
+      <div id="prof-sec-zeilen" class="prof-sec-zeilen"></div>
+      <div id="prof-sec-sessions" class="prof-sec-sessions"></div>
+      <div id="prof-sec-fehler" class="login-fehler" style="display:none"></div>
+      <button class="account-btn" id="prof-sec-abmelden" type="button" onclick="profilAndereAbmelden()" data-i18n="sec_andere_abmelden" style="display:none"></button>
+      <div id="prof-sec-erfolg" class="reg-erfolg" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -2408,6 +2485,12 @@ async function setzeUser(user) {
 
   // Profil (Konto-Stammdaten + Avatar) laden -> Badge/Presence/Sprache aktualisieren.
   await ladeMeinProfil();
+
+  // Benachrichtigungen (z. B. Event-Einladungen) laden -> Ungelesen-Indikator.
+  ladeBenachrichtigungen();
+
+  // Deep-Link aus der Event-Einladungs-Mail (?event=<id>) nach dem Login einlösen.
+  verarbeiteEventDeepLink();
 }
 
 function normalizeRolle(rolle) {
@@ -2443,6 +2526,8 @@ function loescheUser() {
   aktuelleRolle = null;
   meineRollenProFamilie = {};
   meinProfil = null;     // Profildaten verwerfen (ausgeloggt)
+  meineBenachrichtigungen = [];   // Benachrichtigungen verwerfen + Indikator zurücksetzen
+  aktualisiereBenachrBadge();
   profilAvatarPending = undefined;
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
   stopObavPolling();     // Live-Updates beenden (ausgeloggt)
@@ -2855,6 +2940,20 @@ async function fuegeMitgliedEinladen() {
 let offeneAnfragenCache = [];
 let vknAnfragenCache = [];   // offene Verknüpfungs-Anträge (für den Ziel-Familie-Admin)
 let deepLinkObav = false;    // ?obav=1 aus der Benachrichtigungs-Mail -> Liste nach Login öffnen
+let deepLinkEvent = null;    // ?event=<id> aus der Event-Einladungs-Mail -> Event nach Login öffnen
+
+// Deep-Link aus der Event-Einladungs-Mail: nach dem Laden der Eventliste das Event
+// (best effort, falls im aktuellen Baum sichtbar) öffnen. Einmalig.
+function verarbeiteEventDeepLink() {
+  if (!deepLinkEvent) return;
+  const ziel = deepLinkEvent; deepLinkEvent = null;
+  wechselAnsicht('shorts');
+  setTimeout(() => {
+    if ((eventsCache || []).some(e => String(e.id) === String(ziel)) && typeof zeigeEventDetail === 'function') {
+      zeigeEventDetail(ziel);
+    }
+  }, 300);
+}
 
 async function ladeOffeneAnfragen() {
   if (!aktuellerUser || !istAdmin()) { offeneAnfragenCache = []; vknAnfragenCache = []; renderObavBadges(); return; }
@@ -3117,6 +3216,19 @@ async function oeffneProfil() {
   const pwTog = document.getElementById('prof-pw-toggle');
   if (pwBox) pwBox.style.display = 'none';
   if (pwTog) { pwTog.classList.remove('offen'); pwTog.setAttribute('aria-expanded', 'false'); }
+  // Sicherheitsbereich ebenfalls eingeklappt + Lazy-Load zurücksetzen.
+  const secBox = document.getElementById('prof-sec-box');
+  const secTog = document.getElementById('prof-sec-toggle');
+  if (secBox) secBox.style.display = 'none';
+  if (secTog) { secTog.classList.remove('offen'); secTog.setAttribute('aria-expanded', 'false'); }
+  // Benachrichtigungen eingeklappt starten + frisch laden/rendern (Ungelesen-Indikator).
+  const bnBox = document.getElementById('prof-benachr-box');
+  const bnTog = document.getElementById('prof-benachr-toggle');
+  if (bnBox) bnBox.style.display = 'none';
+  if (bnTog) bnTog.setAttribute('aria-expanded', 'false');
+  ladeBenachrichtigungen();
+  ['prof-sec-fehler','prof-sec-erfolg'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  profilSecGeladen = false; profilSecCache = null;
 
   // Live-Aktualisierung des Profilkopfs beim Tippen
   document.getElementById('prof-vorname').oninput  = renderProfilKopf;
@@ -3329,6 +3441,122 @@ function profilPwToggle() {
   if (tog) { tog.classList.toggle('offen', auf); tog.setAttribute('aria-expanded', auf ? 'true' : 'false'); }
 }
 
+// --- Sicherheitsbereich (Phase 2): Letzte Aktivitäten + aktive Sitzungen ---
+let profilSecGeladen = false;   // pro Modal-Öffnung: erst beim Aufklappen laden
+let profilSecCache   = null;    // letzte RPC-Antwort (für Re-Render bei Sprachwechsel)
+
+function profilSecToggle() {
+  const box = document.getElementById('prof-sec-box');
+  const tog = document.getElementById('prof-sec-toggle');
+  if (!box) return;
+  const auf = box.style.display === 'none';
+  box.style.display = auf ? '' : 'none';
+  if (tog) { tog.classList.toggle('offen', auf); tog.setAttribute('aria-expanded', auf ? 'true' : 'false'); }
+  if (auf && !profilSecGeladen) { profilSecGeladen = true; ladeSicherheit(); }
+}
+
+// Datum + Uhrzeit lokalisiert (Sitzungen/Login). Fallback: ISO gekürzt.
+function formatDatumZeit(iso) {
+  if (!iso) return '—';
+  try {
+    const loc = (typeof isoLocale === 'function') ? isoLocale(aktuelleSprache) : undefined;
+    return new Date(iso).toLocaleString(loc, { dateStyle: 'medium', timeStyle: 'short' });
+  } catch (e) { return String(iso).slice(0, 16).replace('T', ' '); }
+}
+
+// Aus dem User-Agent ein freundliches „Browser · System" ableiten (best effort).
+function geraetLabel(ua) {
+  if (!ua) return t('sec_geraet_unbekannt');
+  let br = 'Browser', os = '';
+  if (/Edg\//.test(ua)) br = 'Edge';
+  else if (/OPR\/|Opera/.test(ua)) br = 'Opera';
+  else if (/Chrome\//.test(ua)) br = 'Chrome';
+  else if (/Firefox\//.test(ua)) br = 'Firefox';
+  else if (/Safari\//.test(ua)) br = 'Safari';
+  if (/Windows/.test(ua)) os = 'Windows';
+  else if (/iPhone|iPad|iOS/.test(ua)) os = 'iOS';
+  else if (/Android/.test(ua)) os = 'Android';
+  else if (/Mac OS X|Macintosh/.test(ua)) os = 'macOS';
+  else if (/Linux/.test(ua)) os = 'Linux';
+  return os ? (br + ' · ' + os) : br;
+}
+
+async function ladeSicherheit() {
+  const zeilen = document.getElementById('prof-sec-zeilen');
+  const fehler = document.getElementById('prof-sec-fehler');
+  if (fehler) fehler.style.display = 'none';
+  if (zeilen) zeilen.innerHTML = `<div class="prof-hint">${escapeHtml(t('sec_laden'))}</div>`;
+  document.getElementById('prof-sec-sessions').innerHTML = '';
+  document.getElementById('prof-sec-abmelden').style.display = 'none';
+  try {
+    const { data, error } = await sbClient.rpc('meine_sicherheit_info');
+    if (error) throw error;
+    if (!data || data.ok === false) throw new Error((data && data.grund) || 'fehler');
+    profilSecCache = data;
+    renderSicherheit(data);
+  } catch (e) {
+    console.warn('Sicherheit laden:', e);
+    profilSecCache = null;
+    if (zeilen) zeilen.innerHTML = '';
+    if (fehler) { fehler.textContent = t('sec_fehler'); fehler.style.display = 'block'; }
+  }
+}
+
+function renderSicherheit(d) {
+  const zeilen = document.getElementById('prof-sec-zeilen');
+  const sessBox = document.getElementById('prof-sec-sessions');
+  const abm = document.getElementById('prof-sec-abmelden');
+  if (!zeilen || !sessBox) return;
+
+  zeilen.innerHTML =
+    `<div class="prof-sec-zeile"><span class="lbl">${escapeHtml(t('sec_letzter_login'))}</span><span class="val">${escapeHtml(formatDatumZeit(d.letzter_login))}</span></div>` +
+    `<div class="prof-sec-zeile"><span class="lbl">${escapeHtml(t('sec_pw_geaendert'))}</span><span class="val">${escapeHtml(d.pw_geaendert ? formatDatumZeit(d.pw_geaendert) : t('sec_nie'))}</span></div>`;
+
+  const sessions = Array.isArray(d.sitzungen) ? d.sitzungen : [];
+  if (!sessions.length) {
+    sessBox.innerHTML = `<div class="prof-sec-sess-titel">${escapeHtml(t('sec_sitzungen'))}</div><div class="prof-hint">${escapeHtml(t('sec_keine_sitzungen'))}</div>`;
+  } else {
+    // aktuelle zuerst
+    sessions.sort((a, b) => (b.aktuell ? 1 : 0) - (a.aktuell ? 1 : 0));
+    sessBox.innerHTML = `<div class="prof-sec-sess-titel">${escapeHtml(t('sec_sitzungen'))}</div>` +
+      sessions.map(s => {
+        const meta = [formatDatumZeit(s.letzte), s.ip].filter(Boolean).join(' · ');
+        const badge = s.aktuell ? `<span class="prof-sess-badge">${escapeHtml(t('sec_aktuell'))}</span>` : '';
+        return `<div class="prof-sess${s.aktuell ? ' aktuell' : ''}">
+          <div class="prof-sess-info">
+            <div class="prof-sess-geraet">${escapeHtml(geraetLabel(s.geraet))}</div>
+            <div class="prof-sess-meta">${escapeHtml(meta)}</div>
+          </div>${badge}</div>`;
+      }).join('');
+  }
+  // „Andere abmelden" nur sinnvoll, wenn es außer der aktuellen weitere Sitzungen gibt.
+  const andere = sessions.filter(s => !s.aktuell).length;
+  if (abm) abm.style.display = (andere > 0 && d.aktuelle_bekannt) ? '' : 'none';
+}
+
+async function profilAndereAbmelden() {
+  const ok = await zeigeBestaetigung(t('sec_bestaetigen'), { gefahr: true });
+  if (!ok) return;
+  const erfolg = document.getElementById('prof-sec-erfolg');
+  const fehler = document.getElementById('prof-sec-fehler');
+  const btn = document.getElementById('prof-sec-abmelden');
+  if (erfolg) erfolg.style.display = 'none';
+  if (fehler) fehler.style.display = 'none';
+  if (btn) { btn.disabled = true; }
+  try {
+    const { data, error } = await sbClient.rpc('andere_sitzungen_abmelden');
+    if (error) throw error;
+    if (!data || data.ok === false) throw new Error((data && data.grund) || 'fehler');
+    if (erfolg) { erfolg.textContent = t('sec_abgemeldet', { n: data.abgemeldet || 0 }); erfolg.style.display = 'block'; }
+    await ladeSicherheit();   // Liste neu laden
+  } catch (e) {
+    console.warn('Andere Sitzungen abmelden:', e);
+    if (fehler) { fehler.textContent = t('sec_fehler'); fehler.style.display = 'block'; }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function pwFehler(msg) { const f = document.getElementById('prof-pw-fehler'); if (f) { f.textContent = msg; f.style.display = 'block'; } }
 
 async function profilPasswortAendern() {
@@ -3356,6 +3584,13 @@ async function profilPasswortAendern() {
     const { error } = await sbClient.auth.updateUser({ password: neu });
     if (error) { pwFehler(error.message); return; }
     ['prof-pw-aktuell','prof-pw-neu','prof-pw-neu2'].forEach(id => { document.getElementById(id).value = ''; });
+    // Zeitpunkt der Passwortänderung selbst tracken (Supabase hat kein natives Feld) -> Sicherheitsbereich.
+    const jetzt = new Date().toISOString();
+    try {
+      await sbClient.from('profile').upsert({ user_id: aktuellerUser.id, pw_geaendert_am: jetzt }, { onConflict: 'user_id' });
+      if (meinProfil) meinProfil.pw_geaendert_am = jetzt;
+      profilSecGeladen = false;   // Sicherheitsbereich beim nächsten Aufklappen frisch laden
+    } catch (e) { console.warn('pw_geaendert_am setzen:', e); }
     ok.textContent = t('prof_pw_ok'); ok.style.display = 'block';
     setTimeout(() => { ok.style.display = 'none'; }, 3000);
   } catch (e) { pwFehler((e && e.message) || t('prof_pw_err_speichern')); }
@@ -5782,19 +6017,24 @@ const TEXTE = {
     etn_button: 'Teilnehmer verwalten',
     etn_titel: 'Teilnehmer & Sichtbarkeit',
     etn_intro: 'Lege fest, wer dieses Event sehen darf. Standardmäßig sind alle ausgewählt – jeder im Verbund sieht das Event.',
-    etn_konto_hinweis: 'Hinweis: Echten Zugriff erhalten nur Personen mit verknüpftem Benutzerkonto. Personen ohne Konto können ausgewählt werden, haben aber keinen Login.',
+    etn_konto_hinweis: 'Hinweis: Hier erscheinen registrierte Benutzer (Owner/Admin/Mitglied) aus dem aktuellen und allen verknüpften Bäumen. Ausgewählte Benutzer sehen das Event und werden benachrichtigt.',
     etn_suche: 'Nach Vor-/Nachname suchen…',
     etn_alle: 'Alle auswählen',
     etn_keine: 'Alle abwählen',
     etn_invert: 'Auswahl umkehren',
     etn_status: '{sel} von {total} ausgewählt',
     etn_speichern: 'Teilnehmer speichern',
-    etn_kein_treffer: 'Keine passende Person gefunden.',
+    etn_kein_treffer: 'Kein passender Benutzer gefunden.',
     etn_konto_badge: 'Konto',
     etn_mehr: 'Mehr laden',
     etn_gespeichert: 'Teilnehmer gespeichert.',
+    etn_benachrichtige: 'Benachrichtige…',
+    benachr_titel: 'Benachrichtigungen',
+    benachr_keine: 'Keine Benachrichtigungen.',
+    benachr_event_einladung: 'Event-Einladung',
+    benachr_alle_gelesen: 'Alle als gelesen markieren',
     etn_alle_sehen: 'Alle ausgewählt – jeder im Verbund sieht das Event.',
-    etn_laedt: 'Personen werden geladen…',
+    etn_laedt: 'Benutzer werden geladen…',
     event_keine: 'Noch keine Events für diesen Stammbaum.',
     event_kein_baum: 'Bitte zuerst einen Stammbaum auswählen.',
     event_pflicht: 'Bitte einen Titel angeben.',
@@ -6062,6 +6302,19 @@ const TEXTE = {
     prof_pw_err_gleich: 'Das neue Passwort muss sich vom aktuellen unterscheiden.',
     prof_pw_err_falsch: 'Das aktuelle Passwort ist nicht korrekt.',
     prof_pw_err_speichern: 'Passwort konnte nicht geändert werden.',
+    sec_titel: 'Sicherheit & Aktivität',
+    sec_letzter_login: 'Letzter Login',
+    sec_pw_geaendert: 'Letzte Passwortänderung',
+    sec_nie: '— (noch nie in der App)',
+    sec_sitzungen: 'Aktive Sitzungen',
+    sec_aktuell: 'diese Sitzung',
+    sec_andere_abmelden: 'Andere Sitzungen abmelden',
+    sec_abgemeldet: '{n} Sitzung(en) abgemeldet.',
+    sec_keine_sitzungen: 'Keine aktiven Sitzungen.',
+    sec_laden: 'Lädt …',
+    sec_fehler: 'Konnte nicht geladen werden.',
+    sec_bestaetigen: 'Alle anderen Sitzungen wirklich abmelden?',
+    sec_geraet_unbekannt: 'Unbekanntes Gerät',
     login_email: 'E-Mail',
     login_passwort: 'Passwort',
     login_pflicht: 'Bitte E-Mail und Passwort eingeben.',
@@ -6337,19 +6590,24 @@ const TEXTE = {
     etn_button: 'Управљај учесницима',
     etn_titel: 'Учесници и видљивост',
     etn_intro: 'Одреди ко сме да види овај догађај. Подразумевано су сви изабрани – сви у савезу виде догађај.',
-    etn_konto_hinweis: 'Напомена: Стварни приступ имају само особе са повезаним налогом. Особе без налога могу се изабрати, али немају пријаву.',
+    etn_konto_hinweis: 'Напомена: Овде се приказују регистровани корисници (власник/админ/члан) из тренутног и свих повезаних стабала. Изабрани корисници виде догађај и добијају обавештење.',
     etn_suche: 'Претражи по имену/презимену…',
     etn_alle: 'Изабери све',
     etn_keine: 'Поништи све',
     etn_invert: 'Обрни избор',
     etn_status: 'Изабрано {sel} од {total}',
     etn_speichern: 'Сачувај учеснике',
-    etn_kein_treffer: 'Није пронађена одговарајућа особа.',
+    etn_kein_treffer: 'Није пронађен одговарајући корисник.',
     etn_konto_badge: 'Налог',
     etn_mehr: 'Учитај још',
     etn_gespeichert: 'Учесници сачувани.',
+    etn_benachrichtige: 'Обавештавам…',
+    benachr_titel: 'Обавештења',
+    benachr_keine: 'Нема обавештења.',
+    benachr_event_einladung: 'Позивница за догађај',
+    benachr_alle_gelesen: 'Означи све као прочитано',
     etn_alle_sehen: 'Сви изабрани – сви у савезу виде догађај.',
-    etn_laedt: 'Учитавање особа…',
+    etn_laedt: 'Учитавање корисника…',
     event_keine: 'Још нема догађаја за ово стабло.',
     event_kein_baum: 'Прво изабери стабло.',
     event_pflicht: 'Унеси наслов.',
@@ -6617,6 +6875,19 @@ const TEXTE = {
     prof_pw_err_gleich: 'Нова лозинка мора да се разликује од тренутне.',
     prof_pw_err_falsch: 'Тренутна лозинка није исправна.',
     prof_pw_err_speichern: 'Лозинку није могуће променити.',
+    sec_titel: 'Безбедност и активност',
+    sec_letzter_login: 'Последња пријава',
+    sec_pw_geaendert: 'Последња промена лозинке',
+    sec_nie: '— (још никад у апликацији)',
+    sec_sitzungen: 'Активне сесије',
+    sec_aktuell: 'ова сесија',
+    sec_andere_abmelden: 'Одјави остале сесије',
+    sec_abgemeldet: 'Одјављено сесија: {n}.',
+    sec_keine_sitzungen: 'Нема активних сесија.',
+    sec_laden: 'Учитавање …',
+    sec_fehler: 'Учитавање није успело.',
+    sec_bestaetigen: 'Стварно одјавити све остале сесије?',
+    sec_geraet_unbekannt: 'Непознат уређај',
     login_email: 'Е-пошта',
     login_passwort: 'Лозинка',
     login_pflicht: 'Унесите е-пошту и лозинку.',
@@ -6895,19 +7166,24 @@ const TEXTE = {
     etn_button: 'Upravljaj sudionicima',
     etn_titel: 'Sudionici i vidljivost',
     etn_intro: 'Odredi tko smije vidjeti ovaj događaj. Standardno su svi odabrani – svi u savezu vide događaj.',
-    etn_konto_hinweis: 'Napomena: Stvarni pristup imaju samo osobe s povezanim računom. Osobe bez računa mogu se odabrati, ali nemaju prijavu.',
+    etn_konto_hinweis: 'Napomena: Ovdje se prikazuju registrirani korisnici (vlasnik/admin/član) iz trenutnog i svih povezanih stabala. Odabrani korisnici vide događaj i bivaju obaviješteni.',
     etn_suche: 'Pretraži po imenu/prezimenu…',
     etn_alle: 'Odaberi sve',
     etn_keine: 'Poništi sve',
     etn_invert: 'Obrni odabir',
     etn_status: 'Odabrano {sel} od {total}',
     etn_speichern: 'Spremi sudionike',
-    etn_kein_treffer: 'Nije pronađena odgovarajuća osoba.',
+    etn_kein_treffer: 'Nije pronađen odgovarajući korisnik.',
     etn_konto_badge: 'Račun',
     etn_mehr: 'Učitaj još',
     etn_gespeichert: 'Sudionici spremljeni.',
+    etn_benachrichtige: 'Obavještavam…',
+    benachr_titel: 'Obavijesti',
+    benachr_keine: 'Nema obavijesti.',
+    benachr_event_einladung: 'Pozivnica za događaj',
+    benachr_alle_gelesen: 'Označi sve kao pročitano',
     etn_alle_sehen: 'Svi odabrani – svi u savezu vide događaj.',
-    etn_laedt: 'Učitavanje osoba…',
+    etn_laedt: 'Učitavanje korisnika…',
     event_keine: 'Još nema događaja za ovo stablo.',
     event_kein_baum: 'Najprije odaberi stablo.',
     event_pflicht: 'Unesi naslov.',
@@ -7092,6 +7368,19 @@ const TEXTE = {
     prof_titel: 'Postavke profila',
     prof_mitglied_seit: 'Član od {datum}',
     prof_bild_titel: 'Slika profila',
+    sec_titel: 'Sigurnost i aktivnost',
+    sec_letzter_login: 'Posljednja prijava',
+    sec_pw_geaendert: 'Posljednja promjena lozinke',
+    sec_nie: '— (još nikad u aplikaciji)',
+    sec_sitzungen: 'Aktivne sesije',
+    sec_aktuell: 'ova sesija',
+    sec_andere_abmelden: 'Odjavi ostale sesije',
+    sec_abgemeldet: 'Odjavljeno sesija: {n}.',
+    sec_keine_sitzungen: 'Nema aktivnih sesija.',
+    sec_laden: 'Učitavanje …',
+    sec_fehler: 'Učitavanje nije uspjelo.',
+    sec_bestaetigen: 'Stvarno odjaviti sve ostale sesije?',
+    sec_geraet_unbekannt: 'Nepoznat uređaj',
     prof_bild_waehlen: 'Učitaj / promijeni sliku',
     prof_bild_loeschen: 'Obriši sliku',
     prof_bild_hint: 'JPG, PNG ili WEBP · maks. 8 MB · automatski se reže u kvadrat.',
@@ -7450,19 +7739,24 @@ const TEXTE = {
     etn_button: 'Upravljaj učesnicima',
     etn_titel: 'Učesnici i vidljivost',
     etn_intro: 'Odredi ko smije vidjeti ovaj događaj. Standardno su svi odabrani – svi u savezu vide događaj.',
-    etn_konto_hinweis: 'Napomena: Stvarni pristup imaju samo osobe s povezanim računom. Osobe bez računa mogu se odabrati, ali nemaju prijavu.',
+    etn_konto_hinweis: 'Napomena: Ovdje se prikazuju registrirani korisnici (vlasnik/admin/član) iz trenutnog i svih povezanih stabala. Odabrani korisnici vide događaj i bivaju obaviješteni.',
     etn_suche: 'Pretraži po imenu/prezimenu…',
     etn_alle: 'Odaberi sve',
     etn_keine: 'Poništi sve',
     etn_invert: 'Obrni odabir',
     etn_status: 'Odabrano {sel} od {total}',
     etn_speichern: 'Sačuvaj učesnike',
-    etn_kein_treffer: 'Nije pronađena odgovarajuća osoba.',
+    etn_kein_treffer: 'Nije pronađen odgovarajući korisnik.',
     etn_konto_badge: 'Račun',
     etn_mehr: 'Učitaj još',
     etn_gespeichert: 'Učesnici sačuvani.',
+    etn_benachrichtige: 'Obavještavam…',
+    benachr_titel: 'Obavještenja',
+    benachr_keine: 'Nema obavještenja.',
+    benachr_event_einladung: 'Pozivnica za događaj',
+    benachr_alle_gelesen: 'Označi sve kao pročitano',
     etn_alle_sehen: 'Svi odabrani – svi u savezu vide događaj.',
-    etn_laedt: 'Učitavanje osoba…',
+    etn_laedt: 'Učitavanje korisnika…',
     event_keine: 'Još nema događaja za ovo stablo.',
     event_kein_baum: 'Najprije odaberi stablo.',
     event_pflicht: 'Unesi naslov.',
@@ -7647,6 +7941,19 @@ const TEXTE = {
     prof_titel: 'Postavke profila',
     prof_mitglied_seit: 'Član od {datum}',
     prof_bild_titel: 'Profilna slika',
+    sec_titel: 'Sigurnost i aktivnost',
+    sec_letzter_login: 'Posljednja prijava',
+    sec_pw_geaendert: 'Posljednja promjena lozinke',
+    sec_nie: '— (još nikad u aplikaciji)',
+    sec_sitzungen: 'Aktivne sesije',
+    sec_aktuell: 'ova sesija',
+    sec_andere_abmelden: 'Odjavi ostale sesije',
+    sec_abgemeldet: 'Odjavljeno sesija: {n}.',
+    sec_keine_sitzungen: 'Nema aktivnih sesija.',
+    sec_laden: 'Učitavanje …',
+    sec_fehler: 'Učitavanje nije uspjelo.',
+    sec_bestaetigen: 'Stvarno odjaviti sve ostale sesije?',
+    sec_geraet_unbekannt: 'Nepoznat uređaj',
     prof_bild_waehlen: 'Učitaj / promijeni sliku',
     prof_bild_loeschen: 'Obriši sliku',
     prof_bild_hint: 'JPG, PNG ili WEBP · maks. 8 MB · automatski se reže u kvadrat.',
@@ -8002,19 +8309,24 @@ const TEXTE = {
     etn_button: 'Manage participants',
     etn_titel: 'Participants & visibility',
     etn_intro: 'Choose who may see this event. By default everyone is selected – everyone in the network sees the event.',
-    etn_konto_hinweis: 'Note: Only people with a linked user account get real access. People without an account can be selected but have no login.',
+    etn_konto_hinweis: 'Note: These are registered users (owner/admin/member) from the current and all linked trees. Selected users see the event and get notified.',
     etn_suche: 'Search by first/last name…',
     etn_alle: 'Select all',
     etn_keine: 'Deselect all',
     etn_invert: 'Invert selection',
     etn_status: '{sel} of {total} selected',
     etn_speichern: 'Save participants',
-    etn_kein_treffer: 'No matching person found.',
+    etn_kein_treffer: 'No matching user found.',
     etn_konto_badge: 'Account',
     etn_mehr: 'Load more',
     etn_gespeichert: 'Participants saved.',
+    etn_benachrichtige: 'Notifying…',
+    benachr_titel: 'Notifications',
+    benachr_keine: 'No notifications.',
+    benachr_event_einladung: 'Event invitation',
+    benachr_alle_gelesen: 'Mark all as read',
     etn_alle_sehen: 'All selected – everyone in the network sees the event.',
-    etn_laedt: 'Loading people…',
+    etn_laedt: 'Loading users…',
     event_keine: 'No events for this tree yet.',
     event_kein_baum: 'Please select a family tree first.',
     event_pflicht: 'Please enter a title.',
@@ -8282,6 +8594,19 @@ const TEXTE = {
     prof_pw_err_gleich: 'The new password must differ from the current one.',
     prof_pw_err_falsch: 'The current password is incorrect.',
     prof_pw_err_speichern: 'The password could not be changed.',
+    sec_titel: 'Security & activity',
+    sec_letzter_login: 'Last login',
+    sec_pw_geaendert: 'Last password change',
+    sec_nie: '— (never in the app)',
+    sec_sitzungen: 'Active sessions',
+    sec_aktuell: 'this session',
+    sec_andere_abmelden: 'Sign out other sessions',
+    sec_abgemeldet: '{n} session(s) signed out.',
+    sec_keine_sitzungen: 'No active sessions.',
+    sec_laden: 'Loading …',
+    sec_fehler: 'Could not be loaded.',
+    sec_bestaetigen: 'Really sign out all other sessions?',
+    sec_geraet_unbekannt: 'Unknown device',
     login_email: 'Email',
     login_passwort: 'Password',
     login_pflicht: 'Please enter email and password.',
@@ -8846,12 +9171,17 @@ function wechselSprache(lang, speichern = true) {
   if (offen('mitglieder-modal') && typeof ladeMitglieder  === 'function') ladeMitglieder();   // Familien-Dropdown + Liste neu (nm)
   if (offen('kosten-modal')     && typeof renderKosten     === 'function') renderKosten();
   if (offen('event-teilnehmer-modal') && typeof renderEtnListe === 'function') renderEtnListe();   // Teilnehmer-Liste in neuer Sprache
+  if (typeof aktualisiereBenachrBadge === 'function') aktualisiereBenachrBadge();   // Badge-Text (99+)
+  if (offen('profil-modal') && document.getElementById('prof-benachr-box')?.style.display !== 'none'
+      && typeof renderBenachrichtigungen === 'function') renderBenachrichtigungen();   // Benachrichtigungsliste neu
   if (offen('obav-modal')       && typeof renderObavListe  === 'function') renderObavListe();
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
     fuelleProfilSprache(document.getElementById('prof-sprache').value);
     fuelleProfilZeitzone(document.getElementById('prof-zeitzone').value);
     renderProfilKopf();
+    // Sicherheitsbereich (falls offen + geladen) in neuer Sprache neu beschriften
+    if (document.getElementById('prof-sec-box').style.display !== 'none' && profilSecCache) renderSicherheit(profilSecCache);
   }
   // Merge-Wizard: dynamische Inhalte des sichtbaren Schritts in neuer Sprache neu aufbauen
   if (offen('merge-modal')) {
@@ -9789,6 +10119,13 @@ function init() {
     if (params.get('obav') === '1') {
       deepLinkObav = true;
       params.delete('obav');
+    }
+    // Deep-Link aus der Event-Einladungs-Mail: ?event=<id> -> nach Login Event öffnen.
+    if (params.get('event')) {
+      deepLinkEvent = params.get('event');
+      params.delete('event');
+    }
+    if (params.toString() !== new URLSearchParams(location.search).toString()) {
       const q = params.toString();
       history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
     }
@@ -10325,8 +10662,8 @@ function schliesseEventModal() {
 // haben nur Personen mit verknüpftem Konto; Personen ohne Konto sind wählbar,
 // bleiben aber wirkungslos. Benachrichtigungen folgen in Phase 2.
 // ============================================================
-let etnKandidaten = [];          // [{person_id, vorname, nachname, geburt, baum_name, hat_konto}]
-let etnAuswahl    = new Set();   // person_id -> ausgewählt
+let etnKandidaten = [];          // [{user_id, email, vorname, nachname, rolle, eingeladen}]
+let etnAuswahl    = new Set();   // user_id -> ausgewählt
 let etnSucheTimer = null;
 let etnLimit      = 150;         // Render-Obergrenze (Performance) + "Mehr laden"
 
@@ -10358,17 +10695,17 @@ async function oeffneEventTeilnehmer() {
     return;
   }
   etnKandidaten = (kand || []).map(p => ({
-    person_id: p.person_id, vorname: p.vorname || '', nachname: p.nachname || '',
-    geburt: p.geburt || '', baum_name: p.baum_name || '', hat_konto: !!p.hat_konto
+    user_id: p.user_id, email: p.email || '', vorname: p.vorname || '', nachname: p.nachname || '',
+    rolle: p.rolle || '', eingeladen: !!p.eingeladen
   }));
 
   // Default: nicht eingeschränkt -> ALLE ausgewählt. Sonst nur die gespeicherten.
   const eingeschraenkt = stand && stand.eingeschraenkt;
   if (eingeschraenkt) {
-    const ids = new Set((stand.person_ids || []).map(String));
-    etnKandidaten.forEach(p => { if (ids.has(String(p.person_id))) etnAuswahl.add(p.person_id); });
+    const ids = new Set((stand.user_ids || []).map(String));
+    etnKandidaten.forEach(p => { if (ids.has(String(p.user_id))) etnAuswahl.add(p.user_id); });
   } else {
-    etnKandidaten.forEach(p => etnAuswahl.add(p.person_id));
+    etnKandidaten.forEach(p => etnAuswahl.add(p.user_id));
   }
   renderEtnListe();
 }
@@ -10386,7 +10723,7 @@ function etnSucheDebounce() {
 function etnGefiltert() {
   const f = ssFold((document.getElementById('etn-suche').value || '').trim());
   if (f.length < 1) return etnKandidaten;
-  return etnKandidaten.filter(p => ssFold(p.vorname + ' ' + p.nachname).includes(f));
+  return etnKandidaten.filter(p => ssFold(p.vorname + ' ' + p.nachname + ' ' + p.email).includes(f));
 }
 
 function renderEtnListe() {
@@ -10409,14 +10746,12 @@ function renderEtnListe() {
 
   const sichtbar = gefiltert.slice(0, etnLimit);
   liste.innerHTML = sichtbar.map(p => {
-    const an = etnAuswahl.has(p.person_id);
-    const name = escapeHtml(nm(((p.vorname + ' ' + p.nachname).trim()) || '?'));
-    const meta = [
-      p.geburt ? '* ' + escapeHtml(formatDatumLang(p.geburt) || p.geburt) : '',
-      escapeHtml(nm(p.baum_name || ''))
-    ].filter(Boolean).join(' · ');
-    const badge = p.hat_konto ? `<span class="etn-konto-badge">${escapeHtml(t('etn_konto_badge'))}</span>` : '';
-    return `<div class="etn-row${an ? ' etn-an' : ''}" data-id="${escapeHtml(String(p.person_id))}">
+    const an = etnAuswahl.has(p.user_id);
+    const voll = (p.vorname + ' ' + p.nachname).trim();
+    const name = escapeHtml(voll ? nm(voll) : (p.email || '?'));
+    const meta = voll ? escapeHtml(p.email || '') : '';   // E-Mail als Zweitzeile, wenn ein Name da ist
+    const badge = p.rolle ? `<span class="etn-konto-badge">${escapeHtml(t('rolle_' + p.rolle))}</span>` : '';
+    return `<div class="etn-row${an ? ' etn-an' : ''}" data-id="${escapeHtml(String(p.user_id))}">
       <span class="etn-check">${an ? '✓' : ''}</span>
       <span class="etn-info"><span class="etn-name">${name}</span>${meta ? `<div class="etn-meta">${meta}</div>` : ''}</span>
       ${badge}
@@ -10452,13 +10787,13 @@ function etnBindeListe() {
 }
 
 function etnAlleWaehlen(an) {
-  etnAuswahl = new Set(an ? etnKandidaten.map(p => p.person_id) : []);
+  etnAuswahl = new Set(an ? etnKandidaten.map(p => p.user_id) : []);
   renderEtnListe();
 }
 
 function etnInvertieren() {
   const neu = new Set();
-  etnKandidaten.forEach(p => { if (!etnAuswahl.has(p.person_id)) neu.add(p.person_id); });
+  etnKandidaten.forEach(p => { if (!etnAuswahl.has(p.user_id)) neu.add(p.user_id); });
   etnAuswahl = neu;
   renderEtnListe();
 }
@@ -10477,11 +10812,29 @@ async function speichereEventTeilnehmer() {
   const ids = [...etnAuswahl];
 
   const alt = button.textContent; button.disabled = true; button.textContent = t('reg_senden_laeuft');
-  const { error } = await sbClient.rpc('event_eingeladene_setzen', {
-    p_event: eventId, p_eingeschraenkt: eingeschraenkt, p_person_ids: ids
+  const { data, error } = await sbClient.rpc('event_eingeladene_setzen', {
+    p_event: eventId, p_eingeschraenkt: eingeschraenkt, p_user_ids: ids
   });
+  if (error) { button.disabled = false; button.textContent = alt; fehlerEl.textContent = t('reg_fehler') + error.message; fehlerEl.style.display = 'block'; return; }
+
+  // Phase 2: NUR neu hinzugefügte Personen benachrichtigen (Delta = data.neu).
+  // event_einladung_benachrichtige legt In-App-Benachrichtigungen an und liefert die
+  // E-Mail-Empfänger (nur Personen mit verknüpftem Konto, ohne mich selbst).
+  const neu = (data && data.neu) || [];
+  if (Array.isArray(neu) && neu.length) {
+    button.textContent = t('etn_benachrichtige');
+    try {
+      const { data: bn } = await sbClient.rpc('event_einladung_benachrichtige', { p_event: eventId, p_user_ids: neu });
+      const empf = (bn && bn.empfaenger) || [];
+      if (empf.length) {
+        // E-Mail-Versand best-effort über die Edge Function (blockiert Speichern nicht).
+        sbClient.functions.invoke('event-einladung-senden', { body: { event_id: eventId, empfaenger: empf } })
+          .catch(e => console.warn('Einladungs-Mail:', e));
+      }
+    } catch (e) { console.warn('Benachrichtigung:', e); }
+  }
+
   button.disabled = false; button.textContent = alt;
-  if (error) { fehlerEl.textContent = t('reg_fehler') + error.message; fehlerEl.style.display = 'block'; return; }
 
   // Kurzstatus im Event-Modal spiegeln
   const evStatus = document.getElementById('ev-teilnehmer-status');
@@ -10490,6 +10843,104 @@ async function speichereEventTeilnehmer() {
   erfolgEl.textContent = t('etn_gespeichert'); erfolgEl.style.display = 'block';
   await zeigeShorts();   // Sichtbarkeit kann sich geändert haben -> Liste aktualisieren
   setTimeout(() => schliesseEventTeilnehmer(), 800);
+}
+
+// ============================================================
+// BENACHRICHTIGUNGEN (Phase 2) — In-App-Liste im Profil + Ungelesen-Indikator
+// Eigene Zeilen via RLS (auth.uid()=user_id). Erzeugt werden sie serverseitig
+// (event_einladung_benachrichtige). Direktlink öffnet das zugehörige Event.
+// ============================================================
+let meineBenachrichtigungen = [];
+
+async function ladeBenachrichtigungen() {
+  if (!aktuellerUser || !sbClient) { meineBenachrichtigungen = []; aktualisiereBenachrBadge(); return; }
+  const { data, error } = await sbClient
+    .from('benachrichtigungen')
+    .select('id, typ, titel, text, event_id, gelesen, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) { console.warn('Benachrichtigungen laden:', error); return; }
+  meineBenachrichtigungen = data || [];
+  aktualisiereBenachrBadge();
+  if (document.getElementById('profil-modal')?.classList.contains('aktiv')) renderBenachrichtigungen();
+}
+
+function benachrUngelesen() {
+  return meineBenachrichtigungen.filter(b => !b.gelesen).length;
+}
+
+function aktualisiereBenachrBadge() {
+  const n = benachrUngelesen();
+  const dot = document.getElementById('profil-dot');
+  if (dot) dot.style.display = n > 0 ? '' : 'none';
+  const badge = document.getElementById('prof-benachr-badge');
+  if (badge) { badge.textContent = n > 99 ? '99+' : String(n); badge.style.display = n > 0 ? '' : 'none'; }
+}
+
+function renderBenachrichtigungen() {
+  const box = document.getElementById('prof-benachr-liste');
+  if (!box) return;
+  if (!meineBenachrichtigungen.length) {
+    box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('benachr_keine'))}</div>`;
+    document.getElementById('prof-benachr-alle').style.display = 'none';
+    return;
+  }
+  box.innerHTML = meineBenachrichtigungen.map(b => {
+    const titel = b.typ === 'event_einladung' ? t('benachr_event_einladung') : escapeHtml(b.titel || '');
+    const text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
+    const zeit  = b.created_at ? new Date(b.created_at).toLocaleString() : '';
+    return `<div class="benachr-item ${b.gelesen ? 'gelesen' : 'ungelesen'}" data-id="${escapeHtml(String(b.id))}"
+                 data-event="${escapeHtml(String(b.event_id || ''))}" onclick="benachrOeffne(this)">
+      <span class="bi-dot"></span>
+      <span class="bi-body">
+        <div class="bi-titel">${escapeHtml(titel)}</div>
+        <div class="bi-text">${text}</div>
+        <div class="bi-zeit">${escapeHtml(zeit)}</div>
+      </span>
+    </div>`;
+  }).join('');
+  document.getElementById('prof-benachr-alle').style.display = benachrUngelesen() > 0 ? '' : 'none';
+}
+
+function profilBenachrToggle() {
+  const box = document.getElementById('prof-benachr-box');
+  const tog = document.getElementById('prof-benachr-toggle');
+  const offen = box.style.display !== 'none';
+  box.style.display = offen ? 'none' : 'block';
+  tog.classList.toggle('offen', !offen);
+  tog.setAttribute('aria-expanded', String(!offen));
+  if (!offen) renderBenachrichtigungen();
+}
+
+async function benachrOeffne(el) {
+  const id = el.dataset.id;
+  const eventId = el.dataset.event;
+  // Als gelesen markieren (eigene Zeile, RLS)
+  const b = meineBenachrichtigungen.find(x => String(x.id) === String(id));
+  if (b && !b.gelesen) {
+    b.gelesen = true;
+    aktualisiereBenachrBadge();
+    el.classList.remove('ungelesen'); el.classList.add('gelesen');
+    sbClient.from('benachrichtigungen').update({ gelesen: true }).eq('id', id)
+      .then(({ error }) => { if (error) console.warn('gelesen:', error); });
+  }
+  // Direktlink: Event öffnen (best effort – nur, wenn es im aktuellen Baum geladen ist)
+  if (eventId) {
+    schliesseProfil();
+    wechselAnsicht('shorts');
+    setTimeout(() => {
+      const da = (eventsCache || []).some(e => String(e.id) === String(eventId));
+      if (da && typeof zeigeEventDetail === 'function') zeigeEventDetail(eventId);
+    }, 150);
+  }
+}
+
+async function benachrAlleGelesen() {
+  const { error } = await sbClient.rpc('benachrichtigungen_alle_gelesen');
+  if (error) { console.warn('alle gelesen:', error); return; }
+  meineBenachrichtigungen.forEach(b => b.gelesen = true);
+  aktualisiereBenachrBadge();
+  renderBenachrichtigungen();
 }
 
 async function speichereEvent() {

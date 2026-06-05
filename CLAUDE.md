@@ -142,9 +142,22 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   mit `#user-avatar`: eigenes Bild ODER Platzhalter-SVG) mit Tooltip `prof_menu`, der das Profil öffnet.
   Der **Abmelden-Button sitzt im Profil-Overlay** (Profilkopf), NICHT mehr in der Leiste. i18n `prof_*`
   in allen 5 Blöcken; `wechselSprache`
-  baut Sprache/Zeitzone-Selects + Kopf des offenen Modals neu auf. **Phase 2 (offen, NICHT umgesetzt):**
-  Sicherheitsbereich (Letzter Login / Letzte Passwortänderung / aktive Sitzungen + „andere abmelden") —
-  braucht eine Edge Function mit Admin-API (auth.users-Daten sind clientseitig nicht lesbar).
+  baut Sprache/Zeitzone-Selects + Kopf des offenen Modals neu auf.
+- **Profil – Sicherheitsbereich (Phase 2, ab v8.9):** Eingeklappter Abschnitt im Profil-Overlay
+  (`#prof-sec-box`, Toggle wie Passwort; lädt **lazy** beim Aufklappen) zeigt **Letzter Login**,
+  **Letzte Passwortänderung** und **aktive Sitzungen** (Gerät best-effort aus User-Agent, letzte
+  Aktivität, „diese Sitzung"-Badge) + Button **„Andere Sitzungen abmelden"**. **Bewusst OHNE Edge
+  Function:** `auth.users`/`auth.sessions` sind client-/RLS-seitig nicht lesbar, daher zwei
+  **SECURITY-DEFINER-RPCs** (Owner=postgres, geben NUR Daten des Aufrufers via `auth.uid()` zurück;
+  DB-Datei [supabase_profil_sicherheit.sql]): `meine_sicherheit_info()` (liest auth.users +
+  auth.sessions, markiert die aktuelle Session über `auth.jwt()->>'session_id'`) und
+  `andere_sitzungen_abmelden()` (DELETE der übrigen `auth.sessions`-Zeilen ≠ aktuelle → deren
+  Refresh-Token wird ungültig; bricht ab, falls die aktuelle Session unbekannt ist, um Selbst-Logout
+  zu verhindern). **„Letzte Passwortänderung" hat Supabase nicht nativ** → wird selbst getrackt in
+  `profile.pw_geaendert_am` (Frontend setzt es per upsert nach erfolgreichem `updateUser`); für
+  Alt-Konten bis zur nächsten In-App-Änderung „—". Frontend: `ladeSicherheit`/`renderSicherheit`/
+  `profilAndereAbmelden`, i18n `sec_*` in allen 5 Blöcken, `wechselSprache` rendert den offenen
+  Bereich neu.
 
 ## Architektur-Regeln
 - **Keine NEUEN externen Libraries/Dienste ohne ausdrückliche Absprache.**
