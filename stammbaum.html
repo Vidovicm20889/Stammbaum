@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="8.7">
+<meta name="app-version" content="9.0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -143,6 +143,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   font-family: inherit; font-size: 12px;
   letter-spacing: 1px; text-transform: uppercase;
   transition: border-color 0.2s;
+  /* gleiche Höhe wie der ⚙-Button (einheitliche Leiste, unabhängig von Schriftgröße) */
+  min-height: 40px; box-sizing: border-box;
 }
 .sprach-toggle:hover { border-color: var(--gold); }
 .sprach-toggle .pfeil { font-size: 9px; opacity: 0.6; transition: transform 0.2s; }
@@ -191,6 +193,9 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 .suche { min-width: 220px; }
 .suche:focus, .filter:focus { outline: none; border-color: var(--gold); }
+/* Kontextabhängig deaktiviert (Tab „Događaji"/Events): sichtbar, aber ausgegraut,
+   nicht fokussierbar, „nicht verfügbar"-Cursor. Platzhalter bleibt sichtbar. */
+.suche:disabled { opacity: 0.45; cursor: not-allowed; background: var(--paper); border-style: dashed; }
 .upload-btn { cursor: pointer; letter-spacing: 1px; }
 .upload-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 #gedcom-input { display: none; }
@@ -202,6 +207,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   background: var(--bg-soft); color: var(--ink);
   border: 1px solid var(--linie); padding: 10px 16px; cursor: pointer;
   font-family: inherit; font-size: 16px; line-height: 1; transition: border-color 0.2s;
+  /* gleiche Höhe wie der Sprach-Button (einheitliche Leiste) */
+  min-height: 40px; box-sizing: border-box;
 }
 .nav-menu-toggle:hover { border-color: var(--gold); }
 .nav-menu-toggle .pfeil { font-size: 9px; opacity: 0.6; transition: transform 0.2s; }
@@ -346,6 +353,54 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   transition: all 0.2s;
 }
 .baum-zurueck-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
+/* „Stammbaum zentrieren" – Fallback-Button, falls der Baum verschoben wurde.
+   Touch-freundlich (≥44px), unten rechts im Baum-Container. */
+.baum-zentrieren-btn {
+  position: absolute; right: 15px; bottom: 15px; z-index: 6;
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,250,240,0.96); color: var(--akzent);
+  border: 1px solid var(--linie); border-radius: 50%; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(44,36,24,0.18); transition: all 0.2s;
+}
+.baum-zentrieren-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
+.baum-zentrieren-btn:active { transform: scale(0.94); }
+
+/* ===== Teilnehmerverwaltung / Event-Sichtbarkeit ===== */
+.etn-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.etn-actions .account-btn { flex: 1; min-width: 110px; }
+.etn-status-zeile { margin-top: 10px; font-size: 13px; color: var(--gold); font-weight: bold; }
+.etn-liste {
+  margin-top: 8px; max-height: 48vh; overflow-y: auto; overscroll-behavior: contain;
+  border: 1px solid var(--linie); border-radius: 6px;
+}
+.etn-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px; border-bottom: 1px solid var(--linie); cursor: pointer;
+  user-select: none;
+}
+.etn-row:last-child { border-bottom: none; }
+.etn-row:hover { background: var(--gold-hell); }
+.etn-row.etn-an { background: rgba(156,124,60,0.12); }
+.etn-check {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 4px;
+  border: 2px solid var(--linie); display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 14px; line-height: 1; background: var(--paper);
+}
+.etn-row.etn-an .etn-check { background: var(--gold); border-color: var(--gold); }
+.etn-info { flex: 1; min-width: 0; }
+.etn-name { font-weight: bold; color: var(--ink); }
+.etn-meta { font-size: 12px; color: #8a7a5a; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.etn-konto-badge {
+  flex: 0 0 auto; font-size: 10px; letter-spacing: .5px; text-transform: uppercase;
+  background: var(--gold); color: #fff; padding: 2px 7px; border-radius: 999px;
+}
+.etn-empty { padding: 16px; text-align: center; color: #8a7a5a; font-size: 13px; }
+.etn-mehr-btn {
+  background: none; border: 1px solid var(--akzent); color: var(--akzent);
+  font-family: inherit; font-size: 13px; padding: 7px 16px; cursor: pointer; border-radius: 6px;
+}
+.etn-mehr-btn:hover { background: var(--akzent); color: var(--paper); }
 .baum-hinweis { text-align: center; margin-top: 15px; font-size: 13px; opacity: 0.6; font-style: italic; }
 .baum-tree-hinweis {
   max-width: 920px; margin: 12px auto 0; padding: 10px 14px 10px 18px;
@@ -380,19 +435,32 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .modal {
   display: none; position: fixed; inset: 0;
   background: rgba(44,36,24,0.75); z-index: 100;
-  justify-content: center; align-items: center; padding: 20px;
+  justify-content: center; align-items: center;
+  /* Safe-Area beachten: auf iPhones darf das Overlay (und der X-Button) NICHT
+     unter Notch/Statusleiste bzw. Home-Indicator rutschen. */
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
 }
 .modal.aktiv { display: flex; }
 .modal-inhalt {
   background: var(--paper); color: var(--ink);
   max-width: 550px; width: 100%; padding: 40px;
-  position: relative; max-height: 90vh; overflow-y: auto; overscroll-behavior: contain;
+  position: relative; overflow-y: auto; overscroll-behavior: contain;
+  /* Höhe so begrenzen, dass das Overlay inkl. Safe-Areas immer komplett sichtbar bleibt */
+  max-height: 90vh;
+  max-height: min(90vh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
 }
 .modal-schliessen {
-  position: absolute; top: 12px; right: 18px;
-  background: none; border: none; font-size: 28px;
-  cursor: pointer; color: var(--ink);
+  position: absolute; top: 10px; right: 10px; z-index: 10;
+  /* Großes, immer sichtbares Tap-Target (≥40px) mit Hintergrund-Kreis, damit der
+     X auch über Bannern/Inhalt klar erkennbar und auf dem Handy gut treffbar ist. */
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  background: var(--paper-soft); border: 1px solid var(--linie); border-radius: 50%;
+  font-size: 24px; line-height: 1; cursor: pointer; color: var(--ink);
+  box-shadow: 0 1px 4px rgba(44,36,24,0.18);
 }
+.modal-schliessen:hover { background: var(--gold-hell); border-color: var(--gold); }
+/* Etwas Platz oben, damit Banner/Überschrift nicht unter den runden X-Button laufen */
+.modal-inhalt > .modal-schliessen + * { margin-top: 6px; }
 /* Podešavanje porodice (Familieneinstellungen) */
 .fe-inhalt { max-width: 600px; }
 .fe-readonly-hinweis {
@@ -741,6 +809,61 @@ footer {
   transition: all 0.2s;
 }
 .abmelden-btn:hover { border-color: var(--akzent); color: var(--akzent); }
+/* Profil-Avatar in der Benutzer-Leiste (Live-Update von Name/Bild) */
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+  border: 1px solid var(--gold); background: var(--paper); flex: 0 0 auto;
+  display: block;
+}
+.user-name { color: var(--ink); font-weight: 600; max-width: 160px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Runder Profil-Button (Avatar/Icon) in der Leiste — öffnet die Profileinstellungen */
+.profil-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; margin: 0; border: none; background: none; cursor: pointer;
+  border-radius: 50%; flex: 0 0 auto; line-height: 0;
+}
+.profil-icon-btn:hover .user-avatar,
+.profil-icon-btn:focus-visible .user-avatar { border-color: var(--akzent); box-shadow: 0 0 0 2px var(--gold-hell); }
+/* Abmelden-Button oben rechts im Profilkopf */
+.prof-abmelden { margin-left: auto; align-self: flex-start; flex: 0 0 auto; }
+/* ===== Profileinstellungen (Modal) ===== */
+.prof-kopf {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px;
+  padding: 14px; margin-bottom: 18px;
+  border: 1px solid var(--linie); border-radius: 10px;
+  background: rgba(0,0,0,0.02);
+}
+.prof-avatar-gross {
+  width: 84px; height: 84px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--gold); background: var(--paper); flex: 0 0 auto;
+}
+.prof-kopf-info { min-width: 0; }
+.prof-kopf-name { font-family: var(--serif, serif); font-size: 19px; color: var(--ink); }
+.prof-kopf-mail { font-size: 13px; color: var(--ink); opacity: 0.75;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prof-kopf-seit { font-size: 12px; color: var(--gold); margin-top: 4px; }
+.prof-avatar-aktionen { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.prof-avatar-aktionen .account-btn { padding: 7px 12px; font-size: 12px; }
+.prof-hint { font-size: 11px; color: var(--ink); opacity: 0.6; margin-top: 2px; }
+.login-feld[readonly] { opacity: 0.7; cursor: not-allowed; background: rgba(0,0,0,0.03); }
+.prof-pw-box { border: 1px solid var(--linie); border-radius: 10px; padding: 14px; margin-top: 6px; }
+/* Aufklappbarer Passwort-Header (sieht aus wie reg-gruppe-titel, ist aber ein Button) */
+.prof-pw-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; background: none; cursor: pointer; font-family: inherit; text-align: left;
+  /* Button-Default-Rahmen entfernen — nur die untere Linie (wie reg-gruppe-titel) bleibt */
+  border: none; border-bottom: 1px solid var(--linie); outline: none;
+  transition: color 0.2s, border-color 0.2s;
+}
+.prof-pw-toggle:hover, .prof-pw-toggle:focus-visible { color: var(--gold); border-color: var(--gold); }
+.prof-pw-toggle .prof-pw-caret {
+  font-size: 11px; opacity: 0.85; transition: transform 0.2s; flex: 0 0 auto;
+}
+.prof-pw-toggle.offen .prof-pw-caret { transform: rotate(180deg); }
+/* kleiner Avatar in der Live-Indikator-Liste */
+.pp-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover;
+  border: 1px solid var(--gold); vertical-align: middle; margin-right: 6px; }
 .account-btn {
   background: none; border: 1px solid var(--gold);
   color: var(--gold); padding: 8px 16px; cursor: pointer;
@@ -980,6 +1103,18 @@ footer {
   position: absolute; top: 6px; right: 8px; background: none; border: none;
   font-size: 18px; line-height: 1; cursor: pointer; color: #8a7a5a;
 }
+/* Vater/Mutter-Picker im Kind-Dialog (durchsuchbar über verknüpfte Bäume) */
+.pa-elt-chip { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; border: 1px solid var(--gold); border-radius: 6px;
+  background: var(--gold-hell); margin-top: 4px; font-size: 14px; color: var(--ink); }
+.pa-elt-x { background: none; border: 1px solid var(--linie); border-radius: 5px;
+  cursor: pointer; font-family: inherit; font-size: 12px; padding: 3px 8px; color: var(--ink); flex: 0 0 auto; }
+.pa-elt-x:hover { border-color: var(--akzent); color: var(--akzent); }
+.pa-elt-erg { margin-top: 4px; max-height: 220px; overflow-y: auto; overscroll-behavior: contain; }
+.pa-elt-opt { padding: 8px 10px; border: 1px solid var(--linie); border-radius: 6px;
+  margin-top: 4px; cursor: pointer; font-size: 14px; color: var(--ink); }
+.pa-elt-opt:hover { background: var(--gold-hell); border-color: var(--gold); }
+.pa-elt-meta { display: block; font-size: 12px; opacity: 0.7; margin-top: 2px; }
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks
    platziert, damit diese Regel (gleiche Spezifität) die früheren .login-feld/
@@ -999,10 +1134,24 @@ footer {
       <button class="tab" id="tab-shorts" data-ansicht="shorts" data-i18n="tab_shorts"></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
-    <input type="text" class="suche" id="suche" data-i18n-placeholder="suche_placeholder">
+    <input type="text" class="suche" id="suche" inputmode="search" enterkeyhint="search" autocomplete="off" data-i18n-placeholder="suche_placeholder">
     <select class="filter" id="tree-select" title="Stammbaum wählen" onchange="waehleStammbaum(this.value)"></select>
 
-    <!-- Sprach-Dropdown — direkt in der Leiste -->
+    <!-- Anmelden / Benutzer — direkt in der Leiste -->
+    <div class="auth-bereich" id="auth-bereich">
+      <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
+      <div class="user-badge" id="user-badge" style="display:none">
+        <span class="user-name" id="user-name" onclick="oeffneProfil()" style="cursor:pointer"></span>
+        <span class="user-email" id="user-email"></span>
+        <span class="user-rolle" id="user-rolle"></span>
+        <button class="profil-icon-btn" id="profil-icon-btn" type="button" onclick="oeffneProfil()" aria-label="Profileinstellungen">
+          <img class="user-avatar" id="user-avatar" alt="">
+        </button>
+      </div>
+      <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
+    </div>
+
+    <!-- Sprach-Dropdown — in der Leiste zwischen Profil und ⚙ Einstellungen -->
     <div class="sprach-dropdown" id="sprach-dropdown">
       <button class="sprach-toggle" id="sprach-toggle" aria-haspopup="listbox" aria-expanded="false">
         <span class="flagge" id="aktive-flagge"></span>
@@ -1010,17 +1159,6 @@ footer {
         <span class="pfeil">▾</span>
       </button>
       <ul class="sprach-menu" id="sprach-menu" role="listbox"></ul>
-    </div>
-
-    <!-- Anmelden / Benutzer — direkt in der Leiste -->
-    <div class="auth-bereich" id="auth-bereich">
-      <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
-      <div class="user-badge" id="user-badge" style="display:none">
-        <span class="user-email" id="user-email"></span>
-        <span class="user-rolle" id="user-rolle"></span>
-        <button class="abmelden-btn" data-i18n="abmelden" onclick="abmelden()"></button>
-      </div>
-      <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
     </div>
 
     <!-- Einstellungs-Dropdown: NUR administrative Funktionen (nur für Admins sichtbar) -->
@@ -1048,6 +1186,11 @@ footer {
         <!-- Podešavanje porodice: für Owner/Admin (bearbeiten) UND Mitglieder (nur lesen) -->
         <div class="porodica-bereich" id="porodica-bereich" style="display:none">
           <button class="account-btn" type="button" id="menu-fameinst-btn" data-i18n="admin_familieneinst" onclick="oeffneFamilieEinstellungen()"></button>
+        </div>
+
+        <!-- Profileinstellungen: für ALLE eingeloggten Nutzer -->
+        <div class="profil-bereich" id="profil-bereich" style="display:none">
+          <button class="account-btn" type="button" id="menu-profil-btn" data-i18n="prof_menu" onclick="oeffneProfil()"></button>
         </div>
 
         <!-- GEDCOM (Admin) -->
@@ -1106,6 +1249,18 @@ footer {
     <div id="baum-bg"></div>
     <div class="baum-info" id="baum-info"></div>
     <svg id="baum-svg"></svg>
+    <button type="button" id="baum-zentrieren-btn" class="baum-zentrieren-btn"
+            onclick="zentriereBaumAnsicht()" data-i18n-title="baum_zentrieren"
+            data-i18n-aria="baum_zentrieren" aria-label="Stammbaum zentrieren">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>
+        <line x1="12" y1="1.5" x2="12" y2="5.5" stroke="currentColor" stroke-width="2"/>
+        <line x1="12" y1="18.5" x2="12" y2="22.5" stroke="currentColor" stroke-width="2"/>
+        <line x1="1.5" y1="12" x2="5.5" y2="12" stroke="currentColor" stroke-width="2"/>
+        <line x1="18.5" y1="12" x2="22.5" y2="12" stroke="currentColor" stroke-width="2"/>
+        <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
+      </svg>
+    </button>
   </div>
   <p class="baum-hinweis" data-i18n="baum_hinweis"></p>
 </section>
@@ -1244,6 +1399,99 @@ footer {
   </div>
 </div>
 
+<!-- Profileinstellungen (alle eingeloggten Nutzer) -->
+<div class="modal" id="profil-modal">
+  <div class="modal-inhalt" style="max-width:640px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseProfil()">×</button>
+    <h2 data-i18n="prof_titel"></h2>
+    <p class="sub-name">Vidović AI</p>
+
+    <!-- Profilkopf -->
+    <div class="prof-kopf">
+      <img class="prof-avatar-gross" id="prof-kopf-avatar" alt="">
+      <div class="prof-kopf-info">
+        <div class="prof-kopf-name" id="prof-kopf-name"></div>
+        <div class="prof-kopf-mail" id="prof-kopf-mail"></div>
+        <div class="prof-kopf-seit" id="prof-kopf-seit"></div>
+      </div>
+      <button class="abmelden-btn prof-abmelden" id="prof-abmelden-btn" type="button" data-i18n="abmelden" onclick="schliesseProfil(); abmelden();"></button>
+    </div>
+
+    <div id="prof-fehler" class="login-fehler" style="display:none"></div>
+
+    <!-- Profilbild -->
+    <div class="reg-gruppe-titel" data-i18n="prof_bild_titel"></div>
+    <div class="prof-avatar-aktionen">
+      <label class="account-btn" for="prof-avatar-input" id="prof-avatar-waehlen-btn" data-i18n="prof_bild_waehlen"></label>
+      <input type="file" id="prof-avatar-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="profilAvatarWaehlen(this)">
+      <button type="button" class="account-btn" id="prof-avatar-del" data-i18n="prof_bild_loeschen" onclick="profilAvatarLoeschen()"></button>
+    </div>
+    <p class="prof-hint" data-i18n="prof_bild_hint"></p>
+
+    <!-- Persönliche Daten -->
+    <div class="reg-gruppe-titel" data-i18n="prof_pers_titel"></div>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="prof_vorname"></span>
+        <input type="text" id="prof-vorname" class="login-feld" autocomplete="given-name">
+      </label>
+      <label class="login-label"><span data-i18n="prof_nachname"></span>
+        <input type="text" id="prof-nachname" class="login-feld" autocomplete="family-name">
+      </label>
+      <label class="login-label reg-feld-voll"><span data-i18n="prof_email"></span>
+        <input type="email" id="prof-email" class="login-feld" readonly autocomplete="email">
+      </label>
+      <label class="login-label"><span data-i18n="prof_telefon"></span>
+        <input type="tel" id="prof-telefon" class="login-feld" autocomplete="tel" inputmode="tel">
+      </label>
+      <label class="login-label"><span data-i18n="prof_sprache"></span>
+        <select id="prof-sprache" class="login-feld"></select>
+      </label>
+      <label class="login-label"><span data-i18n="prof_land"></span>
+        <select id="prof-land" class="login-feld land-select"></select>
+      </label>
+      <label class="login-label"><span data-i18n="prof_zeitzone"></span>
+        <select id="prof-zeitzone" class="login-feld"></select>
+      </label>
+    </div>
+
+    <!-- Datenschutz -->
+    <div class="reg-gruppe-titel" data-i18n="prof_privacy_titel"></div>
+    <div class="reg-grid">
+      <label class="login-label reg-feld-voll"><span data-i18n="prof_bild_sicht"></span>
+        <select id="prof-avatar-sicht" class="login-feld">
+          <option value="verbund" data-i18n="prof_sicht_verbund"></option>
+          <option value="familie" data-i18n="prof_sicht_familie"></option>
+          <option value="privat"  data-i18n="prof_sicht_privat"></option>
+        </select>
+      </label>
+    </div>
+
+    <button class="login-submit" id="prof-submit" data-i18n="prof_speichern" onclick="speichereProfil()"></button>
+    <div id="prof-erfolg" class="reg-erfolg" style="display:none"></div>
+
+    <!-- Passwort ändern (standardmäßig eingeklappt) -->
+    <button type="button" class="reg-gruppe-titel prof-pw-toggle" id="prof-pw-toggle" onclick="profilPwToggle()" aria-expanded="false">
+      <span data-i18n="prof_pw_titel"></span><span class="prof-pw-caret">▾</span>
+    </button>
+    <div class="prof-pw-box" id="prof-pw-box" style="display:none">
+      <div id="prof-pw-fehler" class="login-fehler" style="display:none"></div>
+      <div class="reg-grid">
+        <label class="login-label reg-feld-voll"><span data-i18n="prof_pw_aktuell"></span>
+          <input type="password" id="prof-pw-aktuell" class="login-feld" autocomplete="current-password" placeholder="••••••••">
+        </label>
+        <label class="login-label"><span data-i18n="prof_pw_neu"></span>
+          <input type="password" id="prof-pw-neu" class="login-feld" autocomplete="new-password" placeholder="••••••••">
+        </label>
+        <label class="login-label"><span data-i18n="prof_pw_neu2"></span>
+          <input type="password" id="prof-pw-neu2" class="login-feld" autocomplete="new-password" placeholder="••••••••">
+        </label>
+      </div>
+      <button class="login-submit" id="prof-pw-submit" data-i18n="prof_pw_btn" onclick="profilPasswortAendern()"></button>
+      <div id="prof-pw-erfolg" class="reg-erfolg" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Personen-Bearbeiten-Modal (Admins) -->
 <div class="modal" id="person-edit-modal">
   <div class="modal-inhalt" style="max-width:620px" onclick="event.stopPropagation()">
@@ -1367,9 +1615,28 @@ footer {
         <option value="partner" data-i18n="bzt_partner"></option>
         <option value="geschwister" data-i18n="bzt_geschwister"></option>
       </select></label>
-    <!-- Bei Kind + mehreren Ehepartnern: zweiten Elternteil abfragen -->
-    <label class="login-label reg-feld-voll" id="pa-row-elternteil2" style="display:none"><span data-i18n="pa_zweiter_elternteil"></span>
-      <select id="pa-elternteil2" class="login-feld"></select></label>
+    <!-- Bei "Kind": Vater + Mutter (durchsuchbar über aktuellen + verknüpfte Bäume,
+         vorbelegt, änderbar, entfernbar). Ersetzt das frühere "zweiter Elternteil"-Select. -->
+    <div id="pa-eltern-block" style="display:none">
+      <label class="login-label reg-feld-voll"><span data-i18n="pa_vater"></span>
+        <div class="pa-elt-chip" id="pa-vater-chip" style="display:none">
+          <span id="pa-vater-name"></span>
+          <button type="button" class="pa-elt-x" onclick="paEntferneElternteil('vater')" data-i18n="pa_eltern_entfernen"></button>
+        </div>
+        <input type="text" id="pa-vater-suche" class="login-feld" autocomplete="off"
+          oninput="paElternSucheDebounce('vater')" data-i18n-placeholder="pa_eltern_suche">
+        <div id="pa-vater-erg" class="pa-elt-erg"></div>
+      </label>
+      <label class="login-label reg-feld-voll"><span data-i18n="pa_mutter"></span>
+        <div class="pa-elt-chip" id="pa-mutter-chip" style="display:none">
+          <span id="pa-mutter-name"></span>
+          <button type="button" class="pa-elt-x" onclick="paEntferneElternteil('mutter')" data-i18n="pa_eltern_entfernen"></button>
+        </div>
+        <input type="text" id="pa-mutter-suche" class="login-feld" autocomplete="off"
+          oninput="paElternSucheDebounce('mutter')" data-i18n-placeholder="pa_eltern_suche">
+        <div id="pa-mutter-erg" class="pa-elt-erg"></div>
+      </label>
+    </div>
 
     <div class="reg-gruppe-titel" data-i18n="pa_g_personendaten"></div>
     <div class="reg-grid">
@@ -1697,9 +1964,45 @@ footer {
       <div id="ev-media-status" class="event-status" style="margin-top:6px"></div>
     </div>
 
+    <!-- Teilnehmer / Sichtbarkeit (nur beim Bearbeiten eines gespeicherten Events) -->
+    <div id="ev-teilnehmer-section" style="margin-top:16px;display:none">
+      <div class="reg-gruppe-titel" data-i18n="etn_section"></div>
+      <button type="button" class="account-btn" id="ev-teilnehmer-btn" style="width:100%"
+        onclick="oeffneEventTeilnehmer()">👥 <span data-i18n="etn_button"></span></button>
+      <div id="ev-teilnehmer-status" class="mv-legende" style="margin-top:6px"></div>
+    </div>
+
     <div id="ev-fehler" class="login-fehler"></div>
     <button class="login-submit" id="ev-submit" data-i18n="event_speichern_btn" onclick="speichereEvent()"></button>
     <div id="ev-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Teilnehmerverwaltung / Sichtbarkeit eines Events -->
+<div class="modal" id="event-teilnehmer-modal" style="z-index:212">
+  <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseEventTeilnehmer()">×</button>
+    <h2 data-i18n="etn_titel"></h2>
+    <p class="mv-legende" data-i18n="etn_intro"></p>
+    <div class="fe-readonly-hinweis" data-i18n="etn_konto_hinweis" style="display:block"></div>
+    <input type="hidden" id="etn-event-id">
+
+    <input type="text" id="etn-suche" class="login-feld" inputmode="search" enterkeyhint="search"
+           autocomplete="off" data-i18n-placeholder="etn_suche" oninput="etnSucheDebounce()">
+
+    <div class="etn-actions">
+      <button type="button" class="account-btn" onclick="etnAlleWaehlen(true)" data-i18n="etn_alle"></button>
+      <button type="button" class="account-btn" onclick="etnAlleWaehlen(false)" data-i18n="etn_keine"></button>
+      <button type="button" class="account-btn" onclick="etnInvertieren()" data-i18n="etn_invert"></button>
+    </div>
+
+    <div id="etn-status" class="etn-status-zeile"></div>
+    <div id="etn-liste" class="etn-liste"></div>
+    <div id="etn-mehr-wrap" style="text-align:center;margin-top:8px"></div>
+
+    <div id="etn-fehler" class="login-fehler"></div>
+    <button class="login-submit" id="etn-submit" data-i18n="etn_speichern" onclick="speichereEventTeilnehmer()"></button>
+    <div id="etn-erfolg" class="reg-erfolg" style="display:none"></div>
   </div>
 </div>
 
@@ -2102,6 +2405,9 @@ async function setzeUser(user) {
 
   // Live-Sync (P1): Baumänderungen anderer Nutzer ohne Reload empfangen.
   startRealtimeSync();
+
+  // Profil (Konto-Stammdaten + Avatar) laden -> Badge/Presence/Sprache aktualisieren.
+  await ladeMeinProfil();
 }
 
 function normalizeRolle(rolle) {
@@ -2136,6 +2442,8 @@ function loescheUser() {
   aktuellerUser = null;
   aktuelleRolle = null;
   meineRollenProFamilie = {};
+  meinProfil = null;     // Profildaten verwerfen (ausgeloggt)
+  profilAvatarPending = undefined;
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
   stopObavPolling();     // Live-Updates beenden (ausgeloggt)
   stopRealtimeSync();    // Live-Sync der Baumdaten beenden (ausgeloggt)
@@ -2184,8 +2492,13 @@ function aktualisiereAuthUI() {
     const istMitglied = rolleNorm === 'familien_mitglied';
     const porodicaBereich = document.getElementById('porodica-bereich');
     if (porodicaBereich) porodicaBereich.style.display = (istAdm || istMitglied) ? '' : 'none';
-    // Das ⚙-Dropdown: Admins, tree-lose Owner (Neu-Anlegen) ODER Mitglieder (Podešavanje porodice lesen)
-    const zeigeMenu = istAdm || treeLos || istMitglied;
+    // Profileinstellungen: für JEDEN eingeloggten Nutzer (auch lesende Mitglieder).
+    const profilBereich = document.getElementById('profil-bereich');
+    if (profilBereich) profilBereich.style.display = '';
+    // Badge (Avatar + Name) live aktualisieren.
+    aktualisiereBadgeProfil();
+    // Das ⚙-Dropdown: für ALLE eingeloggten Nutzer sichtbar (enthält jetzt mind. die Profileinstellungen).
+    const zeigeMenu = true;
     if (navMenu) { navMenu.style.display = zeigeMenu ? '' : 'none'; if (!zeigeMenu) navMenu.classList.remove('offen'); }
     // Obavještenja: nur Admins -> Button zeigen + offene Anfragen (Badge) laden
     const obavBtn = document.getElementById('menu-obav-btn');
@@ -2212,6 +2525,9 @@ function aktualisiereAuthUI() {
     if (shortsTab)   shortsTab.style.display = 'none';
     if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
     if (adminBereich) adminBereich.style.display = 'none';
+    const profilBereich = document.getElementById('profil-bereich');
+    if (profilBereich) profilBereich.style.display = 'none';
+    aktualisiereBadgeProfil();   // Avatar/Name aus der Leiste entfernen
     if (navMenu) { navMenu.style.display = 'none'; navMenu.classList.remove('offen'); }
     offeneAnfragenCache = []; renderObavBadges();   // Badges leeren (ausgeloggt)
     // Falls der ausgeloggte User gerade auf der Events-Ansicht war -> zurück auf Baum
@@ -2672,6 +2988,19 @@ let presenceUsers   = [];   // [{ user_id, name, email }] — eindeutige Nutzer 
 let presenceLocks   = {};   // externe Personen-ID -> { user_id, name } (NUR fremde Sperren)
 let meinLockPerson  = null; // externe ID der Person, die ICH gerade gesperrt habe (im Editor)
 
+// Benutzer-Profil (Konto-Stammdaten + Avatar) des eingeloggten Nutzers (Phase 1).
+let meinProfil = null;
+// Ausstehende Avatar-Änderung im offenen Profil-Editor:
+//   undefined = unverändert | null = beim Speichern löschen | { mainBlob, thumbBlob, previewUrl } = neu
+let profilAvatarPending = undefined;
+// Platzhalter-Avatar (kein Bild gesetzt) — dezentes goldenes Personen-Icon (SVG, kein Request).
+const AVATAR_PLATZHALTER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+  '<rect width="100" height="100" fill="#f6f1e7"/>' +
+  '<circle cx="50" cy="38" r="20" fill="#c8a44d"/>' +
+  '<path d="M16 92c0-20 16-32 34-32s34 12 34 32z" fill="#c8a44d"/></svg>'
+);
+
 // Eigenen Presence-Stand setzen (inkl. evtl. aktiver Bearbeitungssperre). track() ersetzt die
 // gesamte Nutzlast -> Standardfelder immer mitsenden.
 async function presenceTrack(editing) {
@@ -2682,18 +3011,355 @@ async function presenceTrack(editing) {
       user_id: aktuellerUser.id,
       name:    nutzerAnzeigeName(),
       email:   aktuellerUser.email || '',
+      // Avatar (Thumb) nur teilen, wenn nicht „privat" — Verbund/Familie sind am
+      // selben Baum ohnehin im selben Verbund (Isolation bleibt gewahrt).
+      avatar:  (meinProfil && meinProfil.avatar_sichtbarkeit !== 'privat')
+                 ? (meinProfil.avatar_thumb_url || meinProfil.avatar_url || '') : '',
       editing: meinLockPerson
     });
   } catch (e) {}
 }
 
-// Freundlicher Anzeigename aus der E-Mail (vor dem @; Trenner -> Leerzeichen; Wortanfänge groß)
+// Freundlicher Anzeigename: bevorzugt den Profilnamen (Vor-/Nachname), sonst aus der
+// E-Mail abgeleitet (vor dem @; Trenner -> Leerzeichen; Wortanfänge groß).
 function nutzerAnzeigeName() {
+  if (meinProfil && (meinProfil.vorname || meinProfil.nachname)) {
+    const n = [meinProfil.vorname, meinProfil.nachname].filter(Boolean).join(' ').trim();
+    if (n) return n;
+  }
   const mail  = (aktuellerUser && aktuellerUser.email) || '';
   const lokal = mail.split('@')[0] || mail;
   const teile = lokal.split(/[._\-]+/).filter(Boolean)
     .map(w => w.charAt(0).toUpperCase() + w.slice(1));
   return teile.join(' ') || mail;
+}
+
+// ============================================================
+// PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+// ============================================================
+
+// Profil des eingeloggten Nutzers laden (eigene Zeile via RLS). Aktualisiert danach
+// Badge/Presence und wendet eine gespeicherte Profil-Sprache an. Aufruf im Login-Flow.
+async function ladeMeinProfil() {
+  meinProfil = null;
+  if (!aktuellerUser) { aktualisiereBadgeProfil(); return; }
+  try {
+    const { data, error } = await sbClient
+      .from('profile').select('*').eq('user_id', aktuellerUser.id).maybeSingle();
+    if (error) console.warn('Profil laden:', error.message);
+    meinProfil = data || null;
+  } catch (e) { console.warn('Profil laden (Ausnahme):', e); }
+
+  // Gespeicherte Profil-Sprache anwenden (Profil steuert die App-Sprache), wenn gültig.
+  const ps = meinProfil && meinProfil.sprache;
+  if (ps && TEXTE[ps] && ps !== aktuelleSprache) wechselSprache(ps, true);
+
+  aktualisiereBadgeProfil();
+  if (presenceChannel) presenceTrack(meinLockPerson);   // Name/Avatar in Presence auffrischen
+}
+
+// Avatar-URL fürs eigene Badge/Presence (Thumb bevorzugt). '' = kein Bild.
+function meinAvatarUrl() {
+  if (!meinProfil) return '';
+  return meinProfil.avatar_thumb_url || meinProfil.avatar_url || '';
+}
+
+// Benutzer-Leiste (Avatar + Name) ohne Reload aktualisieren.
+function aktualisiereBadgeProfil() {
+  const img  = document.getElementById('user-avatar');
+  const name = document.getElementById('user-name');
+  const mail = document.getElementById('user-email');
+  const btn  = document.getElementById('profil-icon-btn');
+  const url  = meinAvatarUrl();
+  const hatName = !!(meinProfil && (meinProfil.vorname || meinProfil.nachname));
+  const profilName = hatName ? [meinProfil.vorname, meinProfil.nachname].filter(Boolean).join(' ').trim() : '';
+  // Avatar/Icon: immer rund sichtbar (eigenes Bild ODER dezenter Platzhalter).
+  if (img) img.src = (aktuellerUser && url) ? url : AVATAR_PLATZHALTER;
+  // Name nur bei vorhandenem Profilnamen (Vor-/Nachname).
+  if (name) {
+    name.textContent   = (aktuellerUser && hatName) ? profilName : '';
+    name.style.display = (aktuellerUser && hatName) ? '' : 'none';
+  }
+  // E-Mail nur zeigen, wenn WEDER Vor- NOCH Nachname gesetzt ist.
+  if (mail) {
+    mail.textContent   = (aktuellerUser && !hatName) ? (aktuellerUser.email || '') : '';
+    mail.style.display = (aktuellerUser && !hatName) ? '' : 'none';
+  }
+  // Tooltip „Profileinstellungen" (lokalisiert; bei Sprachwechsel via aktualisiereAuthUI erneut gesetzt).
+  if (btn) { const tt = t('prof_menu'); btn.title = tt; btn.setAttribute('aria-label', tt); }
+}
+
+function profilFehler(msg) {
+  const f = document.getElementById('prof-fehler');
+  if (f) { f.textContent = msg; f.style.display = 'block'; }
+}
+
+// Profil-Overlay öffnen, alle Felder mit den aktuellen Werten vorbelegen.
+async function oeffneProfil() {
+  if (!aktuellerUser) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  ['prof-fehler','prof-erfolg','prof-pw-fehler','prof-pw-erfolg'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  // evtl. alte ausstehende Vorschau verwerfen
+  if (profilAvatarPending && profilAvatarPending.previewUrl) { try { URL.revokeObjectURL(profilAvatarPending.previewUrl); } catch (e) {} }
+  profilAvatarPending = undefined;
+
+  const p = meinProfil || {};
+  document.getElementById('prof-vorname').value  = p.vorname  || '';
+  document.getElementById('prof-nachname').value = p.nachname || '';
+  document.getElementById('prof-email').value    = aktuellerUser.email || '';
+  document.getElementById('prof-telefon').value  = p.telefon  || '';
+  document.getElementById('prof-avatar-sicht').value = p.avatar_sichtbarkeit || 'verbund';
+  ['prof-pw-aktuell','prof-pw-neu','prof-pw-neu2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  // Passwort-Bereich beim Öffnen IMMER eingeklappt starten.
+  const pwBox = document.getElementById('prof-pw-box');
+  const pwTog = document.getElementById('prof-pw-toggle');
+  if (pwBox) pwBox.style.display = 'none';
+  if (pwTog) { pwTog.classList.remove('offen'); pwTog.setAttribute('aria-expanded', 'false'); }
+
+  // Live-Aktualisierung des Profilkopfs beim Tippen
+  document.getElementById('prof-vorname').oninput  = renderProfilKopf;
+  document.getElementById('prof-nachname').oninput = renderProfilKopf;
+
+  fuelleProfilSprache(p.sprache || aktuelleSprache);
+  fuelleProfilZeitzone(p.zeitzone || '');
+  const landSel = document.getElementById('prof-land');
+  if (landSel) { fuelleEinLandSelect(landSel); setLandSelectValue(landSel, p.land || ''); }
+
+  renderProfilKopf();
+  setProfilAvatarVorschau(meinAvatarUrl());
+
+  document.getElementById('profil-modal').classList.add('aktiv');
+  macheAlleSelectsSuchbar(document.getElementById('profil-modal'));
+}
+
+function schliesseProfil() {
+  document.getElementById('profil-modal').classList.remove('aktiv');
+  if (profilAvatarPending && profilAvatarPending.previewUrl) { try { URL.revokeObjectURL(profilAvatarPending.previewUrl); } catch (e) {} }
+  profilAvatarPending = undefined;
+}
+
+// Profilkopf (Avatar bleibt separat) — Name/E-Mail/„Mitglied seit".
+function renderProfilKopf() {
+  const vn = (document.getElementById('prof-vorname').value || '').trim();
+  const nn = (document.getElementById('prof-nachname').value || '').trim();
+  const name = [vn, nn].filter(Boolean).join(' ');
+  document.getElementById('prof-kopf-name').textContent = name || nutzerAnzeigeName();
+  document.getElementById('prof-kopf-mail').textContent = (aktuellerUser && aktuellerUser.email) || '';
+  // „Mitglied seit" aus auth.users.created_at (clientseitig in der Session vorhanden).
+  const created = aktuellerUser && aktuellerUser.created_at;
+  const seitEl = document.getElementById('prof-kopf-seit');
+  if (seitEl) seitEl.textContent = created ? t('prof_mitglied_seit', { datum: formatDatumLang(String(created).slice(0, 10)) }) : '';
+}
+
+// Sprach-Dropdown im Profil (alle 5 Sprachen, native Namen).
+function fuelleProfilSprache(aktiv) {
+  const s = document.getElementById('prof-sprache'); if (!s) return;
+  s.innerHTML = SPRACHEN.map(sp => `<option value="${sp.code}">${escapeHtml(sp.name)}</option>`).join('');
+  s.value = (aktiv && TEXTE[aktiv]) ? aktiv : aktuelleSprache;
+}
+
+// Zeitzonen-Dropdown (optional). Nutzt Intl-Liste, mit robustem Fallback.
+function fuelleProfilZeitzone(aktiv) {
+  const s = document.getElementById('prof-zeitzone'); if (!s) return;
+  let zonen = [];
+  try { if (typeof Intl.supportedValuesOf === 'function') zonen = Intl.supportedValuesOf('timeZone'); } catch (e) {}
+  if (!zonen.length) zonen = ['Europe/Berlin','Europe/Vienna','Europe/Zurich','Europe/Belgrade','Europe/Zagreb','Europe/Sarajevo','Europe/Ljubljana','Europe/London','America/New_York','America/Chicago','America/Los_Angeles','Australia/Sydney'];
+  s.innerHTML = `<option value="">${escapeHtml(t('prof_tz_keine'))}</option>` +
+    zonen.map(z => `<option value="${escapeHtml(z)}">${escapeHtml(z)}</option>`).join('');
+  s.value = aktiv || '';
+  if (aktiv && s.value !== aktiv) {   // unbekannte gespeicherte Zone erhalten
+    const o = document.createElement('option'); o.value = aktiv; o.textContent = aktiv; s.appendChild(o); s.value = aktiv;
+  }
+}
+
+// Avatar-Vorschau setzen (im Profilkopf) + Löschen-Button passend ein-/ausblenden.
+function setProfilAvatarVorschau(url) {
+  const k = document.getElementById('prof-kopf-avatar');
+  if (k) k.src = url || AVATAR_PLATZHALTER;
+  const del = document.getElementById('prof-avatar-del');
+  if (del) del.style.display = url ? '' : 'none';
+}
+
+// --- Avatar-Verarbeitung (clientseitig, Canvas — keine externe Library) ---
+// Quadratischer, zentrierter Zuschnitt -> Zielgröße -> WEBP (Fallback JPEG).
+function avatarBlob(img, size) {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const min = Math.min(img.naturalWidth, img.naturalHeight);
+    const sx = (img.naturalWidth - min) / 2;
+    const sy = (img.naturalHeight - min) / 2;
+    ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+    canvas.toBlob((b) => {
+      if (b) resolve(b);
+      else canvas.toBlob(resolve, 'image/jpeg', 0.85);   // sehr alte Browser ohne WEBP
+    }, 'image/webp', 0.85);
+  });
+}
+function verarbeiteAvatar(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = async () => {
+      try {
+        const [mainBlob, thumbBlob] = await Promise.all([avatarBlob(img, 512), avatarBlob(img, 96)]);
+        URL.revokeObjectURL(url);
+        if (!mainBlob || !thumbBlob) reject(new Error('toBlob null')); else resolve({ mainBlob, thumbBlob });
+      } catch (e) { URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Bild laden fehlgeschlagen')); };
+    img.src = url;
+  });
+}
+
+async function profilAvatarWaehlen(input) {
+  document.getElementById('prof-fehler').style.display = 'none';
+  const file = input.files && input.files[0];
+  input.value = '';   // erlaubt erneutes Wählen derselben Datei
+  if (!file) return;
+  const erlaubt = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!erlaubt.includes(file.type)) { profilFehler(t('prof_err_typ')); return; }
+  if (file.size > 8 * 1024 * 1024) { profilFehler(t('prof_err_gross')); return; }
+  try {
+    const { mainBlob, thumbBlob } = await verarbeiteAvatar(file);
+    if (profilAvatarPending && profilAvatarPending.previewUrl) { try { URL.revokeObjectURL(profilAvatarPending.previewUrl); } catch (e) {} }
+    const previewUrl = URL.createObjectURL(mainBlob);
+    profilAvatarPending = { mainBlob, thumbBlob, previewUrl };
+    setProfilAvatarVorschau(previewUrl);
+  } catch (e) { console.warn('Avatar-Verarbeitung:', e); profilFehler(t('prof_err_bild')); }
+}
+
+function profilAvatarLoeschen() {
+  if (profilAvatarPending && profilAvatarPending.previewUrl) { try { URL.revokeObjectURL(profilAvatarPending.previewUrl); } catch (e) {} }
+  profilAvatarPending = null;   // beim Speichern entfernen
+  setProfilAvatarVorschau('');
+}
+
+// Avatar (Haupt + Thumb) in den Bucket 'avatars' (eigener Ordner) laden -> Public-URLs.
+async function ladeAvatarHoch(mainBlob, thumbBlob) {
+  const uid  = aktuellerUser.id;
+  const ext  = (mainBlob.type === 'image/jpeg') ? 'jpg' : 'webp';
+  const mainPath  = `${uid}/avatar.${ext}`;
+  const thumbPath = `${uid}/thumb.${ext}`;
+  const up1 = await sbClient.storage.from('avatars').upload(mainPath, mainBlob, { upsert: true, cacheControl: '3600', contentType: mainBlob.type });
+  if (up1.error) throw up1.error;
+  const up2 = await sbClient.storage.from('avatars').upload(thumbPath, thumbBlob, { upsert: true, cacheControl: '3600', contentType: thumbBlob.type });
+  if (up2.error) throw up2.error;
+  const v = '?v=' + Date.now();   // Cache-Buster (gleicher Pfad bei upsert)
+  return {
+    url:   sbClient.storage.from('avatars').getPublicUrl(mainPath).data.publicUrl + v,
+    thumb: sbClient.storage.from('avatars').getPublicUrl(thumbPath).data.publicUrl + v
+  };
+}
+async function loescheAvatarDateien() {
+  const uid = aktuellerUser.id;
+  const pfade = [`${uid}/avatar.webp`, `${uid}/thumb.webp`, `${uid}/avatar.jpg`, `${uid}/thumb.jpg`];
+  try { await sbClient.storage.from('avatars').remove(pfade); } catch (e) { console.warn('Avatar löschen:', e); }
+}
+
+async function speichereProfil() {
+  if (!aktuellerUser) return;
+  const fehler = document.getElementById('prof-fehler');
+  const erfolg = document.getElementById('prof-erfolg');
+  fehler.style.display = 'none'; erfolg.style.display = 'none';
+
+  const vorname  = document.getElementById('prof-vorname').value.trim();
+  const nachname = document.getElementById('prof-nachname').value.trim();
+  const telefon  = document.getElementById('prof-telefon').value.trim();
+  const sprache  = document.getElementById('prof-sprache').value || aktuelleSprache;
+  const land     = document.getElementById('prof-land').value || '';
+  const zeitzone = document.getElementById('prof-zeitzone').value || '';
+  const sicht    = document.getElementById('prof-avatar-sicht').value || 'verbund';
+
+  if (!vorname || !nachname) { profilFehler(t('prof_err_pflicht')); return; }
+
+  const btn = document.getElementById('prof-submit');
+  btn.disabled = true; btn.textContent = t('reg_senden_laeuft');
+  try {
+    // 1) Avatar-Änderung (falls vorgemerkt) anwenden
+    let avatarUrl   = meinProfil ? (meinProfil.avatar_url || null) : null;
+    let avatarThumb = meinProfil ? (meinProfil.avatar_thumb_url || null) : null;
+    if (profilAvatarPending === null) {
+      await loescheAvatarDateien(); avatarUrl = null; avatarThumb = null;
+    } else if (profilAvatarPending && profilAvatarPending.mainBlob) {
+      const res = await ladeAvatarHoch(profilAvatarPending.mainBlob, profilAvatarPending.thumbBlob);
+      avatarUrl = res.url; avatarThumb = res.thumb;
+    }
+
+    // 2) Profil-Zeile upserten (eigene Zeile, RLS auth.uid() = user_id)
+    const zeile = {
+      user_id: aktuellerUser.id,
+      vorname, nachname, telefon: telefon || null,
+      sprache, land: land || null, zeitzone: zeitzone || null,
+      avatar_url: avatarUrl, avatar_thumb_url: avatarThumb,
+      avatar_sichtbarkeit: sicht
+    };
+    const { data, error } = await sbClient.from('profile').upsert(zeile, { onConflict: 'user_id' }).select().maybeSingle();
+    if (error) throw error;
+    meinProfil = data || zeile;
+    profilAvatarPending = undefined;
+
+    // 3) Live-Update überall (Badge, Presence, Sprache, Kopf)
+    aktualisiereBadgeProfil();
+    if (presenceChannel) presenceTrack(meinLockPerson);
+    if (sprache && TEXTE[sprache] && sprache !== aktuelleSprache) wechselSprache(sprache, true);
+    renderProfilKopf();
+
+    erfolg.textContent = t('prof_gespeichert'); erfolg.style.display = 'block';
+    // Nach erfolgreichem Speichern Overlay automatisch schließen (kurze Erfolgs-Anzeige).
+    setTimeout(() => schliesseProfil(), 900);
+  } catch (e) {
+    console.warn('Profil speichern:', e);
+    profilFehler((e && e.message) ? e.message : t('prof_err_speichern'));
+  } finally {
+    btn.disabled = false; btn.textContent = t('prof_speichern');
+  }
+}
+
+// Passwort-Bereich auf-/zuklappen.
+function profilPwToggle() {
+  const box = document.getElementById('prof-pw-box');
+  const tog = document.getElementById('prof-pw-toggle');
+  if (!box) return;
+  const auf = box.style.display === 'none';
+  box.style.display = auf ? '' : 'none';
+  if (tog) { tog.classList.toggle('offen', auf); tog.setAttribute('aria-expanded', auf ? 'true' : 'false'); }
+}
+
+function pwFehler(msg) { const f = document.getElementById('prof-pw-fehler'); if (f) { f.textContent = msg; f.style.display = 'block'; } }
+
+async function profilPasswortAendern() {
+  const f  = document.getElementById('prof-pw-fehler');
+  const ok = document.getElementById('prof-pw-erfolg');
+  f.style.display = 'none'; ok.style.display = 'none';
+  const aktuell = document.getElementById('prof-pw-aktuell').value;
+  const neu     = document.getElementById('prof-pw-neu').value;
+  const neu2    = document.getElementById('prof-pw-neu2').value;
+
+  if (!aktuell) { pwFehler(t('prof_pw_err_aktuell')); return; }
+  if (!neu || neu.length < 8) { pwFehler(t('prof_pw_err_kurz')); return; }
+  if (!/[A-Za-z]/.test(neu) || !/[0-9]/.test(neu)) { pwFehler(t('prof_pw_err_policy')); return; }
+  if (neu !== neu2) { pwFehler(t('prof_pw_err_ungleich')); return; }
+  if (neu === aktuell) { pwFehler(t('prof_pw_err_gleich')); return; }
+
+  const btn = document.getElementById('prof-pw-submit');
+  btn.disabled = true; btn.textContent = t('reg_senden_laeuft');
+  try {
+    // 1) Aktuelles Passwort verifizieren (Re-Login mit derselben E-Mail; ändert die
+    //    User-ID nicht -> onAuthStateChange löst KEINEN Baum-Reload aus).
+    const ver = await sbClient.auth.signInWithPassword({ email: aktuellerUser.email, password: aktuell });
+    if (ver.error) { pwFehler(t('prof_pw_err_falsch')); return; }
+    // 2) Neues Passwort setzen
+    const { error } = await sbClient.auth.updateUser({ password: neu });
+    if (error) { pwFehler(error.message); return; }
+    ['prof-pw-aktuell','prof-pw-neu','prof-pw-neu2'].forEach(id => { document.getElementById(id).value = ''; });
+    ok.textContent = t('prof_pw_ok'); ok.style.display = 'block';
+    setTimeout(() => { ok.style.display = 'none'; }, 3000);
+  } catch (e) { pwFehler((e && e.message) || t('prof_pw_err_speichern')); }
+  finally { btn.disabled = false; btn.textContent = t('prof_pw_btn'); }
 }
 
 function startPresence(treeId) {
@@ -2746,7 +3412,7 @@ function presenceAktualisieren() {
         const uid = m.user_id || m.email || '';
         if (uid && !gesehen.has(uid)) {
           gesehen.add(uid);
-          liste.push({ user_id: uid, name: m.name || m.email || '?', email: m.email || '' });
+          liste.push({ user_id: uid, name: m.name || m.email || '?', email: m.email || '', avatar: m.avatar || '' });
         }
         // Fremde Sperre vormerken (eigene zählt nicht als Blockade für mich selbst)
         if (m.editing && uid !== meId) locks[m.editing] = { user_id: uid, name: m.name || m.email || '?' };
@@ -2780,7 +3446,11 @@ function renderPresenceIndikator() {
       const selbst = u.user_id === meId;
       const name = escapeHtml(nm(u.name || u.email || '?'));
       const sie  = selbst ? `<span class="pp-sie">${escapeHtml(t('presence_sie'))}</span>` : '';
-      return `<li><span class="pp-dot"></span><span>${name}</span>${sie}</li>`;
+      // Avatar des Nutzers (über Presence geteilt; '' wenn privat/keiner) — sonst nur der Punkt.
+      const ava  = u.avatar
+        ? `<img class="pp-avatar" src="${escapeHtml(u.avatar)}" alt="" onerror="this.remove()">`
+        : `<span class="pp-dot"></span>`;
+      return `<li>${ava}<span>${name}</span>${sie}</li>`;
     }).join('');
   panel.innerHTML = `<div class="pp-titel">${escapeHtml(t('presence_titel'))}</div><ul>${zeilen}</ul>`;
 }
@@ -3019,7 +3689,11 @@ async function dubVerknuepfen(matchId) {
   if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
   dubKontext = null;
   schliesseDublettenModal();
-  if (data === 'sofort' && typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  if (data === 'sofort') {
+    // verknüpftes Kind in alle Bäume beider Eltern spiegeln
+    if (k.typ === 'kind') { try { await sbClient.rpc('kind_baeume_sync', { p_kind: matchId }); } catch (e) { console.warn('kind_baeume_sync:', e); } }
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  }
   if (k && typeof k.onLinked === 'function') await k.onLinked();
   await zeigeHinweis(t(data === 'sofort' ? 'vkn_sofort' : 'vkn_angefragt'));
 }
@@ -4982,11 +5656,13 @@ const TEXTE = {
     tab_shorts: 'Events',
     tab_baum: 'Stammbaum',
     suche_placeholder: 'Nach Namen suchen...',
+    suche_events_tooltip: 'Die Namenssuche ist im Bereich Ereignisse nicht verfügbar.',
     upload_btn: 'GEDCOM laden',
     shorts_titel: 'Familien-Events',
     event_single_title: 'Familien-Event:',
     shorts_hinweis: 'Kurze Familienmomente und Erinnerungen.',
     baum_hinweis: 'Klick auf Personen für Details · Scroll zum Zoomen · Drag zum Verschieben · Doppelklick zum Zurücksetzen',
+    baum_zentrieren: 'Stammbaum zentrieren',
     baum_wechsel_hinweis: 'Du befindest dich im Stammbaum «{name}». Oben über das Auswahlmenü kannst du zwischen den Stammbäumen wechseln.',
     pe_titel_fenster: 'Person bearbeiten',
     pe_geschlecht: 'Geschlecht',
@@ -5045,6 +5721,7 @@ const TEXTE = {
     baum_info_hinweis: '<strong>Hinweis:</strong> Klick für Details, Scroll zum Zoomen, Doppelklick zum Zurücksetzen.',
     baum_zentriert: '<strong>Zentriert auf:</strong> {name}<br><small>Zeigt 2 Generationen aufwärts und abwärts.<br>Klick auf andere Person für neue Ansicht.</small>',
     keine_treffer: 'Keine Personen gefunden.',
+    suche_mehrere: '{n} Treffer – mit ⏎ Enter auswählen',
     geboren: 'Geboren:',
     geburtsort: 'Geburtsort:',
     verstorben: 'Verstorben:',
@@ -5101,6 +5778,23 @@ const TEXTE = {
     event_titel: 'Titel / Betreff', event_datum: 'Datum', event_ort: 'Ort',
     event_typ: 'Event-Typ', event_beschreibung: 'Beschreibung',
     event_speichern_btn: 'Speichern', event_loeschen_btn: 'Löschen',
+    etn_section: 'Teilnehmer & Sichtbarkeit',
+    etn_button: 'Teilnehmer verwalten',
+    etn_titel: 'Teilnehmer & Sichtbarkeit',
+    etn_intro: 'Lege fest, wer dieses Event sehen darf. Standardmäßig sind alle ausgewählt – jeder im Verbund sieht das Event.',
+    etn_konto_hinweis: 'Hinweis: Echten Zugriff erhalten nur Personen mit verknüpftem Benutzerkonto. Personen ohne Konto können ausgewählt werden, haben aber keinen Login.',
+    etn_suche: 'Nach Vor-/Nachname suchen…',
+    etn_alle: 'Alle auswählen',
+    etn_keine: 'Alle abwählen',
+    etn_invert: 'Auswahl umkehren',
+    etn_status: '{sel} von {total} ausgewählt',
+    etn_speichern: 'Teilnehmer speichern',
+    etn_kein_treffer: 'Keine passende Person gefunden.',
+    etn_konto_badge: 'Konto',
+    etn_mehr: 'Mehr laden',
+    etn_gespeichert: 'Teilnehmer gespeichert.',
+    etn_alle_sehen: 'Alle ausgewählt – jeder im Verbund sieht das Event.',
+    etn_laedt: 'Personen werden geladen…',
     event_keine: 'Noch keine Events für diesen Stammbaum.',
     event_kein_baum: 'Bitte zuerst einen Stammbaum auswählen.',
     event_pflicht: 'Bitte einen Titel angeben.',
@@ -5327,6 +6021,47 @@ const TEXTE = {
     upload_fehler: 'Fehler beim Laden: ',
     anmelden: 'Anmelden',
     abmelden: 'Abmelden',
+    prof_menu: 'Profileinstellungen',
+    prof_titel: 'Profileinstellungen',
+    prof_mitglied_seit: 'Mitglied seit {datum}',
+    prof_bild_titel: 'Profilbild',
+    prof_bild_waehlen: 'Bild hochladen / ändern',
+    prof_bild_loeschen: 'Bild löschen',
+    prof_bild_hint: 'JPG, PNG oder WEBP · max. 8 MB · wird automatisch quadratisch zugeschnitten.',
+    prof_pers_titel: 'Persönliche Daten',
+    prof_vorname: 'Vorname',
+    prof_nachname: 'Nachname',
+    prof_email: 'E-Mail-Adresse',
+    prof_telefon: 'Telefonnummer',
+    prof_sprache: 'Sprache',
+    prof_land: 'Land',
+    prof_zeitzone: 'Zeitzone (optional)',
+    prof_tz_keine: '(keine)',
+    prof_privacy_titel: 'Datenschutz',
+    prof_bild_sicht: 'Profilbild sichtbar für',
+    prof_sicht_verbund: 'Alle im Verbund',
+    prof_sicht_familie: 'Nur meine Familie',
+    prof_sicht_privat: 'Privat (nur ich)',
+    prof_speichern: 'Speichern',
+    prof_gespeichert: 'Profil gespeichert.',
+    prof_err_pflicht: 'Bitte Vor- und Nachname angeben.',
+    prof_err_typ: 'Nicht unterstütztes Format. Erlaubt: JPG, PNG, WEBP.',
+    prof_err_gross: 'Das Bild ist zu groß (max. 8 MB).',
+    prof_err_bild: 'Das Bild konnte nicht verarbeitet werden.',
+    prof_err_speichern: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
+    prof_pw_titel: 'Passwort ändern',
+    prof_pw_aktuell: 'Aktuelles Passwort',
+    prof_pw_neu: 'Neues Passwort',
+    prof_pw_neu2: 'Neues Passwort wiederholen',
+    prof_pw_btn: 'Passwort ändern',
+    prof_pw_ok: 'Passwort erfolgreich geändert.',
+    prof_pw_err_aktuell: 'Bitte das aktuelle Passwort eingeben.',
+    prof_pw_err_kurz: 'Neues Passwort: mindestens 8 Zeichen.',
+    prof_pw_err_policy: 'Das Passwort muss Buchstaben und Zahlen enthalten.',
+    prof_pw_err_ungleich: 'Die Passwörter stimmen nicht überein.',
+    prof_pw_err_gleich: 'Das neue Passwort muss sich vom aktuellen unterscheiden.',
+    prof_pw_err_falsch: 'Das aktuelle Passwort ist nicht korrekt.',
+    prof_pw_err_speichern: 'Passwort konnte nicht geändert werden.',
     login_email: 'E-Mail',
     login_passwort: 'Passwort',
     login_pflicht: 'Bitte E-Mail und Passwort eingeben.',
@@ -5476,11 +6211,13 @@ const TEXTE = {
     tab_shorts: 'Догађаји',
     tab_baum: 'Стабло',
     suche_placeholder: 'Претражи по имену...',
+    suche_events_tooltip: 'Претрага по имену није доступна у одељку догађаја.',
     upload_btn: 'Учитај GEDCOM',
     shorts_titel: 'Породични догађаји',
     event_single_title: 'Породични догађај:',
     shorts_hinweis: 'Кратки породични тренуци и успомене.',
     baum_hinweis: 'Кликни на особу за детаље · Скрол за зумирање · Превуци за померање · Двоструки клик за ресет',
+    baum_zentrieren: 'Центрирај стабло',
     baum_wechsel_hinweis: 'Налазиш се у стаблу «{name}». Горе преко менија за избор можеш да мењаш стабла.',
     pe_titel_fenster: 'Уреди особу',
     pe_geschlecht: 'Пол',
@@ -5539,6 +6276,7 @@ const TEXTE = {
     baum_info_hinweis: '<strong>Напомена:</strong> Кликни за детаље, скролуј за зумирање, двоструки клик за ресет.',
     baum_zentriert: '<strong>Центрирано на:</strong> {name}<br><small>Приказује 2 генерације навише и наниже.<br>Кликни другу особу за нови приказ.</small>',
     keine_treffer: 'Ниједна особа није пронађена.',
+    suche_mehrere: '{n} резултата – изабери са ⏎ Enter',
     geboren: 'Рођен/а:',
     geburtsort: 'Место рођења:',
     verstorben: 'Преминуо/ла:',
@@ -5595,6 +6333,23 @@ const TEXTE = {
     event_titel: 'Наслов / Тема', event_datum: 'Датум', event_ort: 'Место',
     event_typ: 'Тип догађаја', event_beschreibung: 'Опис',
     event_speichern_btn: 'Сачувај', event_loeschen_btn: 'Обриши',
+    etn_section: 'Учесници и видљивост',
+    etn_button: 'Управљај учесницима',
+    etn_titel: 'Учесници и видљивост',
+    etn_intro: 'Одреди ко сме да види овај догађај. Подразумевано су сви изабрани – сви у савезу виде догађај.',
+    etn_konto_hinweis: 'Напомена: Стварни приступ имају само особе са повезаним налогом. Особе без налога могу се изабрати, али немају пријаву.',
+    etn_suche: 'Претражи по имену/презимену…',
+    etn_alle: 'Изабери све',
+    etn_keine: 'Поништи све',
+    etn_invert: 'Обрни избор',
+    etn_status: 'Изабрано {sel} од {total}',
+    etn_speichern: 'Сачувај учеснике',
+    etn_kein_treffer: 'Није пронађена одговарајућа особа.',
+    etn_konto_badge: 'Налог',
+    etn_mehr: 'Учитај још',
+    etn_gespeichert: 'Учесници сачувани.',
+    etn_alle_sehen: 'Сви изабрани – сви у савезу виде догађај.',
+    etn_laedt: 'Учитавање особа…',
     event_keine: 'Још нема догађаја за ово стабло.',
     event_kein_baum: 'Прво изабери стабло.',
     event_pflicht: 'Унеси наслов.',
@@ -5821,6 +6576,47 @@ const TEXTE = {
     upload_fehler: 'Грешка при учитавању: ',
     anmelden: 'Пријава',
     abmelden: 'Одјава',
+    prof_menu: 'Подешавања профила',
+    prof_titel: 'Подешавања профила',
+    prof_mitglied_seit: 'Члан од {datum}',
+    prof_bild_titel: 'Слика профила',
+    prof_bild_waehlen: 'Отпреми / промени слику',
+    prof_bild_loeschen: 'Обриши слику',
+    prof_bild_hint: 'JPG, PNG или WEBP · макс. 8 MB · аутоматски се исеца у квадрат.',
+    prof_pers_titel: 'Лични подаци',
+    prof_vorname: 'Име',
+    prof_nachname: 'Презиме',
+    prof_email: 'Адреса е-поште',
+    prof_telefon: 'Број телефона',
+    prof_sprache: 'Језик',
+    prof_land: 'Држава',
+    prof_zeitzone: 'Временска зона (опционо)',
+    prof_tz_keine: '(ниједна)',
+    prof_privacy_titel: 'Приватност',
+    prof_bild_sicht: 'Слика профила видљива за',
+    prof_sicht_verbund: 'Сви у савезу',
+    prof_sicht_familie: 'Само моју породицу',
+    prof_sicht_privat: 'Приватно (само ја)',
+    prof_speichern: 'Сачувај',
+    prof_gespeichert: 'Профил је сачуван.',
+    prof_err_pflicht: 'Унесите име и презиме.',
+    prof_err_typ: 'Неподржан формат. Дозвољено: JPG, PNG, WEBP.',
+    prof_err_gross: 'Слика је превелика (макс. 8 MB).',
+    prof_err_bild: 'Слику није могуће обрадити.',
+    prof_err_speichern: 'Чување није успело. Покушајте поново.',
+    prof_pw_titel: 'Промена лозинке',
+    prof_pw_aktuell: 'Тренутна лозинка',
+    prof_pw_neu: 'Нова лозинка',
+    prof_pw_neu2: 'Поновите нову лозинку',
+    prof_pw_btn: 'Промени лозинку',
+    prof_pw_ok: 'Лозинка је успешно промењена.',
+    prof_pw_err_aktuell: 'Унесите тренутну лозинку.',
+    prof_pw_err_kurz: 'Нова лозинка: најмање 8 знакова.',
+    prof_pw_err_policy: 'Лозинка мора да садржи слова и бројеве.',
+    prof_pw_err_ungleich: 'Лозинке се не подударају.',
+    prof_pw_err_gleich: 'Нова лозинка мора да се разликује од тренутне.',
+    prof_pw_err_falsch: 'Тренутна лозинка није исправна.',
+    prof_pw_err_speichern: 'Лозинку није могуће променити.',
     login_email: 'Е-пошта',
     login_passwort: 'Лозинка',
     login_pflicht: 'Унесите е-пошту и лозинку.',
@@ -5956,11 +6752,13 @@ const TEXTE = {
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
     suche_placeholder: 'Pretraži po imenu...',
+    suche_events_tooltip: 'Pretraga po imenu nije dostupna u odjeljku događaja.',
     upload_btn: 'Učitaj GEDCOM',
     shorts_titel: 'Obiteljski događaji',
     event_single_title: 'Obiteljski događaj:',
     shorts_hinweis: 'Kratki obiteljski trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomicanje · Dvostruki klik za reset',
+    baum_zentrieren: 'Centriraj stablo',
     baum_wechsel_hinweis: 'Nalaziš se u stablu «{name}». Gore preko izbornika možeš mijenjati stabla.',
     pe_titel_fenster: 'Uredi osobu',
     pe_geschlecht: 'Spol',
@@ -6033,6 +6831,7 @@ const TEXTE = {
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
     baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore i dolje.<br>Klikni drugu osobu za novi prikaz.</small>',
     keine_treffer: 'Nijedna osoba nije pronađena.',
+    suche_mehrere: '{n} rezultata – odaberi sa ⏎ Enter',
     geboren: 'Rođen/a:',
     geburtsort: 'Mjesto rođenja:',
     verstorben: 'Preminuo/la:',
@@ -6092,6 +6891,23 @@ const TEXTE = {
     event_titel: 'Naslov / Tema', event_datum: 'Datum', event_ort: 'Mjesto',
     event_typ: 'Vrsta događaja', event_beschreibung: 'Opis',
     event_speichern_btn: 'Spremi', event_loeschen_btn: 'Obriši',
+    etn_section: 'Sudionici i vidljivost',
+    etn_button: 'Upravljaj sudionicima',
+    etn_titel: 'Sudionici i vidljivost',
+    etn_intro: 'Odredi tko smije vidjeti ovaj događaj. Standardno su svi odabrani – svi u savezu vide događaj.',
+    etn_konto_hinweis: 'Napomena: Stvarni pristup imaju samo osobe s povezanim računom. Osobe bez računa mogu se odabrati, ali nemaju prijavu.',
+    etn_suche: 'Pretraži po imenu/prezimenu…',
+    etn_alle: 'Odaberi sve',
+    etn_keine: 'Poništi sve',
+    etn_invert: 'Obrni odabir',
+    etn_status: 'Odabrano {sel} od {total}',
+    etn_speichern: 'Spremi sudionike',
+    etn_kein_treffer: 'Nije pronađena odgovarajuća osoba.',
+    etn_konto_badge: 'Račun',
+    etn_mehr: 'Učitaj još',
+    etn_gespeichert: 'Sudionici spremljeni.',
+    etn_alle_sehen: 'Svi odabrani – svi u savezu vide događaj.',
+    etn_laedt: 'Učitavanje osoba…',
     event_keine: 'Još nema događaja za ovo stablo.',
     event_kein_baum: 'Najprije odaberi stablo.',
     event_pflicht: 'Unesi naslov.',
@@ -6272,6 +7088,47 @@ const TEXTE = {
     fe_owner_hinweis: 'Vlasnik vrijedi za cijelu obitelj (sva pripadajuća stabla).',
     fe_owner_aendern: 'Promijeni vlasnika',
     ow_titel: 'Promjena vlasnika obiteljskog stabla',
+    prof_menu: 'Postavke profila',
+    prof_titel: 'Postavke profila',
+    prof_mitglied_seit: 'Član od {datum}',
+    prof_bild_titel: 'Slika profila',
+    prof_bild_waehlen: 'Učitaj / promijeni sliku',
+    prof_bild_loeschen: 'Obriši sliku',
+    prof_bild_hint: 'JPG, PNG ili WEBP · maks. 8 MB · automatski se reže u kvadrat.',
+    prof_pers_titel: 'Osobni podaci',
+    prof_vorname: 'Ime',
+    prof_nachname: 'Prezime',
+    prof_email: 'Adresa e-pošte',
+    prof_telefon: 'Broj telefona',
+    prof_sprache: 'Jezik',
+    prof_land: 'Država',
+    prof_zeitzone: 'Vremenska zona (neobavezno)',
+    prof_tz_keine: '(nijedna)',
+    prof_privacy_titel: 'Privatnost',
+    prof_bild_sicht: 'Slika profila vidljiva za',
+    prof_sicht_verbund: 'Svi u savezu',
+    prof_sicht_familie: 'Samo moju obitelj',
+    prof_sicht_privat: 'Privatno (samo ja)',
+    prof_speichern: 'Spremi',
+    prof_gespeichert: 'Profil je spremljen.',
+    prof_err_pflicht: 'Unesite ime i prezime.',
+    prof_err_typ: 'Nepodržan format. Dopušteno: JPG, PNG, WEBP.',
+    prof_err_gross: 'Slika je prevelika (maks. 8 MB).',
+    prof_err_bild: 'Sliku nije moguće obraditi.',
+    prof_err_speichern: 'Spremanje nije uspjelo. Pokušajte ponovno.',
+    prof_pw_titel: 'Promjena lozinke',
+    prof_pw_aktuell: 'Trenutna lozinka',
+    prof_pw_neu: 'Nova lozinka',
+    prof_pw_neu2: 'Ponovite novu lozinku',
+    prof_pw_btn: 'Promijeni lozinku',
+    prof_pw_ok: 'Lozinka je uspješno promijenjena.',
+    prof_pw_err_aktuell: 'Unesite trenutnu lozinku.',
+    prof_pw_err_kurz: 'Nova lozinka: najmanje 8 znakova.',
+    prof_pw_err_policy: 'Lozinka mora sadržavati slova i brojeve.',
+    prof_pw_err_ungleich: 'Lozinke se ne podudaraju.',
+    prof_pw_err_gleich: 'Nova lozinka mora se razlikovati od trenutne.',
+    prof_pw_err_falsch: 'Trenutna lozinka nije ispravna.',
+    prof_pw_err_speichern: 'Lozinku nije moguće promijeniti.',
     ow_info: 'Odaberite novog vlasnika među članovima ili potražite registriranog korisnika putem e-maila. Vlasnik vrijedi za cijelu obitelj (sva stabla).',
     ow_mitglied_label: 'Odaberite člana',
     ow_mitglied_waehlen: '— odaberite člana —',
@@ -6450,11 +7307,13 @@ const TEXTE = {
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
     suche_placeholder: 'Pretraži po imenu...',
+    suche_events_tooltip: 'Pretraga po imenu nije dostupna u dijelu Događaji.',
     upload_btn: 'Učitaj GEDCOM',
     shorts_titel: 'Porodični događaji',
     event_single_title: 'Porodični događaj:',
     shorts_hinweis: 'Kratki porodični trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomjeranje · Dvostruki klik za reset',
+    baum_zentrieren: 'Centriraj stablo',
     baum_wechsel_hinweis: 'Nalaziš se u stablu «{name}». Gore preko menija možeš mijenjati stabla.',
     pe_titel_fenster: 'Uredi osobu',
     pe_geschlecht: 'Spol',
@@ -6527,6 +7386,7 @@ const TEXTE = {
     baum_info_hinweis: '<strong>Napomena:</strong> Klikni za detalje, skrolaj za zumiranje, dvostruki klik za reset.',
     baum_zentriert: '<strong>Centrirano na:</strong> {name}<br><small>Prikazuje 2 generacije gore и доле.<br>Klikni drugu osobu za novi prikaz.</small>',
     keine_treffer: 'Nijedna osoba nije pronađena.',
+    suche_mehrere: '{n} rezultata – odaberi sa ⏎ Enter',
     geboren: 'Rođen/a:',
     geburtsort: 'Mjesto rođenja:',
     verstorben: 'Preminuo/la:',
@@ -6586,6 +7446,23 @@ const TEXTE = {
     event_titel: 'Naslov / Tema', event_datum: 'Datum', event_ort: 'Mjesto',
     event_typ: 'Vrsta događaja', event_beschreibung: 'Opis',
     event_speichern_btn: 'Sačuvaj', event_loeschen_btn: 'Obriši',
+    etn_section: 'Učesnici i vidljivost',
+    etn_button: 'Upravljaj učesnicima',
+    etn_titel: 'Učesnici i vidljivost',
+    etn_intro: 'Odredi ko smije vidjeti ovaj događaj. Standardno su svi odabrani – svi u savezu vide događaj.',
+    etn_konto_hinweis: 'Napomena: Stvarni pristup imaju samo osobe s povezanim računom. Osobe bez računa mogu se odabrati, ali nemaju prijavu.',
+    etn_suche: 'Pretraži po imenu/prezimenu…',
+    etn_alle: 'Odaberi sve',
+    etn_keine: 'Poništi sve',
+    etn_invert: 'Obrni odabir',
+    etn_status: 'Odabrano {sel} od {total}',
+    etn_speichern: 'Sačuvaj učesnike',
+    etn_kein_treffer: 'Nije pronađena odgovarajuća osoba.',
+    etn_konto_badge: 'Račun',
+    etn_mehr: 'Učitaj još',
+    etn_gespeichert: 'Učesnici sačuvani.',
+    etn_alle_sehen: 'Svi odabrani – svi u savezu vide događaj.',
+    etn_laedt: 'Učitavanje osoba…',
     event_keine: 'Još nema događaja za ovo stablo.',
     event_kein_baum: 'Najprije odaberi stablo.',
     event_pflicht: 'Unesi naslov.',
@@ -6766,6 +7643,47 @@ const TEXTE = {
     fe_owner_hinweis: 'Vlasnik vrijedi za cijelu porodicu (sva pripadajuća stabla).',
     fe_owner_aendern: 'Promijeni vlasnika',
     ow_titel: 'Promjena vlasnika porodičnog stabla',
+    prof_menu: 'Postavke profila',
+    prof_titel: 'Postavke profila',
+    prof_mitglied_seit: 'Član od {datum}',
+    prof_bild_titel: 'Profilna slika',
+    prof_bild_waehlen: 'Učitaj / promijeni sliku',
+    prof_bild_loeschen: 'Obriši sliku',
+    prof_bild_hint: 'JPG, PNG ili WEBP · maks. 8 MB · automatski se reže u kvadrat.',
+    prof_pers_titel: 'Lični podaci',
+    prof_vorname: 'Ime',
+    prof_nachname: 'Prezime',
+    prof_email: 'E-mail adresa',
+    prof_telefon: 'Broj telefona',
+    prof_sprache: 'Jezik',
+    prof_land: 'Država',
+    prof_zeitzone: 'Vremenska zona (opcionalno)',
+    prof_tz_keine: '(nijedna)',
+    prof_privacy_titel: 'Privatnost',
+    prof_bild_sicht: 'Profilna slika vidljiva za',
+    prof_sicht_verbund: 'Svi u savezu',
+    prof_sicht_familie: 'Samo moju porodicu',
+    prof_sicht_privat: 'Privatno (samo ja)',
+    prof_speichern: 'Sačuvaj',
+    prof_gespeichert: 'Profil je sačuvan.',
+    prof_err_pflicht: 'Unesite ime i prezime.',
+    prof_err_typ: 'Nepodržan format. Dozvoljeno: JPG, PNG, WEBP.',
+    prof_err_gross: 'Slika je prevelika (maks. 8 MB).',
+    prof_err_bild: 'Sliku nije moguće obraditi.',
+    prof_err_speichern: 'Spremanje nije uspjelo. Pokušajte ponovo.',
+    prof_pw_titel: 'Promjena lozinke',
+    prof_pw_aktuell: 'Trenutna lozinka',
+    prof_pw_neu: 'Nova lozinka',
+    prof_pw_neu2: 'Ponovite novu lozinku',
+    prof_pw_btn: 'Promijeni lozinku',
+    prof_pw_ok: 'Lozinka je uspješno promijenjena.',
+    prof_pw_err_aktuell: 'Unesite trenutnu lozinku.',
+    prof_pw_err_kurz: 'Nova lozinka: najmanje 8 znakova.',
+    prof_pw_err_policy: 'Lozinka mora sadržavati slova i brojeve.',
+    prof_pw_err_ungleich: 'Lozinke se ne podudaraju.',
+    prof_pw_err_gleich: 'Nova lozinka mora se razlikovati od trenutne.',
+    prof_pw_err_falsch: 'Trenutna lozinka nije ispravna.',
+    prof_pw_err_speichern: 'Lozinku nije moguće promijeniti.',
     ow_info: 'Odaberite novog vlasnika među članovima ili potražite registrovanog korisnika putem e-maila. Vlasnik vrijedi za cijelu porodicu (sva stabla).',
     ow_mitglied_label: 'Odaberite člana',
     ow_mitglied_waehlen: '— odaberite člana —',
@@ -6958,11 +7876,13 @@ const TEXTE = {
     tab_shorts: 'Events',
     tab_baum: 'Family Tree',
     suche_placeholder: 'Search by name...',
+    suche_events_tooltip: 'Name search is not available in the events section.',
     upload_btn: 'Load GEDCOM',
     shorts_titel: 'Family Events',
     event_single_title: 'Family Event:',
     shorts_hinweis: 'Quick family moments and memories.',
     baum_hinweis: 'Click for details · Scroll to zoom · Drag to pan · Double-click to reset',
+    baum_zentrieren: 'Center tree',
     baum_wechsel_hinweis: 'You are in the «{name}» tree. Use the selector at the top to switch between trees.',
     pe_titel_fenster: 'Edit person',
     pe_geschlecht: 'Gender',
@@ -7021,6 +7941,7 @@ const TEXTE = {
     baum_info_hinweis: '<strong>Tip:</strong> Click for details, scroll to zoom, double-click to reset.',
     baum_zentriert: '<strong>Centered on:</strong> {name}<br><small>Showing 2 generations up and down.<br>Click another person to re-center.</small>',
     keine_treffer: 'No people found.',
+    suche_mehrere: '{n} matches – press ⏎ Enter to choose',
     geboren: 'Born:',
     geburtsort: 'Place of birth:',
     verstorben: 'Died:',
@@ -7077,6 +7998,23 @@ const TEXTE = {
     event_titel: 'Title / Subject', event_datum: 'Date', event_ort: 'Place',
     event_typ: 'Event type', event_beschreibung: 'Description',
     event_speichern_btn: 'Save', event_loeschen_btn: 'Delete',
+    etn_section: 'Participants & visibility',
+    etn_button: 'Manage participants',
+    etn_titel: 'Participants & visibility',
+    etn_intro: 'Choose who may see this event. By default everyone is selected – everyone in the network sees the event.',
+    etn_konto_hinweis: 'Note: Only people with a linked user account get real access. People without an account can be selected but have no login.',
+    etn_suche: 'Search by first/last name…',
+    etn_alle: 'Select all',
+    etn_keine: 'Deselect all',
+    etn_invert: 'Invert selection',
+    etn_status: '{sel} of {total} selected',
+    etn_speichern: 'Save participants',
+    etn_kein_treffer: 'No matching person found.',
+    etn_konto_badge: 'Account',
+    etn_mehr: 'Load more',
+    etn_gespeichert: 'Participants saved.',
+    etn_alle_sehen: 'All selected – everyone in the network sees the event.',
+    etn_laedt: 'Loading people…',
     event_keine: 'No events for this tree yet.',
     event_kein_baum: 'Please select a family tree first.',
     event_pflicht: 'Please enter a title.',
@@ -7303,6 +8241,47 @@ const TEXTE = {
     upload_fehler: 'Loading error: ',
     anmelden: 'Sign in',
     abmelden: 'Sign out',
+    prof_menu: 'Profile settings',
+    prof_titel: 'Profile settings',
+    prof_mitglied_seit: 'Member since {datum}',
+    prof_bild_titel: 'Profile picture',
+    prof_bild_waehlen: 'Upload / change picture',
+    prof_bild_loeschen: 'Remove picture',
+    prof_bild_hint: 'JPG, PNG or WEBP · max. 8 MB · automatically cropped to a square.',
+    prof_pers_titel: 'Personal details',
+    prof_vorname: 'First name',
+    prof_nachname: 'Last name',
+    prof_email: 'Email address',
+    prof_telefon: 'Phone number',
+    prof_sprache: 'Language',
+    prof_land: 'Country',
+    prof_zeitzone: 'Time zone (optional)',
+    prof_tz_keine: '(none)',
+    prof_privacy_titel: 'Privacy',
+    prof_bild_sicht: 'Profile picture visible to',
+    prof_sicht_verbund: 'Everyone in the network',
+    prof_sicht_familie: 'My family only',
+    prof_sicht_privat: 'Private (only me)',
+    prof_speichern: 'Save',
+    prof_gespeichert: 'Profile saved.',
+    prof_err_pflicht: 'Please enter first and last name.',
+    prof_err_typ: 'Unsupported format. Allowed: JPG, PNG, WEBP.',
+    prof_err_gross: 'The image is too large (max. 8 MB).',
+    prof_err_bild: 'The image could not be processed.',
+    prof_err_speichern: 'Saving failed. Please try again.',
+    prof_pw_titel: 'Change password',
+    prof_pw_aktuell: 'Current password',
+    prof_pw_neu: 'New password',
+    prof_pw_neu2: 'Repeat new password',
+    prof_pw_btn: 'Change password',
+    prof_pw_ok: 'Password changed successfully.',
+    prof_pw_err_aktuell: 'Please enter your current password.',
+    prof_pw_err_kurz: 'New password: at least 8 characters.',
+    prof_pw_err_policy: 'The password must contain letters and numbers.',
+    prof_pw_err_ungleich: 'The passwords do not match.',
+    prof_pw_err_gleich: 'The new password must differ from the current one.',
+    prof_pw_err_falsch: 'The current password is incorrect.',
+    prof_pw_err_speichern: 'The password could not be changed.',
     login_email: 'Email',
     login_passwort: 'Password',
     login_pflicht: 'Please enter email and password.',
@@ -7342,6 +8321,19 @@ Object.assign(TEXTE.en, {
   footer_impressum: 'Legal notice', footer_datenschutz: 'Privacy',
   rechts_entwurf_hinweis: '⚠️ Draft (auto-generated) — have it legally reviewed and fill in all [PLATZHALTER] before publishing.'
 });
+
+// Vater/Mutter-Picker im Kind-Dialog (i18n in allen 5 Sprachen; per Object.assign,
+// damit t()/data-i18n greifen — analog zu den Rechtstext-Labels).
+Object.assign(TEXTE.de, { pa_vater: 'Vater', pa_mutter: 'Mutter', pa_eltern_suche: 'Name suchen…',
+  pa_eltern_entfernen: 'Entfernen', pa_eltern_pflicht: 'Bitte mindestens einen Elternteil (Vater oder Mutter) wählen.' });
+Object.assign(TEXTE.sr, { pa_vater: 'Отац', pa_mutter: 'Мајка', pa_eltern_suche: 'Претражи име…',
+  pa_eltern_entfernen: 'Уклони', pa_eltern_pflicht: 'Изаберите бар једног родитеља (оца или мајку).' });
+Object.assign(TEXTE.hr, { pa_vater: 'Otac', pa_mutter: 'Majka', pa_eltern_suche: 'Pretraži ime…',
+  pa_eltern_entfernen: 'Ukloni', pa_eltern_pflicht: 'Odaberite barem jednog roditelja (oca ili majku).' });
+Object.assign(TEXTE.ba, { pa_vater: 'Otac', pa_mutter: 'Majka', pa_eltern_suche: 'Pretraži ime…',
+  pa_eltern_entfernen: 'Ukloni', pa_eltern_pflicht: 'Odaberite barem jednog roditelja (oca ili majku).' });
+Object.assign(TEXTE.en, { pa_vater: 'Father', pa_mutter: 'Mother', pa_eltern_suche: 'Search name…',
+  pa_eltern_entfernen: 'Remove', pa_eltern_pflicht: 'Please select at least one parent (father or mother).' });
 
 const RECHTSTEXTE = {
   de: {
@@ -7826,6 +8818,12 @@ function wechselSprache(lang, speichern = true) {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  });
   aktualisiereDatumsfelder();   // Datums-Platzhalter + Kurzformat an Sprache anpassen
 
   // Kopf (Titel/Untertitel/Zahlen) je nach Login + aktuellem Stammbaum
@@ -7837,6 +8835,7 @@ function wechselSprache(lang, speichern = true) {
   aktualisiereBaumHinweis();     // Orientierungs-Banner in neuer Sprache
   renderPresenceIndikator();     // Live-Indikator-Texte (Anzahl/Titel/„(Sie)") in neuer Sprache
   aktualisiereSyncBannerSprache(); // P3: offene „aktualisiert"-Hinweise neu beschriften
+  aktualisiereSucheZustand(aktuelleAnsicht); // Suchfeld-Tooltip (Events) in neuer Sprache
   if (aktuelleAnsicht === 'karten') zeigeKarten();
   else if (aktuelleAnsicht === 'shorts') zeigeShorts();
   else aktualisiereBaumInfo();
@@ -7846,7 +8845,14 @@ function wechselSprache(lang, speichern = true) {
   const offen = id => document.getElementById(id)?.classList.contains('aktiv');
   if (offen('mitglieder-modal') && typeof ladeMitglieder  === 'function') ladeMitglieder();   // Familien-Dropdown + Liste neu (nm)
   if (offen('kosten-modal')     && typeof renderKosten     === 'function') renderKosten();
+  if (offen('event-teilnehmer-modal') && typeof renderEtnListe === 'function') renderEtnListe();   // Teilnehmer-Liste in neuer Sprache
   if (offen('obav-modal')       && typeof renderObavListe  === 'function') renderObavListe();
+  // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
+  if (offen('profil-modal')) {
+    fuelleProfilSprache(document.getElementById('prof-sprache').value);
+    fuelleProfilZeitzone(document.getElementById('prof-zeitzone').value);
+    renderProfilKopf();
+  }
   // Merge-Wizard: dynamische Inhalte des sichtbaren Schritts in neuer Sprache neu aufbauen
   if (offen('merge-modal')) {
     if (document.getElementById('merge-step2').style.display !== 'none' && mgFixPaar) mgRenderKandidaten();
@@ -8740,7 +9746,16 @@ function init() {
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => wechselAnsicht(t.dataset.ansicht));
   });
-  document.getElementById('suche').addEventListener('input', handleSuche);
+  document.getElementById('suche').addEventListener('input', handleSucheDebounce);
+  // Enter / mobile Such-Taste: erst hier (explizite Bestätigung) darf bei mehreren
+  // Treffern in der Baum-Ansicht der Auswahl-Dialog öffnen. Blur schließt die
+  // Tastatur, damit das gerade geöffnete Modal nicht verdeckt wird.
+  document.getElementById('suche').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const wert = document.getElementById('suche').value.trim();
+    if (wert && aktuelleAnsicht === 'baum') { e.target.blur(); suchImBaum(wert, true); }
+  });
   document.getElementById('gedcom-input').addEventListener('change', handleGedcomUpload);
   // Tipp/Klick außerhalb schließt offene Dropdowns. pointerdown (nicht click!) feuert
   // sofort am echten Punkt — vor Tastatur-Reflow/Scroll/Ghost-Click auf Android/iOS.
@@ -8838,18 +9853,52 @@ function aktualisiereKopf(rootId) {
   }
 }
 
+// Suchfeld kontextabhängig schalten (siehe wechselAnsicht):
+//  - 'baum'   → aktiv: Suche im dargestellten Stammbaum (Fokus/Hervorhebung)
+//  - 'karten' → aktiv: Echtzeit-Filter der Personenkarten (Členovi porodice)
+//  - 'shorts' → deaktiviert/ausgegraut: Namenssuche bei Ereignissen nicht unterstützt
+//               (Feld bleibt sichtbar, Platzhalter bleibt, Tooltip erklärt es)
+function aktualisiereSucheZustand(name) {
+  const suche = document.getElementById('suche');
+  if (!suche) return;
+  if (name === 'shorts') {
+    if (suche.value) suche.value = '';          // leeren → Platzhalter sichtbar
+    suche.disabled = true;
+    suche.title = t('suche_events_tooltip');
+    suche.setAttribute('aria-disabled', 'true');
+  } else {
+    suche.disabled = false;
+    suche.title = '';
+    suche.removeAttribute('aria-disabled');
+  }
+}
+
+let sucheDebounceTimer = null;
+// Eingabe-Handler mit kleinem Debounce (250 ms) — entlastet große Personenlisten
+// und den Baum-Redraw beim schnellen Tippen (Enter bleibt sofort, siehe init()).
+function handleSucheDebounce() {
+  clearTimeout(sucheDebounceTimer);
+  sucheDebounceTimer = setTimeout(handleSuche, 250);
+}
+
 function handleSuche() {
   const suche = document.getElementById('suche').value.trim();
   if (aktuelleAnsicht === 'karten') {
     zeigeKarten();
   } else if (aktuelleAnsicht === 'shorts') {
-    zeigeShorts();
+    return;   // Suche im Ereignis-Bereich deaktiviert — kein Filter
   } else {
     suchImBaum(suche);
   }
 }
 
-function suchImBaum(suche) {
+// interaktiv=true  -> Nutzer hat die Suche explizit bestätigt (Enter / Such-Taste):
+//                     bei mehreren Treffern darf das Auswahl-Modal öffnen.
+// interaktiv=false -> Live-Tippen / programmatischer Redraw: NIE das Vollbild-Modal
+//                     öffnen (es würde sonst das Suchfeld verdecken, sodass der Nutzer
+//                     seine Eingabe nicht mehr sieht — siehe Mobile-Bug). Stattdessen
+//                     nur ein dezenter Treffer-Hinweis in der Baum-Info.
+function suchImBaum(suche, interaktiv) {
   if (!suche) {
     fokusPersonId = null;
     zeichneBaum(aktuelleWurzel(), 12, 0);
@@ -8871,7 +9920,13 @@ function suchImBaum(suche) {
     return;
   }
 
-  zeigAuswahlDialog(treffer);
+  if (interaktiv) {
+    zeigAuswahlDialog(treffer);
+  } else {
+    // Mehrere Treffer beim Tippen: Feld bleibt sichtbar, Hinweis statt Modal.
+    document.getElementById('baum-info').innerHTML =
+      `<strong style="color:var(--akzent-hell)">${escapeHtml(t('suche_mehrere', { n: treffer.length }))}</strong>`;
+  }
 }
 
 function zentriereAufPerson(personId) {
@@ -8918,12 +9973,14 @@ function zeigVollenBaum() {
 // KARTEN-ANSICHT
 // ============================================================
 function zeigeKarten() {
-  const suche = document.getElementById('suche').value.toLowerCase();
+  const suche = document.getElementById('suche').value.trim().toLowerCase();
   const grid = document.getElementById('personen-grid');
 
   const gefiltert = Object.values(aktuelleDaten.persons).filter(p => {
-    if (suche && !p.name.toLowerCase().includes(suche)) return false;
-    return true;
+    if (!suche) return true;
+    // Echtzeit-Filter: Vorname, Nachname, vollständiger Name + Geburtsname (Mädchenname)
+    const heu = [p.name, p.given, p.surname, p.ehename].filter(Boolean).join(' ').toLowerCase();
+    return heu.includes(suche);
   }).sort((a,b) => {
     const ja = parseInt(a.birth_date) || 9999;
     const jb = parseInt(b.birth_date) || 9999;
@@ -9178,9 +10235,9 @@ async function zeigeShorts() {
   if (error) { grid.innerHTML = `<div class="keine-treffer">${escapeHtml(error.message)}</div>`; eventsCache = []; return; }
   eventsCache = data || [];
 
-  const suche = (document.getElementById('suche').value || '').toLowerCase();
-  const liste = eventsCache.filter(ev =>
-    !suche || [ev.titel, ev.ort, ev.beschreibung, ev.typ].filter(Boolean).join(' ').toLowerCase().includes(suche));
+  // Namenssuche ist im Ereignis-Bereich bewusst deaktiviert (Suchfeld ausgegraut) →
+  // hier kein Filter, immer alle Events des Baums anzeigen.
+  const liste = eventsCache;
 
   if (liste.length === 0) {
     grid.innerHTML = `<div class="keine-treffer">${t(eventsCache.length ? 'keine_treffer' : 'event_keine')}</div>`;
@@ -9215,6 +10272,8 @@ function zeigeEventNeu() {
   document.getElementById('ev-fehler').style.display = 'none';
   document.getElementById('ev-erfolg').style.display = 'none';
   document.getElementById('event-modal-titel').textContent = t('event_neu');
+  // Teilnehmer/Sichtbarkeit erst nach dem ersten Speichern (Event braucht eine id)
+  document.getElementById('ev-teilnehmer-section').style.display = 'none';
   document.getElementById('event-modal').classList.add('aktiv');
   setTimeout(() => document.getElementById('ev-titel').focus(), 60);
 }
@@ -9236,6 +10295,9 @@ function zeigeEventBearbeiten(eventId) {
   document.getElementById('ev-fehler').style.display = 'none';
   document.getElementById('ev-erfolg').style.display = 'none';
   document.getElementById('event-modal-titel').textContent = t('event_bearbeiten');
+  // Teilnehmer/Sichtbarkeit verwalten (Event hat eine id)
+  document.getElementById('ev-teilnehmer-section').style.display = '';
+  document.getElementById('ev-teilnehmer-status').textContent = '';
   document.getElementById('event-modal').classList.add('aktiv');
 }
 
@@ -9254,6 +10316,180 @@ async function ladeEventMedienListe(eventId) {
 
 function schliesseEventModal() {
   document.getElementById('event-modal').classList.remove('aktiv');
+}
+
+// ============================================================
+// TEILNEHMERVERWALTUNG / EVENT-SICHTBARKEIT (Phase 1)
+// Wer darf das Event sehen? Standard = alle (unbeschränkt). Serverseitig in
+// supabase_event_eingeladene.sql geprüft (darf_event_sehen). Echten Zugriff
+// haben nur Personen mit verknüpftem Konto; Personen ohne Konto sind wählbar,
+// bleiben aber wirkungslos. Benachrichtigungen folgen in Phase 2.
+// ============================================================
+let etnKandidaten = [];          // [{person_id, vorname, nachname, geburt, baum_name, hat_konto}]
+let etnAuswahl    = new Set();   // person_id -> ausgewählt
+let etnSucheTimer = null;
+let etnLimit      = 150;         // Render-Obergrenze (Performance) + "Mehr laden"
+
+async function oeffneEventTeilnehmer() {
+  const eventId = document.getElementById('ev-id').value;
+  if (!eventId || !istAdmin()) return;
+  document.getElementById('etn-event-id').value = eventId;
+  document.getElementById('etn-suche').value = '';
+  document.getElementById('etn-fehler').style.display = 'none';
+  document.getElementById('etn-erfolg').style.display = 'none';
+  etnLimit = 150;
+  etnKandidaten = [];
+  etnAuswahl = new Set();
+  document.getElementById('etn-liste').innerHTML =
+    `<div class="etn-empty">${escapeHtml(t('etn_laedt'))}</div>`;
+  document.getElementById('etn-mehr-wrap').innerHTML = '';
+  document.getElementById('etn-status').textContent = '';
+  etnBindeListe();
+  document.getElementById('event-teilnehmer-modal').classList.add('aktiv');
+
+  // Kandidaten (Verbund) + aktuellen Einlade-Stand laden
+  const [{ data: kand, error: kErr }, { data: stand, error: sErr }] = await Promise.all([
+    sbClient.rpc('event_teilnehmer_kandidaten', { p_event: eventId }),
+    sbClient.rpc('event_eingeladene_daten',     { p_event: eventId })
+  ]);
+  if (kErr || sErr) {
+    document.getElementById('etn-liste').innerHTML =
+      `<div class="etn-empty">${escapeHtml(t('reg_fehler') + ((kErr||sErr).message))}</div>`;
+    return;
+  }
+  etnKandidaten = (kand || []).map(p => ({
+    person_id: p.person_id, vorname: p.vorname || '', nachname: p.nachname || '',
+    geburt: p.geburt || '', baum_name: p.baum_name || '', hat_konto: !!p.hat_konto
+  }));
+
+  // Default: nicht eingeschränkt -> ALLE ausgewählt. Sonst nur die gespeicherten.
+  const eingeschraenkt = stand && stand.eingeschraenkt;
+  if (eingeschraenkt) {
+    const ids = new Set((stand.person_ids || []).map(String));
+    etnKandidaten.forEach(p => { if (ids.has(String(p.person_id))) etnAuswahl.add(p.person_id); });
+  } else {
+    etnKandidaten.forEach(p => etnAuswahl.add(p.person_id));
+  }
+  renderEtnListe();
+}
+
+function schliesseEventTeilnehmer() {
+  document.getElementById('event-teilnehmer-modal').classList.remove('aktiv');
+}
+
+function etnSucheDebounce() {
+  clearTimeout(etnSucheTimer);
+  etnSucheTimer = setTimeout(() => { etnLimit = 150; renderEtnListe(); }, 300);
+}
+
+// Diakritik-/schrift-insensitiver Filter (nutzt ssFold aus den suchbaren Dropdowns).
+function etnGefiltert() {
+  const f = ssFold((document.getElementById('etn-suche').value || '').trim());
+  if (f.length < 1) return etnKandidaten;
+  return etnKandidaten.filter(p => ssFold(p.vorname + ' ' + p.nachname).includes(f));
+}
+
+function renderEtnListe() {
+  const liste = document.getElementById('etn-liste');
+  const gefiltert = etnGefiltert();
+  const total = etnKandidaten.length;
+  const sel   = etnAuswahl.size;
+
+  // Statuszeile: X von Y; bei "alle" der Hinweis, dass jeder sieht.
+  const statusEl = document.getElementById('etn-status');
+  statusEl.textContent = (sel >= total && total > 0)
+    ? t('etn_alle_sehen')
+    : t('etn_status', { sel, total });
+
+  if (gefiltert.length === 0) {
+    liste.innerHTML = `<div class="etn-empty">${escapeHtml(t('etn_kein_treffer'))}</div>`;
+    document.getElementById('etn-mehr-wrap').innerHTML = '';
+    return;
+  }
+
+  const sichtbar = gefiltert.slice(0, etnLimit);
+  liste.innerHTML = sichtbar.map(p => {
+    const an = etnAuswahl.has(p.person_id);
+    const name = escapeHtml(nm(((p.vorname + ' ' + p.nachname).trim()) || '?'));
+    const meta = [
+      p.geburt ? '* ' + escapeHtml(formatDatumLang(p.geburt) || p.geburt) : '',
+      escapeHtml(nm(p.baum_name || ''))
+    ].filter(Boolean).join(' · ');
+    const badge = p.hat_konto ? `<span class="etn-konto-badge">${escapeHtml(t('etn_konto_badge'))}</span>` : '';
+    return `<div class="etn-row${an ? ' etn-an' : ''}" data-id="${escapeHtml(String(p.person_id))}">
+      <span class="etn-check">${an ? '✓' : ''}</span>
+      <span class="etn-info"><span class="etn-name">${name}</span>${meta ? `<div class="etn-meta">${meta}</div>` : ''}</span>
+      ${badge}
+    </div>`;
+  }).join('');
+
+  // "Mehr laden", falls die gefilterte Liste die Obergrenze übersteigt (Performance).
+  const mehrWrap = document.getElementById('etn-mehr-wrap');
+  if (gefiltert.length > etnLimit) {
+    mehrWrap.innerHTML =
+      `<button type="button" class="etn-mehr-btn" onclick="etnMehrLaden()">${escapeHtml(t('etn_mehr'))} (${gefiltert.length - etnLimit})</button>`;
+  } else {
+    mehrWrap.innerHTML = '';
+  }
+}
+
+function etnMehrLaden() { etnLimit += 300; renderEtnListe(); }
+
+// Touch-sichere Auswahl: Tap auf eine Zeile schaltet die Auswahl um (Wischen
+// scrollt). tippAuswahl feuert auf pointerup -> vor Ghost-Click/Reflow. Einmalig
+// per Delegation an den Container gebunden (überlebt innerHTML-Neuaufbau der Zeilen).
+let etnListeGebunden = false;
+function etnBindeListe() {
+  if (etnListeGebunden) return;
+  const container = document.getElementById('etn-liste');
+  if (!container) return;
+  tippAuswahl(container, '.etn-row', row => {
+    const id = row.dataset.id; if (!id) return;
+    if (etnAuswahl.has(id)) etnAuswahl.delete(id); else etnAuswahl.add(id);
+    renderEtnListe();
+  });
+  etnListeGebunden = true;
+}
+
+function etnAlleWaehlen(an) {
+  etnAuswahl = new Set(an ? etnKandidaten.map(p => p.person_id) : []);
+  renderEtnListe();
+}
+
+function etnInvertieren() {
+  const neu = new Set();
+  etnKandidaten.forEach(p => { if (!etnAuswahl.has(p.person_id)) neu.add(p.person_id); });
+  etnAuswahl = neu;
+  renderEtnListe();
+}
+
+async function speichereEventTeilnehmer() {
+  const eventId = document.getElementById('etn-event-id').value;
+  if (!eventId || !istAdmin()) return;
+  const fehlerEl = document.getElementById('etn-fehler');
+  const erfolgEl = document.getElementById('etn-erfolg');
+  const button   = document.getElementById('etn-submit');
+  fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+
+  // "Alle ausgewählt" => unbeschränkt (jeder sieht). Sonst eingeschränkt auf die Auswahl.
+  const total = etnKandidaten.length;
+  const eingeschraenkt = etnAuswahl.size < total;
+  const ids = [...etnAuswahl];
+
+  const alt = button.textContent; button.disabled = true; button.textContent = t('reg_senden_laeuft');
+  const { error } = await sbClient.rpc('event_eingeladene_setzen', {
+    p_event: eventId, p_eingeschraenkt: eingeschraenkt, p_person_ids: ids
+  });
+  button.disabled = false; button.textContent = alt;
+  if (error) { fehlerEl.textContent = t('reg_fehler') + error.message; fehlerEl.style.display = 'block'; return; }
+
+  // Kurzstatus im Event-Modal spiegeln
+  const evStatus = document.getElementById('ev-teilnehmer-status');
+  if (evStatus) evStatus.textContent = eingeschraenkt ? t('etn_status', { sel: ids.length, total }) : t('etn_alle_sehen');
+
+  erfolgEl.textContent = t('etn_gespeichert'); erfolgEl.style.display = 'block';
+  await zeigeShorts();   // Sichtbarkeit kann sich geändert haben -> Liste aktualisieren
+  setTimeout(() => schliesseEventTeilnehmer(), 800);
 }
 
 async function speichereEvent() {
@@ -9277,6 +10513,12 @@ async function speichereEvent() {
   if (error) {
     button.disabled = false; button.textContent = alt;
     fehlerEl.textContent = t('reg_fehler') + error.message; fehlerEl.style.display = 'block'; return;
+  }
+
+  // Nach dem Speichern existiert eine id -> Teilnehmer/Sichtbarkeit verfügbar machen.
+  if (gespeicherteId) {
+    document.getElementById('ev-id').value = gespeicherteId;
+    document.getElementById('ev-teilnehmer-section').style.display = '';
   }
 
   // Ausgewählte Medien in den geteilten Storage hochladen (Event-id = Ordner)
@@ -10528,6 +11770,10 @@ function schliessePaHilfe() {
 
 // Ehepartner der aktiven Person (für die Zweit-Elternteil-Abfrage beim Kind)
 let paSpouses = [];
+let paVater = null;        // gewählter Vater  { uuid, name } oder null
+let paMutter = null;       // gewählte Mutter { uuid, name } oder null
+let paElternTimer = null;  // Debounce für die Eltern-Suche
+let paElternTreffer = {};  // id -> Anzeigename der letzten Eltern-Suche (für sichere Auswahl)
 
 // ============================================================
 // ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
@@ -10666,9 +11912,14 @@ async function vbVerknuepfe(zielId) {
     p_modus: 'beziehung', p_kontext: kontext, p_ziel: zielId, p_typ: typ, p_zweiter: zweiter
   });
   if (error) { fehler.textContent = vbFehlerText(error.message); fehler.style.display = 'block'; return; }
+  // Kind in alle Bäume beider Eltern spiegeln (Kind = ziel bei "kind", = kontext bei "elternteil").
+  const childId = (typ === 'kind') ? zielId : (typ === 'elternteil') ? kontext : null;
   const fokus = vbKontext.personId;
   schliesseVerbinden();
-  if (data === 'sofort' && typeof reloadBaumBehalteFokus === 'function') await reloadBaumBehalteFokus(fokus);
+  if (data === 'sofort') {
+    if (childId) { try { await sbClient.rpc('kind_baeume_sync', { p_kind: childId }); } catch (e) { console.warn('kind_baeume_sync:', e); } }
+    if (typeof reloadBaumBehalteFokus === 'function') await reloadBaumBehalteFokus(fokus);
+  }
   await zeigeHinweis(t(data === 'sofort' ? 'vkn_sofort' : 'vkn_angefragt'));
 }
 
@@ -10701,7 +11952,7 @@ function zeigePersonHinzufuegen(personId, vorTyp) {
   document.getElementById('pa-beziehungstyp').value =
     ['kind','elternteil','partner','geschwister'].includes(vorTyp) ? vorTyp : 'kind';
 
-  // Ehepartner der aktiven Person ermitteln (für zweiten Elternteil bei "Kind")
+  // Ehepartner der aktiven Person ermitteln (für die Eltern-Vorbelegung bei "Kind")
   paSpouses = [];
   (p.families_spouse || []).forEach(fid => {
     const fam = aktuelleDaten.families[fid]; if (!fam) return;
@@ -10709,10 +11960,14 @@ function zeigePersonHinzufuegen(personId, vorTyp) {
     const partner = partnerExt ? aktuelleDaten.persons[partnerExt] : null;
     if (partner && partner._uuid) paSpouses.push({ uuid: partner._uuid, name: nm(partner.name || partner.given || '?') });
   });
-  const sel2 = document.getElementById('pa-elternteil2');
-  sel2.innerHTML = `<option value="">${escapeHtml(t('unbekannt'))}</option>` +
-    paSpouses.map(s => `<option value="${s.uuid}">${escapeHtml(s.name)}</option>`).join('');
-  if (paSpouses.length === 1) sel2.value = paSpouses[0].uuid;   // Vorauswahl: einziger Partner
+  // Vater/Mutter VORBELEGEN: Kontextperson nach Geschlecht (F -> Mutter, sonst Vater),
+  // eindeutigen Ehepartner in den anderen Slot. Beides bleibt änderbar/entfernbar.
+  paVater = null; paMutter = null;
+  const ctxRolle = (p.sex || '').toUpperCase() === 'F' ? 'mutter' : 'vater';
+  paSetzeElternteil(ctxRolle, p._uuid, nm(p.name || p.given || '?'));
+  const andereRolle = ctxRolle === 'vater' ? 'mutter' : 'vater';
+  if (paSpouses.length === 1) paSetzeElternteil(andereRolle, paSpouses[0].uuid, paSpouses[0].name);
+  else paSetzeElternteil(andereRolle, null, null);
 
   document.getElementById('pa-fehler').style.display = 'none';
   document.getElementById('pa-erfolg').style.display = 'none';
@@ -10734,11 +11989,68 @@ function paPruefeFelder() {
   document.getElementById('pa-row-standesamt').style.display   = ehe ? '' : 'none';
   document.getElementById('pa-row-kirchlich').style.display    = ehe ? '' : 'none';
   document.getElementById('pa-row-sonstige').style.display     = (bez === 'sonstige') ? '' : 'none';
-  // Zweiter Elternteil nur bei "Kind" UND mehreren Ehepartnern abfragen
+  // Vater/Mutter-Block nur bei "Kind"
   const typ = document.getElementById('pa-beziehungstyp').value;
-  document.getElementById('pa-row-elternteil2').style.display =
-    (typ === 'kind' && paSpouses.length >= 2) ? '' : 'none';
+  document.getElementById('pa-eltern-block').style.display = (typ === 'kind') ? '' : 'none';
 }
+
+// --- Vater/Mutter-Picker (durchsuchbar über aktuellen + verknüpfte Bäume) ---
+// rolle = 'vater' | 'mutter'. Setzt/löscht die Auswahl und schaltet zwischen
+// Such-Eingabe und gewählter "Chip"-Anzeige um.
+function paSetzeElternteil(rolle, uuid, name) {
+  const obj = uuid ? { uuid, name } : null;
+  if (rolle === 'vater') paVater = obj; else paMutter = obj;
+  const chip  = document.getElementById('pa-' + rolle + '-chip');
+  const suche = document.getElementById('pa-' + rolle + '-suche');
+  const erg   = document.getElementById('pa-' + rolle + '-erg');
+  if (!chip || !suche || !erg) return;
+  erg.innerHTML = ''; suche.value = '';
+  if (obj) {
+    document.getElementById('pa-' + rolle + '-name').textContent = name || '';
+    chip.style.display = 'flex'; suche.style.display = 'none';
+  } else {
+    chip.style.display = 'none'; suche.style.display = '';
+  }
+}
+function paEntferneElternteil(rolle) { paSetzeElternteil(rolle, null, null); }
+function paElternSucheDebounce(rolle) {
+  if (paElternTimer) clearTimeout(paElternTimer);
+  paElternTimer = setTimeout(() => paElternSuche(rolle), 300);
+}
+async function paElternSuche(rolle) {
+  const erg = document.getElementById('pa-' + rolle + '-erg');
+  const q = document.getElementById('pa-' + rolle + '-suche').value.trim();
+  if (q.length < 2) { erg.innerHTML = ''; return; }
+  erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;opacity:.6">…</div>`;
+  // personen_suche AND-et Vor-/Nachname -> für eine Box je eine Präfix-Suche und mergen.
+  const [r1, r2] = await Promise.all([
+    sbClient.rpc('personen_suche', { p_vorname: q, p_nachname: null, p_geburt: null, p_limit: 15, p_offset: 0 }),
+    sbClient.rpc('personen_suche', { p_vorname: null, p_nachname: q, p_geburt: null, p_limit: 15, p_offset: 0 })
+  ]);
+  if (r1.error || r2.error) {
+    erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;color:#b33">${escapeHtml((r1.error || r2.error).message)}</div>`; return;
+  }
+  const aktivUuid = (aktuelleDaten.persons[document.getElementById('pa-context-id').value] || {})._uuid;
+  const andere = (rolle === 'vater' ? paMutter : paVater);
+  const seen = new Set(); const liste = [];
+  [...(r1.data || []), ...(r2.data || [])].forEach(rw => {
+    if (seen.has(rw.id)) return; seen.add(rw.id);
+    if (rw.id === aktivUuid) return;                 // Kontext (= Kind-Bezug) nicht als Elternteil
+    if (andere && rw.id === andere.uuid) return;     // bereits als anderer Elternteil gewählt
+    liste.push(rw);
+  });
+  if (!liste.length) { erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;opacity:.6">${escapeHtml(t('vb_keine_treffer'))}</div>`; return; }
+  // Namen NICHT durchs onclick-Attribut schleusen (Quote-Injection) -> Lookup über id.
+  paElternTreffer = {};
+  erg.innerHTML = liste.slice(0, 20).map(rw => {
+    paElternTreffer[rw.id] = nm(rw.name || '');
+    const det = [];
+    if (rw.birth_date) det.push('* ' + escapeHtml(formatDatumLang(rw.birth_date) || rw.birth_date));
+    if (rw.baum)       det.push(escapeHtml(nm(rw.baum)));
+    return `<div class="pa-elt-opt" onclick="paWaehleErgebnis('${rolle}','${rw.id}')">${escapeHtml(nm(rw.name || ''))}${rw.identitaet_id ? ' 🔗' : ''}<span class="pa-elt-meta">${det.join(' · ')}</span></div>`;
+  }).join('');
+}
+function paWaehleErgebnis(rolle, uuid) { paSetzeElternteil(rolle, uuid, paElternTreffer[uuid] || ''); }
 
 function schliessePersonAdd() {
   document.getElementById('person-add-modal').classList.remove('aktiv');
@@ -10803,11 +12115,16 @@ async function speichereNeuePerson() {
     angelegt_aus: 'stammbaum-anlegen'
   };
 
-  // Zweiten Elternteil (bei "Kind") vorab bestimmen — auch für eine evtl. Verknüpfung gebraucht.
-  let zweiter = null;
+  // Eltern (bei "Kind") aus den Vater/Mutter-Feldern. Mindestens ein Elternteil nötig;
+  // anschließend wird das Kind über kind_baeume_sync in alle Bäume beider Eltern gespiegelt.
+  let elternUuids = [];
   if (typ === 'kind') {
-    if (paSpouses.length === 1) zweiter = paSpouses[0].uuid;
-    else if (paSpouses.length >= 2) zweiter = document.getElementById('pa-elternteil2').value || null;
+    if (paVater) elternUuids.push(paVater.uuid);
+    if (paMutter && (!paVater || paMutter.uuid !== paVater.uuid)) elternUuids.push(paMutter.uuid);
+    if (!elternUuids.length) {
+      button.disabled = false; button.textContent = altText;
+      fehlerEl.textContent = t('pa_eltern_pflicht'); fehlerEl.style.display = 'block'; return;
+    }
   }
 
   // Tatsächliches Anlegen (wird ausgeführt, wenn keine Dublette ODER der Nutzer "Trotzdem anlegen" wählt)
@@ -10833,20 +12150,17 @@ async function speichereNeuePerson() {
       bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'ehepartner', familie_id: fid });
     } else if (typ === 'geschwister') {
       // gleiche Eltern wie die aktive Person -> Eltern der aktiven Person als Elternteil setzen
-      const elternUuids = [];
+      const geschwisterEltern = [];
       (aktiv.families_child || []).forEach(famId => {
         const fam = aktuelleDaten.families[famId]; if (!fam) return;
         [fam.husband, fam.wife].forEach(pe => {
           const par = pe && aktuelleDaten.persons[pe];
-          if (par && par._uuid && !elternUuids.includes(par._uuid)) elternUuids.push(par._uuid);
+          if (par && par._uuid && !geschwisterEltern.includes(par._uuid)) geschwisterEltern.push(par._uuid);
         });
       });
+      geschwisterEltern.forEach(pu => bezRows.push({ person_a: pu, person_b: neu.id, typ: 'elternteil', familie_id: fid }));
+    } else { // kind: an die gewählten Eltern (Vater/Mutter) hängen
       elternUuids.forEach(pu => bezRows.push({ person_a: pu, person_b: neu.id, typ: 'elternteil', familie_id: fid }));
-    } else { // kind: an BEIDE Eltern hängen
-      bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'elternteil', familie_id: fid });
-      if (zweiter && zweiter !== aktiv._uuid) {
-        bezRows.push({ person_a: zweiter, person_b: neu.id, typ: 'elternteil', familie_id: fid });
-      }
     }
     if (!bezRows.length) {
       // Geschwister ohne bekannte Eltern: Person bleibt zunächst lose -> Hinweis
@@ -10858,6 +12172,12 @@ async function speichereNeuePerson() {
     const { error: bErr } = await sbClient.from('beziehungen').insert(bezRows);
     button.disabled = false; button.textContent = altText;
     if (bErr) { fehlerEl.textContent = t('reg_fehler') + bErr.message; fehlerEl.style.display = 'block'; return; }
+    // Kind in ALLE Bäume beider Eltern spiegeln (Sichtbarkeit). Löschen ist identitätsbewusst
+    // (loeschePerson entfernt alle Zwillinge) -> kein „zweimal löschen".
+    if (typ === 'kind') {
+      try { await sbClient.rpc('kind_baeume_sync', { p_kind: neu.id }); }
+      catch (e) { console.warn('kind_baeume_sync:', e); }
+    }
     erfolgEl.textContent = t('pa_erfolg'); erfolgEl.style.display = 'block';
     await reloadBaumBehalteFokus(aktivId);
     // Heirat mit NEUEM Nachnamen -> eigenen Zweigbaum anbieten (Vorschlag + Bestätigung)
@@ -10872,7 +12192,10 @@ async function speichereNeuePerson() {
   button.disabled = false; button.textContent = altText;
   if (matches && matches.length) {
     zeigeDublettenDialog(matches, {
-      modus: 'beziehung', kontext: aktiv._uuid, typ, zweiter,
+      modus: 'beziehung',
+      kontext: (typ === 'kind') ? (elternUuids[0] || aktiv._uuid) : aktiv._uuid,
+      typ,
+      zweiter: (typ === 'kind') ? (elternUuids[1] || null) : null,
       proceed: doInsert,
       onLinked: async () => { await reloadBaumBehalteFokus(aktivId); schliessePersonAdd(); }
     });
@@ -10929,15 +12252,25 @@ async function loeschePerson(personId) {
   const p = aktuelleDaten.persons[personId];
   if (!p || !p._uuid) return;
 
-  // Ist dies die LETZTE Person ihres Baums? Dann wird der Baum automatisch entfernt
-  // (kontoschonend, siehe supabase_stammbaum_auto_leer.sql). Zählung pro _tree.
-  const treeId = p._tree;
-  const istLetzte = !!treeId &&
-    Object.values(aktuelleDaten.persons).filter(x => x._tree === treeId).length <= 1;
+  // IDENTITÄTSBEWUSST: Alle Karten DERSELBEN realen Person (identitaet_id-Zwillinge über
+  // alle Bäume) werden GEMEINSAM gelöscht. So verschwindet die Person nach EINEM Löschen
+  // NIRGENDWO mehr (Backend + alle Bäume + GUI) — kein „zweimal löschen" bei Spiegelkarten.
+  const alleUuids = p._ident
+    ? [...new Set(Object.values(aktuelleDaten.persons)
+        .filter(x => x._ident === p._ident && x._uuid).map(x => x._uuid))]
+    : [p._uuid];
+  const delSet = new Set(alleUuids);
 
-  if (istLetzte) {
-    // Owner-Exklusivrecht: nur familien_owner / super_admin dürfen den letzten Eintrag
-    // (und damit den ganzen Baum) entfernen. Server prüft zusätzlich (RPC).
+  // Welche Bäume würden durch das Löschen LEER? (Owner-Gate + kontoschonende Auto-Bereinigung)
+  const betroffeneBaeume = [...new Set(Object.values(aktuelleDaten.persons)
+    .filter(x => delSet.has(x._uuid) && x._tree).map(x => x._tree))];
+  const leereBaeume = betroffeneBaeume.filter(tid =>
+    Object.values(aktuelleDaten.persons).filter(x => x._tree === tid && !delSet.has(x._uuid)).length === 0);
+  const leertBaum = leereBaeume.length > 0;
+
+  if (leertBaum) {
+    // Owner-Exklusivrecht: nur familien_owner / super_admin dürfen einen Baum (durch Löschen
+    // seiner letzten Person) leeren. Server prüft zusätzlich (RPC).
     const darf = istSuperAdmin() || normalizeRolle(aktuelleRolle || '') === 'familien_owner';
     if (!darf) { await zeigeHinweis(t('auto_leer_nur_owner')); return; }
     const ok = await zeigeBestaetigung(t('auto_leer_warnung'),
@@ -10948,9 +12281,9 @@ async function loeschePerson(personId) {
     if (!ok) return;
   }
 
-  // Fokus-Fallback bestimmen, bevor die Person verschwindet (nur relevant, wenn der Baum bleibt)
+  // Fokus-Fallback bestimmen, bevor die Person verschwindet (nur relevant, wenn kein Baum geleert wird)
   let fallback = null;
-  if (!istLetzte) {
+  if (!leertBaum) {
     (p.families_spouse || []).forEach(fid => {
       const fam = aktuelleDaten.families[fid]; if (!fam) return;
       const partner = fam.husband === personId ? fam.wife : fam.husband;
@@ -10964,32 +12297,34 @@ async function loeschePerson(personId) {
     });
   }
 
-  // 1) Alle Beziehungen mit dieser Person entfernen (keine verwaisten Kanten)
-  const { error: bErr } = await sbClient.from('beziehungen').delete()
-    .or(`person_a.eq.${p._uuid},person_b.eq.${p._uuid}`);
-  if (bErr) { await zeigeHinweis(t('reg_fehler') + bErr.message); return; }
+  // 1) Alle Beziehungen ALLER betroffenen Karten entfernen (keine verwaisten Kanten)
+  let relErr = (await sbClient.from('beziehungen').delete().in('person_a', alleUuids)).error;
+  if (!relErr) relErr = (await sbClient.from('beziehungen').delete().in('person_b', alleUuids)).error;
+  if (relErr) { await zeigeHinweis(t('reg_fehler') + relErr.message); return; }
 
-  // 2) Person selbst löschen
-  const { error: pErr } = await sbClient.from('personen').delete().eq('id', p._uuid);
+  // 2) Die Personen-Karten selbst löschen (alle Zwillinge auf einmal)
+  const { error: pErr } = await sbClient.from('personen').delete().in('id', alleUuids);
   if (pErr) { await zeigeHinweis(t('reg_fehler') + pErr.message); return; }
 
   schliesseModal();
 
-  if (istLetzte) {
-    // 3) Jetzt leeren Baum kontoschonend auto-löschen (Familie/Konto bleibt bestehen)
-    const { data: res, error: dErr } = await sbClient.rpc('stammbaum_loesche_wenn_leer',
-      { p_tree: treeId, p_grund: 'auto_leer' });
+  if (leertBaum) {
+    // 3) Leer gewordene Bäume kontoschonend auto-löschen (Sweep räumt ALLE leeren Bäume).
+    let dErr = null;
+    try { dErr = (await sbClient.rpc('auto_leere_baeume_aufraeumen')).error; }
+    catch (e) { dErr = e; }
     if (dErr) {
-      // z. B. 'wartung_aktiv' -> Person ist weg, Baum bleibt (vorübergehend) leer.
-      const msg = /wartung_aktiv/i.test(dErr.message || '') ? t('auto_leer_wartung') : (t('reg_fehler') + dErr.message);
+      // z. B. 'wartung_aktiv' -> Personen sind weg, Baum bleibt (vorübergehend) leer.
+      const msg = /wartung_aktiv/i.test(dErr.message || '') ? t('auto_leer_wartung') : (t('reg_fehler') + (dErr.message || ''));
       await reloadBaumBehalteFokus(null);
       await zeigeHinweis(msg);
       return;
     }
     // 4) Storage-Medien gelöschter Events abräumen (DB kann das nicht)
     await raeumeVerwaisteMedien();
-    // 5) Navigation: nächster Baum (zuletzt > größter) oder "Kreiraj novo stablo"
-    await navigiereNachBaumLoeschung(treeId);
+    // 5) Navigation nur, wenn der AKTUELL geöffnete Baum geleert wurde
+    if (leereBaeume.includes(aktuellerStammbaumId)) await navigiereNachBaumLoeschung(aktuellerStammbaumId);
+    else await reloadBaumBehalteFokus(fallback);
     await zeigeHinweis(t('auto_leer_erfolg'));
   } else {
     await reloadBaumBehalteFokus(fallback);
@@ -11057,6 +12392,8 @@ function wechselAnsicht(name) {
   document.getElementById('ansicht-shorts').style.display = name === 'shorts' ? 'block' : 'none';
   document.getElementById('ansicht-baum').style.display = name === 'baum' ? 'block' : 'none';
 
+  aktualisiereSucheZustand(name);   // Suchfeld kontextabhängig aktivieren/deaktivieren
+
   if (name === 'baum') {
     const suche = document.getElementById('suche').value.trim();
     if (suche) {
@@ -11075,6 +12412,10 @@ function wechselAnsicht(name) {
 // STAMMBAUM (d3.js)
 // ============================================================
 let baumSvg, baumG, zoom, fitTransform = null;
+// Welt-Bounding-Box des aktuell gezeichneten Baums ([[xMin,yMin],[xMax,yMax]]) für die
+// Pan-Begrenzung; in zeichneBaum gesetzt. Mind. so viele Pixel des Baums bleiben sichtbar:
+let baumPanGrenze = null;
+const PAN_MIN_SICHTBAR = 90;   // ≈ eine halbe Personenkarte
 
 function initBaum() {
   baumSvg = d3.select('#baum-svg');
@@ -11082,6 +12423,30 @@ function initBaum() {
 
   zoom = d3.zoom()
     .scaleExtent([0.05, 3.0])
+    // Viewport = aktuelle Container-Größe (Funktion -> passt sich Resize/Drehung automatisch an)
+    .extent(() => {
+      const c = document.getElementById('baum-container').getBoundingClientRect();
+      return [[0, 0], [c.width, c.height]];
+    })
+    // Pan-Begrenzung: der Baum darf NIE vollständig aus dem Sichtbereich geschoben
+    // werden. baumPanGrenze (in zeichneBaum gesetzt) ist die Bounding-Box aller Karten
+    // in Welt-Koordinaten; wir erzwingen, dass davon immer mind. PAN_MIN_SICHTBAR Pixel
+    // im Viewport bleiben. Identisch für Desktop & Touch, bei JEDEM Zoom-Level. Greift NUR
+    // bei interaktiven Gesten (programmatische Fit-/Zentrier-Transforms bleiben unangetastet).
+    .constrain((transform, extent, translateExtent) => {
+      const te = baumPanGrenze;
+      if (!te) return transform;
+      const M = PAN_MIN_SICHTBAR;
+      const sx0 = transform.applyX(te[0][0]), sx1 = transform.applyX(te[1][0]);
+      const sy0 = transform.applyY(te[0][1]), sy1 = transform.applyY(te[1][1]);
+      const ex0 = extent[0][0], ey0 = extent[0][1], ex1 = extent[1][0], ey1 = extent[1][1];
+      let dx = 0, dy = 0;
+      if (sx1 < ex0 + M) dx = (ex0 + M) - sx1;        // Baum zu weit links  -> nach rechts
+      else if (sx0 > ex1 - M) dx = (ex1 - M) - sx0;   // Baum zu weit rechts -> nach links
+      if (sy1 < ey0 + M) dy = (ey0 + M) - sy1;        // Baum zu weit oben   -> nach unten
+      else if (sy0 > ey1 - M) dy = (ey1 - M) - sy0;   // Baum zu weit unten  -> nach oben
+      return (dx || dy) ? transform.translate(dx / transform.k, dy / transform.k) : transform;
+    })
     .on('zoom', e => {
       baumG.attr('transform', e.transform);
       // Boxfeste Schrift (passt sich NICHT mehr per 1/k an -> kein Überlauf). Beim Rauszoomen
@@ -11098,6 +12463,17 @@ function initBaum() {
       baumSvg.transition().duration(500).call(zoom.transform, fitTransform);
     }
   });
+}
+
+// „Stammbaum zentrieren"-Button + Fallback: Zoom auf Fit zurücksetzen, Baum mittig auf
+// die Blutlinie/Hauptperson ausrichten. Falls (noch) keine Fit-Transform existiert
+// (z. B. ungültiger Zustand), wird der Baum frisch gezeichnet.
+function zentriereBaumAnsicht() {
+  if (fitTransform && baumSvg && zoom) {
+    baumSvg.transition().duration(500).call(zoom.transform, fitTransform);
+  } else {
+    zeichneBaumNeu();
+  }
 }
 
 function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
@@ -11197,6 +12573,12 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
 
   // Zoom-Bereich: minZoom = Fit-Ansicht (90%), maxZoom = 3.0
   zoom.scaleExtent([skala * 0.9, 3.0]);
+
+  // Pan-Begrenzung aktivieren: Welt-Bounding-Box des Baums (siehe constrain in initBaum).
+  // So bleibt bei jeder Verschiebung mind. eine Karte sichtbar — der Baum kann nicht
+  // komplett aus dem Bild geschoben werden. Wird bei jedem Neuzeichnen aktualisiert
+  // (Personen hinzu/entfernt/verschoben => neue Box).
+  baumPanGrenze = [[tXMin, tYMin], [tXMax, tYMax]];
 
   fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
   baumSvg.call(zoom.transform, fitTransform);

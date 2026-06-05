@@ -1,6 +1,11 @@
 -- =====================================================
--- KIND IN ALLE BÄUME BEIDER ELTERN SPIEGELN
+-- KIND IN ALLE BÄUME BEIDER ELTERN SPIEGELN  (AKTIV, ab v8.9 wieder im Einsatz)
 -- Ausführen in: Supabase -> SQL Editor. Idempotent (mehrfach ausführbar).
+--
+-- Wichtig (v8.9): Diese RPC erzeugt für das Kind Spiegelkarten (gleiche identitaet_id)
+-- in den Bäumen beider Eltern -> das Kind ist baumübergreifend sichtbar. Das frühere
+-- „zweimal löschen"-Problem ist GELÖST, weil loeschePerson jetzt IDENTITÄTSBEWUSST ist
+-- (löscht ALLE identitaet_id-Zwillinge einer Person in einem Schritt).
 --
 -- Problem (siehe CLAUDE.md "Auto-Zweigbaum bei Heirat", v1-Grenze): Ein Kind wird
 -- nur in dem Baum angelegt, über dessen Elternteil die Anlage gestartet wurde

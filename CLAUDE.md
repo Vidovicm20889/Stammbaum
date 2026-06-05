@@ -118,6 +118,33 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Overlay kommt aus der rollenbasierten RPC `verwaltbare_familien` (super_admin = ALLE Familien,
   owner/admin = eigene) — NICHT aus den Mitglieder-Zeilen ableiten (sonst fehlen Familien ohne
   Mitglieder). Das Frontend filtert die gelieferte Liste nicht zusätzlich.
+- **Profileinstellungen / Benutzer-Profil (Phase 1, ab v8.9):** Konto-Stammdaten des EINGELOGGTEN
+  Nutzers — bewusst getrennt von der „Stammbaum-Person" (`registrierungs_anfragen`/`personen`). Eigene
+  Tabelle **`profile`** (1 Zeile je `auth.users`, PK=`user_id`; DB-Datei [supabase_profile.sql]) mit
+  Vorname/Nachname/Telefon/Sprache/Land/Zeitzone/Avatar + `avatar_sichtbarkeit`. **RLS: nur die EIGENE
+  Zeile** (`auth.uid() = user_id`, rekursionsfrei, Isolation gewahrt) — Cross-User-Avatare laufen NICHT
+  über DB-SELECT, sondern über den **Presence-Broadcast** (Feld `avatar` in der Nutzlast, nur wenn
+  Sichtbarkeit ≠ `privat`). Erreichbar über das ⚙-Menü (`#profil-bereich`, Button `prof_menu`) — sichtbar
+  für **ALLE eingeloggten Nutzer** (auch lesende Mitglieder; `zeigeMenu` ist daher bei Login immer true).
+  Modal `#profil-modal` (`oeffneProfil`/`schliesseProfil`/`speichereProfil`): Profilkopf (Avatar, Name,
+  E-Mail, „Mitglied seit {datum}" aus `aktuellerUser.created_at`), Stammdatenfelder, Datenschutz-
+  Dropdown. **E-Mail ist read-only** (Login-/Matching-Schlüssel; Änderung bewusst NICHT in Phase 1).
+  **Profil-Sprache steuert die App-Sprache** (`wechselSprache` beim Speichern UND beim Login via
+  `ladeMeinProfil`). **Avatar**: neuer **Storage-Bucket `avatars`** (public; im Rahmen von Supabase →
+  keine neue Library/Dienst), Bildverarbeitung clientseitig per **Canvas** (zentrierter Quadrat-Zuschnitt
+  → 512 px Haupt + 96 px Thumb, WEBP/JPEG-Fallback); Pfad `<user_id>/avatar.*` + `<user_id>/thumb.*`
+  (Storage-Policy: nur eigener Ordner). **Passwort ändern**: aktuelles PW per Re-Login
+  (`signInWithPassword`, gleiche User-ID → KEIN Baum-Reload) verifiziert, dann `updateUser({password})`;
+  Validierung ≥ 8 Zeichen + Buchstabe & Ziffer + Übereinstimmung. **Live-Update** (kein Reload):
+  `nutzerAnzeigeName()` bevorzugt den Profilnamen → Badge und Presence (`presenceTrack`) aktualisieren
+  sofort. **Benutzer-Leiste (`aktualisiereBadgeProfil`):** zeigt **Vor-/Nachname + Rolle**; die **E-Mail
+  nur**, wenn WEDER Vor- NOCH Nachname gesetzt ist. Rechts ein **runder Profil-Button** (`#profil-icon-btn`
+  mit `#user-avatar`: eigenes Bild ODER Platzhalter-SVG) mit Tooltip `prof_menu`, der das Profil öffnet.
+  Der **Abmelden-Button sitzt im Profil-Overlay** (Profilkopf), NICHT mehr in der Leiste. i18n `prof_*`
+  in allen 5 Blöcken; `wechselSprache`
+  baut Sprache/Zeitzone-Selects + Kopf des offenen Modals neu auf. **Phase 2 (offen, NICHT umgesetzt):**
+  Sicherheitsbereich (Letzter Login / Letzte Passwortänderung / aktive Sitzungen + „andere abmelden") —
+  braucht eine Edge Function mit Admin-API (auth.users-Daten sind clientseitig nicht lesbar).
 
 ## Architektur-Regeln
 - **Keine NEUEN externen Libraries/Dienste ohne ausdrückliche Absprache.**
@@ -169,9 +196,26 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   neu aufgebaut. Der **aktuell geöffnete Baum wird NICHT gewechselt** (`ladeBaumDaten` behält ihn),
   nur die Baumliste/der Dropdown wird aktualisiert. RPC `stammbaum_zweig_aus_heirat(p_wurzel,
   p_partner, p_name)` (SECURITY DEFINER, Rechte-/Existenzprüfung via `kann_familie_bearbeiten`/
-  `merge_norm`), DB-Datei `supabase_stammbaum_zweig_heirat.sql`. **Bewusste v1-Grenze:** NACH dem
-  Anlegen ergänzte Nachkommen werden (noch) nicht automatisch nachgespiegelt — Ausbauschritt wäre
-  ein Sync-Trigger auf `beziehungen`.
+  `merge_norm`), DB-Datei `supabase_stammbaum_zweig_heirat.sql`. **v1-Grenze:** NACH dem Anlegen
+  ergänzte Nachkommen werden NICHT physisch nachgespiegelt; ihre baumübergreifende Sichtbarkeit
+  übernimmt die Render-Zusammenführung (siehe nächste Regel).
+- **Kind-Sichtbarkeit über beide Eltern — Vater/Mutter-Dialog + Spiegelung (ab v8.8/8.9):** Beim
+  Anlegen eines Kindes (Personen-Overlay) gibt es **durchsuchbare Vater-/Mutter-Felder** (über
+  aktuellen + alle Verbund-Bäume via RPC `personen_suche`; vorbelegt nach Geschlecht/eindeutigem
+  Ehepartner, änder-/entfernbar). Nach Anlage/Verknüpfung ruft das Frontend die SECURITY-DEFINER-RPC
+  **`kind_baeume_sync(p_kind)`** (Datei `supabase_kind_baeume_sync.sql`): sie sammelt die Bäume ALLER
+  Karten BEIDER Eltern (Identitätsgruppen über `identitaet_id`) und **spiegelt das Kind** (gleiche
+  `identitaet_id`, Trigger `ident_sync` synchronisiert die Biografie) in jeden dieser Bäume, in denen
+  es fehlt — nur in editierbare Bäume (Isolation gewahrt), Eltern-Kanten je Baum idempotent.
+  Aufrufstellen: `speichereNeuePerson`, `dubVerknuepfen`, `vbVerknuepfe`. **Hinweis:** Die
+  Render-Zusammenführung in `baueBaumDaten` (identitaet_id + `bruecke`) bridged Kinder identitäts-
+  verknüpfter Eltern zusätzlich; das physische Spiegeln ist die robuste Variante, wenn die Render-
+  Brücke (z. B. mangels Eltern-Verknüpfung) nicht greift.
+  **Löschen ist identitätsbewusst (ab v8.9) — Invariante, nicht zurückbauen:** `loeschePerson`
+  entfernt ALLE `identitaet_id`-Zwillingskarten einer Person (über alle Bäume) + deren Beziehungen
+  in EINEM Schritt → eine gelöschte Person (inkl. Spiegel) taucht NIRGENDWO mehr auf, **kein „zweimal
+  löschen"**. Leer gewordene Bäume werden via `auto_leere_baeume_aufraeumen` kontoschonend bereinigt
+  (Owner-Exklusivrecht bleibt: nur owner/super_admin dürfen einen Baum leeren).
 - **Gleiche Person / Dubletten (Super-Admin) — zwei klar getrennte Operationen je nach Baum-Wahl
   (ab v8.2):** Beide Werkzeuge sind NUR für `super_admin` sichtbar.
   - **„Gleiche Person verknüpfen" (Spiegeln, beide Karten bleiben):** Dieselbe reale Person in
