@@ -1657,6 +1657,41 @@ footer {
   </div>
 </div>
 
+<!-- ＋: Auswahl „Neue Person erstellen" ODER „Bestehende Person verknüpfen" -->
+<div class="modal" id="person-choice-modal" style="z-index:216">
+  <div class="modal-inhalt" style="max-width:440px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePersonChoice()">×</button>
+    <h2 data-i18n="pc_titel"></h2>
+    <p class="sub-name" id="pc-kontext" style="margin-bottom:18px"></p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="login-submit" type="button" style="margin-top:0" onclick="pcNeu()" data-i18n="pc_neu"></button>
+      <button class="login-submit" type="button" style="margin-top:0" onclick="pcBestehend()" data-i18n="pc_bestehend"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Bestehende Person suchen & verknüpfen (Blutlinie / verbundene Bäume) -->
+<div class="modal" id="verbinden-modal" style="z-index:217">
+  <div class="modal-inhalt" style="max-width:620px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseVerbinden()">×</button>
+    <h2 data-i18n="vb_titel"></h2>
+    <p class="sub-name" id="vb-kontext" style="margin-bottom:6px"></p>
+    <p class="mv-legende" data-i18n="vb_intro"></p>
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="reg_vorname"></span>
+        <input type="text" id="vb-vorname" class="login-feld" autocomplete="off" oninput="vbSucheDebounce()"></label>
+      <label class="login-label"><span data-i18n="reg_nachname"></span>
+        <input type="text" id="vb-nachname" class="login-feld" autocomplete="off" oninput="vbSucheDebounce()"></label>
+      <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
+        <input type="text" id="vb-geburt" class="login-feld" autocomplete="off" oninput="vbSucheDebounce()"></label>
+    </div>
+    <label class="login-label" id="vb-row-elternteil2" style="display:none"><span data-i18n="pa_zweiter_elternteil"></span>
+      <select id="vb-elternteil2" class="login-feld"></select></label>
+    <div id="vb-fehler" class="login-fehler"></div>
+    <div id="vb-ergebnis" style="margin-top:8px"></div>
+  </div>
+</div>
+
 <!-- Bäume verbinden / Dubletten-Merge (nur Super-Admin) -->
 <div class="modal" id="merge-modal" style="z-index:215">
   <div class="modal-inhalt" style="max-width:680px" onclick="event.stopPropagation()">
@@ -4447,6 +4482,20 @@ const TEXTE = {
     vkn_abgelehnt: 'Antrag abgelehnt.',
     vkn_sofort: 'Verknüpfung wurde durchgeführt.',
     vkn_angefragt: 'Verknüpfungs-Antrag gesendet. Ein Admin des anderen Stammbaums muss zustimmen.',
+    vkn_selbst: 'Eine Person kann nicht mit sich selbst verbunden werden.',
+    vkn_zyklus: 'Diese Verbindung würde einen Kreis erzeugen (die Person wäre ihr eigener Vorfahre).',
+    vkn_kante_existiert: 'Diese Verbindung besteht bereits.',
+    pc_titel: 'Person hinzufügen',
+    pc_kontext: '{bez} für {name}',
+    pc_neu: '＋ Neue Person erstellen',
+    pc_bestehend: '🔗 Bestehende Person verknüpfen',
+    beztyp_elternteil: 'Eltern', beztyp_kind: 'Kind', beztyp_partner: 'Partner', beztyp_geschwister: 'Geschwister',
+    vb_titel: 'Bestehende Person verknüpfen',
+    vb_kontext: '{bez} für {name}',
+    vb_intro: 'Suche in diesem und allen verbundenen Stammbäumen (ab 2 Zeichen).',
+    vb_min_zeichen: 'Mindestens 2 Zeichen eingeben …',
+    vb_keine_treffer: 'Keine passende Person gefunden.',
+    vb_verknuepfen: 'Verknüpfen',
     gp_auch_in: 'Dieselbe Person auch in',
     gp_verknuepfen_titel: 'Gleiche Person verknüpfen',
     gp_verknuepfen: 'Verknüpfen',
@@ -4907,6 +4956,20 @@ const TEXTE = {
     vkn_abgelehnt: 'Захтев одбијен.',
     vkn_sofort: 'Повезивање је извршено.',
     vkn_angefragt: 'Захтев за повезивање послат. Админ другог стабла мора да одобри.',
+    vkn_selbst: 'Особа не може бити повезана сама са собом.',
+    vkn_zyklus: 'Ова веза би створила круг (особа би била сопствени предак).',
+    vkn_kante_existiert: 'Ова веза већ постоји.',
+    pc_titel: 'Додај особу',
+    pc_kontext: '{bez} за {name}',
+    pc_neu: '＋ Направи нову особу',
+    pc_bestehend: '🔗 Повежи постојећу особу',
+    beztyp_elternteil: 'Родитељи', beztyp_kind: 'Дете', beztyp_partner: 'Партнер', beztyp_geschwister: 'Браћа/сестре',
+    vb_titel: 'Повежи постојећу особу',
+    vb_kontext: '{bez} за {name}',
+    vb_intro: 'Претрага у овом и свим повезаним стаблима (од 2 знака).',
+    vb_min_zeichen: 'Унесите најмање 2 знака …',
+    vb_keine_treffer: 'Није пронађена одговарајућа особа.',
+    vb_verknuepfen: 'Повежи',
     gp_auch_in: 'Иста особа и у',
     gp_verknuepfen_titel: 'Повежи као исту особу',
     gp_verknuepfen: 'Повежи',
@@ -5438,6 +5501,20 @@ const TEXTE = {
     bzt_partner: 'Partner(ica) ove osobe',
     bzt_geschwister: 'Brat/sestra ove osobe',
     pa_geschwister_keine_eltern: 'Osoba izrađena, ali bez roditelja povezivanje braće/sestara nije moguće. Prvo postavi roditelje.',
+    vkn_selbst: 'Osoba ne može biti povezana sama sa sobom.',
+    vkn_zyklus: 'Ova veza bi stvorila krug (osoba bi bila vlastiti predak).',
+    vkn_kante_existiert: 'Ova veza već postoji.',
+    pc_titel: 'Dodaj osobu',
+    pc_kontext: '{bez} za {name}',
+    pc_neu: '＋ Stvori novu osobu',
+    pc_bestehend: '🔗 Poveži postojeću osobu',
+    beztyp_elternteil: 'Roditelji', beztyp_kind: 'Dijete', beztyp_partner: 'Partner', beztyp_geschwister: 'Braća/sestre',
+    vb_titel: 'Poveži postojeću osobu',
+    vb_kontext: '{bez} za {name}',
+    vb_intro: 'Pretraga u ovom i svim povezanim stablima (od 2 znaka).',
+    vb_min_zeichen: 'Unesite najmanje 2 znaka …',
+    vb_keine_treffer: 'Nije pronađena odgovarajuća osoba.',
+    vb_verknuepfen: 'Poveži',
     pa_hilfe_titel: 'Kako funkcionira',
     pa_hilfe_text: 'Odaberi u kakvom je odnosu nova osoba prema trenutno otvorenoj osobi (dijete, roditelj ili partner). Ispuni podatke i spremi — nova kartica odmah se pojavljuje povezana u stablu. Preko kartice u svakom trenutku otvaraš detalje, dodaješ ili brišeš osobe.',
     pa_speichern: 'Spremi osobu',
@@ -5898,6 +5975,20 @@ const TEXTE = {
     bzt_partner: 'Partner(ica) ove osobe',
     bzt_geschwister: 'Brat/sestra ove osobe',
     pa_geschwister_keine_eltern: 'Osoba napravljena, ali bez roditelja povezivanje braće/sestara nije moguće. Prvo postavi roditelje.',
+    vkn_selbst: 'Osoba ne može biti povezana sama sa sobom.',
+    vkn_zyklus: 'Ova veza bi stvorila krug (osoba bi bila vlastiti predak).',
+    vkn_kante_existiert: 'Ova veza već postoji.',
+    pc_titel: 'Dodaj osobu',
+    pc_kontext: '{bez} za {name}',
+    pc_neu: '＋ Napravi novu osobu',
+    pc_bestehend: '🔗 Poveži postojeću osobu',
+    beztyp_elternteil: 'Roditelji', beztyp_kind: 'Dijete', beztyp_partner: 'Partner', beztyp_geschwister: 'Braća/sestre',
+    vb_titel: 'Poveži postojeću osobu',
+    vb_kontext: '{bez} za {name}',
+    vb_intro: 'Pretraga u ovom i svim povezanim stablima (od 2 znaka).',
+    vb_min_zeichen: 'Unesite najmanje 2 znaka …',
+    vb_keine_treffer: 'Nije pronađena odgovarajuća osoba.',
+    vb_verknuepfen: 'Poveži',
     pa_hilfe_titel: 'Kako funkcioniše',
     pa_hilfe_text: 'Odaberi u kakvom je odnosu nova osoba prema trenutno otvorenoj osobi (dijete, roditelj ili partner). Popuni podatke i sačuvaj — nova kartica se odmah pojavljuje povezana u stablu. Preko kartice u svakom trenutku otvaraš detalje, dodaješ ili brišeš osobe.',
     pa_speichern: 'Sačuvaj osobu',
@@ -6287,6 +6378,20 @@ const TEXTE = {
     vkn_abgelehnt: 'Request rejected.',
     vkn_sofort: 'Link has been applied.',
     vkn_angefragt: 'Link request sent. An admin of the other tree must approve.',
+    vkn_selbst: 'A person cannot be linked to themselves.',
+    vkn_zyklus: 'This link would create a cycle (the person would be their own ancestor).',
+    vkn_kante_existiert: 'This link already exists.',
+    pc_titel: 'Add person',
+    pc_kontext: '{bez} for {name}',
+    pc_neu: '＋ Create new person',
+    pc_bestehend: '🔗 Link existing person',
+    beztyp_elternteil: 'Parents', beztyp_kind: 'Child', beztyp_partner: 'Partner', beztyp_geschwister: 'Siblings',
+    vb_titel: 'Link existing person',
+    vb_kontext: '{bez} for {name}',
+    vb_intro: 'Search this and all connected trees (from 2 characters).',
+    vb_min_zeichen: 'Enter at least 2 characters …',
+    vb_keine_treffer: 'No matching person found.',
+    vb_verknuepfen: 'Link',
     gp_auch_in: 'Same person also in',
     gp_verknuepfen_titel: 'Link as same person',
     gp_verknuepfen: 'Link',
@@ -8981,7 +9086,7 @@ function zeigeDetails(personId) {
 
   // "＋"-Button je Abschnitt (nur Admins) — öffnet Person-hinzufügen mit vorbelegtem Typ.
   const addBtn = (typ) => istAdmin()
-    ? `<button class="sec-add-btn" type="button" title="${escapeHtml(t('person_hinzufuegen'))}" onclick="zeigePersonHinzufuegen('${p.id}','${typ}')">＋</button>`
+    ? `<button class="sec-add-btn" type="button" title="${escapeHtml(t('person_hinzufuegen'))}" onclick="personPlus('${p.id}','${typ}')">＋</button>`
     : '';
   // Abschnitt rendern: bei Admins immer (mit ＋), sonst nur wenn Inhalt vorhanden.
   const sektion = (titelKey, inhalt, typ) => (inhalt || istAdmin())
@@ -9030,7 +9135,7 @@ function zeigeDetails(personId) {
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
     ${istAdmin() ? `
       <div class="pa-aktionen">
-        <button class="pa-add-btn" onclick="zeigePersonHinzufuegen('${p.id}')">＋ ${t('person_hinzufuegen')}</button>
+        <button class="pa-add-btn" onclick="personPlus('${p.id}')">＋ ${t('person_hinzufuegen')}</button>
         <button class="pa-del-btn" onclick="loeschePerson('${p.id}')">🗑 ${t('person_loeschen')}</button>
       </div>` : ''}
   `;
@@ -9496,6 +9601,149 @@ function schliessePaHilfe() {
 
 // Ehepartner der aktiven Person (für die Zweit-Elternteil-Abfrage beim Kind)
 let paSpouses = [];
+
+// ============================================================
+// ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+// ============================================================
+let pcKontext = null;   // { personId, typ }
+let vbKontext = null;   // { personId, uuid, typ }
+let vbSpouses = [];     // Ehepartner des Kontexts (für Zweit-Elternteil bei 'kind')
+let vbTimer   = null;   // Debounce-Timer für die Live-Suche
+
+const BEZTYP_GUELTIG = ['kind','elternteil','partner','geschwister'];
+
+// ＋ geklickt -> erst fragen: neue Person erstellen oder bestehende verknüpfen?
+function personPlus(personId, vorTyp) {
+  if (!istAdmin()) return;
+  const p = aktuelleDaten.persons[personId]; if (!p) return;
+  const typ = BEZTYP_GUELTIG.includes(vorTyp) ? vorTyp : 'kind';
+  pcKontext = { personId, typ };
+  document.getElementById('pc-kontext').textContent =
+    t('pc_kontext', { bez: t('beztyp_' + typ), name: nm(p.name || p.given || '?') });
+  document.getElementById('person-choice-modal').classList.add('aktiv');
+}
+function schliessePersonChoice() { document.getElementById('person-choice-modal').classList.remove('aktiv'); }
+function pcNeu() {
+  const k = pcKontext; schliessePersonChoice();
+  if (k) zeigePersonHinzufuegen(k.personId, k.typ);
+}
+function pcBestehend() {
+  const k = pcKontext; schliessePersonChoice();
+  if (k) zeigeVerbinden(k.personId, k.typ);
+}
+
+// Suchdialog öffnen (bestehende Person als Eltern/Kind/Partner/Geschwister verknüpfen)
+function zeigeVerbinden(personId, typ) {
+  if (!istAdmin()) return;
+  const p = aktuelleDaten.persons[personId]; if (!p || !p._uuid) return;
+  schliesseModal();   // immer nur EIN großes Overlay
+  vbKontext = { personId, uuid: p._uuid, typ: BEZTYP_GUELTIG.includes(typ) ? typ : 'kind' };
+  document.getElementById('vb-kontext').textContent =
+    t('vb_kontext', { bez: t('beztyp_' + vbKontext.typ), name: nm(p.name || p.given || '?') });
+  ['vb-vorname','vb-nachname','vb-geburt'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('vb-fehler').style.display = 'none';
+  document.getElementById('vb-ergebnis').innerHTML = `<p class="mv-legende">${t('vb_min_zeichen')}</p>`;
+
+  // Zweiter Elternteil (nur bei 'kind' + mehreren Ehepartnern) — wie im Anlegen-Overlay
+  vbSpouses = [];
+  (p.families_spouse || []).forEach(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return;
+    const partnerExt = fam.husband === personId ? fam.wife : fam.husband;
+    const partner = partnerExt ? aktuelleDaten.persons[partnerExt] : null;
+    if (partner && partner._uuid) vbSpouses.push({ uuid: partner._uuid, name: nm(partner.name || partner.given || '?') });
+  });
+  const sel2 = document.getElementById('vb-elternteil2');
+  sel2.innerHTML = `<option value="">${escapeHtml(t('unbekannt'))}</option>` +
+    vbSpouses.map(s => `<option value="${s.uuid}">${escapeHtml(s.name)}</option>`).join('');
+  if (vbSpouses.length === 1) sel2.value = vbSpouses[0].uuid;
+  document.getElementById('vb-row-elternteil2').style.display =
+    (vbKontext.typ === 'kind' && vbSpouses.length >= 2) ? '' : 'none';
+
+  document.getElementById('verbinden-modal').classList.add('aktiv');
+  macheAlleSelectsSuchbar(document.getElementById('verbinden-modal'));
+  setTimeout(() => { const f = document.getElementById('vb-vorname'); if (f) f.focus(); }, 60);
+}
+function schliesseVerbinden() {
+  document.getElementById('verbinden-modal').classList.remove('aktiv');
+  if (vbTimer) { clearTimeout(vbTimer); vbTimer = null; }
+}
+
+// Live-Suche: Debounce 300 ms, ab 2 Zeichen in mind. einem Feld
+function vbSucheDebounce() {
+  if (vbTimer) clearTimeout(vbTimer);
+  vbTimer = setTimeout(vbSuche, 300);
+}
+async function vbSuche() {
+  const box = document.getElementById('vb-ergebnis'); if (!vbKontext || !box) return;
+  const vor  = document.getElementById('vb-vorname').value.trim();
+  const nach = document.getElementById('vb-nachname').value.trim();
+  const geb  = document.getElementById('vb-geburt').value.trim();
+  if (vor.length < 2 && nach.length < 2 && geb.length < 2) {
+    box.innerHTML = `<p class="mv-legende">${t('vb_min_zeichen')}</p>`; return;
+  }
+  box.innerHTML = `<p class="mv-legende">…</p>`;
+  const { data, error } = await sbClient.rpc('personen_suche', {
+    p_vorname: vor || null, p_nachname: nach || null, p_geburt: geb || null, p_limit: 30, p_offset: 0
+  });
+  if (!vbKontext) return;   // Modal zwischenzeitlich geschlossen
+  if (error) { box.innerHTML = `<p class="login-fehler" style="display:block">${escapeHtml(t('reg_fehler') + error.message)}</p>`; return; }
+  const liste = (data || []).filter(r => r.id !== vbKontext.uuid);   // sich selbst ausblenden
+  if (!liste.length) { box.innerHTML = `<p class="mv-legende">${t('vb_keine_treffer')}</p>`; return; }
+  box.innerHTML = liste.map(vbErgebnisHtml).join('');
+}
+function vbErgebnisHtml(r) {
+  const det = [];
+  if (r.birth_date) det.push(`* ${escapeHtml(formatDatumLang(r.birth_date) || r.birth_date)}`);
+  if (r.death_date) det.push(`† ${escapeHtml(formatDatumLang(r.death_date) || r.death_date)}`);
+  if (r.baum)    det.push(`${escapeHtml(t('merge_info_baum'))}: ${escapeHtml(nm(r.baum))}`);
+  if (r.eltern)  det.push(`${escapeHtml(t('merge_info_eltern'))}: ${escapeHtml(nm(r.eltern))}`);
+  if (r.partner) det.push(`${escapeHtml(t('merge_info_partner'))}: ${escapeHtml(nm(r.partner))}`);
+  return `<div class="mg-kandidat">
+    <div class="mg-person"><span class="mg-namen">${escapeHtml(nm(r.name || ''))}${r.identitaet_id ? ' 🔗' : ''}</span>
+      <span style="display:block;font-size:12px;opacity:.72;margin-top:2px">${det.join(' · ')}</span></div>
+    <button class="mv-toggle" type="button" onclick="vbVerknuepfe('${r.id}')">${escapeHtml(t('vb_verknuepfen'))}</button>
+  </div>`;
+}
+function vbFehlerText(msg) {
+  msg = msg || '';
+  if (/vkn_selbst/.test(msg))          return t('vkn_selbst');
+  if (/vkn_zyklus/.test(msg))          return t('vkn_zyklus');
+  if (/vkn_kante_existiert/.test(msg)) return t('vkn_kante_existiert');
+  return t('reg_fehler') + msg;
+}
+// Bestehende Person als gewählten Beziehungstyp verknüpfen (Cycle/Dup prüft die RPC).
+async function vbVerknuepfe(zielId) {
+  if (!vbKontext) return;
+  const fehler = document.getElementById('vb-fehler'); fehler.style.display = 'none';
+  let kontext = vbKontext.uuid, typ = vbKontext.typ, zweiter = null;
+
+  if (typ === 'geschwister') {
+    // Geschwister = gleiche Eltern: ziel als Kind der Eltern des Kontexts hängen
+    const p = aktuelleDaten.persons[vbKontext.personId];
+    const elternUuids = [];
+    ((p && p.families_child) || []).forEach(fid => {
+      const fam = aktuelleDaten.families[fid]; if (!fam) return;
+      [fam.husband, fam.wife].forEach(pe => {
+        const par = pe && aktuelleDaten.persons[pe];
+        if (par && par._uuid && !elternUuids.includes(par._uuid)) elternUuids.push(par._uuid);
+      });
+    });
+    if (!elternUuids.length) { fehler.textContent = t('pa_geschwister_keine_eltern'); fehler.style.display = 'block'; return; }
+    kontext = elternUuids[0]; typ = 'kind'; zweiter = elternUuids[1] || null;
+  } else if (typ === 'kind' && vbSpouses.length) {
+    zweiter = (vbSpouses.length === 1) ? vbSpouses[0].uuid
+            : (document.getElementById('vb-elternteil2').value || null);
+  }
+
+  const { data, error } = await sbClient.rpc('verknuepfung_anfragen', {
+    p_modus: 'beziehung', p_kontext: kontext, p_ziel: zielId, p_typ: typ, p_zweiter: zweiter
+  });
+  if (error) { fehler.textContent = vbFehlerText(error.message); fehler.style.display = 'block'; return; }
+  const fokus = vbKontext.personId;
+  schliesseVerbinden();
+  if (data === 'sofort' && typeof reloadBaumBehalteFokus === 'function') await reloadBaumBehalteFokus(fokus);
+  await zeigeHinweis(t(data === 'sofort' ? 'vkn_sofort' : 'vkn_angefragt'));
+}
 
 // Aus dem Detail-Overlay heraus: neue Person im Kontext der aktiven Person anlegen.
 // vorTyp (optional): Beziehung vorbelegen ('kind'|'elternteil'|'partner'|'geschwister') — änderbar.

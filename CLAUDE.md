@@ -107,6 +107,28 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   `merge_norm`), DB-Datei `supabase_stammbaum_zweig_heirat.sql`. **Bewusste v1-Grenze:** NACH dem
   Anlegen ergänzte Nachkommen werden (noch) nicht automatisch nachgespiegelt — Ausbauschritt wäre
   ein Sync-Trigger auf `beziehungen`.
+- **Gleiche Person / Dubletten (Super-Admin) — zwei klar getrennte Operationen je nach Baum-Wahl
+  (ab v8.2):** Beide Werkzeuge sind NUR für `super_admin` sichtbar.
+  - **„Gleiche Person verknüpfen" (Spiegeln, beide Karten bleiben):** Dieselbe reale Person in
+    **ZWEI verschiedenen** Bäumen → gemeinsame `personen.identitaet_id` (Daten angeglichen,
+    Verbünde verbunden, beide Karten bleiben sichtbar; Trigger `ident_sync` hält sie synchron).
+    Auswahl per Auto-Dubletten (`offene_dubletten(baum_a,baum_b)`) ODER **manueller Personen-Wahl
+    je Baum** (RPC `personen_eines_baums(p_baum)`, Datei `supabase_personen_eines_baums.sql`;
+    bereits verknüpfte Karten mit 🔗 markiert). RPC `personen_verknuepfen`. Datei
+    `supabase_gleiche_person_sync.sql`.
+  - **Innerhalb DESSELBEN Baums → MERGE statt Spiegeln (eine Karte bleibt):** Wird im
+    „Gleiche Person"-Modal links UND rechts **derselbe** Baum gewählt, ergäbe Spiegeln zwei
+    identische Karten im selben Baum (sinnlos). Deshalb wird dort **zusammengeführt**: Survivor =
+    vollständigere Karte, Beziehungen/`event_teilnehmer`/`user_id`/Konto wandern um, die Dublette
+    wird gelöscht (Backup in `merge_log`, rückgängig via `merge_rueckgaengig`). Goldener Hinweis im
+    Modal macht das transparent. Technisch über `person_merge_aufgeloest(behalten,dublette,
+    aufloesung)` — dieselbe RPC wie das „Dubletten-Merge"-Werkzeug.
+  - **„Dubletten-Merge"-Werkzeug erlaubt jetzt ebenfalls denselben Baum** (Within-Tree-Merge):
+    der frühere Block „zwei verschiedene Bäume" ist ersetzt durch „nicht dieselbe Karte"
+    (`pa ≠ pb`); bei gleichem Baum entfällt der baumübergreifende `dubletten_scan` (nur das
+    explizit gewählte Paar) und Schritt 4 (Baum-Konsolidierung). `person_merge_aufgeloest` ist
+    baum-unabhängig; bleibt der Survivor im Baum, greift KEINE Baum-Auto-Löschung. Datei
+    `supabase_merge_gui.sql`.
 - **Auto-Löschung leerer Stammbäume (kontoschonend, Owner/Super-Admin):** Sinkt ein Baum durch
   Löschen auf **0 Personen** (`personen` mit dieser `stammbaum_id` = 0), wird er automatisch
   entfernt — aber **kontoschonend**: nur die `stammbaeume`-Zeile (inkl. `einstellungen`-jsonb) +
