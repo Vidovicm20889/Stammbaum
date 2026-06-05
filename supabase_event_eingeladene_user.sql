@@ -212,5 +212,33 @@ END $$;
 GRANT EXECUTE ON FUNCTION public.event_einladung_benachrichtige(uuid, uuid[]) TO authenticated;
 
 
+-- 7b) Events FÜR MICH: aktueller Baum + alle Events, zu denen ich eingeladen bin
+--     -> eingeladene Events tauchen unabhängig vom gerade gewählten Baum auf.
+CREATE OR REPLACE FUNCTION public.events_fuer_mich(p_tree uuid)
+RETURNS SETOF public.events
+LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
+  SELECT e.* FROM public.events e
+   WHERE public.darf_event_sehen(e.id)
+     AND (
+       e.stammbaum_id = p_tree
+       OR EXISTS (SELECT 1 FROM public.event_eingeladene ee
+                   WHERE ee.event_id = e.id AND ee.user_id = auth.uid())
+     )
+   ORDER BY e.created_at DESC;
+$$;
+GRANT EXECUTE ON FUNCTION public.events_fuer_mich(uuid) TO authenticated;
+
+
+-- 7) Ziel-Baum eines Events (für den Benachrichtigungs-Deep-Link) -------------
+--    Liefert die stammbaum_id NUR, wenn der aufrufende Nutzer das Event sehen darf
+--    (eingeladen / Admin / im Verbund unbeschränkt). Sonst NULL.
+CREATE OR REPLACE FUNCTION public.event_ziel_baum(p_event uuid)
+RETURNS uuid LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
+  SELECT e.stammbaum_id FROM public.events e
+   WHERE e.id = p_event AND public.darf_event_sehen(e.id);
+$$;
+GRANT EXECUTE ON FUNCTION public.event_ziel_baum(uuid) TO authenticated;
+
+
 NOTIFY pgrst, 'reload schema';
-SELECT 'OK: event_eingeladene auf BENUTZERKONTEN umgestellt (Kandidaten/Setzen/Sehen/Benachrichtigung)' AS status;
+SELECT 'OK: event_eingeladene auf BENUTZERKONTEN umgestellt (Kandidaten/Setzen/Sehen/Benachrichtigung) + event_ziel_baum' AS status;
