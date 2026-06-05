@@ -80,6 +80,15 @@ const jsonResp = (obj: unknown, status = 200) =>
     status, headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// Zentrale E-Mail-Format-Prüfung (identisch zur Frontend-Regel isValidEmail)
+function isValidEmail(email: string): boolean {
+  const e = (email ?? "").trim();
+  if (!e || /\s/.test(e)) return false;
+  if ((e.match(/@/g) || []).length !== 1) return false;
+  if (e.includes("..")) return false;
+  return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(e);
+}
+
 async function sendMail(to: string, subject: string, html: string) {
   // TEST-Modus: wenn TEST_EMAIL gesetzt ist, gehen alle Mails dorthin.
   const empfaenger = Deno.env.get("TEST_EMAIL") || to;
@@ -103,9 +112,22 @@ Deno.serve(async (req) => {
     const familie_name = String(payload?.familie_name ?? "").trim();
     const sprache      = String(payload?.sprache ?? "de");
     const p            = payload?.person ?? {};
+    // Ortsfelder der Familie (Država / Grad-selo / Opština) – wichtig fürs spätere
+    // strikte Matching (familie_finden_exakt). Leere Werte werden zu null.
+    const land     = String(payload?.land ?? "").trim()     || null;
+    const stadt    = String(payload?.stadt ?? "").trim()    || null;
+    const gemeinde = String(payload?.gemeinde ?? "").trim() || null;
 
     if (!email || !familie_name) {
       return jsonResp({ error: "E-Mail und Familienname sind erforderlich." }, 400);
+    }
+    // Serverseitige E-Mail-Format-Prüfung (niemals nur dem Frontend vertrauen)
+    if (!isValidEmail(email)) {
+      return jsonResp({ error: "Ungültige E-Mail-Adresse.", code: "email_invalid" }, 400);
+    }
+    const kontaktEmail = String(p?.kontakt_email ?? "").trim();
+    if (kontaktEmail && !isValidEmail(kontaktEmail)) {
+      return jsonResp({ error: "Ungültige Kontakt-E-Mail.", code: "email_invalid" }, 400);
     }
 
     // 1) Auth-User + Invite-Link (legt User an, falls noch nicht vorhanden)
@@ -124,9 +146,10 @@ Deno.serve(async (req) => {
     const setPasswortUrl = linkData.properties?.action_link ?? APP_URL;
     if (!userId) return jsonResp({ error: "Benutzer konnte nicht angelegt werden." }, 500);
 
-    // 2) familie (Konto) – eigener Verbund per Default
+    // 2) familie (Konto) – eigener Verbund per Default; Ortsfelder fürs Matching
     const { data: fam, error: famErr } = await admin
-      .from("familien").insert({ name: familie_name }).select("id").single();
+      .from("familien").insert({ name: familie_name, land, stadt, gemeinde })
+      .select("id").single();
     if (famErr) throw famErr;
     const familie_id = fam.id;
 

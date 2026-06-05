@@ -43,17 +43,43 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Session/Aktualität**: Auto-Logout nach 30 Min Inaktivität (Warnung 1 Min vorher); nach
   Re-Login harter Reload (`hardReload` = `?v=timestamp`, umgeht den HTML-Cache); Update-Banner bei
   neuer `app-version`. Diese Logik bei UI-Änderungen nicht brechen.
+- **Obavještenja Live-Updates**: Badge + Liste aktualisieren sich ohne Reload per **Polling**
+  (`startObavPolling`/`stopObavPolling`/`obavLivePoll`, ~12 s; pausiert bei verstecktem Tab,
+  sofort-Refresh bei `visibilitychange`). Polling läuft NUR für eingeloggte Admins und darf den
+  Inaktivitäts-Timer NICHT zurücksetzen (sonst kein Auto-Logout). Bewusst Polling statt Supabase
+  Realtime: `registrierungs_anfragen` wird über SECURITY-DEFINER-RPCs gelesen (kein direktes
+  RLS-SELECT) → Realtime würde solche Zeilen nicht ausliefern.
+- **Mitglieder-Verwaltung – Familien-Dropdown**: Die Familienliste im „Upravljanje članovima"-
+  Overlay kommt aus der rollenbasierten RPC `verwaltbare_familien` (super_admin = ALLE Familien,
+  owner/admin = eigene) — NICHT aus den Mitglieder-Zeilen ableiten (sonst fehlen Familien ohne
+  Mitglieder). Das Frontend filtert die gelieferte Liste nicht zusätzlich.
 
 ## Architektur-Regeln
 - **Keine NEUEN externen Libraries/Dienste ohne ausdrückliche Absprache.**
   Bereits abgestimmt und erlaubt: Supabase (Backend), Resend (Mail), per CDN
   `@supabase/supabase-js@2` und d3.js. Frontend bleibt Vanilla (kein Framework/Build-Tool).
 - Direkte Blutlinie (Tanasije → Simo → Marko) ist immer der zentrale vertikale Hauptstrang
+- **Aktuellen Stammbaum NIE automatisch wechseln:** Nach Speichern/Bearbeiten/Hochladen/Löschen
+  bleibt der Nutzer im aktuell geöffneten Baum. `ladeBaumDaten` behält `aktuellerStammbaumId`
+  (statt auf `groessterStammbaum()` zu springen); nur wenn keiner gewählt ist, wird der zuletzt
+  geöffnete aus `localStorage('vidovic_tree')` wiederhergestellt (Reload), sonst der größte Baum.
+  `waehleStammbaum` persistiert die Auswahl in `localStorage`.
 - Rollen-System: **Super-Admin / Familien-Owner / Familien-Admin / Familienmitglied (nur Lesezugriff)**
   - `super_admin`: Betrieb/Wartung, Vollzugriff. **In der GUI für normale Nutzer unsichtbar**
     (nur im eigenen Login-Badge erkennbar).
   - `familien_owner`: Eigentümer eines Stammbaums (der Ersteller). Admin-Rechte + EXKLUSIV
     Stammbaum löschen/anlegen. Nicht über normale Rollenänderung vergeb-/entfernbar.
+    **Ausnahme – Owner-Übertragung durch Super-Admin:** Nur der `super_admin` kann den
+    `familien_owner` gezielt übertragen (Abschnitt „Vlasnik porodičnog stabla / Familien-Owner"
+    in „Podešavanje porodice", für normale Nutzer/Admins/Mitglieder unsichtbar). Über
+    RPC `stammbaum_owner_wechseln`: neuer Nutzer → `familien_owner` (Mitgliedschaft wird bei
+    Bedarf angelegt, `auto=false`); bisheriger Owner → automatisch `familien_admin`
+    (`auto=false`). Owner hängt an der **Familie** → ein Wechsel gilt für ALLE Bäume der
+    Familie. Protokollierung in `familien_audit` (`aktion='owner_wechsel'`: Stammbaum, alter/
+    neuer Owner, Datum, ausführender Super-Admin). Kandidaten: aktive Mitglieder des
+    **gesamten Verbunds** (verwandte Familien, ohne super_admin & aktuellen Owner) ODER per
+    E-Mail gesuchte registrierte Nutzer (RPCs `stammbaum_owner_kandidaten`/`owner_nutzer_suche`).
+    DB-Datei: `supabase_owner_wechsel.sql`.
   - `familien_admin`: verwaltet Baum/Mitglieder, darf NICHT löschen, keinen Owner ändern.
   - `familien_mitglied`: nur Lesen.
 - **Blutlinien-Rechte (additiv, auto):** Wird ein Konto mit einer Baum-Person verknüpft
@@ -64,6 +90,23 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   werden neu berechnet/entzogen. Neuberechnung läuft **automatisch** bei Baumänderungen (DB-Trigger
   auf `personen`/`beziehungen`) sowie bei Verknüpfung. „Familie" = `familien`-Zeile (Nachnamen-Baum),
   NICHT konto-/verbundübergreifend (Isolation bleibt gewahrt).
+- **Auto-Zweigbaum bei Heirat (neuer Nachname → neuer Stammbaum):** Entsteht beim Anlegen
+  eines **Partners** ein NEUER Nachname (Partner-Nachname ≠ Nachname der heiratenden Person und
+  im Verbund noch kein Baum dieses Namens), bietet die App **mit Bestätigung** („Vorschlag",
+  kein Automatismus) an, für diese Linie einen eigenen Stammbaum anzulegen. Der neue Baum
+  entsteht in **DERSELBEN Familie** (gleicher Verbund → Sichtbarkeit/Rechte automatisch,
+  Isolation gewahrt; **kein separater Owner pro Baum** — Owner hängt an der Familie). Personen
+  werden **nicht verschoben/kopiert**, sondern als **gleiche Person** über `personen.identitaet_id`
+  in den neuen Baum **gespiegelt** (beide Karten bleiben sichtbar; Biografie hält der Trigger
+  `ident_sync` synchron). Wurzel des neuen Baums = eingeheirateter Partner; gespiegelt werden
+  zudem der/die Ehepartner:in und die **zum Anlegezeitpunkt vorhandenen** gemeinsamen Nachkommen
+  (rekursiv, nur Quellbaum) inkl. deren Partner; Beziehungen werden zwischen den Spiegelkarten
+  neu aufgebaut. Der **aktuell geöffnete Baum wird NICHT gewechselt** (`ladeBaumDaten` behält ihn),
+  nur die Baumliste/der Dropdown wird aktualisiert. RPC `stammbaum_zweig_aus_heirat(p_wurzel,
+  p_partner, p_name)` (SECURITY DEFINER, Rechte-/Existenzprüfung via `kann_familie_bearbeiten`/
+  `merge_norm`), DB-Datei `supabase_stammbaum_zweig_heirat.sql`. **Bewusste v1-Grenze:** NACH dem
+  Anlegen ergänzte Nachkommen werden (noch) nicht automatisch nachgespiegelt — Ausbauschritt wäre
+  ein Sync-Trigger auf `beziehungen`.
 - Familien-Isolation: jede Familie sieht nur eigene Daten (verbundweit), außer Super-Admin.
 - Datenmodell: `familien` = Konto/Mandant; `stammbaeume` = Bäume (familie_id); `personen`/
   `beziehungen` referenzieren `stammbaum_id`/`familie_id`. Rollen liegen in `mitgliedschaften`
@@ -140,4 +183,19 @@ Nach JEDER Änderung:
   automatischer Aufteilung/Ausgleich/PDF); **Obavještenja** (offene Anfragen + Akzeptieren/Ablehnen
   + Mail, Badge); Sofort-Sprachwechsel; touch-sichere Dropdowns; Session-Auto-Logout +
   Update-/Versions-Erkennung.
+- **Anfrage-Bearbeitung NUR in der App (kein E-Mail-Accept/Reject mehr):** Die Entscheidung über
+  Zugangsanfragen trifft ein Admin ausschließlich unter „Obavještenja" (Edge Function
+  `anfrage-bearbeiten`, mit Login + Rollenprüfung super_admin/familien_owner/familien_admin).
+  Die Benachrichtigungs-Mail (`anfrage-senden`) enthält KEINE Annehmen/Ablehnen-Links mehr,
+  sondern nur einen „App öffnen"-Deep-Link (`?obav=1` → öffnet nach Login automatisch die
+  Obavještenja-Liste). Die früher öffentliche `anfrage-entscheiden` ist deaktiviert (leitet nur
+  noch in die App) und sollte im Dashboard gelöscht werden.
+- **„Kreiraj nalog"-Overlay (kein da/ne-Self-Service-Schalter mehr):** Ein einziger Flow.
+  Pflichtfelder: Naziv stabla + Država + Grad/selo + Opština (+ E-Mail). Eine Hintergrundprüfung
+  (`familie_finden_exakt`, **strikter 4-Felder-Match**, diakritik-/groß-klein-unempfindlich über
+  `merge_norm`) erkennt einen vorhandenen Baum: Treffer → Info + Rollen-Dropdown → Zugriffsanfrage
+  (Entscheidung in der App). Kein Treffer → bisheriger Self-Service: `neue-familie-anlegen` legt
+  Konto + Baum sofort an (User = `familien_owner`, sofortige Passwort-Mail, KEINE Freigabe).
+  Beim Self-Service-Anlegen werden `land`/`stadt`/`gemeinde` in `familien` gespeichert, damit das
+  strikte Matching künftiger Anfragen greift.
 - Offen/Ausblick: Abo-Modell (Stripe); weitere Admin-Funktionen (Familieneinstellungen).

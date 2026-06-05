@@ -1,14 +1,23 @@
-# Zugangsanfragen – Phase 2 (Edge Functions + Resend-E-Mails)
+# Zugangsanfragen – Edge Functions + Resend-E-Mails
 
-Zwei Edge Functions für den „Account anlegen"-Flow:
+**Bearbeitung NUR in der App** (Obavještenja). Die E-Mail ist reine Benachrichtigung.
 
 | Function | Zweck | Verify JWT |
 |---|---|---|
-| `anfrage-senden` | Nach Absenden einer Anfrage: E-Mail an Admins mit Bestätigen/Ablehnen-Links | **AN** (Standard) |
-| `anfrage-entscheiden` | Link aus der Mail: legt User+Mitgliedschaft+Person an, Zu-/Absage-Mail | **AUS** |
+| `anfrage-senden` | Nach Absenden einer Anfrage: **Benachrichtigungs-Mail** an Admins (kein Accept/Reject mehr), nur „App öffnen"-Deep-Link (`?obav=1`) | **AN** (Standard) |
+| `anfrage-bearbeiten` | **App-only** Entscheidung aus der Obavještenja-Liste (Login + Rollenprüfung, Mail, Protokoll) | **AN** |
+| `anfrage-entscheiden` | **DEAKTIVIERT/VERALTET** – leitet nur noch in die App. **Im Dashboard löschen.** | (egal) |
+| `neue-familie-anlegen` | Self-Service: Konto + Baum + Owner-Mitgliedschaft + Passwort-Mail (jetzt inkl. `land`/`stadt`/`gemeinde` für das Matching) | **AUS** |
 
-Beide Dateien (`*/index.ts`) sind **selbst-enthaltend** (Vorlagen eingebettet) –
+Alle Dateien (`*/index.ts`) sind **selbst-enthaltend** (Vorlagen eingebettet) –
 also direkt im Dashboard-Editor einfügbar.
+
+## Deploy dieser Änderung (manuell im Dashboard)
+1. SQL `supabase_familie_finden_exakt.sql` im **SQL-Editor** ausführen (Matching-RPC).
+2. `anfrage-senden` neu deployen (Notification-Mail).
+3. `neue-familie-anlegen` neu deployen (speichert jetzt Ortsfelder).
+4. `anfrage-entscheiden` **löschen** (oder neuen, neutralisierten Code deployen).
+5. `anfrage-bearbeiten` bleibt unverändert (die App-Entscheidung).
 
 ---
 

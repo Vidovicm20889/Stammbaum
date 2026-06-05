@@ -1,7 +1,13 @@
-// Edge Function: anfrage-entscheiden  (selbst-enthaltend – für Dashboard-Editor)
-// ÖFFENTLICH – im Dashboard "Verify JWT" für diese Function AUSschalten!
-// Aufruf über den Link in der Admin-Mail:
-//   .../anfrage-entscheiden?token=<uuid>&aktion=bestaetigen|ablehnen
+// Edge Function: anfrage-entscheiden  — DEAKTIVIERT / VERALTET
+// ===========================================================================
+// Die Bearbeitung von Zugangsanfragen erfolgt AUSSCHLIESSLICH in der App unter
+// „Obavještenja" (Edge Function anfrage-bearbeiten, mit Login + Rollenprüfung).
+// Diese frühere öffentliche Entscheidungs-Function (Accept/Reject per E-Mail-Link)
+// ist abgeschaltet: Sie verändert KEINEN Status mehr, sondern leitet nur noch in
+// die App weiter. Alte E-Mail-Links laufen damit harmlos ins Leere.
+//
+// EMPFEHLUNG: Diese Function im Supabase-Dashboard ganz löschen/deaktivieren.
+// Solange sie existiert, hält dieser Code sie ungefährlich.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -112,76 +118,11 @@ async function sendMail(to: string, subject: string, html: string) {
   if (!r.ok) console.error("Resend-Fehler:", await r.text());
 }
 
-Deno.serve(async (req) => {
-  const url    = new URL(req.url);
-  const token  = url.searchParams.get("token") ?? "";
-  const aktion = url.searchParams.get("aktion") ?? "";
-  const admin  = createClient(SUPABASE_URL, SERVICE_KEY);
-
-  const { data: a } = await admin
-    .from("registrierungs_anfragen").select("*").eq("token", token).single();
-
-  if (!a) return htmlResp(ergebnisSeite("de", "page_err", false), 404);
-  const sprache = a.sprache ?? "de";
-  if (a.status !== "offen") return htmlResp(ergebnisSeite(sprache, "page_done", false));
-
-  try {
-    if (aktion === "bestaetigen") {
-      const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-        type: "invite", email: a.email, options: { redirectTo: APP_URL },
-      });
-      if (linkErr) throw linkErr;
-      const userId = linkData.user?.id;
-      const setPasswortUrl = linkData.properties?.action_link ?? APP_URL;
-
-      if (userId) {
-        await admin.from("mitgliedschaften").insert({
-          user_id: userId, familie_id: a.familie_id, rolle: a.rolle,
-        });
-      }
-
-      if (a.vorname || a.nachname) {
-        await admin.from("personen").insert({
-          familie_id:   a.familie_id,
-          vorname:      a.vorname ?? "",
-          nachname:     a.nachname ?? "",
-          geburtsdatum: a.geburtsdatum ?? null,
-          stammbaum_daten: {
-            geburtsort: a.geburtsort, geburtsland: a.geburtsland,
-            stadt: a.stadt, gemeinde: a.gemeinde,
-            getauft_am: a.getauft_am, verheiratet_am: a.verheiratet_am,
-            telefon: a.telefon, kontakt_email: a.kontakt_email,
-            facebook: a.facebook, instagram: a.instagram,
-            angelegt_aus: "zugangsanfrage",
-          },
-        });
-      }
-
-      await admin.from("registrierungs_anfragen")
-        .update({ status: "bestaetigt" }).eq("id", a.id);
-
-      const inner = `
-        <p>${esc(T(sprache, "ok_body"))}</p>
-        <div style="text-align:center;margin:24px 0;">
-          <a href="${setPasswortUrl}" style="display:inline-block;background:#7a2a2a;color:#fff;
-            text-decoration:none;padding:12px 26px;border-radius:8px;">${esc(T(sprache, "ok_btn"))}</a>
-        </div>`;
-      await sendMail(a.email, T(sprache, "ok_subject"), WRAP(inner));
-
-      return htmlResp(ergebnisSeite(sprache, "page_ok", true));
-    }
-
-    if (aktion === "ablehnen") {
-      await admin.from("registrierungs_anfragen")
-        .update({ status: "abgelehnt" }).eq("id", a.id);
-      await sendMail(a.email, T(sprache, "no_subject"),
-        WRAP(`<p>${esc(T(sprache, "no_body"))}</p>`));
-      return htmlResp(ergebnisSeite(sprache, "page_no", false));
-    }
-
-    return htmlResp(ergebnisSeite(sprache, "page_err", false), 400);
-  } catch (e) {
-    console.error("Entscheidung fehlgeschlagen:", e);
-    return htmlResp(ergebnisSeite(sprache, "page_err", false), 500);
-  }
+// Abgeschaltet: KEINE Statusänderung mehr. Jeder Aufruf (auch alte E-Mail-Links)
+// leitet einfach in die App, wo die Bearbeitung unter „Obavještenja" stattfindet.
+Deno.serve((_req) => {
+  return new Response(null, {
+    status: 302,
+    headers: { Location: APP_URL + (APP_URL.includes("?") ? "&" : "?") + "obav=1" },
+  });
 });

@@ -1,7 +1,9 @@
 // Edge Function: anfrage-senden  (selbst-enthaltend – für Dashboard-Editor)
 // Wird vom Frontend nach dem Speichern einer Anfrage aufgerufen.
 // Lädt die Anfrage, ermittelt die Admin-Empfänger und verschickt per Resend
-// die Benachrichtigungs-Mail mit Bestätigen-/Ablehnen-Links.
+// eine reine BENACHRICHTIGUNGS-Mail (KEINE Bestätigen-/Ablehnen-Links mehr).
+// Die Entscheidung trifft der Admin AUSSCHLIESSLICH in der App unter „Obavještenja".
+// Die Mail enthält nur einen „App öffnen"-Link (Deep-Link ?obav=1).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -9,49 +11,50 @@ const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <onboarding@resend.dev>";
+const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 
 // ---------------------------------------------------------------------------
 // Mehrsprachige Texte
 // ---------------------------------------------------------------------------
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    admin_subject: "Neue Zugangsanfrage – Vidović AI",
-    admin_intro: "Eine Person möchte Zugang zum Vidović AI:",
-    lbl_email: "E-Mail", lbl_familie: "Familie", lbl_rolle: "Gewünschte Rolle",
-    btn_ok: "Bestätigen", btn_no: "Ablehnen",
-    admin_hint: "Bei Bestätigung wird ein Zugang angelegt; die Person erhält eine E-Mail zum Passwort-Setzen. Bei Ablehnung wird die Anfrage storniert.",
+    admin_subject: "Neue Anfrage eingegangen – Vidović AI",
+    admin_intro: "Eine neue Zugangsanfrage ist eingegangen. Die Bearbeitung erfolgt in der App unter „Obavještenja":",
+    lbl_email: "E-Mail", lbl_familie: "Familie / Stammbaum", lbl_rolle: "Gewünschte Rolle",
+    btn_app: "App öffnen",
+    admin_hint: "Bitte öffne die App und entscheide unter „Obavještenja" über die Anfrage. Eine Bearbeitung per E-Mail ist nicht mehr möglich.",
     rolle_familien_admin: "Familien-Admin", rolle_familien_mitglied: "Mitglied",
   },
   sr: {
-    admin_subject: "Нови захтев за приступ – Vidović AI",
-    admin_intro: "Особа жели приступ стаблу Видовић:",
-    lbl_email: "Имејл", lbl_familie: "Породица", lbl_rolle: "Жељена улога",
-    btn_ok: "Потврди", btn_no: "Одбиј",
-    admin_hint: "Након потврде се креира налог; особа добија имејл за постављање лозинке. Након одбијања захтев се поништава.",
+    admin_subject: "Нови захтев је стигао – Vidović AI",
+    admin_intro: "Стигао је нови захтев за приступ. Обрада се врши у апликацији у одељку „Обавјештења":",
+    lbl_email: "Имејл", lbl_familie: "Породица / стабло", lbl_rolle: "Жељена улога",
+    btn_app: "Отвори апликацију",
+    admin_hint: "Отвори апликацију и одлучи о захтеву у одељку „Обавјештења". Обрада путем имејла више није могућа.",
     rolle_familien_admin: "Админ породице", rolle_familien_mitglied: "Члан",
   },
   hr: {
-    admin_subject: "Novi zahtjev za pristup – Vidović AI",
-    admin_intro: "Osoba želi pristup stablu Vidović:",
-    lbl_email: "E-mail", lbl_familie: "Obitelj", lbl_rolle: "Željena uloga",
-    btn_ok: "Potvrdi", btn_no: "Odbij",
-    admin_hint: "Nakon potvrde kreira se pristup; osoba dobiva e-mail za postavljanje lozinke. Nakon odbijanja zahtjev se poništava.",
+    admin_subject: "Stigao je novi zahtjev – Vidović AI",
+    admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja":",
+    lbl_email: "E-mail", lbl_familie: "Obitelj / stablo", lbl_rolle: "Željena uloga",
+    btn_app: "Otvori aplikaciju",
+    admin_hint: "Otvori aplikaciju i odluči o zahtjevu u dijelu „Obavještenja". Obrada putem e-maila više nije moguća.",
     rolle_familien_admin: "Admin obitelji", rolle_familien_mitglied: "Član",
   },
   ba: {
-    admin_subject: "Novi zahtjev za pristup – Vidović AI",
-    admin_intro: "Osoba želi pristup stablu Vidović:",
-    lbl_email: "E-mail", lbl_familie: "Porodica", lbl_rolle: "Željena uloga",
-    btn_ok: "Potvrdi", btn_no: "Odbij",
-    admin_hint: "Nakon potvrde kreira se pristup; osoba dobiva e-mail za postavljanje lozinke. Nakon odbijanja zahtjev se poništava.",
+    admin_subject: "Stigao je novi zahtjev – Vidović AI",
+    admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja":",
+    lbl_email: "E-mail", lbl_familie: "Porodica / stablo", lbl_rolle: "Željena uloga",
+    btn_app: "Otvori aplikaciju",
+    admin_hint: "Otvori aplikaciju i odluči o zahtjevu u dijelu „Obavještenja". Obrada putem e-maila više nije moguća.",
     rolle_familien_admin: "Admin porodice", rolle_familien_mitglied: "Član",
   },
   en: {
-    admin_subject: "New access request – Vidović AI",
-    admin_intro: "Someone is requesting access to the Vidović family tree:",
-    lbl_email: "Email", lbl_familie: "Family", lbl_rolle: "Requested role",
-    btn_ok: "Approve", btn_no: "Reject",
-    admin_hint: "On approval an account is created and the person receives an email to set their password. On rejection the request is cancelled.",
+    admin_subject: "New request received – Vidović AI",
+    admin_intro: "A new access request has arrived. It is handled in the app under „Obavještenja":",
+    lbl_email: "Email", lbl_familie: "Family / tree", lbl_rolle: "Requested role",
+    btn_app: "Open app",
+    admin_hint: "Please open the app and decide on the request under „Obavještenja". Handling via email is no longer possible.",
     rolle_familien_admin: "Family admin", rolle_familien_mitglied: "Member",
   },
 };
@@ -118,9 +121,8 @@ Deno.serve(async (req) => {
     const testEmail = Deno.env.get("TEST_EMAIL");
     const to = testEmail ? [testEmail] : empfaenger;
 
-    const base  = `${SUPABASE_URL}/functions/v1/anfrage-entscheiden?token=${a.token}`;
-    const okUrl = `${base}&aktion=bestaetigen`;
-    const noUrl = `${base}&aktion=ablehnen`;
+    // Deep-Link in die App: öffnet nach (ggf.) Login direkt die Obavještenja-Liste.
+    const appUrl = APP_URL + (APP_URL.includes("?") ? "&" : "?") + "obav=1";
     const sprache = a.sprache ?? "de";
 
     const person = [
@@ -145,10 +147,8 @@ Deno.serve(async (req) => {
       <p>${esc(T(sprache, "admin_intro"))}</p>
       <table style="font-size:14px;border-collapse:collapse;margin:10px 0 18px;">${person}</table>
       <div style="text-align:center;margin:24px 0;">
-        <a href="${okUrl}" style="display:inline-block;background:#2e7d32;color:#fff;
-          text-decoration:none;padding:12px 26px;border-radius:8px;margin:4px;">${esc(T(sprache, "btn_ok"))}</a>
-        <a href="${noUrl}" style="display:inline-block;background:#9b2226;color:#fff;
-          text-decoration:none;padding:12px 26px;border-radius:8px;margin:4px;">${esc(T(sprache, "btn_no"))}</a>
+        <a href="${appUrl}" style="display:inline-block;background:#7a2a2a;color:#fff;
+          text-decoration:none;padding:12px 26px;border-radius:8px;margin:4px;">${esc(T(sprache, "btn_app"))}</a>
       </div>
       <p style="font-size:13px;color:#8a7a5a;">${esc(T(sprache, "admin_hint"))}</p>`;
 

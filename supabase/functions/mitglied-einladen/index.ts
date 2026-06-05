@@ -83,6 +83,15 @@ const jsonResp = (obj: unknown, status = 200) =>
     status, headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// Zentrale E-Mail-Format-Prüfung (identisch zur Frontend-Regel isValidEmail)
+function isValidEmail(email: string): boolean {
+  const e = (email ?? "").trim();
+  if (!e || /\s/.test(e)) return false;
+  if ((e.match(/@/g) || []).length !== 1) return false;
+  if (e.includes("..")) return false;
+  return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(e);
+}
+
 async function sendMail(to: string, subject: string, html: string) {
   const empfaenger = Deno.env.get("TEST_EMAIL") || to;
   const r = await fetch("https://api.resend.com/emails", {
@@ -108,6 +117,7 @@ Deno.serve(async (req) => {
     const sprache    = String(payload?.sprache ?? "de");
 
     if (!email || !familie_id) return jsonResp({ error: "E-Mail und Familie sind erforderlich." }, 400);
+    if (!isValidEmail(email)) return jsonResp({ error: "Ungültige E-Mail-Adresse.", code: "email_invalid" }, 400);
     if (!ERLAUBTE_ROLLEN.includes(rolle)) return jsonResp({ error: "Unzulässige Rolle." }, 400);
 
     // 1) Aufrufer authentifizieren und Berechtigung prüfen (im Kontext seines JWT)
