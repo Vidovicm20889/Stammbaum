@@ -107,6 +107,24 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   `merge_norm`), DB-Datei `supabase_stammbaum_zweig_heirat.sql`. **Bewusste v1-Grenze:** NACH dem
   Anlegen ergänzte Nachkommen werden (noch) nicht automatisch nachgespiegelt — Ausbauschritt wäre
   ein Sync-Trigger auf `beziehungen`.
+- **Auto-Löschung leerer Stammbäume (kontoschonend, Owner/Super-Admin):** Sinkt ein Baum durch
+  Löschen auf **0 Personen** (`personen` mit dieser `stammbaum_id` = 0), wird er automatisch
+  entfernt — aber **kontoschonend**: nur die `stammbaeume`-Zeile (inkl. `einstellungen`-jsonb) +
+  baum-eigene `beziehungen`; Events hängen per CASCADE, Event-**Medien** im Storage über die Queue
+  `verwaiste_event_medien` (Frontend `raeumeVerwaisteMedien`). **Familie/Mitgliedschaften/Anfragen
+  bleiben bestehen** — auch beim LETZTEN Baum (tree-loser Nutzer landet auf „Kreiraj novo stablo").
+  **Bewusste Abweichung** zur manuellen `stammbaum_loeschen`, die beim letzten Baum das ganze Konto
+  abräumt: die Auto-Löschung räumt NIE Familie/Konto ab. Das **Löschen der letzten Person** dürfen
+  nur `familien_owner`/`super_admin` (Owner-Exklusivrecht bleibt) — vorher Pflicht-Warnung
+  („… letztes Mitglied → gesamter Stammbaum wird entfernt", i18n in allen 5 Sprachen). Nach Erfolg:
+  Navigation auf zuletzt genutzten Baum → Standard/größten → sonst „Kreiraj novo stablo".
+  Orchestrierung **Frontend + SECURITY-DEFINER-RPCs** (`stammbaum_loesche_wenn_leer` für die
+  Einzel-Löschung, `auto_leere_baeume_aufraeumen` als Sweep für Batch-Quellen) — **kein blinder
+  DB-Trigger** (Storage-Medien sind aus Postgres nicht löschbar; das Bereinigungs-Tool verbietet
+  Auto-Trigger). **Schutzregel:** läuft NICHT, solange eine `wartungs_sperren`-Zeile aktiv ist
+  (Merge/Restore/Migration/Bereinigung/Massenlöschung/Import) — Batch-Tools umklammern ihre Mutation
+  mit `wartung_start`/`wartung_ende`. Audit in `familien_audit` (`aktion='auto_leer_geloescht'`:
+  Baum-ID, Name, Personen-vorher, Nutzer, Datum, Grund). DB-Datei `supabase_stammbaum_auto_leer.sql`.
 - Familien-Isolation: jede Familie sieht nur eigene Daten (verbundweit), außer Super-Admin.
 - Datenmodell: `familien` = Konto/Mandant; `stammbaeume` = Bäume (familie_id); `personen`/
   `beziehungen` referenzieren `stammbaum_id`/`familie_id`. Rollen liegen in `mitgliedschaften`

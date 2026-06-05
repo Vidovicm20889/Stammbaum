@@ -211,10 +211,12 @@ DECLARE
   v_fam_b uuid; v_fam_d uuid; v_user_b uuid; v_user_d uuid;
   v_sd_b jsonb; v_sd_d jsonb; v_merged jsonb;
   v_pers jsonb; v_kanten jsonb; v_vb_b uuid; v_vb_d uuid;
+  v_tree_d uuid; v_rest_d int;
 BEGIN
   IF p_behalten IS NULL OR p_dublette IS NULL OR p_behalten = p_dublette THEN RETURN p_behalten; END IF;
   SELECT familie_id, user_id, stammbaum_daten INTO v_fam_b, v_user_b, v_sd_b FROM public.personen WHERE id = p_behalten;
-  SELECT familie_id, user_id, stammbaum_daten INTO v_fam_d, v_user_d, v_sd_d FROM public.personen WHERE id = p_dublette;
+  SELECT familie_id, user_id, stammbaum_daten, stammbaum_id
+    INTO v_fam_d, v_user_d, v_sd_d, v_tree_d FROM public.personen WHERE id = p_dublette;
   IF v_fam_b IS NULL OR v_fam_d IS NULL THEN RAISE EXCEPTION 'Person(en) nicht gefunden.'; END IF;
   p_aufloesung := coalesce(p_aufloesung, '{}'::jsonb);
 
@@ -258,6 +260,16 @@ BEGIN
 
   -- 5) redundante Kopie löschen
   DELETE FROM public.personen WHERE id = p_dublette;
+
+  -- 5b) Wird der Quellbaum der Dublette dadurch leer (letzte Person gemergt),
+  --     auto-löschen (kontoschonend, mit Audit + Storage-Queue). Nur wenn der
+  --     Quellbaum NICHT der Behalten-Baum ist. Siehe supabase_stammbaum_auto_leer.sql.
+  IF v_tree_d IS NOT NULL THEN
+    SELECT count(*) INTO v_rest_d FROM public.personen WHERE stammbaum_id = v_tree_d;
+    IF coalesce(v_rest_d,0) = 0 THEN
+      PERFORM public._baum_auto_loeschen(v_tree_d, 'merge_leer');
+    END IF;
+  END IF;
 
   -- 6) beide Familien in denselben Verbund (Navigation zwischen Bäumen erhalten)
   IF v_fam_b <> v_fam_d THEN
@@ -397,8 +409,10 @@ BEGIN
     UPDATE public.events SET stammbaum_id = p_ziel WHERE stammbaum_id = p_quelle;
   EXCEPTION WHEN undefined_table THEN NULL; WHEN undefined_column THEN NULL; END;
 
-  -- leeren Quell-Baum löschen
-  DELETE FROM public.stammbaeume WHERE id = p_quelle;
+  -- leeren Quell-Baum löschen — über die auditierte Auto-Löschung
+  -- (Events wurden oben auf den Ziel-Baum umgehängt -> keine Storage-Waisen).
+  -- Siehe supabase_stammbaum_auto_leer.sql.
+  PERFORM public._baum_auto_loeschen(p_quelle, 'merge_zusammenfuehrung');
   RETURN v_anz;
 END $$;
 GRANT EXECUTE ON FUNCTION public.stammbaeume_zusammenfuehren(uuid, uuid) TO authenticated;

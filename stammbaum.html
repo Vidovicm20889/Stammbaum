@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="8.0">
+<meta name="app-version" content="8.3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -491,6 +491,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   background: var(--akzent); color: var(--paper);
 }
 .confirm-ja:hover { background: var(--akzent-hell); }
+.confirm-gefahr { background: #7a1f1f; color: #f3e6d8; }
+.confirm-gefahr:hover { background: #962626; }
 .confirm-nein {
   background: transparent; color: var(--ink); border: 1px solid var(--linie) !important;
 }
@@ -905,7 +907,6 @@ footer {
     </div>
     <input type="text" class="suche" id="suche" data-i18n-placeholder="suche_placeholder">
     <select class="filter" id="tree-select" title="Stammbaum wählen" onchange="waehleStammbaum(this.value)"></select>
-    <select class="filter" id="filter-nachname"></select>
 
     <!-- Sprach-Dropdown — direkt in der Leiste -->
     <div class="sprach-dropdown" id="sprach-dropdown">
@@ -1044,7 +1045,7 @@ footer {
       <label class="login-label reg-feld-voll"><span data-i18n="reg_baum_name"></span> *
         <input type="text" id="reg-baum-name" class="login-feld" oninput="pruefeBaumMatchDebounced()"></label>
       <label class="login-label"><span data-i18n="reg_land"></span> *
-        <select id="reg-land" class="login-feld" onchange="pruefeBaumMatchDebounced()"></select></label>
+        <select id="reg-land" class="login-feld land-select" onchange="pruefeBaumMatchDebounced()"></select></label>
       <label class="login-label"><span data-i18n="reg_stadt"></span> *
         <input type="text" id="reg-stadt" class="login-feld" oninput="pruefeBaumMatchDebounced()"></label>
       <label class="login-label"><span data-i18n="reg_gemeinde"></span> *
@@ -1090,7 +1091,7 @@ footer {
         <input type="text" id="reg-geburtsort" class="login-feld">
       </label>
       <label class="login-label"><span data-i18n="reg_geburtsland"></span>
-        <input type="text" id="reg-geburtsland" class="login-feld">
+        <select id="reg-geburtsland" class="login-feld land-select"></select>
       </label>
       <label class="login-label"><span data-i18n="reg_getauft"></span>
         <input type="text" id="reg-getauft" class="login-feld dp-input">
@@ -1178,7 +1179,7 @@ footer {
       <label class="login-label"><span data-i18n="reg_geburtsort"></span>
         <input type="text" id="pe-geburtsort" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_geburtsland"></span>
-        <input type="text" id="pe-geburtsland" class="login-feld"></label>
+        <select id="pe-geburtsland" class="login-feld land-select"></select></label>
       <label class="login-label"><span data-i18n="fe_grad"></span>
         <input type="text" id="pe-stadt" class="login-feld"></label>
       <label class="login-label"><span data-i18n="fe_opstina"></span>
@@ -1221,7 +1222,7 @@ footer {
     <div class="reg-gruppe-titel" data-i18n="pe_g_wohnen"></div>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="pe_wohnland"></span>
-        <input type="text" id="pe-wohnland" class="login-feld"></label>
+        <select id="pe-wohnland" class="login-feld land-select"></select></label>
       <label class="login-label"><span data-i18n="pe_wohnstadt"></span>
         <input type="text" id="pe-wohnstadt" class="login-feld"></label>
       <label class="login-label reg-feld-voll"><span data-i18n="pe_adresse"></span>
@@ -1292,7 +1293,7 @@ footer {
       <label class="login-label"><span data-i18n="reg_geburtsort"></span>
         <input type="text" id="pa-geburtsort" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_geburtsland"></span>
-        <input type="text" id="pa-geburtsland" class="login-feld"></label>
+        <select id="pa-geburtsland" class="login-feld land-select"></select></label>
       <label class="login-label"><span data-i18n="fe_grad"></span>
         <input type="text" id="pa-stadt" class="login-feld"></label>
       <label class="login-label"><span data-i18n="fe_opstina"></span>
@@ -1341,7 +1342,7 @@ footer {
     <div class="reg-gruppe-titel" data-i18n="pe_g_wohnen"></div>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="pe_wohnland"></span>
-        <input type="text" id="pa-wohnland" class="login-feld"></label>
+        <select id="pa-wohnland" class="login-feld land-select"></select></label>
       <label class="login-label"><span data-i18n="pe_wohnstadt"></span>
         <input type="text" id="pa-wohnstadt" class="login-feld"></label>
       <label class="login-label reg-feld-voll"><span data-i18n="pe_adresse"></span>
@@ -1435,7 +1436,7 @@ footer {
         <label class="login-label reg-feld-voll"><span data-i18n="fe_opis"></span>
           <textarea id="fe-opis" class="login-feld" rows="3"></textarea></label>
         <label class="login-label"><span data-i18n="fe_drzava"></span> *
-          <select id="fe-land" class="login-feld"></select></label>
+          <select id="fe-land" class="login-feld land-select"></select></label>
         <label class="login-label"><span data-i18n="fe_region"></span>
           <input type="text" id="fe-region" class="login-feld"></label>
         <label class="login-label"><span data-i18n="fe_opstina"></span> *
@@ -1735,6 +1736,20 @@ footer {
       </div>
       <div id="gp-modal-fehler" class="login-fehler"></div>
       <div id="gp-dubletten" style="margin-top:16px"></div>
+
+      <!-- Manuelle Auswahl: beliebige Karte je Baum wählen (auch ohne Auto-Treffer) -->
+      <div id="gp-manuell" style="margin-top:18px;display:none">
+        <div class="reg-gruppe-titel" data-i18n="gp_manuell_titel"></div>
+        <p class="mv-legende" data-i18n="gp_manuell_intro"></p>
+        <p class="mv-legende" id="gp-merge-hinweis" data-i18n="gp_merge_hinweis" style="display:none;color:#b08d57"></p>
+        <div class="reg-grid">
+          <label class="login-label"><span data-i18n="gp_person_a"></span>
+            <select id="gp-person-a" class="login-feld"></select></label>
+          <label class="login-label"><span data-i18n="gp_person_b"></span>
+            <select id="gp-person-b" class="login-feld"></select></label>
+        </div>
+        <button class="login-submit" type="button" style="margin-top:10px" data-i18n="gp_manuell_weiter" onclick="gpManuellWeiter()"></button>
+      </div>
     </div>
 
     <!-- Schritt 2: Konfliktauflösung (analog Baum zusammenlegen) -->
@@ -2057,14 +2072,12 @@ function aktualisiereInhaltSichtbarkeit() {
   const hinweis    = document.getElementById('login-hinweis');
   const tabGruppe  = document.querySelector('.tab-gruppe');
   const suche      = document.getElementById('suche');
-  const filter     = document.getElementById('filter-nachname');
   const treeSel    = document.getElementById('tree-select');
 
   if (eingeloggt) {
     if (hinweis)   hinweis.style.display   = 'none';
     if (tabGruppe) tabGruppe.style.display = '';
     if (suche)     suche.style.display     = '';
-    if (filter)    filter.style.display    = '';
     if (treeSel)   treeSel.style.display   = treeSel.options.length ? '' : 'none';
     wechselAnsicht(aktuelleAnsicht || 'baum');   // aktuelle Ansicht wieder einblenden
   } else {
@@ -2073,7 +2086,6 @@ function aktualisiereInhaltSichtbarkeit() {
     });
     if (tabGruppe) tabGruppe.style.display = 'none';
     if (suche)     suche.style.display     = 'none';
-    if (filter)    filter.style.display    = 'none';
     if (treeSel)   treeSel.style.display   = 'none';
     if (hinweis)   hinweis.style.display   = 'block';
   }
@@ -2857,7 +2869,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   const e = d.einstellungen || {};
   document.getElementById('fe-name').value     = d.name     || '';
   document.getElementById('fe-opis').value     = d.opis     || '';
-  document.getElementById('fe-land').value      = d.land     || '';
+  setLandSelect('fe-land', d.land);
   document.getElementById('fe-stadt').value     = d.stadt    || '';
   document.getElementById('fe-gemeinde').value  = d.gemeinde || '';
   Object.entries(FE_EINST_FELDER).forEach(([key, id]) => {
@@ -2983,6 +2995,9 @@ async function berAnwenden(i) {
     await zeigeHinweis(t('reg_fehler') + error.message); return;
   }
   await zeigeHinweis(t('ber_erfolg', { n: (data && data.zugeordnete_personen) || g.anzahl || 0 }));
+  // Datenbereinigung als Auslöser: evtl. leer gewordene Bäume aufräumen (Super-Admin-Sweep) + Storage
+  try { await sbClient.rpc('auto_leere_baeume_aufraeumen'); } catch (e) {}
+  await raeumeVerwaisteMedien();
   if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();   // Baum-Dropdown/Ansicht aktualisieren
   await ladeBereinigung();   // Diagnose neu laden (Vorschlag verschwindet)
 }
@@ -3530,12 +3545,16 @@ const MG_FELDER = {
 };
 const MG_DATUM = ['birth_date','death_date','getauft','hochzeit_standesamt','hochzeit_kirchlich'];
 function mgFeldLabel(f){ return t(MG_FELDER[f] || f).replace(/[:*]\s*$/,'').trim(); }
+const MG_LAND = ['geburtsland','wohnort_land','land'];
 function mgWertAnzeige(f, wert){
   if (!wert) return '—';
-  return MG_DATUM.includes(f) ? (formatDatumLang(wert) || wert) : wert;
+  if (MG_DATUM.includes(f)) return formatDatumLang(wert) || wert;
+  if (MG_LAND.includes(f))  return landAnzeige(wert) || wert;
+  return wert;
 }
 function mgRohName(a, b){ return ((a||'') + ' ' + (b||'')).trim(); }
 
+let mgWartungId = null;   // aktiver Wartungs-Lock während des Merges (siehe supabase_stammbaum_auto_leer.sql)
 async function zeigeMergeModal(){
   if (!istSuperAdmin()) return;
   const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
@@ -3546,9 +3565,18 @@ async function zeigeMergeModal(){
   });
   mgZeigeSchritt(1);
   document.getElementById('merge-modal').classList.add('aktiv');
+  // Wartungs-Lock setzen: solange der Merge läuft, dürfen parallele Personen-
+  // Löschungen keine (dann evtl. leeren) Bäume auto-entfernen.
+  try {
+    const { data } = await sbClient.rpc('wartung_start', { p_art: 'merge', p_global: true, p_notiz: 'Merge-GUI' });
+    mgWartungId = data || null;
+  } catch (e) { mgWartungId = null; }
   mgFuelleBaeume();   // erst nach dem Einblenden (suchbare Dropdowns korrekt positionieren)
 }
-function schliesseMergeModal(){ document.getElementById('merge-modal').classList.remove('aktiv'); }
+function schliesseMergeModal(){
+  document.getElementById('merge-modal').classList.remove('aktiv');
+  if (mgWartungId) { const id = mgWartungId; mgWartungId = null; sbClient.rpc('wartung_ende', { p_id: id }).catch(() => {}); }
+}
 function mgZeigeSchritt(n){
   [1,2,3,4].forEach(i => { document.getElementById('merge-step'+i).style.display = (i===n) ? '' : 'none'; });
 }
@@ -3593,14 +3621,22 @@ async function mgPruefen(){
   const ba = document.getElementById('mg-baum-a').value, bb = document.getElementById('mg-baum-b').value;
   const pa = document.getElementById('mg-person-a').value, pb = document.getElementById('mg-person-b').value;
   if (!ba || !bb || !pa || !pb){ fehler.textContent = t('merge_baeume_waehlen'); fehler.style.display = 'block'; return; }
-  if (ba === bb){ fehler.textContent = t('merge_gleicher_baum'); fehler.style.display = 'block'; return; }
+  if (pa === pb){ fehler.textContent = t('merge_gleiche_karte'); fehler.style.display = 'block'; return; }   // Karte nicht mit sich selbst mergen
 
   mgBaumA = ba; mgBaumB = bb;
   mgBaumAName = stammbaeumeListe[ba] || ''; mgBaumBName = stammbaeumeListe[bb] || '';
 
-  const { data, error } = await sbClient.rpc('dubletten_scan', { p_baum_a: ba, p_baum_b: bb });
-  if (error){ fehler.textContent = t('merge_fehler') + error.message; fehler.style.display = 'block'; return; }
-  mgScanPaare = data || [];
+  // Auto-Dublettensuche nur ÜBER ZWEI verschiedene Bäume. Bei Merge INNERHALB eines
+  // Baums (gleicher Baum links+rechts) nur das explizit gewählte Paar verwenden
+  // (ein Selbst-Scan eines Baums liefert nur Rauschen). person_merge_aufgeloest ist
+  // baum-unabhängig; Schritt 4 (Baum-Konsolidierung) erscheint ohnehin nur bei A≠B.
+  if (ba !== bb){
+    const { data, error } = await sbClient.rpc('dubletten_scan', { p_baum_a: ba, p_baum_b: bb });
+    if (error){ fehler.textContent = t('merge_fehler') + error.message; fehler.style.display = 'block'; return; }
+    mgScanPaare = data || [];
+  } else {
+    mgScanPaare = [];
+  }
 
   // Rohnamen des explizit gewählten A/B-Paares holen (für saubere nm()-Anzeige)
   const { data: fixP } = await sbClient.from('personen').select('id, vorname, nachname').in('id', [pa, pb]);
@@ -3783,6 +3819,7 @@ async function mgMergeAktuelles(){
 async function mgFertig(){
   mgZeigeSchritt(0);   // Schritte 1–3 ausblenden
   if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  await raeumeVerwaisteMedien();   // ggf. durch Merge leer gewordene Bäume -> Event-Medien abräumen
   // Personen sind zusammengeführt. Optional: die beiden (evtl. doppelten) Stammbäume zu einem machen.
   if (mgBaumA && mgBaumB && mgBaumA !== mgBaumB && stammbaeumeListe[mgBaumA] && stammbaeumeListe[mgBaumB]){
     mgRenderTreeMerge();
@@ -3810,6 +3847,7 @@ async function mgTreeMerge(zielSeite){
   const { error } = await sbClient.rpc('stammbaeume_zusammenfuehren', { p_quelle: quelle, p_ziel: ziel });
   if (error){ fehler.textContent = t('merge_fehler') + error.message; fehler.style.display = 'block'; return; }
   if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  await raeumeVerwaisteMedien();   // der gelöschte Quell-Baum kann Event-Medien hinterlassen haben
   mgErfolgUndZu(t('merge_tree_fertig'));
 }
 function mgTreeNein(){ mgErfolgUndZu(t('merge_fertig')); }
@@ -3903,7 +3941,7 @@ function zeigeRegistrierModal() {
   document.getElementById('reg-erfolg').style.display = 'none';
   document.getElementById('reg-familie').value = '';      // noch kein Treffer
   document.getElementById('reg-baum-name').value = '';
-  fuelleLandSelect();                    // Länder-Dropdown in aktueller Sprache füllen
+  fuelleLandSelects(document.getElementById('registrier-modal'));   // Land + Geburtsland (zentrale Komponente)
   aktualisiereRegMatchUI(null);          // Match-Block aus, Button = "Konto anlegen"
   setTimeout(() => document.getElementById('reg-email').focus(), 50);
 }
@@ -4357,7 +4395,7 @@ const TEXTE = {
     zweig_erstellt: 'Neuer Stammbaum «{name}» wurde angelegt. Du findest ihn im Stammbaum-Auswahlmenü.',
     zweig_existiert: 'Ein Stammbaum mit diesem Nachnamen existiert bereits.',
     merge_titel: 'Bäume verbinden (Dubletten)',
-    merge_intro: 'Zwei Personen wählen, die dieselbe reale Person sind. Danach prüft das System automatisch auf weitere Dubletten über beide Bäume.',
+    merge_intro: 'Zwei Karten derselben realen Person wählen — aus zwei Bäumen ODER innerhalb desselben Baums (Dublette). Bei zwei verschiedenen Bäumen prüft das System zusätzlich automatisch auf weitere Dubletten.',
     merge_baum_a: 'Stammbaum 1', merge_baum_b: 'Stammbaum 2',
     merge_person_a: 'Person aus Baum 1', merge_person_b: 'Person aus Baum 2',
     merge_pruefen: 'Dubletten prüfen',
@@ -4378,8 +4416,9 @@ const TEXTE = {
     merge_fertig: 'Zusammenführung abgeschlossen.',
     merge_fehler: 'Fehler: ',
     merge_keine_auswahl: 'Bitte mindestens ein Paar auswählen.',
-    merge_baeume_waehlen: 'Bitte zwei Personen aus zwei Bäumen wählen.',
+    merge_baeume_waehlen: 'Bitte in beiden Spalten Baum und Person wählen.',
     merge_gleicher_baum: 'Bitte zwei verschiedene Stammbäume wählen.',
+    merge_gleiche_karte: 'Bitte zwei verschiedene Karten wählen.',
     merge_step2_hilfe: 'Angehakte Paare werden im nächsten Schritt zusammengeführt: Die unvollständigere Karte wird gelöscht, ihre Daten, Beziehungen und Verknüpfungen wandern in die bleibende Karte. Prüfe Baum, Geburtsdatum, Eltern und Partner, ob es wirklich dieselbe Person ist.',
     merge_info_baum: 'Baum', merge_info_eltern: 'Eltern', merge_info_partner: 'Partner', merge_info_kinder: 'Kinder',
     merge_tree_titel: 'Stammbäume zusammenführen?',
@@ -4425,6 +4464,14 @@ const TEXTE = {
     gp_alle_verknuepfen: 'Ausgewählte verknüpfen',
     gp_einzeln: 'Einzeln',
     gp_keine_dubletten: 'Keine Dubletten zwischen diesen Bäumen gefunden.',
+    gp_manuell_titel: 'Personen manuell wählen',
+    gp_manuell_intro: 'Wird oben keine Dublette automatisch erkannt (z. B. unterschiedliche Vornamen), hier in jedem Baum die passende Karte wählen und verknüpfen.',
+    gp_merge_hinweis: 'Gleicher Baum links und rechts: Die zwei Karten werden zu EINER zusammengeführt (Dublette wird entfernt, Beziehungen bleiben erhalten).',
+    gp_person_a: 'Person im 1. Baum',
+    gp_person_b: 'Person im 2. Baum',
+    gp_manuell_weiter: 'Weiter',
+    gp_personen_waehlen: 'Bitte in beiden Bäumen eine Person wählen.',
+    gp_gleiche_karte: 'Bitte zwei unterschiedliche Karten wählen.',
     untertitel: 'Stammbaum',
     stats: '{p} PERSONEN · {f} FAMILIEN',
     stats_baum: '{p} PERSONEN',
@@ -4432,8 +4479,6 @@ const TEXTE = {
     tab_shorts: 'Events',
     tab_baum: 'Stammbaum',
     suche_placeholder: 'Nach Namen suchen...',
-    filter_alle: 'Alle Familienzweige',
-    filter_unbekannt: '(unbekannt)',
     upload_btn: 'GEDCOM laden',
     shorts_titel: 'Familien-Events',
     event_single_title: 'Familien-Event:',
@@ -4481,6 +4526,12 @@ const TEXTE = {
     pa_kein_kontext: 'Bezugsperson nicht gefunden.',
     pa_loeschen_frage: 'Möchtest du diese Person wirklich löschen? Alle ihre Beziehungen werden ebenfalls entfernt.',
     pa_geloescht: 'Person gelöscht.',
+    abbrechen: 'Abbrechen',
+    auto_leer_nur_owner: 'Nur der Eigentümer (familien_owner) oder ein Super-Admin kann den letzten Eintrag und damit den ganzen Stammbaum entfernen.',
+    auto_leer_warnung: 'Achtung\n\nSie sind dabei, das letzte Familienmitglied dieses Stammbaums zu löschen.\n\nDadurch wird der gesamte Stammbaum dauerhaft entfernt. Ihr Konto bleibt bestehen.\n\nDieser Vorgang kann nicht rückgängig gemacht werden.',
+    auto_leer_ja: 'Stammbaum und letztes Mitglied löschen',
+    auto_leer_erfolg: 'Der Stammbaum wurde gelöscht, da keine Familienmitglieder mehr vorhanden waren.',
+    auto_leer_wartung: 'Die Person wurde gelöscht. Der leere Stammbaum kann gerade nicht entfernt werden (laufende Wartung) – das geschieht automatisch später.',
     pe_sterbedatum: 'Sterbedatum',
     pe_hochzeit_standesamt: 'Hochzeitstag (standesamtlich)',
     pe_hochzeit_kirchlich: 'Hochzeitstag (kirchlich)',
@@ -4804,7 +4855,7 @@ const TEXTE = {
     zweig_erstellt: 'Ново стабло «{name}» је направљено. Налази се у менију за избор стабла.',
     zweig_existiert: 'Стабло са овим презименом већ постоји.',
     merge_titel: 'Спајање стабала (дупликати)',
-    merge_intro: 'Изаберите две особе које су иста стварна особа. Систем затим аутоматски проверава додатне дупликате у оба стабла.',
+    merge_intro: 'Изаберите две картице исте стварне особе — из два стабла ИЛИ унутар истог стабла (дупликат). Код два различита стабла систем додатно аутоматски проверава друге дупликате.',
     merge_baum_a: 'Стабло 1', merge_baum_b: 'Стабло 2',
     merge_person_a: 'Особа из стабла 1', merge_person_b: 'Особа из стабла 2',
     merge_pruefen: 'Провери дупликате',
@@ -4825,8 +4876,9 @@ const TEXTE = {
     merge_fertig: 'Спајање завршено.',
     merge_fehler: 'Грешка: ',
     merge_keine_auswahl: 'Изаберите бар један пар.',
-    merge_baeume_waehlen: 'Изаберите две особе из два стабла.',
+    merge_baeume_waehlen: 'Изаберите стабло и особу у обе колоне.',
     merge_gleicher_baum: 'Изаберите два различита стабла.',
+    merge_gleiche_karte: 'Изаберите две различите картице.',
     merge_step2_hilfe: 'Означени парови ће у следећем кораку бити спојени: непотпунија картица се брише, њени подаци, везе и налози прелазе на картицу која остаје. Проверите стабло, датум рођења, родитеље и партнера да ли је заиста иста особа.',
     merge_info_baum: 'Стабло', merge_info_eltern: 'Родитељи', merge_info_partner: 'Партнер', merge_info_kinder: 'Деца',
     merge_tree_titel: 'Спојити стабла?',
@@ -4872,6 +4924,14 @@ const TEXTE = {
     gp_alle_verknuepfen: 'Повежи изабране',
     gp_einzeln: 'Појединачно',
     gp_keine_dubletten: 'Нема дупликата између ова два стабла.',
+    gp_manuell_titel: 'Ручни избор особа',
+    gp_manuell_intro: 'Ако горе није аутоматски пронађен дупликат (нпр. различита имена), овде у сваком стаблу изаберите одговарајућу картицу и повежите.',
+    gp_merge_hinweis: 'Исто стабло лево и десно: две картице се спајају у ЈЕДНУ (дупликат се уклања, везе остају).',
+    gp_person_a: 'Особа у 1. стаблу',
+    gp_person_b: 'Особа у 2. стаблу',
+    gp_manuell_weiter: 'Даље',
+    gp_personen_waehlen: 'Изаберите особу у оба стабла.',
+    gp_gleiche_karte: 'Изаберите две различите картице.',
     untertitel: 'Породично стабло',
     stats: '{p} ОСОБА · {f} ПОРОДИЦА',
     stats_baum: '{p} ОСОБА',
@@ -4879,8 +4939,6 @@ const TEXTE = {
     tab_shorts: 'Догађаји',
     tab_baum: 'Стабло',
     suche_placeholder: 'Претражи по имену...',
-    filter_alle: 'Све породичне гране',
-    filter_unbekannt: '(непознато)',
     upload_btn: 'Учитај GEDCOM',
     shorts_titel: 'Породични догађаји',
     event_single_title: 'Породични догађај:',
@@ -4928,6 +4986,12 @@ const TEXTE = {
     pa_kein_kontext: 'Референтна особа није пронађена.',
     pa_loeschen_frage: 'Да ли заиста желиш да обришеш ову особу? Сви њени односи ће такође бити уклоњени.',
     pa_geloescht: 'Особа обрисана.',
+    abbrechen: 'Откажи',
+    auto_leer_nur_owner: 'Само власник (familien_owner) или супер-админ може уклонити последњи унос и тиме цело стабло.',
+    auto_leer_warnung: 'Пажња\n\nУправо бришете последњег члана породице овог стабла.\n\nТиме се цело стабло трајно уклања. Ваш налог остаје.\n\nОва радња се не може поништити.',
+    auto_leer_ja: 'Обриши стабло и последњег члана',
+    auto_leer_erfolg: 'Стабло је обрисано јер више нема чланова породице.',
+    auto_leer_wartung: 'Особа је обрисана. Празно стабло тренутно не може бити уклоњено (у току је одржавање) – то ће се догодити аутоматски касније.',
     pe_sterbedatum: 'Датум смрти',
     pe_hochzeit_standesamt: 'Венчање (грађанско)',
     pe_hochzeit_kirchlich: 'Венчање (црквено)',
@@ -5251,7 +5315,7 @@ const TEXTE = {
     zweig_erstellt: 'Novo stablo «{name}» je izrađeno. Nalazi se u izborniku za odabir stabla.',
     zweig_existiert: 'Stablo s ovim prezimenom već postoji.',
     merge_titel: 'Povezivanje stabala (duplikati)',
-    merge_intro: 'Odaberite dvije osobe koje su ista stvarna osoba. Sustav zatim automatski provjerava dodatne duplikate u oba stabla.',
+    merge_intro: 'Odaberite dvije kartice iste stvarne osobe — iz dva stabla ILI unutar istog stabla (duplikat). Kod dva različita stabla sustav dodatno automatski provjerava druge duplikate.',
     merge_baum_a: 'Stablo 1', merge_baum_b: 'Stablo 2',
     merge_person_a: 'Osoba iz stabla 1', merge_person_b: 'Osoba iz stabla 2',
     merge_pruefen: 'Provjeri duplikate',
@@ -5272,8 +5336,9 @@ const TEXTE = {
     merge_fertig: 'Spajanje završeno.',
     merge_fehler: 'Greška: ',
     merge_keine_auswahl: 'Odaberite barem jedan par.',
-    merge_baeume_waehlen: 'Odaberite dvije osobe iz dva stabla.',
+    merge_baeume_waehlen: 'Odaberite stablo i osobu u oba stupca.',
     merge_gleicher_baum: 'Odaberite dva različita stabla.',
+    merge_gleiche_karte: 'Odaberite dvije različite kartice.',
     merge_step2_hilfe: 'Označeni parovi bit će u sljedećem koraku spojeni: nepotpunija kartica se briše, njezini podaci, veze i računi prelaze na karticu koja ostaje. Provjerite stablo, datum rođenja, roditelje i partnera je li doista ista osoba.',
     merge_info_baum: 'Stablo', merge_info_eltern: 'Roditelji', merge_info_partner: 'Partner', merge_info_kinder: 'Djeca',
     merge_tree_titel: 'Spojiti stabla?',
@@ -5315,10 +5380,18 @@ const TEXTE = {
     gp_modal_intro: 'Odaberite dvije kartice iste stvarne osobe (npr. ista žena u dva stabla). Bit će povezane kao ista osoba, podaci usklađeni i stabla povezana — obje kartice ostaju vidljive.',
     gp_keine_konflikte: 'Nema proturječnih polja — podaci će biti usklađeni.',
     gp_dub_titel: 'Još uvijek dvostruko (za povezivanje):',
+    gp_merge_hinweis: 'Isto stablo lijevo i desno: dvije kartice spajaju se u JEDNU (duplikat se uklanja, veze ostaju).',
     gp_verknuepft_weiter: 'Osobe povezane. Možete povezati još osoba.',
     gp_alle_verknuepfen: 'Poveži odabrane',
     gp_einzeln: 'Pojedinačno',
     gp_keine_dubletten: 'Nema duplikata između ova dva stabla.',
+    gp_manuell_titel: 'Ručni odabir osoba',
+    gp_manuell_intro: 'Ako gore nije automatski pronađen duplikat (npr. različita imena), ovdje u svakom stablu odaberite odgovarajuću karticu i povežite.',
+    gp_person_a: 'Osoba u 1. stablu',
+    gp_person_b: 'Osoba u 2. stablu',
+    gp_manuell_weiter: 'Dalje',
+    gp_personen_waehlen: 'Odaberite osobu u oba stabla.',
+    gp_gleiche_karte: 'Odaberite dvije različite kartice.',
     untertitel: 'Obiteljsko stablo',
     stats: '{p} OSOBA · {f} OBITELJI',
     stats_baum: '{p} OSOBA',
@@ -5326,8 +5399,6 @@ const TEXTE = {
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
     suche_placeholder: 'Pretraži po imenu...',
-    filter_alle: 'Sve obiteljske grane',
-    filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
     shorts_titel: 'Obiteljski događaji',
     event_single_title: 'Obiteljski događaj:',
@@ -5375,6 +5446,12 @@ const TEXTE = {
     pa_kein_kontext: 'Referentna osoba nije pronađena.',
     pa_loeschen_frage: 'Želiš li doista obrisati ovu osobu? Svi njezini odnosi također će biti uklonjeni.',
     pa_geloescht: 'Osoba obrisana.',
+    abbrechen: 'Odustani',
+    auto_leer_nur_owner: 'Samo vlasnik (familien_owner) ili super-administrator može ukloniti zadnji unos i time cijelo stablo.',
+    auto_leer_warnung: 'Pozor\n\nUpravo brišete posljednjeg člana obitelji ovog stabla.\n\nTime se cijelo stablo trajno uklanja. Vaš račun ostaje.\n\nOva se radnja ne može poništiti.',
+    auto_leer_ja: 'Obriši stablo i posljednjeg člana',
+    auto_leer_erfolg: 'Stablo je obrisano jer više nema članova obitelji.',
+    auto_leer_wartung: 'Osoba je obrisana. Prazno se stablo trenutno ne može ukloniti (u tijeku je održavanje) – to će se dogoditi automatski kasnije.',
     pe_sterbedatum: 'Datum smrti',
     pe_hochzeit_standesamt: 'Vjenčanje (građansko)',
     pe_hochzeit_kirchlich: 'Vjenčanje (crkveno)',
@@ -5698,7 +5775,7 @@ const TEXTE = {
     zweig_erstellt: 'Novo stablo «{name}» je napravljeno. Nalazi se u meniju za odabir stabla.',
     zweig_existiert: 'Stablo s ovim prezimenom već postoji.',
     merge_titel: 'Povezivanje stabala (duplikati)',
-    merge_intro: 'Odaberite dvije osobe koje su ista stvarna osoba. Sistem zatim automatski provjerava dodatne duplikate u oba stabla.',
+    merge_intro: 'Odaberite dvije kartice iste stvarne osobe — iz dva stabla ILI unutar istog stabla (duplikat). Kod dva različita stabla sistem dodatno automatski provjerava druge duplikate.',
     merge_baum_a: 'Stablo 1', merge_baum_b: 'Stablo 2',
     merge_person_a: 'Osoba iz stabla 1', merge_person_b: 'Osoba iz stabla 2',
     merge_pruefen: 'Provjeri duplikate',
@@ -5719,8 +5796,9 @@ const TEXTE = {
     merge_fertig: 'Spajanje završeno.',
     merge_fehler: 'Greška: ',
     merge_keine_auswahl: 'Odaberite barem jedan par.',
-    merge_baeume_waehlen: 'Odaberite dvije osobe iz dva stabla.',
+    merge_baeume_waehlen: 'Odaberite stablo i osobu u obje kolone.',
     merge_gleicher_baum: 'Odaberite dva različita stabla.',
+    merge_gleiche_karte: 'Odaberite dvije različite kartice.',
     merge_step2_hilfe: 'Označeni parovi bit će u sljedećem koraku spojeni: nepotpunija kartica se briše, njeni podaci, veze i računi prelaze na karticu koja ostaje. Provjerite stablo, datum rođenja, roditelje i partnera da li je zaista ista osoba.',
     merge_info_baum: 'Stablo', merge_info_eltern: 'Roditelji', merge_info_partner: 'Partner', merge_info_kinder: 'Djeca',
     merge_tree_titel: 'Spojiti stabla?',
@@ -5762,10 +5840,18 @@ const TEXTE = {
     gp_modal_intro: 'Odaberite dvije kartice iste stvarne osobe (npr. ista žena u dva stabla). Bit će povezane kao ista osoba, podaci usklađeni i stabla povezana — obje kartice ostaju vidljive.',
     gp_keine_konflikte: 'Nema protivrječnih polja — podaci će biti usklađeni.',
     gp_dub_titel: 'Još uvijek duplo (za povezivanje):',
+    gp_merge_hinweis: 'Isto stablo lijevo i desno: dvije kartice spajaju se u JEDNU (duplikat se uklanja, veze ostaju).',
     gp_verknuepft_weiter: 'Osobe povezane. Možete povezati još osoba.',
     gp_alle_verknuepfen: 'Poveži odabrane',
     gp_einzeln: 'Pojedinačno',
     gp_keine_dubletten: 'Nema duplikata između ova dva stabla.',
+    gp_manuell_titel: 'Ručni odabir osoba',
+    gp_manuell_intro: 'Ako gore nije automatski pronađen duplikat (npr. različita imena), ovdje u svakom stablu odaberite odgovarajuću karticu i povežite.',
+    gp_person_a: 'Osoba u 1. stablu',
+    gp_person_b: 'Osoba u 2. stablu',
+    gp_manuell_weiter: 'Dalje',
+    gp_personen_waehlen: 'Odaberite osobu u oba stabla.',
+    gp_gleiche_karte: 'Odaberite dvije različite kartice.',
     untertitel: 'Porodično stablo',
     stats: '{p} OSOBA · {f} PORODICA',
     stats_baum: '{p} OSOBA',
@@ -5773,8 +5859,6 @@ const TEXTE = {
     tab_shorts: 'Događaji',
     tab_baum: 'Stablo',
     suche_placeholder: 'Pretraži po imenu...',
-    filter_alle: 'Sve porodične grane',
-    filter_unbekannt: '(nepoznato)',
     upload_btn: 'Učitaj GEDCOM',
     shorts_titel: 'Porodični događaji',
     event_single_title: 'Porodični događaj:',
@@ -5822,6 +5906,12 @@ const TEXTE = {
     pa_kein_kontext: 'Referentna osoba nije pronađena.',
     pa_loeschen_frage: 'Želiš li zaista obrisati ovu osobu? Svi njeni odnosi će također biti uklonjeni.',
     pa_geloescht: 'Osoba obrisana.',
+    abbrechen: 'Odustani',
+    auto_leer_nur_owner: 'Samo vlasnik (familien_owner) ili super-administrator može ukloniti posljednji unos i time cijelo stablo.',
+    auto_leer_warnung: 'Pažnja\n\nUpravo brišete posljednjeg člana porodice ovog stabla.\n\nTime se cijelo stablo trajno uklanja. Vaš nalog ostaje.\n\nOva radnja se ne može poništiti.',
+    auto_leer_ja: 'Obriši stablo i posljednjeg člana',
+    auto_leer_erfolg: 'Stablo je obrisano jer više nema članova porodice.',
+    auto_leer_wartung: 'Osoba je obrisana. Prazno stablo se trenutno ne može ukloniti (u toku je održavanje) – to će se dogoditi automatski kasnije.',
     pe_sterbedatum: 'Datum smrti',
     pe_hochzeit_standesamt: 'Vjenčanje (građansko)',
     pe_hochzeit_kirchlich: 'Vjenčanje (crkveno)',
@@ -6145,7 +6235,7 @@ const TEXTE = {
     zweig_erstellt: 'New family tree “{name}” has been created. You can find it in the tree selection menu.',
     zweig_existiert: 'A family tree with this surname already exists.',
     merge_titel: 'Connect trees (duplicates)',
-    merge_intro: 'Select two people who are the same real person. The system then automatically checks for further duplicates across both trees.',
+    merge_intro: 'Select two cards of the same real person — from two trees OR within the same tree (duplicate). For two different trees the system also checks automatically for further duplicates.',
     merge_baum_a: 'Tree 1', merge_baum_b: 'Tree 2',
     merge_person_a: 'Person from tree 1', merge_person_b: 'Person from tree 2',
     merge_pruefen: 'Check duplicates',
@@ -6166,8 +6256,9 @@ const TEXTE = {
     merge_fertig: 'Merge completed.',
     merge_fehler: 'Error: ',
     merge_keine_auswahl: 'Please select at least one pair.',
-    merge_baeume_waehlen: 'Please select two people from two trees.',
+    merge_baeume_waehlen: 'Please select a tree and a person in both columns.',
     merge_gleicher_baum: 'Please select two different trees.',
+    merge_gleiche_karte: 'Please select two different cards.',
     merge_step2_hilfe: 'Checked pairs will be merged in the next step: the less complete card is deleted; its data, relationships and accounts move to the remaining card. Check tree, date of birth, parents and partner to confirm it is really the same person.',
     merge_info_baum: 'Tree', merge_info_eltern: 'Parents', merge_info_partner: 'Partner', merge_info_kinder: 'Children',
     merge_tree_titel: 'Merge trees?',
@@ -6213,6 +6304,14 @@ const TEXTE = {
     gp_alle_verknuepfen: 'Link selected',
     gp_einzeln: 'Individually',
     gp_keine_dubletten: 'No duplicates between these two trees.',
+    gp_manuell_titel: 'Select people manually',
+    gp_manuell_intro: 'If no duplicate is detected automatically above (e.g. different first names), pick the matching card in each tree here and link them.',
+    gp_merge_hinweis: 'Same tree on both sides: the two cards are merged into ONE (the duplicate is removed, relationships are kept).',
+    gp_person_a: 'Person in tree 1',
+    gp_person_b: 'Person in tree 2',
+    gp_manuell_weiter: 'Next',
+    gp_personen_waehlen: 'Please select a person in both trees.',
+    gp_gleiche_karte: 'Please select two different cards.',
     untertitel: 'Family Tree',
     stats: '{p} PEOPLE · {f} FAMILIES',
     stats_baum: '{p} PEOPLE',
@@ -6220,8 +6319,6 @@ const TEXTE = {
     tab_shorts: 'Events',
     tab_baum: 'Family Tree',
     suche_placeholder: 'Search by name...',
-    filter_alle: 'All family branches',
-    filter_unbekannt: '(unknown)',
     upload_btn: 'Load GEDCOM',
     shorts_titel: 'Family Events',
     event_single_title: 'Family Event:',
@@ -6269,6 +6366,12 @@ const TEXTE = {
     pa_kein_kontext: 'Reference person not found.',
     pa_loeschen_frage: 'Do you really want to delete this person? All of their relationships will be removed as well.',
     pa_geloescht: 'Person deleted.',
+    abbrechen: 'Cancel',
+    auto_leer_nur_owner: 'Only the owner (familien_owner) or a super admin can remove the last entry and thus the entire family tree.',
+    auto_leer_warnung: 'Warning\n\nYou are about to delete the last family member of this tree.\n\nThis will permanently remove the entire family tree. Your account will remain.\n\nThis action cannot be undone.',
+    auto_leer_ja: 'Delete tree and last member',
+    auto_leer_erfolg: 'The family tree was deleted because no family members remained.',
+    auto_leer_wartung: 'The person was deleted. The empty tree cannot be removed right now (maintenance in progress) – this will happen automatically later.',
     pe_sterbedatum: 'Date of death',
     pe_hochzeit_standesamt: 'Wedding (civil)',
     pe_hochzeit_kirchlich: 'Wedding (church)',
@@ -6707,6 +6810,54 @@ const ortLookup = (() => {
   return m;
 })();
 
+// ================= ZENTRALE LÄNDER-KOMPONENTE (CountrySelector) =================
+// EINE Datenquelle: ISO-3166-1-alpha-2-Codes; lokalisierte Namen über die eingebaute
+// Intl.DisplayNames-API (keine externe Library, kein riesiger Datensatz). Backend
+// speichert den ISO-Code; Anzeige/Selektion sprachabhängig + durchsuchbar.
+const ISO_LAENDER = ['AD','AE','AF','AG','AI','AL','AM','AO','AR','AS','AT','AU','AW','AX','AZ','BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BW','BY','BZ','CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ','DE','DJ','DK','DM','DO','DZ','EC','EE','EG','EH','ER','ES','ET','FI','FJ','FK','FM','FO','FR','GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GT','GU','GW','GY','HK','HN','HR','HT','HU','ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT','JE','JM','JO','JP','KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ','LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY','MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ','NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ','OM','PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY','QA','RE','RO','RS','RU','RW','SA','SB','SC','SD','SE','SG','SH','SI','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ','TC','TD','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ','UA','UG','US','UY','UZ','VA','VC','VE','VG','VI','VN','VU','WF','WS','XK','YE','YT','ZA','ZM','ZW'];
+
+function isoLocale(lang) { return lang === 'ba' ? 'bs' : (lang || 'de'); }
+const _dnCache = {};
+function landDisplayNames(lang) {
+  const loc = isoLocale(lang);
+  if (!(loc in _dnCache)) {
+    try { _dnCache[loc] = (typeof Intl !== 'undefined' && Intl.DisplayNames) ? new Intl.DisplayNames([loc], { type: 'region' }) : null; }
+    catch (e) { _dnCache[loc] = null; }
+  }
+  return _dnCache[loc];
+}
+// Lokalisierter Ländername zu einem ISO-Code (Fallback: der Code selbst)
+function landName(code, lang) {
+  if (!code) return '';
+  const dn = landDisplayNames(lang || aktuelleSprache);
+  let n = null; try { n = dn ? dn.of(code) : null; } catch (e) { n = null; }
+  return n || code;
+}
+// Reverse-Map: Ländername (alle 5 Sprachen via Intl + Legacy ORT_LEXIKON) -> ISO-Code
+const _landNachCode = (() => {
+  const m = {};
+  const langs = ['de','sr','hr','ba','en'];
+  ISO_LAENDER.forEach(code => {
+    m[code.toLowerCase()] = code;
+    langs.forEach(l => { const n = landName(code, l); if (n && n.toUpperCase() !== code) m[n.toLowerCase()] = code; });
+  });
+  ORT_LEXIKON.forEach(e => { if (e.iso) langs.forEach(l => { if (e[l]) m[e[l].toLowerCase()] = e.iso; }); });
+  return m;
+})();
+// Beliebiger Wert (Code ODER Klartext in irgendeiner Sprache) -> ISO-Code ('' wenn unbekannt)
+function landZuCode(value) {
+  const v = (value || '').trim();
+  if (!v) return '';
+  if (/^[A-Za-z]{2}$/.test(v) && ISO_LAENDER.includes(v.toUpperCase())) return v.toUpperCase();
+  return _landNachCode[v.toLowerCase()] || '';
+}
+// Anzeige eines gespeicherten Länderwerts (Code -> lokalisierter Name; Legacy-Text -> übersetzt)
+function landAnzeige(value) {
+  const v = (value || '').trim(); if (!v) return '';
+  const code = landZuCode(v);
+  return code ? landName(code, aktuelleSprache) : uebersetzeOrt(v);
+}
+
 // Übersetzt bekannte Orte/Länder in die aktuelle GUI-Sprache (Teil-für-Teil bei
 // kommagetrennten Werten); Unbekanntes bleibt im Original.
 function uebersetzeOrt(text) {
@@ -6717,20 +6868,39 @@ function uebersetzeOrt(text) {
   }).join(', ');
 }
 
-// Befüllt das Länder-Dropdown im Familien-Finder: Anzeige in der aktuellen
-// Sprache, der gespeicherte WERT bleibt die deutsche Kanonform (die in
-// familien.land steht) -> die Suche matcht sprachunabhängig.
-function fuelleLandSelect(selId = 'reg-land') {
-  const sel = document.getElementById(selId);
+// Befüllt EIN Länder-Dropdown mit ISO-Codes (value=Code, Label=lokalisierter Name,
+// alphabetisch). Vorherige Auswahl (Code ODER Legacy-Klartext) bleibt erhalten.
+function fuelleEinLandSelect(sel) {
   if (!sel) return;
-  const alt = sel.value;   // bisherige (kanonische) Auswahl merken
-  const laender = ORT_LEXIKON
-    .map(e => ({ wert: e.de, label: e[aktuelleSprache] || e.de }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const alt = sel.value;
+  const opts = ISO_LAENDER
+    .map(code => ({ code, label: landName(code, aktuelleSprache) }))
+    .sort((a, b) => a.label.localeCompare(b.label, isoLocale(aktuelleSprache)));
   sel.innerHTML = `<option value="">${escapeHtml(t('reg_land_waehlen'))}</option>` +
-    laender.map(l => `<option value="${escapeHtml(l.wert)}">${escapeHtml(l.label)}</option>`).join('');
-  sel.value = alt;   // Auswahl (deutscher Wert) wiederherstellen
+    opts.map(o => `<option value="${escapeHtml(o.code)}">${escapeHtml(o.label)}</option>`).join('');
+  if (alt) setLandSelectValue(sel, alt);
 }
+// Wert in ein Länder-Select setzen (normalisiert auf ISO-Code; unbekannten
+// Freitext als temporäre Option erhalten, damit nichts verloren geht).
+function setLandSelectValue(sel, value) {
+  if (!sel) return;
+  const roh = (value || '').trim();
+  const code = landZuCode(roh) || roh;
+  if (code && ![...sel.options].some(o => o.value === code)) {
+    const opt = document.createElement('option');
+    opt.value = code;
+    opt.textContent = ISO_LAENDER.includes(code) ? landName(code, aktuelleSprache) : code;
+    sel.appendChild(opt);
+  }
+  sel.value = code || '';
+}
+function setLandSelect(id, value) { setLandSelectValue(document.getElementById(id), value); }
+// Alle Länder-Selects (Klasse .land-select) unter root neu befüllen (Auswahl bleibt).
+function fuelleLandSelects(root) {
+  (root || document).querySelectorAll('select.land-select').forEach(fuelleEinLandSelect);
+}
+// Rückwärtskompatibel: einzelnes Select per id befüllen (z. B. fuelleLandSelect('fe-land')).
+function fuelleLandSelect(selId = 'reg-land') { fuelleEinLandSelect(document.getElementById(selId)); }
 
 function wechselSprache(lang, speichern = true) {
   aktuelleSprache = lang;
@@ -6765,7 +6935,6 @@ function wechselSprache(lang, speichern = true) {
 
   // Dynamische Inhalte neu rendern
   aktualisiereStats();
-  baueNachnameFilter();
   befuelleStammbaumAuswahl();    // Stammbaum-Dropdown: Namen je Sprache (sr -> kyrillisch)
   aktualisiereBaumHinweis();     // Orientierungs-Banner in neuer Sprache
   if (aktuelleAnsicht === 'karten') zeigeKarten();
@@ -6788,15 +6957,12 @@ function wechselSprache(lang, speichern = true) {
     }
     if (document.getElementById('merge-step4').style.display !== 'none') mgRenderTreeMerge();
   }
-  // Falls das Registrier-Overlay offen ist: Länder-Dropdown in neuer Sprache neu
-  // füllen und den Submit-Button passend zum Match-Status (Anfrage vs. Anlegen) setzen.
+  // ALLE Länder-Dropdowns (zentrale Komponente) in neuer Sprache neu befüllen — Auswahl bleibt.
+  if (typeof fuelleLandSelects === 'function') fuelleLandSelects(document);
   if (document.getElementById('registrier-modal')?.classList.contains('aktiv')) {
-    if (typeof fuelleLandSelect === 'function') fuelleLandSelect();
     if (typeof aktualisiereRegWahl === 'function' && regMatchFamilie) aktualisiereRegWahl();
     if (typeof aktualisiereRegSubmitButton === 'function') aktualisiereRegSubmitButton();
   }
-  // Podešavanje porodice offen: Länder-Dropdown in neuer Sprache (Auswahl bleibt erhalten)
-  if (offen('familie-einst-modal') && typeof fuelleLandSelect === 'function') fuelleLandSelect('fe-land');
 }
 
 // Wurzel des aktuell gewählten Stammbaums (Fallback: klassische Wurzel I500009)
@@ -6919,7 +7085,6 @@ async function ladeBaumDaten() {
   aktuelleDaten = daten;
   console.log('Baum aus Supabase geladen:', Object.keys(daten.persons).length, 'Personen,',
     Object.keys(daten.families).length, 'Familien,', Object.keys(stammbaeumeListe).length, 'Stammbäume.');
-  baueNachnameFilter();
   // Multi-Tree (B2): Auswahl befüllen.
   befuelleStammbaumAuswahl();
   // Aktuell geöffneten Stammbaum BEIBEHALTEN (z. B. nach Speichern/Bearbeiten/
@@ -7185,13 +7350,21 @@ function ssInitPanel() {
   tippAuswahl(ssList, '.ss-opt', li => ssWaehle(li.dataset.val));
 }
 
-// Liste füllen: <2 Zeichen = alle; sonst Teilstring (case- UND schrift-insensitiv:
-// beide Seiten nach Latein wandeln, damit Latein-Eingaben kyrillische Labels finden).
+// Such-Normalisierung: Kyrillisch -> Latein, klein, UND diakritik-insensitiv
+// (ć č š ž đ -> c c s z d) — analog zum Backend merge_norm. So findet die Eingabe
+// "Knezevic" auch das Label "Knežević" (und kyrillisch "Кнежевић").
+function ssFold(s) {
+  return srCyr2Lat(String(s || '')).toLowerCase()
+    .replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd');
+}
+
+// Liste füllen: <2 Zeichen = alle; sonst Teilstring (case-, schrift- UND
+// diakritik-insensitiv über ssFold, damit z. B. "Knezevic" -> "Knežević" matcht).
 function ssRender(filter) {
   if (!ssAktivSelect) return;
-  const f = srCyr2Lat((filter || '').trim()).toLowerCase();
+  const f = ssFold((filter || '').trim());
   const opts = Array.from(ssAktivSelect.options);
-  const vis = f.length < 2 ? opts : opts.filter(o => srCyr2Lat(o.textContent || '').toLowerCase().includes(f));
+  const vis = f.length < 2 ? opts : opts.filter(o => ssFold(o.textContent || '').includes(f));
   if (vis.length === 0) {
     ssList.innerHTML = '<li class="ss-empty">' + escapeHtml(t('ss_keine')) + '</li>';
     return;
@@ -7666,7 +7839,6 @@ function init() {
     t.addEventListener('click', () => wechselAnsicht(t.dataset.ansicht));
   });
   document.getElementById('suche').addEventListener('input', handleSuche);
-  document.getElementById('filter-nachname').addEventListener('change', zeigeKarten);
   document.getElementById('gedcom-input').addEventListener('change', handleGedcomUpload);
   // Tipp/Klick außerhalb schließt offene Dropdowns. pointerdown (nicht click!) feuert
   // sofort am echten Punkt — vor Tastatur-Reflow/Scroll/Ghost-Click auf Android/iOS.
@@ -7831,40 +8003,15 @@ function zeigVollenBaum() {
   zeichneBaum(aktuelleWurzel(), 12, 0);
 }
 
-function baueNachnameFilter() {
-  const nachnamen = {};
-  Object.values(aktuelleDaten.persons).forEach(p => {
-    const n = p.surname || t('filter_unbekannt');
-    nachnamen[n] = (nachnamen[n] || 0) + 1;
-  });
-  const select = document.getElementById('filter-nachname');
-  const aktuell = select.value;
-  select.innerHTML = `<option value="">${t('filter_alle')}</option>`;
-  Object.entries(nachnamen)
-    .sort((a,b) => b[1] - a[1])
-    .forEach(([n, c]) => {
-      const o = document.createElement('option');
-      o.value = n;
-      o.textContent = `${nm(n)} (${c})`;
-      select.appendChild(o);
-    });
-  if (aktuell) select.value = aktuell;
-}
-
 // ============================================================
 // KARTEN-ANSICHT
 // ============================================================
 function zeigeKarten() {
   const suche = document.getElementById('suche').value.toLowerCase();
-  const nachname = document.getElementById('filter-nachname').value;
   const grid = document.getElementById('personen-grid');
-  
+
   const gefiltert = Object.values(aktuelleDaten.persons).filter(p => {
     if (suche && !p.name.toLowerCase().includes(suche)) return false;
-    if (nachname) {
-      const pn = p.surname || t('filter_unbekannt');
-      if (pn !== nachname) return false;
-    }
     return true;
   }).sort((a,b) => {
     const ja = parseInt(a.birth_date) || 9999;
@@ -8079,16 +8226,22 @@ async function loescheEventMedien(eventId) {
 }
 
 // Eigener Bestätigungs-Dialog statt Browser-confirm. Liefert ein Promise<boolean>.
-function zeigeBestaetigung(text) {
+function zeigeBestaetigung(text, opts) {
+  opts = opts || {};
+  const jaText   = opts.jaText   || t('ja');
+  const neinText = opts.neinText || t('nein');
+  const jaClass  = opts.gefahr ? 'confirm-ja confirm-gefahr' : 'confirm-ja';
+  // Mehrzeilige Warnungen (\n) sollen als Absätze sichtbar bleiben.
+  const textStyle = opts.gefahr ? ' style="white-space:pre-line;text-align:left"' : '';
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
     overlay.innerHTML = `
       <div class="confirm-box">
-        <p class="confirm-text">${escapeHtml(text)}</p>
+        <p class="confirm-text"${textStyle}>${escapeHtml(text)}</p>
         <div class="confirm-actions">
-          <button type="button" class="confirm-ja">${t('ja')}</button>
-          <button type="button" class="confirm-nein">${t('nein')}</button>
+          <button type="button" class="${jaClass}">${escapeHtml(jaText)}</button>
+          <button type="button" class="confirm-nein">${escapeHtml(neinText)}</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -8856,7 +9009,7 @@ function zeigeDetails(personId) {
     ${p.death_place ? `<div class="info-zeile"><strong>${t('sterbeort')}</strong> ${escapeHtml(uebersetzeOrt(p.death_place))}</div>` : ''}
     <div class="info-zeile"><strong>${t('geschlecht')}</strong> ${geschlechtText}</div>
     ${istAdmin() ? `<div class="info-zeile" style="color:#8a7a5a">${p._hatKonto ? '🔗' : '🔓 ' + escapeHtml(t('kein_konto'))}</div>` : ''}
-    ${p.geburtsland ? `<div class="info-zeile"><strong>${t('reg_geburtsland')}:</strong> ${escapeHtml(uebersetzeOrt(p.geburtsland))}</div>` : ''}
+    ${p.geburtsland ? `<div class="info-zeile"><strong>${t('reg_geburtsland')}:</strong> ${escapeHtml(landAnzeige(p.geburtsland))}</div>` : ''}
     ${p.stadt ? `<div class="info-zeile"><strong>${t('fe_grad')}:</strong> ${escapeHtml(uebersetzeOrt(p.stadt))}</div>` : ''}
     ${p.gemeinde ? `<div class="info-zeile"><strong>${t('fe_opstina')}:</strong> ${escapeHtml(uebersetzeOrt(p.gemeinde))}</div>` : ''}
     ${p.getauft ? `<div class="info-zeile"><strong>${t('reg_getauft')}:</strong> ${escapeHtml(formatDatumLang(p.getauft))}</div>` : ''}
@@ -8864,7 +9017,7 @@ function zeigeDetails(personId) {
     ${(p.hochzeit_standesamt || p.hochzeit_kirchlich || p.hochzeitsort) ? `<div class="info-zeile"><strong>${t('pe_hochzeit_standesamt')}:</strong> ${escapeHtml([formatDatumLang(p.hochzeit_standesamt), formatDatumLang(p.hochzeit_kirchlich), p.hochzeitsort].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.beruf ? `<div class="info-zeile"><strong>${t('pe_beruf')}:</strong> ${escapeHtml(p.beruf)}</div>` : ''}
     ${p.ausbildung ? `<div class="info-zeile"><strong>${t('pe_ausbildung')}:</strong> ${escapeHtml(p.ausbildung)}</div>` : ''}
-    ${(p.adresse || p.wohnort_stadt || p.wohnort_land) ? `<div class="info-zeile"><strong>${t('pe_g_wohnen')}:</strong> ${escapeHtml(uebersetzeOrt([p.adresse, p.wohnort_stadt, p.wohnort_land].filter(Boolean).join(', ')))}</div>` : ''}
+    ${(p.adresse || p.wohnort_stadt || p.wohnort_land) ? `<div class="info-zeile"><strong>${t('pe_g_wohnen')}:</strong> ${escapeHtml([uebersetzeOrt([p.adresse, p.wohnort_stadt].filter(Boolean).join(', ')), landAnzeige(p.wohnort_land)].filter(Boolean).join(', '))}</div>` : ''}
     ${(p.email || p.telefon || p.facebook || p.instagram) ? `<div class="info-zeile"><strong>${t('reg_kontakt')}:</strong> ${escapeHtml([p.email, p.telefon, p.facebook, p.instagram].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.beschreibung ? `<div class="info-zeile"><strong>${t('pe_beschreibung')}:</strong> ${escapeHtml(p.beschreibung)}</div>` : ''}
 
@@ -8945,6 +9098,7 @@ function springeZuBaumPerson(extId) {
 // ----- Overlay "Gleiche Person verknüpfen" (Super-Admin), analog zu "Bäume verbinden" -----
 let gpDiff = [];                                            // Feld-Diff der zwei gewählten Karten
 let gpPairA = null, gpPairB = null, gpRest = [];           // aktuelles Paar (+ weitere Karten der Gruppe)
+let gpSameTree = false;                                     // true = beide Karten im selben Baum -> Merge (eine bleibt) statt Spiegel-Verknüpfung
 const GP_NAME_FELDER = ['name'];   // nur das abgeleitete Feld 'name' ausblenden (wird aus given+surname gebildet)
 
 function zeigeGleichePersonModal() {
@@ -9003,6 +9157,7 @@ async function gpVerknuepfeAusgewaehlte() {
 async function gpLinkGruppe(i) {
   const g = gpDubGruppen[i];
   if (!g || !g.ids || g.ids.length < 2) return;
+  gpSameTree = false;   // Auto-Dubletten sind immer baumübergreifend -> Spiegel-Verknüpfung
   await gpStartKonflikt(g.ids[0], g.ids[1], g.ids.slice(2));
 }
 function gpZeigeSchritt(n) {
@@ -9058,10 +9213,51 @@ function gpFuelleBaeume() {
   const opts = '<option value=""></option>' + eintraege.map(([id, name]) =>
     `<option value="${escapeHtml(id)}">${escapeHtml(nm(name))}</option>`).join('');
   ['gp-baum-a', 'gp-baum-b'].forEach(id => { const s = document.getElementById(id); s.innerHTML = opts; s.value = ''; });
+  const man = document.getElementById('gp-manuell'); if (man) man.style.display = 'none';   // Bäume zurückgesetzt -> manuelle Auswahl ausblenden
+  gpSameTree = false;
   macheAlleSelectsSuchbar(document.getElementById('gp-modal'));
 }
-// Baum-Auswahl geändert -> Dubletten zwischen den zwei gewählten Bäumen neu laden.
-function gpWaehleBaum() { gpLadeDubletten(); }
+// Baum-Auswahl geändert -> Dubletten + manuelle Personenlisten neu laden.
+function gpWaehleBaum() { gpLadeDubletten(); gpLadePersonen(); }
+
+// Manuelle Auswahl: alle Personen beider Bäume in zwei Dropdowns laden (auch ohne Auto-Treffer).
+async function gpLadePersonen() {
+  const wrap = document.getElementById('gp-manuell');
+  const a = document.getElementById('gp-baum-a').value;
+  const b = document.getElementById('gp-baum-b').value;
+  if (!a || !b) { if (wrap) wrap.style.display = 'none'; return; }   // gleicher Baum (a===b) ist erlaubt -> Merge zweier Karten im selben Baum
+  const [ra, rb] = await Promise.all([
+    sbClient.rpc('personen_eines_baums', { p_baum: a }),
+    sbClient.rpc('personen_eines_baums', { p_baum: b })
+  ]);
+  if (ra.error || rb.error) { if (wrap) wrap.style.display = 'none'; return; }
+  gpFuellePersonenSelect('gp-person-a', ra.data || []);
+  gpFuellePersonenSelect('gp-person-b', rb.data || []);
+  // Hinweis: bei gleichem Baum werden die Karten zusammengeführt (eine bleibt), nicht gespiegelt.
+  const hinweis = document.getElementById('gp-merge-hinweis');
+  if (hinweis) hinweis.style.display = (a === b) ? '' : 'none';
+  if (wrap) wrap.style.display = '';
+  macheAlleSelectsSuchbar(document.getElementById('gp-modal'));
+}
+function gpFuellePersonenSelect(id, liste) {
+  const s = document.getElementById(id); if (!s) return;
+  // 🔗 markiert Karten, die bereits als gleiche Person verknüpft sind.
+  s.innerHTML = '<option value=""></option>' + (liste || []).map(p =>
+    `<option value="${escapeHtml(p.id)}">${escapeHtml(nm(p.name || ''))}${p.identitaet_id ? ' 🔗' : ''}</option>`).join('');
+  s.value = '';
+}
+// Manuell gewähltes Paar -> in den Konflikt-/Bestätigungsschritt (wie bei Auto-Dubletten).
+async function gpManuellWeiter() {
+  const fehler = document.getElementById('gp-modal-fehler'); fehler.style.display = 'none';
+  const a = document.getElementById('gp-person-a').value;
+  const b = document.getElementById('gp-person-b').value;
+  if (!a || !b) { fehler.textContent = t('gp_personen_waehlen'); fehler.style.display = 'block'; return; }
+  if (a === b) { fehler.textContent = t('gp_gleiche_karte'); fehler.style.display = 'block'; return; }
+  // Gleicher Baum links+rechts -> die zwei Karten werden ZUSAMMENGEFÜHRT (eine bleibt),
+  // statt als gleiche Person gespiegelt (zwei Karten im selben Baum ergeben keinen Sinn).
+  gpSameTree = (document.getElementById('gp-baum-a').value === document.getElementById('gp-baum-b').value);
+  await gpStartKonflikt(a, b, []);
+}
 
 async function gpModalVerknuepfen() {
   const fehler = document.getElementById('gp-modal-fehler2'); fehler.style.display = 'none';
@@ -9079,20 +9275,34 @@ async function gpModalVerknuepfen() {
     else { const man = document.querySelector(`.gp-man[data-feld="${f}"]`); aufloesung[f] = man ? man.value.trim() : ''; }
   });
 
-  const { error } = await sbClient.rpc('personen_verknuepfen', { p_a: a, p_b: b, p_aufloesung: aufloesung });
-  if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
-  // Weitere Karten derselben Gruppe (z. B. >2 Bäume) mit der gewählten Auflösung anhängen
-  for (const id of (gpRest || [])) {
-    const { error: e2 } = await sbClient.rpc('personen_verknuepfen', { p_a: a, p_b: id, p_aufloesung: aufloesung });
-    if (e2) { fehler.textContent = t('reg_fehler') + e2.message; fehler.style.display = 'block'; return; }
+  if (gpSameTree) {
+    // Gleicher Baum: ZUSAMMENFÜHREN (eine Karte bleibt). Survivor = vollständigere Karte
+    // (mehr nur_x-Felder); Beziehungen/Konto wandern auf sie, die Dublette wird gelöscht.
+    const nurA = gpDiff.filter(d => d.status === 'nur_a').length;
+    const nurB = gpDiff.filter(d => d.status === 'nur_b').length;
+    const behalten = (nurB > nurA) ? b : a;
+    const dublette = (nurB > nurA) ? a : b;
+    const { error } = await sbClient.rpc('person_merge_aufgeloest',
+      { p_behalten: behalten, p_dublette: dublette, p_aufloesung: aufloesung });
+    if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
+  } else {
+    const { error } = await sbClient.rpc('personen_verknuepfen', { p_a: a, p_b: b, p_aufloesung: aufloesung });
+    if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
+    // Weitere Karten derselben Gruppe (z. B. >2 Bäume) mit der gewählten Auflösung anhängen
+    for (const id of (gpRest || [])) {
+      const { error: e2 } = await sbClient.rpc('personen_verknuepfen', { p_a: a, p_b: id, p_aufloesung: aufloesung });
+      if (e2) { fehler.textContent = t('reg_fehler') + e2.message; fehler.style.display = 'block'; return; }
+    }
   }
   if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
-  gpPairA = gpPairB = null; gpRest = [];
+  const warSelberBaum = gpSameTree;
+  gpPairA = gpPairB = null; gpRest = []; gpSameTree = false;
   gpZeigeSchritt(1);
-  gpFuelleBaeume();    // Suchfelder oben leeren -> direkt weitere Personen verknüpfbar
+  gpFuelleBaeume();    // Suchfelder oben leeren -> direkt weitere Personen verknüpfen/mergen
   gpLadeDubletten();   // Hinweis-Liste aktualisieren
   const erfolg = document.getElementById('gp-modal-erfolg');
-  erfolg.textContent = t('gp_verknuepft_weiter'); erfolg.style.display = 'block';
+  erfolg.textContent = warSelberBaum ? t('merge_fertig') : t('gp_verknuepft_weiter');
+  erfolg.style.display = 'block';
 }
 
 // Verknüpfung (von der Karte aus) lösen
@@ -9116,6 +9326,9 @@ function zeigePersonBearbeiten(personId) {
   const p = aktuelleDaten.persons[personId];
   if (!p) return;
   schliesseModal();   // Detail-Fenster schließen, bevor der Editor aufgeht
+  // Länder-Dropdowns (Geburtsland / Wohnland) in aktueller Sprache füllen, BEVOR die
+  // Werte gesetzt werden (zentrale Komponente; wie Registrier-/Familieneinstellungen-Modal).
+  fuelleLandSelects(document.getElementById('person-edit-modal'));
   const set  = (id, v) => { document.getElementById(id).value = v ?? ''; };
   const setD = (id, v) => datumSetzen(document.getElementById(id), v);   // Datumsfelder
   document.getElementById('pe-id').value = personId;
@@ -9124,7 +9337,7 @@ function zeigePersonBearbeiten(personId) {
   set('pe-vorname', p.given);        set('pe-nachname', p.surname);
   set('pe-titel', p.titel);          set('pe-namenszusatz', p.namenszusatz);
   set('pe-ehename', p.ehename);      setD('pe-geburtsdatum', p.birth_date);
-  set('pe-geburtsort', p.birth_place); set('pe-geburtsland', p.geburtsland);
+  set('pe-geburtsort', p.birth_place); setLandSelect('pe-geburtsland', p.geburtsland);
   set('pe-stadt', p.stadt);          set('pe-gemeinde', p.gemeinde);
   setD('pe-getauft', p.getauft);
   setD('pe-sterbedatum', p.death_date);
@@ -9137,7 +9350,7 @@ function zeigePersonBearbeiten(personId) {
       .includes(p.beziehung) ? p.beziehung : 'unbekannt';
   set('pe-email', p.email);          set('pe-telefon', p.telefon);
   set('pe-facebook', p.facebook);    set('pe-instagram', p.instagram);
-  set('pe-wohnland', p.wohnort_land); set('pe-wohnstadt', p.wohnort_stadt);
+  setLandSelect('pe-wohnland', p.wohnort_land); set('pe-wohnstadt', p.wohnort_stadt);
   set('pe-adresse', p.adresse);      set('pe-beruf', p.beruf);
   set('pe-ausbildung', p.ausbildung); set('pe-beschreibung', p.beschreibung);
   document.getElementById('pe-fehler').style.display = 'none';
@@ -9264,7 +9477,6 @@ async function reloadBaumBehalteFokus(fokusExtId) {
   const daten = await ladeBaumAusSupabase();
   if (daten && Object.keys(daten.persons).length) {
     aktuelleDaten = daten;
-    baueNachnameFilter();
     befuelleStammbaumAuswahl();
     aktualisiereStats();
   }
@@ -9292,6 +9504,9 @@ function zeigePersonHinzufuegen(personId, vorTyp) {
   const p = aktuelleDaten.persons[personId];
   if (!p) return;
   schliesseModal();   // immer nur EIN Overlay aktiv
+  // Länder-Dropdowns (Geburtsland / Wohnland) in aktueller Sprache füllen
+  // (zentrale Komponente; wie Registrier-/Familieneinstellungen-Modal).
+  fuelleLandSelects(document.getElementById('person-add-modal'));
   document.getElementById('pa-context-id').value = personId;
   document.getElementById('pa-kontext').textContent =
     t('pa_kontext', { name: nm(p.name || p.given || '?') });
@@ -9539,22 +9754,40 @@ async function loeschePerson(personId) {
   const p = aktuelleDaten.persons[personId];
   if (!p || !p._uuid) return;
 
-  const ok = await zeigeBestaetigung(t('pa_loeschen_frage') + '\n\n' + nm(p.name || p.given || '?'));
-  if (!ok) return;
+  // Ist dies die LETZTE Person ihres Baums? Dann wird der Baum automatisch entfernt
+  // (kontoschonend, siehe supabase_stammbaum_auto_leer.sql). Zählung pro _tree.
+  const treeId = p._tree;
+  const istLetzte = !!treeId &&
+    Object.values(aktuelleDaten.persons).filter(x => x._tree === treeId).length <= 1;
 
-  // Fokus-Fallback bestimmen, bevor die Person verschwindet (Partner > Elternteil > Kind > Wurzel)
+  if (istLetzte) {
+    // Owner-Exklusivrecht: nur familien_owner / super_admin dürfen den letzten Eintrag
+    // (und damit den ganzen Baum) entfernen. Server prüft zusätzlich (RPC).
+    const darf = istSuperAdmin() || normalizeRolle(aktuelleRolle || '') === 'familien_owner';
+    if (!darf) { await zeigeHinweis(t('auto_leer_nur_owner')); return; }
+    const ok = await zeigeBestaetigung(t('auto_leer_warnung'),
+      { jaText: t('auto_leer_ja'), neinText: t('abbrechen'), gefahr: true });
+    if (!ok) return;
+  } else {
+    const ok = await zeigeBestaetigung(t('pa_loeschen_frage') + '\n\n' + nm(p.name || p.given || '?'));
+    if (!ok) return;
+  }
+
+  // Fokus-Fallback bestimmen, bevor die Person verschwindet (nur relevant, wenn der Baum bleibt)
   let fallback = null;
-  (p.families_spouse || []).forEach(fid => {
-    const fam = aktuelleDaten.families[fid]; if (!fam) return;
-    const partner = fam.husband === personId ? fam.wife : fam.husband;
-    if (partner && aktuelleDaten.persons[partner]) fallback = fallback || partner;
-    (fam.children || []).forEach(c => { if (aktuelleDaten.persons[c]) fallback = fallback || c; });
-  });
-  (p.families_child || []).forEach(fid => {
-    const fam = aktuelleDaten.families[fid]; if (!fam) return;
-    if (fam.husband && aktuelleDaten.persons[fam.husband]) fallback = fallback || fam.husband;
-    if (fam.wife && aktuelleDaten.persons[fam.wife]) fallback = fallback || fam.wife;
-  });
+  if (!istLetzte) {
+    (p.families_spouse || []).forEach(fid => {
+      const fam = aktuelleDaten.families[fid]; if (!fam) return;
+      const partner = fam.husband === personId ? fam.wife : fam.husband;
+      if (partner && aktuelleDaten.persons[partner]) fallback = fallback || partner;
+      (fam.children || []).forEach(c => { if (aktuelleDaten.persons[c]) fallback = fallback || c; });
+    });
+    (p.families_child || []).forEach(fid => {
+      const fam = aktuelleDaten.families[fid]; if (!fam) return;
+      if (fam.husband && aktuelleDaten.persons[fam.husband]) fallback = fallback || fam.husband;
+      if (fam.wife && aktuelleDaten.persons[fam.wife]) fallback = fallback || fam.wife;
+    });
+  }
 
   // 1) Alle Beziehungen mit dieser Person entfernen (keine verwaisten Kanten)
   const { error: bErr } = await sbClient.from('beziehungen').delete()
@@ -9565,10 +9798,60 @@ async function loeschePerson(personId) {
   const { error: pErr } = await sbClient.from('personen').delete().eq('id', p._uuid);
   if (pErr) { await zeigeHinweis(t('reg_fehler') + pErr.message); return; }
 
-  // 3) Detail-Overlay schließen + Baum neu zeichnen
   schliesseModal();
-  await reloadBaumBehalteFokus(fallback);
-  await zeigeHinweis(t('pa_geloescht'));
+
+  if (istLetzte) {
+    // 3) Jetzt leeren Baum kontoschonend auto-löschen (Familie/Konto bleibt bestehen)
+    const { data: res, error: dErr } = await sbClient.rpc('stammbaum_loesche_wenn_leer',
+      { p_tree: treeId, p_grund: 'auto_leer' });
+    if (dErr) {
+      // z. B. 'wartung_aktiv' -> Person ist weg, Baum bleibt (vorübergehend) leer.
+      const msg = /wartung_aktiv/i.test(dErr.message || '') ? t('auto_leer_wartung') : (t('reg_fehler') + dErr.message);
+      await reloadBaumBehalteFokus(null);
+      await zeigeHinweis(msg);
+      return;
+    }
+    // 4) Storage-Medien gelöschter Events abräumen (DB kann das nicht)
+    await raeumeVerwaisteMedien();
+    // 5) Navigation: nächster Baum (zuletzt > größter) oder "Kreiraj novo stablo"
+    await navigiereNachBaumLoeschung(treeId);
+    await zeigeHinweis(t('auto_leer_erfolg'));
+  } else {
+    await reloadBaumBehalteFokus(fallback);
+    await zeigeHinweis(t('pa_geloescht'));
+  }
+}
+
+// Nach einer Baum-Auto-Löschung: frisch laden und sinnvoll navigieren.
+// Reihenfolge laut Spec: zuletzt genutzter Baum -> Standard/größter -> sonst "Kreiraj novo stablo".
+async function navigiereNachBaumLoeschung(geloeschterTreeId) {
+  // Nur weg-navigieren, wenn der AKTUELLE Baum gelöscht wurde; ein anderer geleerter
+  // Baum lässt den Nutzer dort, wo er ist (CLAUDE.md: Baum nicht automatisch wechseln).
+  if (aktuellerStammbaumId === geloeschterTreeId) aktuellerStammbaumId = null;
+  try {
+    if (localStorage.getItem('vidovic_tree') === geloeschterTreeId) localStorage.removeItem('vidovic_tree');
+  } catch (e) {}
+  await setzeUser(aktuellerUser);   // Rollen/Bäume frisch laden; ladeBaumDaten wählt zuletzt>größter
+  // Kein zugänglicher Baum mehr -> Anlegen-Overlay anbieten
+  if (!aktuellerStammbaumId && Object.keys(stammbaeumeListe || {}).length === 0) {
+    zeigeBaumNeu();
+  }
+}
+
+// Storage-Bucket `events` von Medien gelöschter Bäume befreien (Queue verwaiste_event_medien).
+// Postgres kann den Storage nicht löschen -> DB merkt die Event-ids vor, hier wird abgeräumt.
+async function raeumeVerwaisteMedien() {
+  if (!aktuellerUser) return;
+  let offen = [];
+  try {
+    const { data, error } = await sbClient.rpc('verwaiste_medien_offen');
+    if (error) return;
+    offen = data || [];
+  } catch (e) { return; }
+  for (const row of offen) {
+    try { await loescheEventMedien(row.event_id); } catch (e) { /* Storage-Fehler ignorieren */ }
+    try { await sbClient.rpc('verwaiste_medien_erledigt', { p_id: row.id }); } catch (e) {}
+  }
 }
 
 function schliesseModalUndZeigeBaum(personId) {
@@ -10097,7 +10380,6 @@ function handleGedcomUpload(event) {
       const geparst = parseGedcom(e.target.result);
       aktuelleDaten = geparst;
       fokusPersonId = null;
-      baueNachnameFilter();
       aktualisiereStats();
       zeigeKarten();
       const p = Object.keys(geparst.persons).length;
