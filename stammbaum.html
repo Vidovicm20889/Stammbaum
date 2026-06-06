@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="10.1">
+<meta name="app-version" content="10.3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -666,6 +666,16 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   cursor: pointer; font-size: 13px; transition: background 0.2s;
 }
 .modal .verwandter:hover { background: var(--gold-hell); }
+.modal .verwandter.mit-x { padding-right: 4px; }
+.modal .rel-del-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; min-width: 22px; margin-left: 8px; padding: 0;
+  border: 1px solid var(--linie); border-radius: 50%;
+  background: var(--paper); color: var(--akzent);
+  font-size: 13px; line-height: 1; cursor: pointer; vertical-align: middle;
+  transition: background 0.2s, color 0.2s;
+}
+.modal .rel-del-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
 .modal .baum-zeigen {
   margin-top: 25px; background: var(--akzent); color: var(--paper);
   border: none; padding: 12px 24px; cursor: pointer;
@@ -979,11 +989,17 @@ footer {
   min-width: 220px; background: var(--paper);
   border: 1px solid var(--linie); box-shadow: 0 8px 22px rgba(44,36,24,0.2);
   padding: 12px; display: none; flex-direction: column; gap: 8px;
+  max-height: 75vh; overflow-y: auto; overscroll-behavior: contain;   /* viele Einträge auf kleinen Screens */
 }
 .avatar-menu.offen .avatar-menu-panel { display: flex; }
 .avatar-menu-panel .account-btn {
   width: 100%; text-align: center; box-sizing: border-box;
   display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+/* Abmelden optisch abgesetzt (eigene Gruppe am Ende des Menüs) */
+.avatar-menu-panel .avatar-menu-abmelden {
+  margin-top: 6px; border-top: 1px solid var(--linie); padding-top: 12px;
+  color: var(--akzent);
 }
 /* Abschnittstitel im kombinierten Obavještenja-Modal */
 .obav-section-titel {
@@ -1364,6 +1380,10 @@ footer {
               <span data-i18n="obav_zentral_titel"></span><span class="obav-badge" id="avatar-menu-obav-badge" style="display:none"></span>
             </button>
             <button class="account-btn" type="button" data-i18n="prof_bearbeiten" onclick="oeffneProfilAusMenu()"></button>
+            <button class="account-btn" type="button" data-i18n="prof_privacy_titel" onclick="oeffnePrivatnost()"></button>
+            <button class="account-btn" type="button" data-i18n="prof_pw_titel" onclick="oeffnePasswort()"></button>
+            <button class="account-btn" type="button" data-i18n="sec_titel" onclick="oeffneSicherheit()"></button>
+            <button class="account-btn avatar-menu-abmelden" type="button" data-i18n="abmelden" onclick="abmeldenAusMenu()"></button>
           </div>
         </div>
       </div>
@@ -1896,8 +1916,17 @@ footer {
       </label>
     </div>
 
-    <!-- Datenschutz -->
-    <div class="reg-gruppe-titel" data-i18n="prof_privacy_titel"></div>
+    <button class="login-submit" id="prof-submit" data-i18n="prof_speichern" onclick="speichereProfil()"></button>
+    <div id="prof-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Privatnost / Datenschutz — aus dem Profil ausgelagert (Zugang über Avatar-Menü) -->
+<div class="modal" id="privatnost-modal">
+  <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePrivatnost()">×</button>
+    <h2 data-i18n="prof_privacy_titel"></h2>
+    <p class="sub-name">Vidović AI</p>
     <div class="reg-grid">
       <label class="login-label reg-feld-voll"><span data-i18n="prof_bild_sicht"></span>
         <select id="prof-avatar-sicht" class="login-feld">
@@ -1907,42 +1936,45 @@ footer {
         </select>
       </label>
     </div>
+    <button class="login-submit" id="privatnost-submit" data-i18n="prof_speichern" onclick="speicherePrivatnost()"></button>
+    <div id="privatnost-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
 
-    <button class="login-submit" id="prof-submit" data-i18n="prof_speichern" onclick="speichereProfil()"></button>
-    <div id="prof-erfolg" class="reg-erfolg" style="display:none"></div>
-
-    <!-- Passwort ändern (standardmäßig eingeklappt) -->
-    <button type="button" class="reg-gruppe-titel prof-pw-toggle" id="prof-pw-toggle" onclick="profilPwToggle()" aria-expanded="false">
-      <span data-i18n="prof_pw_titel"></span><span class="prof-pw-caret">▾</span>
-    </button>
-    <div class="prof-pw-box" id="prof-pw-box" style="display:none">
-      <div id="prof-pw-fehler" class="login-fehler" style="display:none"></div>
-      <div class="reg-grid">
-        <label class="login-label reg-feld-voll"><span data-i18n="prof_pw_aktuell"></span>
-          <input type="password" id="prof-pw-aktuell" class="login-feld" autocomplete="current-password" placeholder="••••••••">
-        </label>
-        <label class="login-label"><span data-i18n="prof_pw_neu"></span>
-          <input type="password" id="prof-pw-neu" class="login-feld" autocomplete="new-password" placeholder="••••••••">
-        </label>
-        <label class="login-label"><span data-i18n="prof_pw_neu2"></span>
-          <input type="password" id="prof-pw-neu2" class="login-feld" autocomplete="new-password" placeholder="••••••••">
-        </label>
-      </div>
-      <button class="login-submit" id="prof-pw-submit" data-i18n="prof_pw_btn" onclick="profilPasswortAendern()"></button>
-      <div id="prof-pw-erfolg" class="reg-erfolg" style="display:none"></div>
+<!-- Promena lozinke / Passwort ändern — aus dem Profil ausgelagert (Zugang über Avatar-Menü) -->
+<div class="modal" id="passwort-modal">
+  <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePasswort()">×</button>
+    <h2 data-i18n="prof_pw_titel"></h2>
+    <p class="sub-name">Vidović AI</p>
+    <div id="prof-pw-fehler" class="login-fehler" style="display:none"></div>
+    <div class="reg-grid">
+      <label class="login-label reg-feld-voll"><span data-i18n="prof_pw_aktuell"></span>
+        <input type="password" id="prof-pw-aktuell" class="login-feld" autocomplete="current-password" placeholder="••••••••">
+      </label>
+      <label class="login-label"><span data-i18n="prof_pw_neu"></span>
+        <input type="password" id="prof-pw-neu" class="login-feld" autocomplete="new-password" placeholder="••••••••">
+      </label>
+      <label class="login-label"><span data-i18n="prof_pw_neu2"></span>
+        <input type="password" id="prof-pw-neu2" class="login-feld" autocomplete="new-password" placeholder="••••••••">
+      </label>
     </div>
+    <button class="login-submit" id="prof-pw-submit" data-i18n="prof_pw_btn" onclick="profilPasswortAendern()"></button>
+    <div id="prof-pw-erfolg" class="reg-erfolg" style="display:none"></div>
+  </div>
+</div>
 
-    <!-- Sicherheit & letzte Aktivitäten (standardmäßig eingeklappt, lädt beim Aufklappen) -->
-    <button type="button" class="reg-gruppe-titel prof-pw-toggle" id="prof-sec-toggle" onclick="profilSecToggle()" aria-expanded="false">
-      <span data-i18n="sec_titel"></span><span class="prof-pw-caret">▾</span>
-    </button>
-    <div class="prof-pw-box" id="prof-sec-box" style="display:none">
-      <div id="prof-sec-zeilen" class="prof-sec-zeilen"></div>
-      <div id="prof-sec-sessions" class="prof-sec-sessions"></div>
-      <div id="prof-sec-fehler" class="login-fehler" style="display:none"></div>
-      <button class="account-btn" id="prof-sec-abmelden" type="button" onclick="profilAndereAbmelden()" data-i18n="sec_andere_abmelden" style="display:none"></button>
-      <div id="prof-sec-erfolg" class="reg-erfolg" style="display:none"></div>
-    </div>
+<!-- Bezbednost i aktivnost / Sicherheit — aus dem Profil ausgelagert (Zugang über Avatar-Menü) -->
+<div class="modal" id="sicherheit-modal">
+  <div class="modal-inhalt" style="max-width:520px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseSicherheit()">×</button>
+    <h2 data-i18n="sec_titel"></h2>
+    <p class="sub-name">Vidović AI</p>
+    <div id="prof-sec-zeilen" class="prof-sec-zeilen"></div>
+    <div id="prof-sec-sessions" class="prof-sec-sessions"></div>
+    <div id="prof-sec-fehler" class="login-fehler" style="display:none"></div>
+    <button class="account-btn" id="prof-sec-abmelden" type="button" onclick="profilAndereAbmelden()" data-i18n="sec_andere_abmelden" style="display:none"></button>
+    <div id="prof-sec-erfolg" class="reg-erfolg" style="display:none"></div>
   </div>
 </div>
 
@@ -3147,6 +3179,12 @@ function oeffneProfilAusMenu() {
   oeffneProfil();
 }
 
+// Menüpunkt „Abmelden" — schließt das Avatar-Menü und meldet ab (Verhalten wie bisher).
+function abmeldenAusMenu() {
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  abmelden();
+}
+
 // ============================================================
 // MITGLIEDER-VERWALTUNG (Admins)
 // ============================================================
@@ -3800,28 +3838,14 @@ async function oeffneProfil() {
   document.getElementById('prof-nachname').value = p.nachname || '';
   document.getElementById('prof-email').value    = aktuellerUser.email || '';
   document.getElementById('prof-telefon').value  = p.telefon  || '';
-  document.getElementById('prof-avatar-sicht').value = p.avatar_sichtbarkeit || 'verbund';
   // Synchronisierte Stammdaten (Profil <-> verknüpfte Karte)
   document.getElementById('prof-geburtsname').value = p.geburtsname || '';
   document.getElementById('prof-geschlecht').value  = p.geschlecht  || '';
   datumSetzen(document.getElementById('prof-geburtsdatum'), p.geburtsdatum || '');
   document.getElementById('prof-biografie').value   = p.biografie   || '';
-  ['prof-pw-aktuell','prof-pw-neu','prof-pw-neu2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  // Passwort-Bereich beim Öffnen IMMER eingeklappt starten.
-  const pwBox = document.getElementById('prof-pw-box');
-  const pwTog = document.getElementById('prof-pw-toggle');
-  if (pwBox) pwBox.style.display = 'none';
-  if (pwTog) { pwTog.classList.remove('offen'); pwTog.setAttribute('aria-expanded', 'false'); }
-  // Sicherheitsbereich ebenfalls eingeklappt + Lazy-Load zurücksetzen.
-  const secBox = document.getElementById('prof-sec-box');
-  const secTog = document.getElementById('prof-sec-toggle');
-  if (secBox) secBox.style.display = 'none';
-  if (secTog) { secTog.classList.remove('offen'); secTog.setAttribute('aria-expanded', 'false'); }
-  // Benachrichtigungen (Obavještenja) sind ins Avatar-Menü gewandert -> hier nur noch
-  // den Ungelesen-Indikator frisch halten (keine eigene Profil-Sektion mehr).
+  // Datenschutz/Passwort/Sicherheit sind in eigene Overlays (Avatar-Menü) ausgelagert.
+  // Benachrichtigungen (Obavještenja) ebenfalls -> hier nur den Ungelesen-Indikator frisch halten.
   ladeBenachrichtigungen();
-  ['prof-sec-fehler','prof-sec-erfolg'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-  profilSecGeladen = false; profilSecCache = null;
 
   // Live-Aktualisierung des Profilkopfs beim Tippen
   document.getElementById('prof-vorname').oninput  = renderProfilKopf;
@@ -4325,7 +4349,9 @@ async function speichereProfil() {
   const sprache  = document.getElementById('prof-sprache').value || aktuelleSprache;
   const land     = document.getElementById('prof-land').value || '';
   const zeitzone = document.getElementById('prof-zeitzone').value || '';
-  const sicht    = document.getElementById('prof-avatar-sicht').value || 'verbund';
+  // Datenschutz/Sichtbarkeit wird im eigenen Privatnost-Overlay gepflegt -> hier bestehenden
+  // Wert beibehalten (nicht aus dem Profil-Modal, das den Schalter nicht mehr enthält).
+  const sicht    = (meinProfil && meinProfil.avatar_sichtbarkeit) || 'verbund';
   // Synchronisierte Stammdaten (gehen per DB-Trigger auch in die verknüpfte Karte)
   const geburtsname  = document.getElementById('prof-geburtsname').value.trim();
   const geschlecht   = document.getElementById('prof-geschlecht').value || '';
@@ -4379,29 +4405,65 @@ async function speichereProfil() {
   }
 }
 
-// Passwort-Bereich auf-/zuklappen.
-function profilPwToggle() {
-  const box = document.getElementById('prof-pw-box');
-  const tog = document.getElementById('prof-pw-toggle');
-  if (!box) return;
-  const auf = box.style.display === 'none';
-  box.style.display = auf ? '' : 'none';
-  if (tog) { tog.classList.toggle('offen', auf); tog.setAttribute('aria-expanded', auf ? 'true' : 'false'); }
+// ---- Privatnost / Datenschutz (eigenes Overlay, Zugang über Avatar-Menü) ----
+function oeffnePrivatnost() {
+  if (!aktuellerUser) return;
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  const sel = document.getElementById('prof-avatar-sicht');
+  if (sel) sel.value = (meinProfil && meinProfil.avatar_sichtbarkeit) || 'verbund';
+  const erfolg = document.getElementById('privatnost-erfolg'); if (erfolg) erfolg.style.display = 'none';
+  document.getElementById('privatnost-modal').classList.add('aktiv');
+  macheAlleSelectsSuchbar(document.getElementById('privatnost-modal'));
+}
+function schliessePrivatnost() { document.getElementById('privatnost-modal').classList.remove('aktiv'); }
+
+async function speicherePrivatnost() {
+  if (!aktuellerUser) return;
+  const sicht = document.getElementById('prof-avatar-sicht').value || 'verbund';
+  const btn = document.getElementById('privatnost-submit');
+  const erfolg = document.getElementById('privatnost-erfolg');
+  if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  try {
+    // Nur die Sichtbarkeit upserten (eigene Zeile, RLS). Synced-Felder unverändert ->
+    // der Profil->Karte-Trigger feuert NICHT (keine ungewollte Karten-Änderung).
+    const { data, error } = await sbClient.from('profile')
+      .upsert({ user_id: aktuellerUser.id, avatar_sichtbarkeit: sicht }, { onConflict: 'user_id' })
+      .select().maybeSingle();
+    if (error) throw error;
+    if (data) meinProfil = data; else if (meinProfil) meinProfil.avatar_sichtbarkeit = sicht;
+    if (presenceChannel) presenceTrack(meinLockPerson);   // Avatar-Sichtbarkeit in Presence nachziehen
+    if (erfolg) { erfolg.textContent = t('prof_gespeichert'); erfolg.style.display = 'block'; }
+    setTimeout(() => schliessePrivatnost(), 900);
+  } catch (e) {
+    console.warn('Privatnost speichern:', e);
+    if (erfolg) { erfolg.textContent = (e && e.message) || t('prof_err_speichern'); erfolg.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = t('prof_speichern'); }
+  }
 }
 
-// --- Sicherheitsbereich (Phase 2): Letzte Aktivitäten + aktive Sitzungen ---
-let profilSecGeladen = false;   // pro Modal-Öffnung: erst beim Aufklappen laden
+// ---- Promena lozinke / Passwort (eigenes Overlay, Zugang über Avatar-Menü) ----
+function oeffnePasswort() {
+  if (!aktuellerUser) return;
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  ['prof-pw-aktuell','prof-pw-neu','prof-pw-neu2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['prof-pw-fehler','prof-pw-erfolg'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  document.getElementById('passwort-modal').classList.add('aktiv');
+}
+function schliessePasswort() { document.getElementById('passwort-modal').classList.remove('aktiv'); }
+
+// ---- Bezbednost i aktivnost / Sicherheit (Phase 2): eigenes Overlay (Avatar-Menü) ----
+let profilSecGeladen = false;   // (legacy) wird bei jedem Öffnen frisch geladen
 let profilSecCache   = null;    // letzte RPC-Antwort (für Re-Render bei Sprachwechsel)
 
-function profilSecToggle() {
-  const box = document.getElementById('prof-sec-box');
-  const tog = document.getElementById('prof-sec-toggle');
-  if (!box) return;
-  const auf = box.style.display === 'none';
-  box.style.display = auf ? '' : 'none';
-  if (tog) { tog.classList.toggle('offen', auf); tog.setAttribute('aria-expanded', auf ? 'true' : 'false'); }
-  if (auf && !profilSecGeladen) { profilSecGeladen = true; ladeSicherheit(); }
+function oeffneSicherheit() {
+  if (!aktuellerUser) return;
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  ['prof-sec-fehler','prof-sec-erfolg'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  document.getElementById('sicherheit-modal').classList.add('aktiv');
+  ladeSicherheit();   // bei jedem Öffnen frisch laden
 }
+function schliesseSicherheit() { document.getElementById('sicherheit-modal').classList.remove('aktiv'); }
 
 // Datum + Uhrzeit lokalisiert (Sitzungen/Login). Fallback: ISO gekürzt.
 function formatDatumZeit(iso) {
@@ -6154,7 +6216,11 @@ async function mgMergeAktuelles(){
   const { error } = await sbClient.rpc('person_merge_aufgeloest',
     { p_behalten: behalten, p_dublette: dublette, p_aufloesung: aufloesung });
   btn.disabled = false; btn.textContent = alt;
-  if (error){ fehler.textContent = t('merge_fehler') + error.message; fehler.style.display = 'block'; return; }
+  if (error){
+    fehler.textContent = (error.message && error.message.includes('merge_zwillinge'))
+      ? t('merge_zwillinge') : t('merge_fehler') + error.message;
+    fehler.style.display = 'block'; return;
+  }
 
   if (mgIndex < mgAusgewaehlt.length - 1){ mgIndex++; mgRenderPaar(); }
   else { await mgFertig(); }
@@ -6759,6 +6825,7 @@ const TEXTE = {
     merge_laeuft: 'Wird zusammengeführt…',
     merge_fertig: 'Zusammenführung abgeschlossen.',
     merge_fehler: 'Fehler: ',
+    merge_zwillinge: 'Diese beiden Karten sind bereits dieselbe Person und werden in beiden Stammbäumen angezeigt. Ein Zusammenführen würde eine Karte entfernen – das ist nicht nötig.',
     merge_keine_auswahl: 'Bitte mindestens ein Paar auswählen.',
     merge_baeume_waehlen: 'Bitte in beiden Spalten Baum und Person wählen.',
     merge_gleicher_baum: 'Bitte zwei verschiedene Stammbäume wählen.',
@@ -6999,6 +7066,11 @@ const TEXTE = {
     pa_pflicht: 'Bitte mindestens den Vornamen angeben.',
     pa_kein_kontext: 'Bezugsperson nicht gefunden.',
     pa_loeschen_frage: 'Möchtest du diese Person wirklich löschen? Alle ihre Beziehungen werden ebenfalls entfernt.',
+    rel_loesen_titel: 'Verknüpfung entfernen',
+    rel_loesen_frage: 'Verknüpfung zu {name} wirklich entfernen? Beide Personen bleiben erhalten, nur die Verbindung wird gelöst.',
+    rel_partner_kinder_warnung: 'Achtung: {name} ist auch Elternteil des gemeinsamen Kindes/der gemeinsamen Kinder: {kinder}. Damit die Partnerschaft endet, wird {name} auch von diesen Kindern als Elternteil getrennt (deine eigene Elternschaft bleibt).',
+    rel_loesen_ja: 'Entfernen',
+    rel_geloest: 'Verknüpfung entfernt.',
     pa_geloescht: 'Person gelöscht.',
     abbrechen: 'Abbrechen',
     auto_leer_nur_owner: 'Nur der Eigentümer (familien_owner) oder ein Super-Admin kann den letzten Eintrag und damit den ganzen Stammbaum entfernen.',
@@ -7469,6 +7541,7 @@ const TEXTE = {
     merge_laeuft: 'Спајање у току…',
     merge_fertig: 'Спајање завршено.',
     merge_fehler: 'Грешка: ',
+    merge_zwillinge: 'Ове две картице су већ иста особа и приказују се у оба стабла. Спајање би уклонило једну картицу – то није потребно.',
     merge_keine_auswahl: 'Изаберите бар један пар.',
     merge_baeume_waehlen: 'Изаберите стабло и особу у обе колоне.',
     merge_gleicher_baum: 'Изаберите два различита стабла.',
@@ -7709,6 +7782,11 @@ const TEXTE = {
     pa_pflicht: 'Молимо унеси бар име.',
     pa_kein_kontext: 'Референтна особа није пронађена.',
     pa_loeschen_frage: 'Да ли заиста желиш да обришеш ову особу? Сви њени односи ће такође бити уклоњени.',
+    rel_loesen_titel: 'Уклони везу',
+    rel_loesen_frage: 'Заиста уклонити везу са {name}? Обе особе остају, само се веза прекида.',
+    rel_partner_kinder_warnung: 'Пажња: {name} је такође родитељ заједничког детета/деце: {kinder}. Да би се партнерство прекинуло, {name} ће бити уклоњен(а) и као родитељ те деце (твоје родитељство остаје).',
+    rel_loesen_ja: 'Уклони',
+    rel_geloest: 'Веза је уклоњена.',
     pa_geloescht: 'Особа обрисана.',
     abbrechen: 'Откажи',
     auto_leer_nur_owner: 'Само власник (familien_owner) или супер-админ може уклонити последњи унос и тиме цело стабло.',
@@ -8179,6 +8257,7 @@ const TEXTE = {
     merge_laeuft: 'Spajanje u tijeku…',
     merge_fertig: 'Spajanje završeno.',
     merge_fehler: 'Greška: ',
+    merge_zwillinge: 'Ove dvije kartice već su ista osoba i prikazuju se u oba stabla. Spajanje bi uklonilo jednu karticu – to nije potrebno.',
     merge_keine_auswahl: 'Odaberite barem jedan par.',
     merge_baeume_waehlen: 'Odaberite stablo i osobu u oba stupca.',
     merge_gleicher_baum: 'Odaberite dva različita stabla.',
@@ -8419,6 +8498,11 @@ const TEXTE = {
     pa_pflicht: 'Molimo unesi barem ime.',
     pa_kein_kontext: 'Referentna osoba nije pronađena.',
     pa_loeschen_frage: 'Želiš li doista obrisati ovu osobu? Svi njezini odnosi također će biti uklonjeni.',
+    rel_loesen_titel: 'Ukloni povezivanje',
+    rel_loesen_frage: 'Zaista ukloniti povezivanje s {name}? Obje osobe ostaju, prekida se samo veza.',
+    rel_partner_kinder_warnung: 'Pažnja: {name} je također roditelj zajedničkog djeteta/djece: {kinder}. Da bi partnerstvo prestalo, {name} će biti uklonjen(a) i kao roditelj te djece (tvoje roditeljstvo ostaje).',
+    rel_loesen_ja: 'Ukloni',
+    rel_geloest: 'Povezivanje uklonjeno.',
     pa_geloescht: 'Osoba obrisana.',
     abbrechen: 'Odustani',
     auto_leer_nur_owner: 'Samo vlasnik (familien_owner) ili super-administrator može ukloniti zadnji unos i time cijelo stablo.',
@@ -8889,6 +8973,7 @@ const TEXTE = {
     merge_laeuft: 'Spajanje u toku…',
     merge_fertig: 'Spajanje završeno.',
     merge_fehler: 'Greška: ',
+    merge_zwillinge: 'Ove dvije kartice su već ista osoba i prikazuju se u oba stabla. Spajanje bi uklonilo jednu karticu – to nije potrebno.',
     merge_keine_auswahl: 'Odaberite barem jedan par.',
     merge_baeume_waehlen: 'Odaberite stablo i osobu u obje kolone.',
     merge_gleicher_baum: 'Odaberite dva različita stabla.',
@@ -9129,6 +9214,11 @@ const TEXTE = {
     pa_pflicht: 'Molimo unesi barem ime.',
     pa_kein_kontext: 'Referentna osoba nije pronađena.',
     pa_loeschen_frage: 'Želiš li zaista obrisati ovu osobu? Svi njeni odnosi će također biti uklonjeni.',
+    rel_loesen_titel: 'Ukloni vezu',
+    rel_loesen_frage: 'Zaista ukloniti vezu sa {name}? Obje osobe ostaju, prekida se samo veza.',
+    rel_partner_kinder_warnung: 'Pažnja: {name} je također roditelj zajedničkog djeteta/djece: {kinder}. Da bi partnerstvo prestalo, {name} će biti uklonjen(a) i kao roditelj te djece (tvoje roditeljstvo ostaje).',
+    rel_loesen_ja: 'Ukloni',
+    rel_geloest: 'Veza uklonjena.',
     pa_geloescht: 'Osoba obrisana.',
     abbrechen: 'Odustani',
     auto_leer_nur_owner: 'Samo vlasnik (familien_owner) ili super-administrator može ukloniti posljednji unos i time cijelo stablo.',
@@ -9599,6 +9689,7 @@ const TEXTE = {
     merge_laeuft: 'Merging…',
     merge_fertig: 'Merge completed.',
     merge_fehler: 'Error: ',
+    merge_zwillinge: 'These two cards are already the same person and appear in both trees. Merging would remove one card – it is not needed.',
     merge_keine_auswahl: 'Please select at least one pair.',
     merge_baeume_waehlen: 'Please select a tree and a person in both columns.',
     merge_gleicher_baum: 'Please select two different trees.',
@@ -9839,6 +9930,11 @@ const TEXTE = {
     pa_pflicht: 'Please enter at least a first name.',
     pa_kein_kontext: 'Reference person not found.',
     pa_loeschen_frage: 'Do you really want to delete this person? All of their relationships will be removed as well.',
+    rel_loesen_titel: 'Remove link',
+    rel_loesen_frage: 'Really remove the link to {name}? Both persons remain — only the connection is removed.',
+    rel_partner_kinder_warnung: 'Note: {name} is also a parent of the shared child/children: {kinder}. To end the partnership, {name} will also be detached as a parent of these children (your own parenthood stays).',
+    rel_loesen_ja: 'Remove',
+    rel_geloest: 'Link removed.',
     pa_geloescht: 'Person deleted.',
     abbrechen: 'Cancel',
     auto_leer_nur_owner: 'Only the owner (familien_owner) or a super admin can remove the last entry and thus the entire family tree.',
@@ -10836,9 +10932,13 @@ function wechselSprache(lang, speichern = true) {
     fuelleProfilZeitzone(document.getElementById('prof-zeitzone').value);
     renderProfilKopf();
     if (typeof renderMeinePersonBereich === 'function') renderMeinePersonBereich();   // "Meine Person" (nm/Texte)
-    // Sicherheitsbereich (falls offen + geladen) in neuer Sprache neu beschriften
-    if (document.getElementById('prof-sec-box').style.display !== 'none' && profilSecCache) renderSicherheit(profilSecCache);
   }
+  // Privatnost-Overlay: Such-Dropdown (Sichtbarkeit) in neuer Sprache neu aufbauen
+  if (offen('privatnost-modal') && typeof macheAlleSelectsSuchbar === 'function') {
+    macheAlleSelectsSuchbar(document.getElementById('privatnost-modal'));
+  }
+  // Sicherheits-Overlay (falls offen + geladen) in neuer Sprache neu beschriften
+  if (offen('sicherheit-modal') && profilSecCache && typeof renderSicherheit === 'function') renderSicherheit(profilSecCache);
   // "Meine Person": offene Auswahl-/Anlegen-Dialoge mit nm()-Inhalten neu rendern
   if (offen('mp-pick-modal')   && typeof renderMpPick === 'function') renderMpPick();
   if (offen('mp-create-modal') && typeof mpCreateSprachUpdate === 'function') mpCreateSprachUpdate();
@@ -13650,9 +13750,16 @@ function zeigeDetails(personId) {
     else eheFamilien.push({ partner: null, kinder: ohnePartnerKinder });
   }
 
-  const buildVerwandte = (liste) => liste.map(v =>
-    `<span class="verwandter" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}</span>`
-  ).join('');
+  // Chip einer verwandten Person; für Admins zusätzlich ✕ zum LÖSEN dieser einen
+  // Verknüpfung (beide Personen bleiben erhalten, nur die Kante wird entfernt).
+  // event.stopPropagation() verhindert, dass der Klick aufs ✕ die Detailkarte öffnet.
+  const relChip = (v, typ) => {
+    const x = istAdmin()
+      ? `<button class="rel-del-btn" type="button" title="${escapeHtml(t('rel_loesen_titel'))}" onclick="event.stopPropagation();beziehungLoesen('${typ}','${v.id}')">✕</button>`
+      : '';
+    return `<span class="verwandter${x ? ' mit-x' : ''}" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${x}</span>`;
+  };
+  const buildVerwandte = (liste, typ) => liste.map(v => relChip(v, typ)).join('');
 
   const geschlechtText = p.sex === 'M' ? t('maennlich') : (p.sex === 'F' ? t('weiblich') : t('unbekannt'));
 
@@ -13668,8 +13775,8 @@ function zeigeDetails(personId) {
   const eheBloecke = eheFamilien.length ? eheFamilien : (istAdmin() ? [{ partner: null, kinder: [] }] : []);
   const eheHtml = eheBloecke.map((ef, i) => {
     const ptitel = eheFamilien.length > 1 ? `${t('partner')} ${i + 1}` : t('partner');
-    const partnerHtml = ef.partner ? `<span class="verwandter" onclick="zeigeDetails('${ef.partner.id}')">${escapeHtml(nm(ef.partner.name))}</span>` : '';
-    const kinderHtml = ef.kinder.length ? buildVerwandte(ef.kinder) : '';
+    const partnerHtml = ef.partner ? relChip(ef.partner, 'partner') : '';
+    const kinderHtml = ef.kinder.length ? buildVerwandte(ef.kinder, 'kind') : '';
     return `<div class="beziehungen"><h3>${ptitel} ${addBtn('partner')}</h3>${partnerHtml}</div>
             <div class="beziehungen"><h3>${t('kinder')} ${addBtn('kind')}</h3>${kinderHtml}</div>`;
   }).join('');
@@ -13698,8 +13805,8 @@ function zeigeDetails(personId) {
     ${(p.email || p.telefon || p.facebook || p.instagram) ? `<div class="info-zeile"><strong>${t('reg_kontakt')}:</strong> ${escapeHtml([p.email, p.telefon, p.facebook, p.instagram].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.beschreibung ? `<div class="info-zeile"><strong>${t('pe_beschreibung')}:</strong> ${escapeHtml(p.beschreibung)}</div>` : ''}
 
-    ${sektion('eltern', buildVerwandte(eltern), 'elternteil')}
-    ${sektion('geschwister', buildVerwandte(geschwister), 'geschwister')}
+    ${sektion('eltern', buildVerwandte(eltern, 'eltern'), 'elternteil')}
+    ${sektion('geschwister', buildVerwandte(geschwister, 'geschwister'), 'geschwister')}
     ${eheHtml}
     ${gpTwinHtml(p)}
 
@@ -13967,7 +14074,11 @@ async function gpModalVerknuepfen() {
     const dublette = (nurB > nurA) ? a : b;
     const { error } = await sbClient.rpc('person_merge_aufgeloest',
       { p_behalten: behalten, p_dublette: dublette, p_aufloesung: aufloesung });
-    if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
+    if (error) {
+      fehler.textContent = (error.message && error.message.includes('merge_zwillinge'))
+        ? t('merge_zwillinge') : t('reg_fehler') + error.message;
+      fehler.style.display = 'block'; return;
+    }
   } else {
     const { error } = await sbClient.rpc('personen_verknuepfen', { p_a: a, p_b: b, p_aufloesung: aufloesung });
     if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
@@ -14855,6 +14966,97 @@ async function loeschePerson(personId) {
     await reloadBaumBehalteFokus(fallback);
     await zeigeHinweis(t('pa_geloescht'));
   }
+}
+
+// EINE Verknüpfung (Kante) zwischen der offenen Person und einer verwandten Person lösen.
+// Beide Personen BLEIBEN erhalten — nur die Beziehung in `beziehungen` wird entfernt
+// (wie loeschePerson per Direct-Delete; RLS lässt das für editierbare Familien zu).
+// IDENTITÄTSBEWUSST: berücksichtigt auf BEIDEN Seiten alle identitaet_id-Zwillinge,
+// da die Detailkarte Beziehungen über alle Spiegelkarten zusammengeführt anzeigt.
+//   typ: 'eltern' (v=Elternteil) | 'kind' (v=Kind) | 'partner' | 'geschwister'
+async function beziehungLoesen(typ, vId) {
+  if (!istAdmin()) return;
+  const pId = aktuelleModalPersonId;
+  const p = pId && aktuelleDaten.persons[pId];
+  const v = aktuelleDaten.persons[vId];
+  if (!p || !v) return;
+
+  // Identitätsgruppe einer Person als Objekt-Liste / UUID-Liste / externe-ID-Set
+  const twinObjs  = (obj) => obj._ident ? Object.values(aktuelleDaten.persons).filter(x => x._ident === obj._ident) : [obj];
+  const twinUuids = (obj) => [...new Set(twinObjs(obj).map(x => x._uuid).filter(Boolean))];
+  const twinExts  = (obj) => new Set(twinObjs(obj).map(x => x.id));
+  const pUu = twinUuids(p);
+  const vUu = twinUuids(v);
+  if (!pUu.length || !vUu.length) return;
+
+  // PARTNER mit GEMEINSAMEN KINDERN: eine „Partner"-Familie entsteht im Renderer auch
+  // allein durch gemeinsame Elternschaft (nicht nur durch eine ehepartner-Kante). Damit der
+  // Partner wirklich verschwindet, muss er zusätzlich von den gemeinsamen Kindern als
+  // Elternteil getrennt werden. Diese Kinder vorab sammeln (für Warnung + Löschung).
+  let sharedKidUuids = [], sharedKidNamen = [];
+  if (typ === 'partner') {
+    const vExt = twinExts(v); const seenKid = new Set();
+    twinObjs(p).forEach(tw => (tw.families_spouse || []).forEach(fid => {
+      const fam = aktuelleDaten.families[fid]; if (!fam) return;
+      const partnerExt = fam.husband === tw.id ? fam.wife : fam.husband;
+      if (partnerExt && vExt.has(partnerExt)) (fam.children || []).forEach(cid => {
+        const c = aktuelleDaten.persons[cid];
+        if (c && !seenKid.has(cid)) { seenKid.add(cid); twinUuids(c).forEach(u => sharedKidUuids.push(u)); sharedKidNamen.push(c.name || c.given || '?'); }
+      });
+    }));
+    sharedKidUuids = [...new Set(sharedKidUuids)];
+  }
+
+  // Sicherheitsabfrage (Nutzerwunsch): beide Personen bleiben, nur Verbindung wird gelöst.
+  let frage = t('rel_loesen_frage', { name: nm(v.name || v.given || '?') });
+  if (sharedKidNamen.length) frage += '\n\n' + t('rel_partner_kinder_warnung',
+    { name: nm(v.name || v.given || '?'), kinder: sharedKidNamen.map(n => nm(n)).join(', ') });
+  const ok = await zeigeBestaetigung(frage,
+    { jaText: t('rel_loesen_ja'), neinText: t('abbrechen'), gefahr: true });
+  if (!ok) return;
+
+  // Beziehungs-Kanten je Typ entfernen. .in(a).in(b) wirkt als UND-Verknüpfung.
+  const del = (filter) => filter.then(r => r.error);
+  let err = null;
+  try {
+    if (typ === 'partner') {
+      // ehepartner ist symmetrisch -> beide Richtungen entfernen
+      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'ehepartner').in('person_a', pUu).in('person_b', vUu));
+      if (!err) err = await del(sbClient.from('beziehungen').delete().eq('typ', 'ehepartner').in('person_a', vUu).in('person_b', pUu));
+      // Partner von gemeinsamen Kindern trennen (sonst bleibt die Familie über die Elternschaft bestehen)
+      if (!err && sharedKidUuids.length) err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', vUu).in('person_b', sharedKidUuids));
+    } else if (typ === 'eltern') {
+      // v ist Elternteil -> Kante v(person_a) -> p(person_b)
+      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', vUu).in('person_b', pUu));
+    } else if (typ === 'kind') {
+      // v ist Kind -> Kante p(person_a) -> v(person_b)
+      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', pUu).in('person_b', vUu));
+    } else if (typ === 'geschwister') {
+      // Geschwister haben keine eigene Kante: sie sind über GEMEINSAME Eltern abgeleitet.
+      // "Eltern bleiben" (Nutzerwunsch) -> wir lösen v von den Eltern DER offenen Person,
+      // sodass beide nicht mehr Geschwister sind, p seine Eltern aber behält.
+      const elternUuids = [];
+      (p._ident ? Object.values(aktuelleDaten.persons).filter(x => x._ident === p._ident) : [p])
+        .forEach(tw => (tw.families_child || []).forEach(fid => {
+          const fam = aktuelleDaten.families[fid]; if (!fam) return;
+          [fam.husband, fam.wife].forEach(par => {
+            const e = par && aktuelleDaten.persons[par];
+            if (e) twinUuids(e).forEach(u => elternUuids.push(u));
+          });
+        }));
+      const eltUu = [...new Set(elternUuids)];
+      if (!eltUu.length) { await zeigeHinweis(t('reg_fehler') + 'keine gemeinsamen Eltern'); return; }
+      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', eltUu).in('person_b', vUu));
+    }
+  } catch (e) { err = e; }
+
+  if (err) { await zeigeHinweis(t('reg_fehler') + (err.message || err)); return; }
+
+  // Karte frisch laden, Fokus auf der offenen Person halten und Detail neu rendern.
+  await reloadBaumBehalteFokus(pId);
+  if (aktuelleDaten.persons[pId]) { aktuelleModalPersonId = null; zeigeDetails(pId); }
+  else schliesseModal();
+  await zeigeHinweis(t('rel_geloest'));
 }
 
 // Nach einer Baum-Auto-Löschung: frisch laden und sinnvoll navigieren.
