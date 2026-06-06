@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="9.0">
+<meta name="app-version" content="9.7">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -19,6 +19,14 @@
         crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.js"
         integrity="sha384-CQbEv3UOeYwlaBLdPF5KqEagCP39Q1KpvJC6Gwa3UGjZAwMvpA+0TFxSSnrgb4MX"
+        crossorigin="anonymous"></script>
+<!-- PDF-/Druck-Export (nur für den Stammbaum-Export). jsPDF zuerst, dann svg2pdf
+     (svg2pdf erweitert die jsPDF-Instanz um .svg()). Exakt gepinnt + SRI. -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"
+        integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.1/dist/svg2pdf.umd.min.js"
+        integrity="sha384-B3l2uNxzGBflyDLbL7qqONJYng+5kJd6tDEXetlgRA6b68u6pgeZYBRH5UAYiBZ3"
         crossorigin="anonymous"></script>
 <style>
 :root {
@@ -367,6 +375,94 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 .baum-zentrieren-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
 .baum-zentrieren-btn:active { transform: scale(0.94); }
+/* „Erweiterte Ansicht" – Button links neben „Zentrieren". Gleiche Optik. */
+.ansicht-erweitern-btn {
+  position: absolute; right: 73px; bottom: 15px; z-index: 6;
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,250,240,0.96); color: var(--akzent);
+  border: 1px solid var(--linie); border-radius: 50%; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(44,36,24,0.18); transition: all 0.2s;
+}
+.ansicht-erweitern-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
+.ansicht-erweitern-btn:active { transform: scale(0.94); }
+/* „Ansicht erweitern"-Overlay */
+.ansicht-box { max-width: 540px; }
+.ansicht-opt { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
+.ansicht-radio { display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  padding: 10px 12px; border: 1px solid var(--linie); border-radius: 8px; transition: border-color .15s, background .15s; }
+.ansicht-radio:hover { border-color: var(--akzent); }
+.ansicht-radio input { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--akzent); }
+.ansicht-radio.aktiv { border-color: var(--akzent); background: rgba(156,124,60,0.08); }
+.ansicht-radio b { display: block; }
+.ansicht-radio small { color: #8a7a5a; }
+.ansicht-unter { margin: 4px 0 8px 30px; display: none; }
+.ansicht-unter.offen { display: block; }
+.ansicht-kat { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 6px; }
+.ansicht-kat label { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+.ansicht-kat input { width: 18px; height: 18px; accent-color: var(--akzent); }
+.ansicht-pick-list { max-height: 200px; overflow-y: auto; overscroll-behavior: contain;
+  border: 1px solid var(--linie); border-radius: 8px; margin-top: 8px; }
+.ansicht-pick-item { display: block; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--linie); }
+.ansicht-pick-item:last-child { border-bottom: none; }
+.ansicht-pick-item.gewaehlt { background: rgba(156,124,60,0.14); }
+.ansicht-pick-item small { color: #8a7a5a; }
+.ansicht-aktionen { margin-top: 14px; display: flex; gap: 10px; }
+/* Beide Buttons gleich groß (gleiche Breite/Höhe, kein vertikaler Versatz) */
+.ansicht-aktionen .login-submit,
+.ansicht-aktionen .login-hinweis-btn {
+  flex: 1; width: auto; margin-top: 0; padding: 13px; box-sizing: border-box;
+}
+@media (max-width: 480px) { .ansicht-kat { grid-template-columns: 1fr; } }
+
+/* ===== PDF-/Druck-Export ===== */
+.pdf-export-btn {
+  /* Links neben „Erweiterte Ansicht" (right:73px, 48px breit) – gleiche untere Reihe,
+     10px Abstand. Pille ist rechts verankert und wächst nach links (kein Überlapp). */
+  position: absolute; right: 131px; bottom: 15px; z-index: 6;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px 0 14px; height: 48px;
+  background: rgba(255,250,240,0.96); color: var(--akzent);
+  border: 1px solid var(--linie); border-radius: 26px; cursor: pointer;
+  font-family: inherit; font-size: 14px; letter-spacing: 0.4px;
+  box-shadow: 0 2px 10px rgba(44,36,24,0.18); transition: all 0.2s;
+}
+.pdf-export-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
+.pdf-export-btn:active { transform: scale(0.96); }
+.pdf-export-btn svg { flex: 0 0 auto; }
+.pdf-export-box { max-width: 860px; width: 94vw; text-align: left; max-height: 90vh; overflow-y: auto; overscroll-behavior: contain; }
+.pdf-sub { color: var(--text-dim); font-size: 13px; margin: -6px 0 14px; }
+.pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 26px; }
+.pdf-sektion { min-width: 0; }
+.pdf-check { display: flex; align-items: flex-start; gap: 9px; margin: 8px 0; font-size: 14px; line-height: 1.4; cursor: pointer; }
+.pdf-check input { margin-top: 2px; width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--gold); }
+.pdf-sub-check { margin-left: 26px; }
+.pdf-empfehlung {
+  background: var(--bg-soft); border: 1px solid var(--linie); border-left: 3px solid var(--gold);
+  border-radius: 4px; padding: 9px 12px; font-size: 13px; color: var(--ink); margin-bottom: 10px;
+}
+.pdf-empfehlung b { color: var(--akzent); }
+.pdf-hinweisbox { margin-top: 12px; font-size: 13px; color: var(--gold); min-height: 0; }
+.pdf-hinweisbox.warn { color: #9b2226; }
+.pdf-progress { margin-top: 16px; }
+.pdf-progress-bar { height: 10px; background: var(--bg-soft); border: 1px solid var(--linie); border-radius: 6px; overflow: hidden; }
+.pdf-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), var(--gold-hell)); transition: width 0.25s; }
+.pdf-progress-text { margin-top: 7px; font-size: 12px; color: var(--text-dim); }
+.pdf-aktionen { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+.pdf-aktionen .login-submit { flex: 1; min-width: 160px; margin-top: 0; }
+.pdf-aktionen .login-hinweis-btn { flex: 0 0 auto; }
+@media (max-width: 700px) {
+  .pdf-grid { grid-template-columns: 1fr; gap: 4px 0; }
+  .pdf-export-btn-text { display: none; }
+  .pdf-export-btn { padding: 0; width: 48px; height: 48px; justify-content: center; border-radius: 50%; }
+}
+/* Druck-Bühne: nur im Druck sichtbar; blendet die App aus und zeigt nur den Baum. */
+#pdf-print-stage { display: none; }
+@media print {
+  body > *:not(#pdf-print-stage) { display: none !important; }
+  #pdf-print-stage { display: block !important; position: static; background: #ffffff; }
+  #pdf-print-stage svg { width: 100%; height: auto; display: block; }
+  @page { margin: 8mm; }
+}
 
 /* ===== Teilnehmerverwaltung / Event-Sichtbarkeit ===== */
 .etn-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
@@ -441,8 +537,11 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   max-width: 920px; margin: 12px auto 0; padding: 10px 14px 10px 18px;
   background: var(--gold-hell); border: 1px solid var(--gold); border-radius: 10px;
   color: var(--ink); font-size: 14px; line-height: 1.4;
-  display: flex; align-items: center; gap: 12px; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; justify-content: center;
+  text-align: center;
 }
+.baum-tree-hinweis-gen { font-size: 12.5px; opacity: 0.82; font-style: italic; }
+.baum-tree-hinweis-gen b { font-style: normal; color: var(--akzent); }
 .baum-tree-hinweis-x {
   background: none; border: none; font-size: 20px; line-height: 1;
   cursor: pointer; color: var(--akzent); flex: 0 0 auto;
@@ -882,6 +981,30 @@ footer {
 .prof-avatar-aktionen { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
 .prof-avatar-aktionen .account-btn { padding: 7px 12px; font-size: 12px; }
 .prof-hint { font-size: 11px; color: var(--ink); opacity: 0.6; margin-top: 2px; }
+/* Meine Person im Stammbaum */
+.mp-bereich {
+  border: 1px solid var(--linie); border-radius: 10px; padding: 14px;
+  margin-bottom: 18px; background: rgba(0,0,0,0.02);
+}
+.mp-bereich .mp-status { font-size: 14px; color: var(--ink); margin-bottom: 10px; }
+.mp-bereich .mp-status .mp-name { color: var(--gold); font-family: var(--serif, serif); }
+.mp-btn-spalte { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.mp-btn-dezent { opacity: 0.8; }
+.mp-pick-liste { max-height: 46vh; overflow-y: auto; overscroll-behavior: contain;
+  margin-top: 10px; border: 1px solid var(--linie); border-radius: 8px; }
+.mp-pick-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 12px; border-bottom: 1px solid var(--linie); cursor: pointer;
+}
+.mp-pick-row:last-child { border-bottom: none; }
+.mp-pick-row:hover, .mp-pick-row.aktiv { background: rgba(196,168,110,0.12); }
+.mp-pick-row .mp-pick-name { font-size: 14px; color: var(--ink); }
+.mp-pick-row .mp-pick-meta { font-size: 12px; color: var(--ink); opacity: 0.65; }
+.mp-pick-row .account-btn { padding: 6px 12px; font-size: 12px; flex: 0 0 auto; }
+.mp-foto-zeile { display: flex; align-items: center; gap: 8px; font-size: 14px;
+  color: var(--ink); margin: 4px 0 10px; }
+.mp-dup-titel { font-family: var(--serif, serif); color: var(--gold); font-size: 15px; }
+.mp-dup-eintrag { font-size: 13px; color: var(--ink); padding: 4px 0; }
 .login-feld[readonly] { opacity: 0.7; cursor: not-allowed; background: rgba(0,0,0,0.03); }
 .prof-pw-box { border: 1px solid var(--linie); border-radius: 10px; padding: 14px; margin-top: 6px; }
 /* Aufklappbarer Passwort-Header (sieht aus wie reg-gruppe-titel, ist aber ein Button) */
@@ -1299,6 +1422,7 @@ footer {
 <section id="ansicht-baum">
   <div id="baum-tree-hinweis" class="baum-tree-hinweis" style="display:none">
     <span id="baum-tree-hinweis-text"></span>
+    <span id="baum-tree-hinweis-gen" class="baum-tree-hinweis-gen" style="display:none"></span>
   </div>
   <div id="baum-container">
     <div id="baum-bg"></div>
@@ -1316,9 +1440,208 @@ footer {
         <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
       </svg>
     </button>
+    <button type="button" id="ansicht-erweitern-btn" class="ansicht-erweitern-btn"
+            onclick="oeffneAnsichtModal()" data-i18n-title="ansicht_btn"
+            data-i18n-aria="ansicht_btn" aria-label="Erweiterte Ansicht">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="6" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="6" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="18" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 8.6v3.4M12 12h-6v2.4M12 12h6v2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button type="button" id="pdf-export-btn" class="pdf-export-btn"
+            onclick="oeffnePdfExport()" data-i18n-title="pdf_btn"
+            data-i18n-aria="pdf_btn" aria-label="Stammbaum als PDF exportieren">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path d="M6 2.5h8.5L19 7v12.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5v-15A1.5 1.5 0 0 1 6.5 3"
+              fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M14 2.7V7h4.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M8.3 11.5v6M8.3 11.5h1.6a1.4 1.4 0 0 1 0 2.8H8.3M12.6 11.5v6h1.3a1.6 1.6 0 0 0 1.6-1.6v-2.8a1.6 1.6 0 0 0-1.6-1.6zM16.4 11.5v6m0-6h2.1m-2.1 3h1.6"
+              fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span class="pdf-export-btn-text" data-i18n="pdf_btn"></span>
+    </button>
   </div>
   <p class="baum-hinweis" data-i18n="baum_hinweis"></p>
 </section>
+
+<!-- PDF-/Druck-Export Modal -->
+<div class="modal" id="pdf-export-modal">
+  <div class="modal-inhalt pdf-export-box" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePdfExport()" aria-label="×">×</button>
+    <h2 data-i18n="pdf_titel"></h2>
+    <p class="pdf-sub" data-i18n="pdf_sub"></p>
+
+    <div class="pdf-grid">
+      <!-- 1) Umfang -->
+      <div class="pdf-sektion">
+        <div class="reg-gruppe-titel" data-i18n="pdf_umfang_titel"></div>
+        <label class="login-label"><span data-i18n="pdf_wurzel"></span>
+          <select id="pdf-wurzel" class="login-feld"></select>
+        </label>
+        <label class="login-label"><span data-i18n="pdf_umfang"></span>
+          <select id="pdf-umfang" class="login-feld" onchange="pdfUmfangChange()">
+            <option value="person" data-i18n="pdf_umfang_person"></option>
+            <option value="eltern" data-i18n="pdf_umfang_eltern"></option>
+            <option value="grosseltern" data-i18n="pdf_umfang_grosseltern"></option>
+            <option value="urgrosseltern" data-i18n="pdf_umfang_urgrosseltern"></option>
+            <option value="xgen" data-i18n="pdf_umfang_xgen"></option>
+            <option value="alles" selected data-i18n="pdf_umfang_alles"></option>
+          </select>
+        </label>
+        <label class="login-label" id="pdf-xgen-zurueck-wrap" style="display:none">
+          <span data-i18n="pdf_gen_zurueck"></span>
+          <input type="number" id="pdf-gen-zurueck" class="login-feld" min="0" max="30" step="1" value="3" inputmode="numeric">
+        </label>
+        <label class="login-label"><span data-i18n="pdf_gen_vor"></span>
+          <input type="number" id="pdf-gen-vor" class="login-feld" min="0" max="30" step="1" value="6" inputmode="numeric">
+        </label>
+      </div>
+
+      <!-- 2) Verknüpfte Bäume + 3) Filter -->
+      <div class="pdf-sektion">
+        <div class="reg-gruppe-titel" data-i18n="pdf_verknuepft_titel"></div>
+        <label class="pdf-check"><input type="checkbox" id="pdf-verknuepft"> <span data-i18n="pdf_verknuepft"></span></label>
+        <label class="pdf-check pdf-sub-check"><input type="checkbox" id="pdf-verknuepft-farbe" checked> <span data-i18n="pdf_verknuepft_farbe"></span></label>
+
+        <div class="reg-gruppe-titel" style="margin-top:14px" data-i18n="pdf_filter_titel"></div>
+        <label class="login-label"><span data-i18n="pdf_filter_status"></span>
+          <select id="pdf-filter-status" class="login-feld">
+            <option value="beide" selected data-i18n="pdf_filter_beide"></option>
+            <option value="lebend" data-i18n="pdf_filter_lebend"></option>
+            <option value="verstorben" data-i18n="pdf_filter_verstorben"></option>
+          </select>
+        </label>
+        <label class="pdf-check"><input type="checkbox" id="pdf-filter-unbestaetigt"> <span data-i18n="pdf_filter_unbestaetigt"></span></label>
+        <label class="pdf-check"><input type="checkbox" id="pdf-filter-privat"> <span data-i18n="pdf_filter_privat"></span></label>
+      </div>
+
+      <!-- 4) Darstellung -->
+      <div class="pdf-sektion">
+        <div class="reg-gruppe-titel" data-i18n="pdf_layout_titel"></div>
+        <label class="login-label"><span data-i18n="pdf_layout"></span>
+          <select id="pdf-layout" class="login-feld">
+            <option value="vertikal" selected data-i18n="pdf_layout_vertikal"></option>
+            <option value="horizontal" data-i18n="pdf_layout_horizontal"></option>
+            <option value="ahnen" data-i18n="pdf_layout_ahnen"></option>
+            <option value="nachkommen" data-i18n="pdf_layout_nachkommen"></option>
+            <option value="kompakt" data-i18n="pdf_layout_kompakt"></option>
+          </select>
+        </label>
+        <label class="pdf-check"><input type="checkbox" id="pdf-inhalt-geburtsort"> <span data-i18n="pdf_inhalt_geburtsort"></span></label>
+        <label class="pdf-check"><input type="checkbox" id="pdf-inhalt-foto"> <span data-i18n="pdf_inhalt_foto"></span></label>
+      </div>
+
+      <!-- 5) Papier + Format -->
+      <div class="pdf-sektion">
+        <div class="reg-gruppe-titel" data-i18n="pdf_papier_titel"></div>
+        <div class="pdf-empfehlung" id="pdf-empfehlung"></div>
+        <label class="login-label"><span data-i18n="pdf_papier"></span>
+          <select id="pdf-papier" class="login-feld">
+            <option value="auto" selected data-i18n="pdf_papier_auto"></option>
+            <option value="A4">A4</option>
+            <option value="A3">A3</option>
+            <option value="A2">A2</option>
+            <option value="A1">A1</option>
+            <option value="A0">A0</option>
+          </select>
+        </label>
+        <label class="login-label"><span data-i18n="pdf_orientierung"></span>
+          <select id="pdf-orientierung" class="login-feld">
+            <option value="auto" selected data-i18n="pdf_orient_auto"></option>
+            <option value="landscape" data-i18n="pdf_orient_quer"></option>
+            <option value="portrait" data-i18n="pdf_orient_hoch"></option>
+          </select>
+        </label>
+        <label class="pdf-check"><input type="checkbox" id="pdf-poster"> <span data-i18n="pdf_poster"></span></label>
+        <label class="pdf-check pdf-sub-check"><input type="checkbox" id="pdf-titelblatt" checked> <span data-i18n="pdf_titelblatt"></span></label>
+        <label class="login-label"><span data-i18n="pdf_format"></span>
+          <select id="pdf-format" class="login-feld">
+            <option value="pdf" selected>PDF</option>
+            <option value="png">PNG</option>
+            <option value="svg">SVG</option>
+            <option value="druck" data-i18n="pdf_format_druck"></option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="pdf-hinweisbox" id="pdf-hinweisbox"></div>
+
+    <div class="pdf-progress" id="pdf-progress" style="display:none">
+      <div class="pdf-progress-bar"><div class="pdf-progress-fill" id="pdf-progress-fill"></div></div>
+      <div class="pdf-progress-text" id="pdf-progress-text"></div>
+    </div>
+
+    <div class="pdf-aktionen">
+      <button type="button" class="login-submit" id="pdf-start-btn" onclick="pdfExportStart()" data-i18n="pdf_erstellen"></button>
+      <button type="button" class="login-hinweis-btn sekundaer" onclick="schliessePdfExport()" data-i18n="pdf_abbrechen"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Druck-Bühne (nur beim Browser-Druck sichtbar; wird per JS mit dem Export-SVG befüllt) -->
+<div id="pdf-print-stage" aria-hidden="true"></div>
+
+<!-- „Ansicht erweitern"-Overlay (personalisierte Ausschnitts-Ansicht) -->
+<div class="modal" id="ansicht-modal">
+  <div class="modal-inhalt ansicht-box" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseAnsichtModal()" aria-label="×">×</button>
+    <h2 data-i18n="ansicht_titel"></h2>
+    <p class="pdf-sub" data-i18n="ansicht_sub"></p>
+
+    <p class="pdf-sub" id="ansicht-keine-karte" style="display:none;color:var(--akzent)" data-i18n="ansicht_keine_karte"></p>
+
+    <div class="ansicht-opt">
+      <!-- Option 3: Erweiterte Ansicht um die eigene Person -->
+      <label class="ansicht-radio" id="ansicht-radio-erweitert">
+        <input type="radio" name="ansicht-modus" value="erweitert" onchange="ansichtModusWahl()">
+        <span><b data-i18n="ansicht_opt_erweitert"></b><small data-i18n="ansicht_opt_erweitert_sub"></small></span>
+      </label>
+      <div class="ansicht-unter" id="ansicht-unter-erweitert">
+        <div class="ansicht-kat">
+          <label><input type="checkbox" id="ans-kat-grosseltern"> <span data-i18n="ansicht_kat_grosseltern"></span></label>
+          <label><input type="checkbox" id="ans-kat-urgrosseltern"> <span data-i18n="ansicht_kat_urgrosseltern"></span></label>
+          <label><input type="checkbox" id="ans-kat-cousins"> <span data-i18n="ansicht_kat_cousins"></span></label>
+          <label><input type="checkbox" id="ans-kat-nachkommen"> <span data-i18n="ansicht_kat_nachkommen"></span></label>
+        </div>
+        <p class="pdf-sub" data-i18n="ansicht_basis_hinweis" style="margin-top:8px"></p>
+      </div>
+
+      <!-- Option 2: Familienzweig ab bestimmter Person -->
+      <label class="ansicht-radio" id="ansicht-radio-zweig">
+        <input type="radio" name="ansicht-modus" value="zweig" onchange="ansichtModusWahl()">
+        <span><b data-i18n="ansicht_opt_zweig"></b><small data-i18n="ansicht_opt_zweig_sub"></small></span>
+      </label>
+      <div class="ansicht-unter" id="ansicht-unter-zweig">
+        <input type="text" id="ansicht-suche" class="login-feld" data-i18n-placeholder="ansicht_such_ph"
+               oninput="ansichtPickSuche()" autocomplete="off" inputmode="search">
+        <div class="ansicht-pick-list" id="ansicht-pick-list"></div>
+        <label class="login-label" style="margin-top:8px"><span data-i18n="ansicht_gen"></span>
+          <select id="ansicht-gen" class="login-feld">
+            <option value="1" data-i18n="ansicht_gen_1"></option>
+            <option value="2" data-i18n="ansicht_gen_2"></option>
+            <option value="3" selected data-i18n="ansicht_gen_3"></option>
+            <option value="5" data-i18n="ansicht_gen_5"></option>
+            <option value="0" data-i18n="ansicht_gen_unbegrenzt"></option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Option 1: Gesamten Stammbaum -->
+      <label class="ansicht-radio" id="ansicht-radio-voll">
+        <input type="radio" name="ansicht-modus" value="voll" onchange="ansichtModusWahl()">
+        <span><b data-i18n="ansicht_opt_voll"></b><small data-i18n="ansicht_opt_voll_sub"></small></span>
+      </label>
+    </div>
+
+    <div class="ansicht-aktionen">
+      <button type="button" class="login-hinweis-btn sekundaer" onclick="schliesseAnsichtModal()" data-i18n="ansicht_abbrechen"></button>
+      <button type="button" class="login-submit" id="ansicht-anwenden-btn" onclick="ansichtAnwenden()" data-i18n="ansicht_anwenden"></button>
+    </div>
+  </div>
+</div>
 
 <!-- Login Modal -->
 <div class="modal" id="login-modal">
@@ -1474,6 +1797,10 @@ footer {
 
     <div id="prof-fehler" class="login-fehler" style="display:none"></div>
 
+    <!-- Meine Person im Stammbaum (Konto <-> Personenkarte) -->
+    <div class="reg-gruppe-titel" data-i18n="mp_titel"></div>
+    <div id="mp-bereich" class="mp-bereich"></div>
+
     <!-- Benachrichtigungen (z. B. Event-Einladungen) -->
     <button type="button" class="reg-gruppe-titel prof-pw-toggle" id="prof-benachr-toggle" onclick="profilBenachrToggle()" aria-expanded="false">
       <span><span data-i18n="benachr_titel"></span><span class="benachr-badge" id="prof-benachr-badge" style="display:none"></span></span>
@@ -1496,12 +1823,26 @@ footer {
 
     <!-- Persönliche Daten -->
     <div class="reg-gruppe-titel" data-i18n="prof_pers_titel"></div>
+    <p class="prof-hint" id="prof-sync-hint" data-i18n="prof_sync_hint" style="display:none"></p>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="prof_vorname"></span>
         <input type="text" id="prof-vorname" class="login-feld" autocomplete="given-name">
       </label>
       <label class="login-label"><span data-i18n="prof_nachname"></span>
         <input type="text" id="prof-nachname" class="login-feld" autocomplete="family-name">
+      </label>
+      <label class="login-label"><span data-i18n="prof_geburtsname"></span>
+        <input type="text" id="prof-geburtsname" class="login-feld" autocomplete="off">
+      </label>
+      <label class="login-label"><span data-i18n="pe_geschlecht"></span>
+        <select id="prof-geschlecht" class="login-feld">
+          <option value="" data-i18n="unbekannt"></option>
+          <option value="M" data-i18n="maennlich"></option>
+          <option value="F" data-i18n="weiblich"></option>
+        </select>
+      </label>
+      <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
+        <input type="text" id="prof-geburtsdatum" class="login-feld dp-input" autocomplete="off">
       </label>
       <label class="login-label reg-feld-voll"><span data-i18n="prof_email"></span>
         <input type="email" id="prof-email" class="login-feld" readonly autocomplete="email">
@@ -1517,6 +1858,9 @@ footer {
       </label>
       <label class="login-label"><span data-i18n="prof_zeitzone"></span>
         <select id="prof-zeitzone" class="login-feld"></select>
+      </label>
+      <label class="login-label reg-feld-voll"><span data-i18n="prof_biografie"></span>
+        <textarea id="prof-biografie" class="login-feld" rows="3" autocomplete="off" style="resize:vertical;min-height:64px"></textarea>
       </label>
     </div>
 
@@ -1567,6 +1911,91 @@ footer {
       <button class="account-btn" id="prof-sec-abmelden" type="button" onclick="profilAndereAbmelden()" data-i18n="sec_andere_abmelden" style="display:none"></button>
       <div id="prof-sec-erfolg" class="reg-erfolg" style="display:none"></div>
     </div>
+  </div>
+</div>
+
+<!-- Meine Person: Hinweis-Dialog (bedingt nach Login) -->
+<div class="modal" id="mp-hinweis-modal">
+  <div class="modal-inhalt" style="max-width:460px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="mpHinweisSpaeter()">×</button>
+    <h2 data-i18n="mp_hinweis_titel"></h2>
+    <p class="prof-hint" id="mp-hinweis-text" data-i18n="mp_hinweis_text" style="font-size:15px;line-height:1.5"></p>
+    <div class="mp-btn-spalte">
+      <button type="button" class="login-submit" data-i18n="mp_btn_auswaehlen" onclick="mpHinweisAuswaehlen()"></button>
+      <button type="button" class="account-btn" data-i18n="mp_btn_erstellen" onclick="mpHinweisErstellen()"></button>
+      <button type="button" class="account-btn mp-btn-dezent" data-i18n="mp_btn_spaeter" onclick="mpHinweisSpaeter()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Meine Person: bestehende kontolose Karte auswählen -->
+<div class="modal" id="mp-pick-modal">
+  <div class="modal-inhalt" style="max-width:520px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseMpPick()">×</button>
+    <h2 data-i18n="mp_pick_titel"></h2>
+    <p class="prof-hint" data-i18n="mp_pick_intro"></p>
+    <input type="text" id="mp-pick-such" class="login-feld" oninput="renderMpPick()" autocomplete="off">
+    <div id="mp-pick-fehler" class="login-fehler" style="display:none"></div>
+    <div id="mp-pick-liste" class="mp-pick-liste"></div>
+  </div>
+</div>
+
+<!-- Meine Person: neue eigene Karte anlegen -->
+<div class="modal" id="mp-create-modal">
+  <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseMpCreate()">×</button>
+    <h2 data-i18n="mp_create_titel"></h2>
+
+    <label class="login-label reg-feld-voll" id="mp-create-baum-wrap" style="display:none">
+      <span data-i18n="mp_create_baum"></span>
+      <select id="mp-create-baum" class="login-feld"></select>
+    </label>
+
+    <div class="reg-grid">
+      <label class="login-label"><span data-i18n="prof_vorname"></span>
+        <input type="text" id="mp-create-vorname" class="login-feld" autocomplete="given-name">
+      </label>
+      <label class="login-label"><span data-i18n="prof_nachname"></span>
+        <input type="text" id="mp-create-nachname" class="login-feld" autocomplete="family-name">
+      </label>
+      <label class="login-label"><span data-i18n="pe_geschlecht"></span>
+        <select id="mp-create-geschlecht" class="login-feld">
+          <option value="" data-i18n="unbekannt"></option>
+          <option value="M" data-i18n="maennlich"></option>
+          <option value="F" data-i18n="weiblich"></option>
+        </select>
+      </label>
+      <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
+        <input type="text" id="mp-create-geburtsdatum" class="login-feld dp-input" autocomplete="off">
+      </label>
+      <label class="login-label"><span data-i18n="mp_create_geburtsort"></span>
+        <input type="text" id="mp-create-geburtsort" class="login-feld" autocomplete="off">
+      </label>
+      <label class="login-label"><span data-i18n="reg_geburtsland"></span>
+        <select id="mp-create-geburtsland" class="login-feld land-select"></select>
+      </label>
+      <label class="login-label"><span data-i18n="prof_email"></span>
+        <input type="email" id="mp-create-email" class="login-feld" autocomplete="email" inputmode="email">
+      </label>
+    </div>
+
+    <label class="mp-foto-zeile" id="mp-create-foto-wrap" style="display:none">
+      <input type="checkbox" id="mp-create-foto"> <span data-i18n="mp_create_foto"></span>
+    </label>
+
+    <!-- Duplikat-Treffer (wird bei möglicher Übereinstimmung eingeblendet) -->
+    <div id="mp-create-dup" class="sync-hinweis" style="display:none">
+      <div class="mp-dup-titel" data-i18n="mp_dup_titel"></div>
+      <p data-i18n="mp_dup_text" style="margin:6px 0"></p>
+      <div id="mp-create-dup-liste"></div>
+      <div class="mp-btn-spalte" style="margin-top:8px">
+        <button type="button" class="login-submit" id="mp-dup-link-btn" data-i18n="mp_dup_verknuepfen" onclick="mpDupVerknuepfen()"></button>
+        <button type="button" class="account-btn" data-i18n="mp_dup_neu" onclick="mpCreateAnlegen(true)"></button>
+      </div>
+    </div>
+
+    <div id="mp-create-fehler" class="login-fehler" style="display:none"></div>
+    <button type="button" class="login-submit" id="mp-create-submit" data-i18n="mp_create_submit" onclick="mpCreateAnlegen(false)"></button>
   </div>
 </div>
 
@@ -2493,6 +2922,9 @@ async function setzeUser(user) {
 
   // Deep-Link aus der Event-Einladungs-Mail (?event=<id>) nach dem Login einlösen.
   verarbeiteEventDeepLink();
+
+  // "Meine Person im Stammbaum": bedingten Verknüpfungs-Hinweis prüfen (nach Baum + Profil).
+  pruefeMeinePersonHinweis();
 }
 
 function normalizeRolle(rolle) {
@@ -2528,6 +2960,7 @@ function loescheUser() {
   aktuelleRolle = null;
   meineRollenProFamilie = {};
   meinProfil = null;     // Profildaten verwerfen (ausgeloggt)
+  meinePersonStatus = null;   // "Meine Person"-Status verwerfen (ausgeloggt)
   meineBenachrichtigungen = [];   // Benachrichtigungen verwerfen + Indikator zurücksetzen
   aktualisiereBenachrBadge();
   profilAvatarPending = undefined;
@@ -3071,6 +3504,7 @@ async function realtimeReloadAusfuehren() {
   try {
     if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
     pruefeOverlayAktualitaet();   // P3: offene Personen-Overlays auf Live-Änderungen prüfen
+    aktualisiereProfilLeise();    // Profil<->Karte-Sync: eigenes Profil/Badge live nachziehen
   } catch (e) {
     console.warn('Live-Sync-Reload fehlgeschlagen:', e);
   } finally {
@@ -3204,6 +3638,25 @@ async function ladeMeinProfil() {
   if (presenceChannel) presenceTrack(meinLockPerson);   // Name/Avatar in Presence auffrischen
 }
 
+// Leise Profil-Auffrischung (Profil<->Karte-Sync): nach einem Live-Sync-Reload das eigene
+// Profil neu laden, damit Badge/Presence sofort die (z. B. von einem Admin) geänderten
+// Stammdaten zeigen. Bewusst OHNE Sprachumschaltung und OHNE die offenen Eingabefelder zu
+// überschreiben (kein Verlust laufender Eingaben). Verändert den Inaktivitäts-Timer NICHT.
+async function aktualisiereProfilLeise() {
+  if (!aktuellerUser) return;
+  try {
+    const { data } = await sbClient.from('profile').select('*').eq('user_id', aktuellerUser.id).maybeSingle();
+    if (!data) return;
+    meinProfil = data;
+    aktualisiereBadgeProfil();
+    if (presenceChannel) presenceTrack(meinLockPerson);
+    if (document.getElementById('profil-modal')?.classList.contains('aktiv')) {
+      await ladeMeinePersonStatus();
+      renderMeinePersonBereich();
+    }
+  } catch (e) { /* Live-Refresh ist best-effort */ }
+}
+
 // Avatar-URL fürs eigene Badge/Presence (Thumb bevorzugt). '' = kein Bild.
 function meinAvatarUrl() {
   if (!meinProfil) return '';
@@ -3257,6 +3710,11 @@ async function oeffneProfil() {
   document.getElementById('prof-email').value    = aktuellerUser.email || '';
   document.getElementById('prof-telefon').value  = p.telefon  || '';
   document.getElementById('prof-avatar-sicht').value = p.avatar_sichtbarkeit || 'verbund';
+  // Synchronisierte Stammdaten (Profil <-> verknüpfte Karte)
+  document.getElementById('prof-geburtsname').value = p.geburtsname || '';
+  document.getElementById('prof-geschlecht').value  = p.geschlecht  || '';
+  datumSetzen(document.getElementById('prof-geburtsdatum'), p.geburtsdatum || '');
+  document.getElementById('prof-biografie').value   = p.biografie   || '';
   ['prof-pw-aktuell','prof-pw-neu','prof-pw-neu2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   // Passwort-Bereich beim Öffnen IMMER eingeklappt starten.
   const pwBox = document.getElementById('prof-pw-box');
@@ -3288,15 +3746,362 @@ async function oeffneProfil() {
 
   renderProfilKopf();
   setProfilAvatarVorschau(meinAvatarUrl());
+  renderMeinePersonBereich();   // "Meine Person im Stammbaum" (lädt Status bei Bedarf)
 
   document.getElementById('profil-modal').classList.add('aktiv');
   macheAlleSelectsSuchbar(document.getElementById('profil-modal'));
+  if (typeof macheAlleDatumsfelder === 'function') macheAlleDatumsfelder(document.getElementById('profil-modal'));
+}
+
+// Befüllt die mit der Karte synchronisierten Stammdaten-Felder im offenen Profil-Modal
+// aus meinProfil (nach Verknüpfung "Karte gewinnt" / nach Anlegen). Bewusst nur diese
+// Felder + Kopf/Avatar — ohne das ganze Modal neu zu öffnen.
+function fuelleProfilStammdaten() {
+  const p = meinProfil || {};
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('prof-vorname',     p.vorname);
+  set('prof-nachname',    p.nachname);
+  set('prof-geburtsname', p.geburtsname);
+  set('prof-geschlecht',  p.geschlecht);
+  set('prof-biografie',   p.biografie);
+  const gd = document.getElementById('prof-geburtsdatum');
+  if (gd && typeof datumSetzen === 'function') datumSetzen(gd, p.geburtsdatum || '');
+  if (typeof renderProfilKopf === 'function') renderProfilKopf();
+  if (typeof setProfilAvatarVorschau === 'function') setProfilAvatarVorschau(meinAvatarUrl());
 }
 
 function schliesseProfil() {
   document.getElementById('profil-modal').classList.remove('aktiv');
   if (profilAvatarPending && profilAvatarPending.previewUrl) { try { URL.revokeObjectURL(profilAvatarPending.previewUrl); } catch (e) {} }
   profilAvatarPending = undefined;
+}
+
+// ============================================================
+// MEINE PERSON IM STAMMBAUM (Konto <-> Personenkarte, Self-Service)
+// Verknüpfung läuft über personen.user_id (kein separates linkedPersonId-Feld).
+// RPCs: meine_person_status / meine_person_kandidaten / meine_karte_verknuepfen /
+//       meine_karte_erstellen  (Datei supabase_meine_person.sql).
+// ============================================================
+let meinePersonStatus = null;   // zuletzt geladener Status (meine_person_status)
+let mpKandidaten      = [];      // kontolose Karten für den Auswahl-Picker
+let mpDupMatch        = null;    // sichtbarer Duplikat-Treffer (Karte) zum Verknüpfen
+let mpDupMatches      = [];      // letzte Duplikat-Trefferliste (für Sprachwechsel-Neurender)
+
+// Status laden (verknüpft? wie viele Bäume/Personen sichtbar?). Steuert Hinweis + Profil-Bereich.
+async function ladeMeinePersonStatus() {
+  meinePersonStatus = null;
+  if (!aktuellerUser) return null;
+  try {
+    const { data, error } = await sbClient.rpc('meine_person_status');
+    if (error) { console.warn('meine_person_status:', error.message); return null; }
+    meinePersonStatus = data || null;
+  } catch (e) { console.warn('meine_person_status (Ausnahme):', e); }
+  return meinePersonStatus;
+}
+
+// Snooze ("Später erinnern") je Nutzer für 24 h.
+function mpSnoozeKey() { return 'mp_snooze_' + ((aktuellerUser && aktuellerUser.id) || '?'); }
+function mpIstGesnoozt() {
+  try { const t0 = parseInt(localStorage.getItem(mpSnoozeKey()) || '0', 10);
+        return !!t0 && (Date.now() - t0) < 24 * 60 * 60 * 1000; } catch (e) { return false; }
+}
+function mpSnoozeSetzen() { try { localStorage.setItem(mpSnoozeKey(), String(Date.now())); } catch (e) {} }
+
+// Bedingung der "Neuen Regel": Zugriff auf >=1 Baum UND >=1 Karte vorhanden UND selbst NICHT verknüpft.
+async function pruefeMeinePersonHinweis() {
+  if (!aktuellerUser) return;
+  const s = await ladeMeinePersonStatus();
+  if (!s) return;
+  if (document.getElementById('profil-modal')?.classList.contains('aktiv')) renderMeinePersonBereich();   // falls Profil offen: Bereich auffrischen
+  if (s.super_admin) return;                                // Betriebs-/Wartungskonto nicht behelligen
+  if (s.verknuepft) return;                                 // bereits zugeordnet -> kein Hinweis
+  if (!(s.baum_anzahl > 0 && s.personen_anzahl > 0)) return; // keine Bäume / keine Karten -> kein Hinweis
+  if (mpIstGesnoozt()) return;
+  zeigeMeinePersonHinweis();
+}
+
+function zeigeMeinePersonHinweis() {
+  const m = document.getElementById('mp-hinweis-modal'); if (m) m.classList.add('aktiv');
+}
+function mpHinweisSpaeter() {
+  mpSnoozeSetzen();
+  const m = document.getElementById('mp-hinweis-modal'); if (m) m.classList.remove('aktiv');
+}
+function mpHinweisAuswaehlen() {
+  const m = document.getElementById('mp-hinweis-modal'); if (m) m.classList.remove('aktiv');
+  oeffneMpPick();
+}
+function mpHinweisErstellen() {
+  const m = document.getElementById('mp-hinweis-modal'); if (m) m.classList.remove('aktiv');
+  oeffneMpCreate();
+}
+
+// Profil-Bereich "Meine Person im Stammbaum" rendern (nutzt zuletzt geladenen Status; lädt bei Bedarf).
+async function renderMeinePersonBereich() {
+  const box = document.getElementById('mp-bereich');
+  if (!box) return;
+  box.innerHTML = `<div class="mp-status">${escapeHtml(t('sec_laden'))}</div>`;
+  const s = meinePersonStatus || await ladeMeinePersonStatus();
+  const hint = document.getElementById('prof-sync-hint');
+  if (hint) hint.style.display = (s && s.verknuepft) ? 'block' : 'none';
+  if (!s) { box.innerHTML = ''; return; }
+  if (s.verknuepft) {
+    const name = nm(s.person_name || '?');
+    const baum = s.person_baum ? ' (' + t('mp_in_baum', { baum: nm(s.person_baum) }) + ')' : '';
+    box.innerHTML = `<div class="mp-status">${escapeHtml(t('mp_verknuepft', { name: '' }))}` +
+      `<span class="mp-name">${escapeHtml(name)}</span>${escapeHtml(baum)}</div>` +
+      `<div class="mp-btn-spalte"><button type="button" class="account-btn mp-btn-dezent" onclick="mpVerknuepfungLoesen()">${escapeHtml(t('mp_loesen'))}</button></div>`;
+    return;
+  }
+  const text = (s.personen_anzahl > 0) ? t('mp_nicht_verknuepft') : t('mp_keine_karten');
+  let btns = '<div class="mp-btn-spalte">';
+  if (s.personen_anzahl > 0)
+    btns += `<button type="button" class="login-submit" onclick="oeffneMpPick()">${escapeHtml(t('mp_btn_auswaehlen'))}</button>`;
+  if (s.baum_anzahl > 0)
+    btns += `<button type="button" class="account-btn" onclick="oeffneMpCreate()">${escapeHtml(t('mp_btn_erstellen'))}</button>`;
+  btns += '</div>';
+  box.innerHTML = `<div class="mp-status">${escapeHtml(text)}</div>${btns}`;
+}
+
+// ---- Bestehende kontolose Karte auswählen ----
+async function oeffneMpPick() {
+  if (!aktuellerUser) return;
+  const fehler = document.getElementById('mp-pick-fehler'); if (fehler) fehler.style.display = 'none';
+  document.getElementById('mp-pick-such').value = '';
+  const liste = document.getElementById('mp-pick-liste');
+  liste.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta">${escapeHtml(t('sec_laden'))}</span></div>`;
+  // Touch-sichere Auswahl EINMAL an den (statischen) Container hängen (tippAuswahl: Tap selektiert, Wischen scrollt).
+  if (!liste._mpInit) {
+    tippAuswahl(liste, '.mp-pick-row', el => { const id = el.getAttribute('data-id'); if (id) mpVerknuepfe(id, false); });
+    liste._mpInit = true;
+  }
+  document.getElementById('mp-pick-modal').classList.add('aktiv');
+  try {
+    const { data, error } = await sbClient.rpc('meine_person_kandidaten');
+    if (error) throw error;
+    mpKandidaten = data || [];
+  } catch (e) {
+    console.warn('meine_person_kandidaten:', e);
+    mpKandidaten = [];
+    if (fehler) { fehler.textContent = t('mp_link_fehler'); fehler.style.display = 'block'; }
+  }
+  renderMpPick();
+}
+function schliesseMpPick() { document.getElementById('mp-pick-modal').classList.remove('aktiv'); }
+
+function renderMpPick() {
+  const liste = document.getElementById('mp-pick-liste'); if (!liste) return;
+  const q = (document.getElementById('mp-pick-such').value || '').trim().toLowerCase();
+  const gefiltert = mpKandidaten.filter(k => {
+    if (!q) return true;
+    return ((k.name || '') + ' ' + (k.baum || '')).toLowerCase().includes(q);
+  });
+  if (!gefiltert.length) {
+    liste.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta">${escapeHtml(t('mp_pick_leer'))}</span></div>`;
+    return;
+  }
+  liste.innerHTML = gefiltert.map(k => {
+    const datum = k.geburtsdatum ? (formatDatumLang(k.geburtsdatum) || k.geburtsdatum) : '';
+    const meta  = [datum, k.baum ? nm(k.baum) : ''].filter(Boolean).join(' · ');
+    return `<div class="mp-pick-row" data-id="${escapeHtml(k.person_id)}">
+      <div><div class="mp-pick-name">${escapeHtml(nm(k.name || '?'))}</div>
+        <div class="mp-pick-meta">${escapeHtml(meta)}</div></div>
+      <button type="button" class="account-btn">${escapeHtml(t('mp_pick_verknuepfen'))}</button>
+    </div>`;
+  }).join('');
+}
+
+// Self-Link an eine Karte: setzt personen.user_id = auth.uid() (RPC prüft Sichtbarkeit + "1 Nutzer pro Karte").
+async function mpVerknuepfe(personId, ausDup) {
+  if (!personId) return;
+  const fehlerEl = document.getElementById(ausDup ? 'mp-create-fehler' : 'mp-pick-fehler');
+  if (fehlerEl) fehlerEl.style.display = 'none';
+  try {
+    const { data, error } = await sbClient.rpc('meine_karte_verknuepfen', { p_person: personId });
+    if (error) throw error;
+    if (!data || !data.ok) {
+      const msg = (data && data.grund === 'karte_belegt') ? t('mp_link_belegt') : t('mp_link_fehler');
+      if (fehlerEl) { fehlerEl.textContent = msg; fehlerEl.style.display = 'block'; }
+      return;
+    }
+    schliesseMpPick(); schliesseMpCreate();
+    await ladeMeinePersonStatus();
+    // "Karte gewinnt": der DB-Trigger hat die profile-Zeile aus der Karte befüllt ->
+    // Profil neu laden und die offenen Stammdaten-Felder/Badge nachziehen.
+    await ladeMeinProfil();
+    if (document.getElementById('profil-modal')?.classList.contains('aktiv')) {
+      renderMeinePersonBereich();
+      fuelleProfilStammdaten();
+    }
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();   // Karte zeigt jetzt 🔗
+    zeigeHinweis(t('mp_link_ok'));
+  } catch (e) {
+    console.warn('meine_karte_verknuepfen:', e);
+    if (fehlerEl) { fehlerEl.textContent = t('mp_link_fehler'); fehlerEl.style.display = 'block'; }
+  }
+}
+
+// ---- Neue eigene Karte anlegen ----
+function mpZielBaeume() {
+  // Zugängliche Bäume aus der geladenen Liste (id -> name).
+  return Object.entries(stammbaeumeListe || {}).map(([id, name]) => ({ id, name }));
+}
+
+function oeffneMpCreate() {
+  if (!aktuellerUser) return;
+  const baeume = mpZielBaeume();
+  const wrap = document.getElementById('mp-create-baum-wrap');
+  const sel  = document.getElementById('mp-create-baum');
+  sel.innerHTML = baeume.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name || '?'))}</option>`).join('');
+  // Ziel-Baum-Auswahl nur zeigen, wenn der Nutzer auf MEHRERE Bäume Zugriff hat.
+  wrap.style.display = (baeume.length > 1) ? '' : 'none';
+  if (baeume.length) sel.value = (aktuellerStammbaumId && stammbaeumeListe[aktuellerStammbaumId]) ? aktuellerStammbaumId : baeume[0].id;
+
+  const p = meinProfil || {};
+  document.getElementById('mp-create-vorname').value  = p.vorname  || '';
+  document.getElementById('mp-create-nachname').value = p.nachname || '';
+  document.getElementById('mp-create-geschlecht').value = '';
+  datumSetzen(document.getElementById('mp-create-geburtsdatum'), '');
+  document.getElementById('mp-create-geburtsort').value = '';
+  document.getElementById('mp-create-email').value = aktuellerUser.email || '';
+  fuelleLandSelects(document.getElementById('mp-create-modal'));
+  setLandSelectValue(document.getElementById('mp-create-geburtsland'), '');
+
+  // Profilbild-Übernahme nur anbieten, wenn ein Avatar existiert.
+  const fotoWrap = document.getElementById('mp-create-foto-wrap');
+  const fotoChk  = document.getElementById('mp-create-foto');
+  const hatAvatar = !!meinAvatarUrl();
+  fotoWrap.style.display = hatAvatar ? '' : 'none';
+  fotoChk.checked = hatAvatar;
+
+  document.getElementById('mp-create-dup').style.display = 'none';
+  document.getElementById('mp-create-fehler').style.display = 'none';
+  mpDupMatch = null;
+
+  document.getElementById('mp-create-modal').classList.add('aktiv');
+  macheAlleSelectsSuchbar(document.getElementById('mp-create-modal'));
+  if (typeof macheAlleDatumsfelder === 'function') macheAlleDatumsfelder(document.getElementById('mp-create-modal'));
+}
+function schliesseMpCreate() { document.getElementById('mp-create-modal').classList.remove('aktiv'); }
+
+// Anlegen + automatische Verknüpfung. skipDup=true überspringt die Duplikatsprüfung ("Trotzdem neu erstellen").
+async function mpCreateAnlegen(skipDup) {
+  if (!aktuellerUser) return;
+  const fehlerEl = document.getElementById('mp-create-fehler'); fehlerEl.style.display = 'none';
+  const submit   = document.getElementById('mp-create-submit');
+
+  const vorname  = document.getElementById('mp-create-vorname').value.trim();
+  const nachname = document.getElementById('mp-create-nachname').value.trim();
+  if (!vorname) { fehlerEl.textContent = t('mp_pflicht'); fehlerEl.style.display = 'block'; document.getElementById('mp-create-vorname').focus(); return; }
+  const emailEl = document.getElementById('mp-create-email');
+  if (!pruefeEmailFeld(emailEl, false)) { fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block'; emailEl.focus(); return; }
+
+  const baeume = mpZielBaeume();
+  const baumId = (baeume.length > 1) ? document.getElementById('mp-create-baum').value : (baeume[0] && baeume[0].id);
+  if (!baumId) { fehlerEl.textContent = t('mp_erstellen_fehler'); fehlerEl.style.display = 'block'; return; }
+
+  const sex   = document.getElementById('mp-create-geschlecht').value || '';
+  const geb   = datumWert(document.getElementById('mp-create-geburtsdatum'));
+  const ort   = document.getElementById('mp-create-geburtsort').value.trim();
+  const land  = document.getElementById('mp-create-geburtsland').value || '';
+  const email = emailEl.value.trim();
+
+  // Duplikatsprüfung (greift nur, wenn alle vier Kriterien gesetzt sind; sonst liefert die RPC nichts).
+  if (!skipDup) {
+    submit.disabled = true;
+    let matches = [];
+    try {
+      const { data } = await sbClient.rpc('dubletten_check_global', {
+        p_vorname: vorname, p_nachname: nachname, p_birth_date: geb, p_land: land, p_exclude_person: null
+      });
+      matches = data || [];
+    } catch (e) { console.warn('dubletten_check_global:', e); }
+    submit.disabled = false;
+    if (matches.length) { mpZeigeDuplikate(matches); return; }
+  }
+
+  const fotoChk = document.getElementById('mp-create-foto');
+  const fotoUrl = (fotoChk && fotoChk.checked && meinProfil) ? (meinProfil.avatar_url || meinProfil.avatar_thumb_url || '') : '';
+
+  const stammbaum_daten = {
+    given: vorname, surname: nachname, name: (vorname + ' ' + nachname).trim(), sex,
+    birth_date: geb, birth_place: ort, geburtsland: land,
+    email: email, foto: fotoUrl, avatar: fotoUrl,
+    deceased: false, death_date: '',
+    angelegt_aus: 'meine-person'
+  };
+
+  const alt = submit.textContent; submit.disabled = true; submit.textContent = t('reg_senden_laeuft');
+  try {
+    const { data, error } = await sbClient.rpc('meine_karte_erstellen', {
+      p_baum: baumId, p_vorname: vorname, p_nachname: nachname, p_daten: stammbaum_daten, p_eltern: []
+    });
+    submit.disabled = false; submit.textContent = alt;
+    if (error) throw error;
+    if (!data || !data.ok) { fehlerEl.textContent = t('mp_erstellen_fehler'); fehlerEl.style.display = 'block'; return; }
+    schliesseMpCreate();
+    await ladeMeinePersonStatus();
+    // Neue Karte wurde verknüpft -> Profil neu laden + offene Stammdaten-Felder/Badge nachziehen.
+    await ladeMeinProfil();
+    if (document.getElementById('profil-modal')?.classList.contains('aktiv')) {
+      renderMeinePersonBereich();
+      fuelleProfilStammdaten();
+    }
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+    zeigeHinweis(t('mp_erstellt_ok'));
+  } catch (e) {
+    submit.disabled = false; submit.textContent = alt;
+    console.warn('meine_karte_erstellen:', e);
+    fehlerEl.textContent = t('mp_erstellen_fehler'); fehlerEl.style.display = 'block';
+  }
+}
+
+// Duplikat-Treffer im Create-Modal anzeigen (sichtbare Treffer sind direkt verknüpfbar).
+function mpZeigeDuplikate(matches) {
+  const panel   = document.getElementById('mp-create-dup');
+  const liste   = document.getElementById('mp-create-dup-liste');
+  const linkBtn = document.getElementById('mp-dup-link-btn');
+  mpDupMatches = matches || [];
+  const sichtbar = matches.filter(m => m.sichtbar);
+  mpDupMatch = sichtbar.length ? sichtbar[0].match_id : null;
+  liste.innerHTML = matches.map(m => {
+    const ort = m.sichtbar && m.baum ? ' · ' + nm(m.baum) : '';
+    return `<div class="mp-dup-eintrag">• ${escapeHtml(nm(m.name || '?'))}${escapeHtml(ort)}</div>`;
+  }).join('');
+  linkBtn.style.display = mpDupMatch ? '' : 'none';
+  panel.style.display = 'block';
+}
+function mpDupVerknuepfen() { if (mpDupMatch) mpVerknuepfe(mpDupMatch, true); }
+
+// Sprachwechsel im offenen Create-Modal: nm()-abhängige Inhalte neu (Baum-Optionen, Duplikat-Liste).
+function mpCreateSprachUpdate() {
+  const sel = document.getElementById('mp-create-baum');
+  if (sel) {
+    const akt = sel.value;
+    sel.innerHTML = mpZielBaeume().map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name || '?'))}</option>`).join('');
+    if (akt) sel.value = akt;
+  }
+  if (document.getElementById('mp-create-dup')?.style.display !== 'none' && mpDupMatches.length) mpZeigeDuplikate(mpDupMatches);
+}
+
+// Verknüpfung Konto<->Karte aufheben (Self-Service). Karte + Konto bleiben erhalten,
+// nur die Sync endet (personen.user_id -> NULL). Blutlinien-Auto-Rechte werden neu berechnet.
+async function mpVerknuepfungLoesen() {
+  if (!aktuellerUser) return;
+  const ok = await zeigeBestaetigung(t('mp_loesen_frage'), { gefahr: true });
+  if (!ok) return;
+  try {
+    const { data, error } = await sbClient.rpc('meine_karte_loesen');
+    if (error) throw error;
+    if (!data || !data.ok) { zeigeHinweis(t('mp_link_fehler')); return; }
+    await ladeMeinePersonStatus();
+    if (document.getElementById('profil-modal')?.classList.contains('aktiv')) renderMeinePersonBereich();
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();   // Karte zeigt jetzt 🔓
+    zeigeHinweis(t('mp_geloest'));
+  } catch (e) {
+    console.warn('meine_karte_loesen:', e);
+    zeigeHinweis(t('mp_link_fehler'));
+  }
 }
 
 // Profilkopf (Avatar bleibt separat) — Name/E-Mail/„Mitglied seit".
@@ -3432,6 +4237,11 @@ async function speichereProfil() {
   const land     = document.getElementById('prof-land').value || '';
   const zeitzone = document.getElementById('prof-zeitzone').value || '';
   const sicht    = document.getElementById('prof-avatar-sicht').value || 'verbund';
+  // Synchronisierte Stammdaten (gehen per DB-Trigger auch in die verknüpfte Karte)
+  const geburtsname  = document.getElementById('prof-geburtsname').value.trim();
+  const geschlecht   = document.getElementById('prof-geschlecht').value || '';
+  const geburtsdatum = datumWert(document.getElementById('prof-geburtsdatum'));
+  const biografie    = document.getElementById('prof-biografie').value.trim();
 
   if (!vorname || !nachname) { profilFehler(t('prof_err_pflicht')); return; }
 
@@ -3454,7 +4264,9 @@ async function speichereProfil() {
       vorname, nachname, telefon: telefon || null,
       sprache, land: land || null, zeitzone: zeitzone || null,
       avatar_url: avatarUrl, avatar_thumb_url: avatarThumb,
-      avatar_sichtbarkeit: sicht
+      avatar_sichtbarkeit: sicht,
+      geburtsname: geburtsname || null, geschlecht: geschlecht || null,
+      geburtsdatum: geburtsdatum || null, biografie: biografie || null
     };
     const { data, error } = await sbClient.from('profile').upsert(zeile, { onConflict: 'user_id' }).select().maybeSingle();
     if (error) throw error;
@@ -5852,6 +6664,72 @@ const TEXTE = {
     merge_tree_b_bleibt: '„{b}" behalten, „{a}" löschen',
     merge_tree_nein: 'Nein, Bäume getrennt lassen',
     merge_tree_fertig: 'Stammbäume zusammengeführt.',
+    pdf_btn: 'Als PDF exportieren',
+    pdf_titel: 'Stammbaum exportieren & drucken',
+    pdf_sub: 'Lege Umfang, Filter, Darstellung und Format fest. Die Empfehlung passt die Papiergröße automatisch an.',
+    pdf_umfang_titel: 'Umfang',
+    pdf_wurzel: 'Ausgangsperson',
+    pdf_umfang: 'Wie weit zurück?',
+    pdf_umfang_person: 'Nur ausgewählte Person',
+    pdf_umfang_eltern: 'Eltern',
+    pdf_umfang_grosseltern: 'Eltern + Großeltern',
+    pdf_umfang_urgrosseltern: 'Eltern + Groß- + Urgroßeltern',
+    pdf_umfang_xgen: 'X Generationen zurück',
+    pdf_umfang_alles: 'Gesamter Stammbaum',
+    pdf_gen_zurueck: 'Generationen zurück',
+    pdf_gen_vor: 'Generationen nach vorne (Kinder, Enkel …)',
+    pdf_verknuepft_titel: 'Verknüpfte Stammbäume',
+    pdf_verknuepft: 'Verknüpfte Stammbäume berücksichtigen',
+    pdf_verknuepft_farbe: 'Bäume farblich kennzeichnen',
+    pdf_filter_titel: 'Personenfilter',
+    pdf_filter_status: 'Status',
+    pdf_filter_beide: 'Lebende und Verstorbene',
+    pdf_filter_lebend: 'Nur Lebende',
+    pdf_filter_verstorben: 'Nur Verstorbene',
+    pdf_filter_unbestaetigt: 'Personen ohne Datumsangaben ausblenden',
+    pdf_filter_privat: 'Als privat markierte Personen ausblenden',
+    pdf_layout_titel: 'Darstellung',
+    pdf_layout: 'Layout',
+    pdf_layout_vertikal: 'Klassisch (vertikal)',
+    pdf_layout_horizontal: 'Horizontal',
+    pdf_layout_ahnen: 'Ahnenbaum (nur Vorfahren)',
+    pdf_layout_nachkommen: 'Nachkommenbaum',
+    pdf_layout_kompakt: 'Kompakte Druckansicht',
+    pdf_inhalt_geburtsort: 'Geburtsort anzeigen',
+    pdf_inhalt_foto: 'Profilbild anzeigen (falls vorhanden)',
+    pdf_papier_titel: 'Papier & Format',
+    pdf_papier: 'Papiergröße',
+    pdf_papier_auto: 'Automatisch empfohlen',
+    pdf_orientierung: 'Ausrichtung',
+    pdf_orient_auto: 'Automatisch',
+    pdf_orient_quer: 'Querformat',
+    pdf_orient_hoch: 'Hochformat',
+    pdf_poster: 'Mehrseitiger Druck (Poster-Modus)',
+    pdf_titelblatt: 'Titelblatt mit Angaben',
+    pdf_format: 'Format',
+    pdf_format_druck: 'Im Browser drucken',
+    pdf_erstellen: 'Exportieren',
+    pdf_abbrechen: 'Abbrechen',
+    pdf_empf_text: '{n} Personen · {gen} Generationen · {baeume} Bäume → empfohlen: <b>{papier}</b> (Minimum A4).',
+    pdf_empf_poster: 'Sehr groß — mehrseitiger Druck / Poster-Modus empfohlen.',
+    pdf_prog_modell: 'Daten werden gesammelt …',
+    pdf_prog_layout: 'Anordnung wird berechnet …',
+    pdf_prog_render: 'Stammbaum wird gezeichnet …',
+    pdf_prog_ausgabe: 'Datei wird erstellt …',
+    pdf_prog_fertig: 'Fertig.',
+    pdf_fertig: 'Export abgeschlossen.',
+    pdf_fehler: 'Export fehlgeschlagen.',
+    pdf_keine_wurzel: 'Bitte eine Ausgangsperson wählen.',
+    pdf_leer: 'Keine Personen für diese Auswahl.',
+    pdf_kein_jspdf: 'PDF-Bibliothek nicht geladen — bitte Seite neu laden oder PNG/SVG/Druck nutzen.',
+    pdf_seite: 'Seite {n} (Zeile {r}, Spalte {c})',
+    pdf_legend_titel: 'Stammbäume',
+    pdf_meta_titel: 'Stammbaum {name}',
+    pdf_meta_datum: 'Erstellt am: {d}',
+    pdf_meta_ersteller: 'Ersteller: {e}',
+    pdf_meta_personen: 'Personen: {n}',
+    pdf_meta_gen: 'Generationen: {n}',
+    pdf_meta_baeume: 'Verknüpfte Stammbäume: {n}',
     dub_titel: 'Mögliche Dublette gefunden',
     dub_intro: 'Möglicherweise existiert diese Person bereits in einem anderen Stammbaum. Du kannst trotzdem neu anlegen oder eine Verknüpfung beantragen.',
     dub_fremde_familie: 'in einer anderen Familie',
@@ -5945,7 +6823,35 @@ const TEXTE = {
     shorts_hinweis: 'Kurze Familienmomente und Erinnerungen.',
     baum_hinweis: 'Klick auf Personen für Details · Scroll zum Zoomen · Drag zum Verschieben · Doppelklick zum Zurücksetzen',
     baum_zentrieren: 'Stammbaum zentrieren',
+    ansicht_btn: 'Erweiterte Ansicht',
+    ansicht_titel: 'Ansicht erweitern',
+    ansicht_sub: 'Wähle, welcher Ausschnitt des Stammbaums angezeigt wird.',
+    ansicht_keine_karte: 'Keine eigene Personenkarte in diesem Stammbaum verknüpft — „Erweiterte Ansicht um meine Person" ist nicht verfügbar.',
+    ansicht_opt_erweitert: 'Erweiterte Ansicht um meine Person',
+    ansicht_opt_erweitert_sub: 'Zusätzliche Familienbereiche rund um deine eigene Karte einblenden.',
+    ansicht_opt_zweig: 'Familienzweig ab bestimmter Person',
+    ansicht_opt_zweig_sub: 'Eine Person suchen und ihren Zweig nach unten anzeigen.',
+    ansicht_opt_voll: 'Gesamten Stammbaum anzeigen',
+    ansicht_opt_voll_sub: 'Alle Personen, Verbindungen und verknüpften Zweige.',
+    ansicht_kat_grosseltern: 'Großeltern',
+    ansicht_kat_urgrosseltern: 'Urgroßeltern',
+    ansicht_kat_cousins: 'Cousins/Cousinen',
+    ansicht_kat_nachkommen: 'Alle Nachkommen',
+    ansicht_basis_hinweis: 'Eigene Person, Eltern, Geschwister und Kinder sind immer enthalten.',
+    ansicht_such_ph: 'Name oder Geburtsdatum suchen…',
+    ansicht_gen: 'Generationen nach unten',
+    ansicht_gen_1: '1 Generation',
+    ansicht_gen_2: '2 Generationen',
+    ansicht_gen_3: '3 Generationen',
+    ansicht_gen_5: '5 Generationen',
+    ansicht_gen_unbegrenzt: 'Unbegrenzt',
+    ansicht_anwenden: 'Anwenden',
+    ansicht_abbrechen: 'Abbrechen',
+    ansicht_bitte_person: 'Bitte zuerst eine Person auswählen.',
+    ansicht_standard_info: '<strong>Persönliche Ansicht:</strong> {name}',
+    ansicht_zweig_info: '<strong>Zweig ab:</strong> {name}',
     baum_wechsel_hinweis: 'Du befindest dich im Stammbaum «{name}». Oben über das Auswahlmenü kannst du zwischen den Stammbäumen wechseln.',
+    baum_gen_hinweis: 'Zur besseren Übersichtlichkeit zeigt die Standardansicht nur <b>3 Generationen</b> rund um deine Person. Für mehr (Großeltern, Cousins, ganzer Baum …) unten rechts auf <b>{icon} „{btn}"</b> klicken.',
     pe_titel_fenster: 'Person bearbeiten',
     pe_geschlecht: 'Geschlecht',
     pe_titel: 'Titel',
@@ -6330,6 +7236,12 @@ const TEXTE = {
     prof_bild_sicht: 'Profilbild sichtbar für',
     prof_sicht_verbund: 'Alle im Verbund',
     prof_sicht_familie: 'Nur meine Familie',
+    prof_geburtsname: 'Geburtsname',
+    prof_biografie: 'Kurzbeschreibung',
+    prof_sync_hint: 'Diese Daten sind mit Ihrer verknüpften Personenkarte synchronisiert — Änderungen wirken in beide Richtungen.',
+    mp_loesen: 'Verknüpfung aufheben',
+    mp_loesen_frage: 'Verknüpfung zwischen Konto und Personenkarte wirklich aufheben? Beide Datensätze bleiben erhalten, nur die Synchronisation endet.',
+    mp_geloest: 'Verknüpfung aufgehoben.',
     prof_sicht_privat: 'Privat (nur ich)',
     prof_speichern: 'Speichern',
     prof_gespeichert: 'Profil gespeichert.',
@@ -6364,6 +7276,37 @@ const TEXTE = {
     sec_fehler: 'Konnte nicht geladen werden.',
     sec_bestaetigen: 'Alle anderen Sitzungen wirklich abmelden?',
     sec_geraet_unbekannt: 'Unbekanntes Gerät',
+    mp_titel: 'Meine Person im Stammbaum',
+    mp_verknuepft: 'Verknüpft mit {name}',
+    mp_in_baum: 'in {baum}',
+    mp_nicht_verknuepft: 'Ihr Konto ist noch keiner Personenkarte zugeordnet.',
+    mp_keine_karten: 'In Ihren Stammbäumen sind noch keine Personenkarten vorhanden.',
+    mp_btn_auswaehlen: 'Bestehende Personenkarte auswählen',
+    mp_btn_erstellen: 'Neue Personenkarte erstellen',
+    mp_btn_spaeter: 'Später erinnern',
+    mp_hinweis_titel: 'Ihre Person im Stammbaum',
+    mp_hinweis_text: 'Ihr Benutzerkonto ist noch keiner Person im Stammbaum zugeordnet. Bitte wählen Sie Ihre Personenkarte aus oder erstellen Sie eine neue Personenkarte.',
+    mp_pick_titel: 'Personenkarte auswählen',
+    mp_pick_intro: 'Wählen Sie Ihre eigene Karte. Angezeigt werden nur Karten, die noch keinem Konto zugeordnet sind.',
+    mp_pick_such: 'Suchen …',
+    mp_pick_leer: 'Keine freien Personenkarten gefunden.',
+    mp_pick_verknuepfen: 'Verknüpfen',
+    mp_create_titel: 'Neue Personenkarte erstellen',
+    mp_create_baum: 'In welchem Stammbaum soll Ihre Personenkarte angelegt werden?',
+    mp_create_geburtsort: 'Geburtsort',
+    mp_create_foto: 'Profilbild übernehmen',
+    mp_create_submit: 'Prüfen & anlegen',
+    mp_dup_titel: 'Mögliche Übereinstimmung gefunden',
+    mp_dup_text: 'Eine möglicherweise passende Person wurde gefunden. Möchten Sie diese Personenkarte verknüpfen oder trotzdem eine neue erstellen?',
+    mp_dup_verknuepfen: 'Vorhandene verknüpfen',
+    mp_dup_neu: 'Trotzdem neu erstellen',
+    mp_link_ok: 'Ihre Personenkarte wurde verknüpft.',
+    mp_link_belegt: 'Diese Karte ist bereits einem Konto zugeordnet.',
+    mp_link_fehler: 'Verknüpfung fehlgeschlagen.',
+    mp_erstellt_ok: 'Ihre Personenkarte wurde erstellt und verknüpft.',
+    mp_erstellen_fehler: 'Karte konnte nicht erstellt werden.',
+    mp_pflicht: 'Bitte mindestens den Vornamen angeben.',
+    mp_abbrechen: 'Abbrechen',
     login_email: 'E-Mail',
     login_passwort: 'Passwort',
     login_pflicht: 'Bitte E-Mail und Passwort eingeben.',
@@ -6427,6 +7370,72 @@ const TEXTE = {
     merge_tree_b_bleibt: 'Задржи „{b}", обриши „{a}"',
     merge_tree_nein: 'Не, остави стабла одвојено',
     merge_tree_fertig: 'Стабла спојена.',
+    pdf_btn: 'Експорт као PDF',
+    pdf_titel: 'Експорт и штампа стабла',
+    pdf_sub: 'Одредите обим, филтере, приказ и формат. Препорука аутоматски прилагођава величину папира.',
+    pdf_umfang_titel: 'Обим',
+    pdf_wurzel: 'Полазна особа',
+    pdf_umfang: 'Колико уназад?',
+    pdf_umfang_person: 'Само изабрана особа',
+    pdf_umfang_eltern: 'Родитељи',
+    pdf_umfang_grosseltern: 'Родитељи + баба и деда',
+    pdf_umfang_urgrosseltern: 'Родитељи + баба/деда + прабаба/прадеда',
+    pdf_umfang_xgen: 'X генерација уназад',
+    pdf_umfang_alles: 'Цело стабло',
+    pdf_gen_zurueck: 'Генерација уназад',
+    pdf_gen_vor: 'Генерација унапред (деца, унуци …)',
+    pdf_verknuepft_titel: 'Повезана стабла',
+    pdf_verknuepft: 'Укључи повезана стабла',
+    pdf_verknuepft_farbe: 'Означи стабла бојама',
+    pdf_filter_titel: 'Филтер особа',
+    pdf_filter_status: 'Статус',
+    pdf_filter_beide: 'Живи и преминули',
+    pdf_filter_lebend: 'Само живи',
+    pdf_filter_verstorben: 'Само преминули',
+    pdf_filter_unbestaetigt: 'Сакриј особе без датума',
+    pdf_filter_privat: 'Сакриј особе означене као приватне',
+    pdf_layout_titel: 'Приказ',
+    pdf_layout: 'Распоред',
+    pdf_layout_vertikal: 'Класично (усправно)',
+    pdf_layout_horizontal: 'Водоравно',
+    pdf_layout_ahnen: 'Стабло предака (само преци)',
+    pdf_layout_nachkommen: 'Стабло потомака',
+    pdf_layout_kompakt: 'Компактан приказ за штампу',
+    pdf_inhalt_geburtsort: 'Прикажи место рођења',
+    pdf_inhalt_foto: 'Прикажи слику (ако постоји)',
+    pdf_papier_titel: 'Папир и формат',
+    pdf_papier: 'Величина папира',
+    pdf_papier_auto: 'Аутоматска препорука',
+    pdf_orientierung: 'Оријентација',
+    pdf_orient_auto: 'Аутоматски',
+    pdf_orient_quer: 'Положено',
+    pdf_orient_hoch: 'Усправно',
+    pdf_poster: 'Вишестрана штампа (постер режим)',
+    pdf_titelblatt: 'Насловна страна са подацима',
+    pdf_format: 'Формат',
+    pdf_format_druck: 'Штампај у прегледачу',
+    pdf_erstellen: 'Експорт',
+    pdf_abbrechen: 'Одустани',
+    pdf_empf_text: '{n} особа · {gen} генерација · {baeume} стабала → препорука: <b>{papier}</b> (минимум A4).',
+    pdf_empf_poster: 'Веома велико — препоручује се вишестрана штампа / постер.',
+    pdf_prog_modell: 'Прикупљање података …',
+    pdf_prog_layout: 'Рачунање распореда …',
+    pdf_prog_render: 'Цртање стабла …',
+    pdf_prog_ausgabe: 'Прављење датотеке …',
+    pdf_prog_fertig: 'Готово.',
+    pdf_fertig: 'Експорт завршен.',
+    pdf_fehler: 'Експорт није успео.',
+    pdf_keine_wurzel: 'Изаберите полазну особу.',
+    pdf_leer: 'Нема особа за овај избор.',
+    pdf_kein_jspdf: 'PDF библиотека није учитана — освежите страницу или користите PNG/SVG/штампу.',
+    pdf_seite: 'Страна {n} (ред {r}, колона {c})',
+    pdf_legend_titel: 'Стабла',
+    pdf_meta_titel: 'Стабло {name}',
+    pdf_meta_datum: 'Направљено: {d}',
+    pdf_meta_ersteller: 'Аутор: {e}',
+    pdf_meta_personen: 'Особе: {n}',
+    pdf_meta_gen: 'Генерације: {n}',
+    pdf_meta_baeume: 'Повезана стабла: {n}',
     dub_titel: 'Могући дупликат пронађен',
     dub_intro: 'Можда ова особа већ постоји у другом стаблу. Можете ипак направити нову или затражити повезивање.',
     dub_fremde_familie: 'у другој породици',
@@ -6520,7 +7529,35 @@ const TEXTE = {
     shorts_hinweis: 'Кратки породични тренуци и успомене.',
     baum_hinweis: 'Кликни на особу за детаље · Скрол за зумирање · Превуци за померање · Двоструки клик за ресет',
     baum_zentrieren: 'Центрирај стабло',
+    ansicht_btn: 'Проширени приказ',
+    ansicht_titel: 'Проширите приказ',
+    ansicht_sub: 'Изаберите који део стабла се приказује.',
+    ansicht_keine_karte: 'Ниједна ваша картица није повезана у овом стаблу — „Проширени приказ око моје особе" није доступан.',
+    ansicht_opt_erweitert: 'Проширени приказ око моје особе',
+    ansicht_opt_erweitert_sub: 'Прикажите додатне делове породице око ваше картице.',
+    ansicht_opt_zweig: 'Породична грана од одређене особе',
+    ansicht_opt_zweig_sub: 'Пронађите особу и прикажите њену грану наниже.',
+    ansicht_opt_voll: 'Прикажи цело стабло',
+    ansicht_opt_voll_sub: 'Све особе, везе и повезане гране.',
+    ansicht_kat_grosseltern: 'Баба и деда',
+    ansicht_kat_urgrosseltern: 'Прабаба и прадеда',
+    ansicht_kat_cousins: 'Рођаци',
+    ansicht_kat_nachkommen: 'Сви потомци',
+    ansicht_basis_hinweis: 'Ваша особа, родитељи, браћа/сестре и деца су увек укључени.',
+    ansicht_such_ph: 'Претражи име или датум рођења…',
+    ansicht_gen: 'Генерација наниже',
+    ansicht_gen_1: '1 генерација',
+    ansicht_gen_2: '2 генерације',
+    ansicht_gen_3: '3 генерације',
+    ansicht_gen_5: '5 генерација',
+    ansicht_gen_unbegrenzt: 'Неограничено',
+    ansicht_anwenden: 'Примени',
+    ansicht_abbrechen: 'Откажи',
+    ansicht_bitte_person: 'Прво изаберите особу.',
+    ansicht_standard_info: '<strong>Лични приказ:</strong> {name}',
+    ansicht_zweig_info: '<strong>Грана од:</strong> {name}',
     baum_wechsel_hinweis: 'Налазиш се у стаблу «{name}». Горе преко менија за избор можеш да мењаш стабла.',
+    baum_gen_hinweis: 'Ради прегледности подразумевани приказ показује само <b>3 генерације</b> око ваше особе. За више (баба/деда, рођаци, цело стабло …) доле десно кликните <b>{icon} „{btn}"</b>.',
     pe_titel_fenster: 'Уреди особу',
     pe_geschlecht: 'Пол',
     pe_titel: 'Титула',
@@ -6905,6 +7942,12 @@ const TEXTE = {
     prof_bild_sicht: 'Слика профила видљива за',
     prof_sicht_verbund: 'Сви у савезу',
     prof_sicht_familie: 'Само моју породицу',
+    prof_geburtsname: 'Девојачко презиме',
+    prof_biografie: 'Кратак опис',
+    prof_sync_hint: 'Ови подаци су синхронизовани с вашом повезаном картицом особе — измене делују у оба смера.',
+    mp_loesen: 'Раскини везу',
+    mp_loesen_frage: 'Стварно раскинути везу између налога и картице особе? Оба записа остају, само синхронизација престаје.',
+    mp_geloest: 'Веза је раскинута.',
     prof_sicht_privat: 'Приватно (само ја)',
     prof_speichern: 'Сачувај',
     prof_gespeichert: 'Профил је сачуван.',
@@ -6939,6 +7982,37 @@ const TEXTE = {
     sec_fehler: 'Учитавање није успело.',
     sec_bestaetigen: 'Стварно одјавити све остале сесије?',
     sec_geraet_unbekannt: 'Непознат уређај',
+    mp_titel: 'Моја особа у стаблу',
+    mp_verknuepft: 'Повезано са {name}',
+    mp_in_baum: 'у {baum}',
+    mp_nicht_verknuepft: 'Ваш налог још није повезан ни са једном картицом особе.',
+    mp_keine_karten: 'У вашим стаблима још нема картица особа.',
+    mp_btn_auswaehlen: 'Изабери постојећу картицу особе',
+    mp_btn_erstellen: 'Направи нову картицу особе',
+    mp_btn_spaeter: 'Подсети ме касније',
+    mp_hinweis_titel: 'Ваша особа у стаблу',
+    mp_hinweis_text: 'Ваш кориснички налог још није повезан ни са једном особом у стаблу. Изаберите своју картицу особе или направите нову картицу особе.',
+    mp_pick_titel: 'Избор картице особе',
+    mp_pick_intro: 'Изаберите своју картицу. Приказују се само картице које још нису повезане ни са једним налогом.',
+    mp_pick_such: 'Претрага …',
+    mp_pick_leer: 'Нема слободних картица особа.',
+    mp_pick_verknuepfen: 'Повежи',
+    mp_create_titel: 'Направи нову картицу особе',
+    mp_create_baum: 'У ком стаблу треба да се направи ваша картица особе?',
+    mp_create_geburtsort: 'Место рођења',
+    mp_create_foto: 'Преузми профилну слику',
+    mp_create_submit: 'Провери и направи',
+    mp_dup_titel: 'Пронађено могуће подударање',
+    mp_dup_text: 'Пронађена је особа која се можда поклапа. Желите ли да повежете ту картицу особе или ипак да направите нову?',
+    mp_dup_verknuepfen: 'Повежи постојећу',
+    mp_dup_neu: 'Ипак направи нову',
+    mp_link_ok: 'Ваша картица особе је повезана.',
+    mp_link_belegt: 'Ова картица је већ повезана са неким налогом.',
+    mp_link_fehler: 'Повезивање није успело.',
+    mp_erstellt_ok: 'Ваша картица особе је направљена и повезана.',
+    mp_erstellen_fehler: 'Картица није могла да се направи.',
+    mp_pflicht: 'Унесите барем име.',
+    mp_abbrechen: 'Откажи',
     login_email: 'Е-пошта',
     login_passwort: 'Лозинка',
     login_pflicht: 'Унесите е-пошту и лозинку.',
@@ -7002,6 +8076,72 @@ const TEXTE = {
     merge_tree_b_bleibt: 'Zadrži „{b}", obriši „{a}"',
     merge_tree_nein: 'Ne, ostavi stabla odvojeno',
     merge_tree_fertig: 'Stabla spojena.',
+    pdf_btn: 'Eksport kao PDF',
+    pdf_titel: 'Eksport i ispis stabla',
+    pdf_sub: 'Odredite opseg, filtre, prikaz i format. Preporuka automatski prilagođava veličinu papira.',
+    pdf_umfang_titel: 'Opseg',
+    pdf_wurzel: 'Polazna osoba',
+    pdf_umfang: 'Koliko unatrag?',
+    pdf_umfang_person: 'Samo odabrana osoba',
+    pdf_umfang_eltern: 'Roditelji',
+    pdf_umfang_grosseltern: 'Roditelji + djedovi i bake',
+    pdf_umfang_urgrosseltern: 'Roditelji + bake/djedovi + pradjedovi',
+    pdf_umfang_xgen: 'X generacija unatrag',
+    pdf_umfang_alles: 'Cijelo stablo',
+    pdf_gen_zurueck: 'Generacija unatrag',
+    pdf_gen_vor: 'Generacija unaprijed (djeca, unuci …)',
+    pdf_verknuepft_titel: 'Povezana stabla',
+    pdf_verknuepft: 'Uključi povezana stabla',
+    pdf_verknuepft_farbe: 'Označi stabla bojama',
+    pdf_filter_titel: 'Filtar osoba',
+    pdf_filter_status: 'Status',
+    pdf_filter_beide: 'Živi i preminuli',
+    pdf_filter_lebend: 'Samo živi',
+    pdf_filter_verstorben: 'Samo preminuli',
+    pdf_filter_unbestaetigt: 'Sakrij osobe bez datuma',
+    pdf_filter_privat: 'Sakrij osobe označene kao privatne',
+    pdf_layout_titel: 'Prikaz',
+    pdf_layout: 'Raspored',
+    pdf_layout_vertikal: 'Klasično (uspravno)',
+    pdf_layout_horizontal: 'Vodoravno',
+    pdf_layout_ahnen: 'Stablo predaka (samo preci)',
+    pdf_layout_nachkommen: 'Stablo potomaka',
+    pdf_layout_kompakt: 'Kompaktan prikaz za ispis',
+    pdf_inhalt_geburtsort: 'Prikaži mjesto rođenja',
+    pdf_inhalt_foto: 'Prikaži sliku (ako postoji)',
+    pdf_papier_titel: 'Papir i format',
+    pdf_papier: 'Veličina papira',
+    pdf_papier_auto: 'Automatska preporuka',
+    pdf_orientierung: 'Orijentacija',
+    pdf_orient_auto: 'Automatski',
+    pdf_orient_quer: 'Vodoravno',
+    pdf_orient_hoch: 'Uspravno',
+    pdf_poster: 'Višestrani ispis (poster način)',
+    pdf_titelblatt: 'Naslovnica s podacima',
+    pdf_format: 'Format',
+    pdf_format_druck: 'Ispiši u pregledniku',
+    pdf_erstellen: 'Eksport',
+    pdf_abbrechen: 'Odustani',
+    pdf_empf_text: '{n} osoba · {gen} generacija · {baeume} stabala → preporuka: <b>{papier}</b> (minimum A4).',
+    pdf_empf_poster: 'Vrlo veliko — preporučuje se višestrani ispis / poster.',
+    pdf_prog_modell: 'Prikupljanje podataka …',
+    pdf_prog_layout: 'Računanje rasporeda …',
+    pdf_prog_render: 'Crtanje stabla …',
+    pdf_prog_ausgabe: 'Izrada datoteke …',
+    pdf_prog_fertig: 'Gotovo.',
+    pdf_fertig: 'Eksport dovršen.',
+    pdf_fehler: 'Eksport nije uspio.',
+    pdf_keine_wurzel: 'Odaberite polaznu osobu.',
+    pdf_leer: 'Nema osoba za ovaj odabir.',
+    pdf_kein_jspdf: 'PDF biblioteka nije učitana — osvježite stranicu ili koristite PNG/SVG/ispis.',
+    pdf_seite: 'Stranica {n} (red {r}, stupac {c})',
+    pdf_legend_titel: 'Stabla',
+    pdf_meta_titel: 'Stablo {name}',
+    pdf_meta_datum: 'Izrađeno: {d}',
+    pdf_meta_ersteller: 'Autor: {e}',
+    pdf_meta_personen: 'Osobe: {n}',
+    pdf_meta_gen: 'Generacije: {n}',
+    pdf_meta_baeume: 'Povezana stabla: {n}',
     dub_titel: 'Mogući duplikat pronađen',
     dub_intro: 'Možda ova osoba već postoji u drugom stablu. Možete ipak izraditi novu ili zatražiti povezivanje.',
     dub_fremde_familie: 'u drugoj obitelji',
@@ -7081,7 +8221,35 @@ const TEXTE = {
     shorts_hinweis: 'Kratki obiteljski trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomicanje · Dvostruki klik za reset',
     baum_zentrieren: 'Centriraj stablo',
+    ansicht_btn: 'Prošireni prikaz',
+    ansicht_titel: 'Proširite prikaz',
+    ansicht_sub: 'Odaberite koji se dio stabla prikazuje.',
+    ansicht_keine_karte: 'Nijedna vaša kartica nije povezana u ovom stablu — „Prošireni prikaz oko moje osobe" nije dostupan.',
+    ansicht_opt_erweitert: 'Prošireni prikaz oko moje osobe',
+    ansicht_opt_erweitert_sub: 'Prikažite dodatne dijelove obitelji oko vaše kartice.',
+    ansicht_opt_zweig: 'Obiteljska grana od određene osobe',
+    ansicht_opt_zweig_sub: 'Pronađite osobu i prikažite njezinu granu prema dolje.',
+    ansicht_opt_voll: 'Prikaži cijelo stablo',
+    ansicht_opt_voll_sub: 'Sve osobe, veze i povezane grane.',
+    ansicht_kat_grosseltern: 'Bake i djedovi',
+    ansicht_kat_urgrosseltern: 'Prabake i pradjedovi',
+    ansicht_kat_cousins: 'Rođaci',
+    ansicht_kat_nachkommen: 'Svi potomci',
+    ansicht_basis_hinweis: 'Vaša osoba, roditelji, braća/sestre i djeca uvijek su uključeni.',
+    ansicht_such_ph: 'Pretraži ime ili datum rođenja…',
+    ansicht_gen: 'Generacija prema dolje',
+    ansicht_gen_1: '1 generacija',
+    ansicht_gen_2: '2 generacije',
+    ansicht_gen_3: '3 generacije',
+    ansicht_gen_5: '5 generacija',
+    ansicht_gen_unbegrenzt: 'Neograničeno',
+    ansicht_anwenden: 'Primijeni',
+    ansicht_abbrechen: 'Odustani',
+    ansicht_bitte_person: 'Najprije odaberite osobu.',
+    ansicht_standard_info: '<strong>Osobni prikaz:</strong> {name}',
+    ansicht_zweig_info: '<strong>Grana od:</strong> {name}',
     baum_wechsel_hinweis: 'Nalaziš se u stablu «{name}». Gore preko izbornika možeš mijenjati stabla.',
+    baum_gen_hinweis: 'Radi preglednosti zadani prikaz prikazuje samo <b>3 generacije</b> oko vaše osobe. Za više (bake/djedovi, rođaci, cijelo stablo …) dole desno kliknite <b>{icon} „{btn}"</b>.',
     pe_titel_fenster: 'Uredi osobu',
     pe_geschlecht: 'Spol',
     pe_titel: 'Titula',
@@ -7450,6 +8618,43 @@ const TEXTE = {
     prof_bild_sicht: 'Slika profila vidljiva za',
     prof_sicht_verbund: 'Svi u savezu',
     prof_sicht_familie: 'Samo moju obitelj',
+    prof_geburtsname: 'Djevojačko prezime',
+    prof_biografie: 'Kratak opis',
+    prof_sync_hint: 'Ovi podaci sinkronizirani su s vašom povezanom karticom osobe — promjene djeluju u oba smjera.',
+    mp_loesen: 'Ukloni povezivanje',
+    mp_loesen_frage: 'Stvarno ukloniti povezivanje računa i kartice osobe? Oba zapisa ostaju, samo sinkronizacija prestaje.',
+    mp_geloest: 'Povezivanje uklonjeno.',
+    mp_titel: 'Moja osoba u stablu',
+    mp_verknuepft: 'Povezano s {name}',
+    mp_in_baum: 'u {baum}',
+    mp_nicht_verknuepft: 'Vaš račun još nije povezan ni s jednom karticom osobe.',
+    mp_keine_karten: 'U vašim stablima još nema kartica osoba.',
+    mp_btn_auswaehlen: 'Odaberi postojeću karticu osobe',
+    mp_btn_erstellen: 'Izradi novu karticu osobe',
+    mp_btn_spaeter: 'Podsjeti me kasnije',
+    mp_hinweis_titel: 'Vaša osoba u stablu',
+    mp_hinweis_text: 'Vaš korisnički račun još nije povezan ni s jednom osobom u stablu. Odaberite svoju karticu osobe ili izradite novu karticu osobe.',
+    mp_pick_titel: 'Odabir kartice osobe',
+    mp_pick_intro: 'Odaberite svoju karticu. Prikazuju se samo kartice koje još nisu povezane ni s jednim računom.',
+    mp_pick_such: 'Pretraga …',
+    mp_pick_leer: 'Nema slobodnih kartica osoba.',
+    mp_pick_verknuepfen: 'Poveži',
+    mp_create_titel: 'Izradi novu karticu osobe',
+    mp_create_baum: 'U kojem stablu želite izraditi svoju karticu osobe?',
+    mp_create_geburtsort: 'Mjesto rođenja',
+    mp_create_foto: 'Preuzmi profilnu sliku',
+    mp_create_submit: 'Provjeri i izradi',
+    mp_dup_titel: 'Pronađeno moguće podudaranje',
+    mp_dup_text: 'Pronađena je osoba koja se možda podudara. Želite li povezati tu karticu osobe ili ipak izraditi novu?',
+    mp_dup_verknuepfen: 'Poveži postojeću',
+    mp_dup_neu: 'Ipak izradi novu',
+    mp_link_ok: 'Vaša kartica osobe je povezana.',
+    mp_link_belegt: 'Ova kartica je već povezana s nekim računom.',
+    mp_link_fehler: 'Povezivanje nije uspjelo.',
+    mp_erstellt_ok: 'Vaša kartica osobe je izrađena i povezana.',
+    mp_erstellen_fehler: 'Karticu nije moguće izraditi.',
+    mp_pflicht: 'Unesite barem ime.',
+    mp_abbrechen: 'Odustani',
     prof_sicht_privat: 'Privatno (samo ja)',
     prof_speichern: 'Spremi',
     prof_gespeichert: 'Profil je spremljen.',
@@ -7577,6 +8782,72 @@ const TEXTE = {
     merge_tree_b_bleibt: 'Zadrži „{b}", obriši „{a}"',
     merge_tree_nein: 'Ne, ostavi stabla odvojeno',
     merge_tree_fertig: 'Stabla spojena.',
+    pdf_btn: 'Eksport kao PDF',
+    pdf_titel: 'Eksport i štampa stabla',
+    pdf_sub: 'Odredite obim, filtere, prikaz i format. Preporuka automatski prilagođava veličinu papira.',
+    pdf_umfang_titel: 'Obim',
+    pdf_wurzel: 'Polazna osoba',
+    pdf_umfang: 'Koliko unazad?',
+    pdf_umfang_person: 'Samo odabrana osoba',
+    pdf_umfang_eltern: 'Roditelji',
+    pdf_umfang_grosseltern: 'Roditelji + djedovi i nane',
+    pdf_umfang_urgrosseltern: 'Roditelji + nane/djedovi + pradjedovi',
+    pdf_umfang_xgen: 'X generacija unazad',
+    pdf_umfang_alles: 'Cijelo stablo',
+    pdf_gen_zurueck: 'Generacija unazad',
+    pdf_gen_vor: 'Generacija unaprijed (djeca, unučad …)',
+    pdf_verknuepft_titel: 'Povezana stabla',
+    pdf_verknuepft: 'Uključi povezana stabla',
+    pdf_verknuepft_farbe: 'Označi stabla bojama',
+    pdf_filter_titel: 'Filter osoba',
+    pdf_filter_status: 'Status',
+    pdf_filter_beide: 'Živi i preminuli',
+    pdf_filter_lebend: 'Samo živi',
+    pdf_filter_verstorben: 'Samo preminuli',
+    pdf_filter_unbestaetigt: 'Sakrij osobe bez datuma',
+    pdf_filter_privat: 'Sakrij osobe označene kao privatne',
+    pdf_layout_titel: 'Prikaz',
+    pdf_layout: 'Raspored',
+    pdf_layout_vertikal: 'Klasično (uspravno)',
+    pdf_layout_horizontal: 'Vodoravno',
+    pdf_layout_ahnen: 'Stablo predaka (samo preci)',
+    pdf_layout_nachkommen: 'Stablo potomaka',
+    pdf_layout_kompakt: 'Kompaktan prikaz za štampu',
+    pdf_inhalt_geburtsort: 'Prikaži mjesto rođenja',
+    pdf_inhalt_foto: 'Prikaži sliku (ako postoji)',
+    pdf_papier_titel: 'Papir i format',
+    pdf_papier: 'Veličina papira',
+    pdf_papier_auto: 'Automatska preporuka',
+    pdf_orientierung: 'Orijentacija',
+    pdf_orient_auto: 'Automatski',
+    pdf_orient_quer: 'Vodoravno',
+    pdf_orient_hoch: 'Uspravno',
+    pdf_poster: 'Višestrana štampa (poster način)',
+    pdf_titelblatt: 'Naslovna strana s podacima',
+    pdf_format: 'Format',
+    pdf_format_druck: 'Štampaj u pregledniku',
+    pdf_erstellen: 'Eksport',
+    pdf_abbrechen: 'Odustani',
+    pdf_empf_text: '{n} osoba · {gen} generacija · {baeume} stabala → preporuka: <b>{papier}</b> (minimum A4).',
+    pdf_empf_poster: 'Vrlo veliko — preporučuje se višestrana štampa / poster.',
+    pdf_prog_modell: 'Prikupljanje podataka …',
+    pdf_prog_layout: 'Računanje rasporeda …',
+    pdf_prog_render: 'Crtanje stabla …',
+    pdf_prog_ausgabe: 'Izrada datoteke …',
+    pdf_prog_fertig: 'Gotovo.',
+    pdf_fertig: 'Eksport završen.',
+    pdf_fehler: 'Eksport nije uspio.',
+    pdf_keine_wurzel: 'Odaberite polaznu osobu.',
+    pdf_leer: 'Nema osoba za ovaj odabir.',
+    pdf_kein_jspdf: 'PDF biblioteka nije učitana — osvježite stranicu ili koristite PNG/SVG/štampu.',
+    pdf_seite: 'Strana {n} (red {r}, kolona {c})',
+    pdf_legend_titel: 'Stabla',
+    pdf_meta_titel: 'Stablo {name}',
+    pdf_meta_datum: 'Napravljeno: {d}',
+    pdf_meta_ersteller: 'Autor: {e}',
+    pdf_meta_personen: 'Osobe: {n}',
+    pdf_meta_gen: 'Generacije: {n}',
+    pdf_meta_baeume: 'Povezana stabla: {n}',
     dub_titel: 'Mogući duplikat pronađen',
     dub_intro: 'Možda ova osoba već postoji u drugom stablu. Možete ipak napraviti novu ili zatražiti povezivanje.',
     dub_fremde_familie: 'u drugoj porodici',
@@ -7656,7 +8927,35 @@ const TEXTE = {
     shorts_hinweis: 'Kratki porodični trenuci i uspomene.',
     baum_hinweis: 'Klikni na osobu za detalje · Skrol za zumiranje · Povuci za pomjeranje · Dvostruki klik za reset',
     baum_zentrieren: 'Centriraj stablo',
+    ansicht_btn: 'Prošireni prikaz',
+    ansicht_titel: 'Proširite prikaz',
+    ansicht_sub: 'Odaberite koji se dio stabla prikazuje.',
+    ansicht_keine_karte: 'Nijedna vaša kartica nije povezana u ovom stablu — „Prošireni prikaz oko moje osobe" nije dostupan.',
+    ansicht_opt_erweitert: 'Prošireni prikaz oko moje osobe',
+    ansicht_opt_erweitert_sub: 'Prikažite dodatne dijelove porodice oko vaše kartice.',
+    ansicht_opt_zweig: 'Porodična grana od određene osobe',
+    ansicht_opt_zweig_sub: 'Pronađite osobu i prikažite njenu granu prema dolje.',
+    ansicht_opt_voll: 'Prikaži cijelo stablo',
+    ansicht_opt_voll_sub: 'Sve osobe, veze i povezane grane.',
+    ansicht_kat_grosseltern: 'Bake i djedovi',
+    ansicht_kat_urgrosseltern: 'Prabake i pradjedovi',
+    ansicht_kat_cousins: 'Rođaci',
+    ansicht_kat_nachkommen: 'Svi potomci',
+    ansicht_basis_hinweis: 'Vaša osoba, roditelji, braća/sestre i djeca uvijek su uključeni.',
+    ansicht_such_ph: 'Pretraži ime ili datum rođenja…',
+    ansicht_gen: 'Generacija prema dolje',
+    ansicht_gen_1: '1 generacija',
+    ansicht_gen_2: '2 generacije',
+    ansicht_gen_3: '3 generacije',
+    ansicht_gen_5: '5 generacija',
+    ansicht_gen_unbegrenzt: 'Neograničeno',
+    ansicht_anwenden: 'Primijeni',
+    ansicht_abbrechen: 'Odustani',
+    ansicht_bitte_person: 'Prvo odaberite osobu.',
+    ansicht_standard_info: '<strong>Lični prikaz:</strong> {name}',
+    ansicht_zweig_info: '<strong>Grana od:</strong> {name}',
     baum_wechsel_hinweis: 'Nalaziš se u stablu «{name}». Gore preko menija možeš mijenjati stabla.',
+    baum_gen_hinweis: 'Radi preglednosti zadani prikaz prikazuje samo <b>3 generacije</b> oko vaše osobe. Za više (nane/djedovi, rođaci, cijelo stablo …) dole desno kliknite <b>{icon} „{btn}"</b>.',
     pe_titel_fenster: 'Uredi osobu',
     pe_geschlecht: 'Spol',
     pe_titel: 'Titula',
@@ -8025,6 +9324,43 @@ const TEXTE = {
     prof_bild_sicht: 'Profilna slika vidljiva za',
     prof_sicht_verbund: 'Svi u savezu',
     prof_sicht_familie: 'Samo moju porodicu',
+    prof_geburtsname: 'Djevojačko prezime',
+    prof_biografie: 'Kratak opis',
+    prof_sync_hint: 'Ovi podaci su sinhronizirani s vašom povezanom karticom osobe — promjene djeluju u oba smjera.',
+    mp_loesen: 'Ukloni povezivanje',
+    mp_loesen_frage: 'Stvarno ukloniti povezivanje naloga i kartice osobe? Oba zapisa ostaju, samo sinhronizacija prestaje.',
+    mp_geloest: 'Povezivanje uklonjeno.',
+    mp_titel: 'Moja osoba u stablu',
+    mp_verknuepft: 'Povezano s {name}',
+    mp_in_baum: 'u {baum}',
+    mp_nicht_verknuepft: 'Vaš nalog još nije povezan ni s jednom karticom osobe.',
+    mp_keine_karten: 'U vašim stablima još nema kartica osoba.',
+    mp_btn_auswaehlen: 'Odaberi postojeću karticu osobe',
+    mp_btn_erstellen: 'Napravi novu karticu osobe',
+    mp_btn_spaeter: 'Podsjeti me kasnije',
+    mp_hinweis_titel: 'Vaša osoba u stablu',
+    mp_hinweis_text: 'Vaš korisnički nalog još nije povezan ni s jednom osobom u stablu. Odaberite svoju karticu osobe ili napravite novu karticu osobe.',
+    mp_pick_titel: 'Odabir kartice osobe',
+    mp_pick_intro: 'Odaberite svoju karticu. Prikazuju se samo kartice koje još nisu povezane ni s jednim nalogom.',
+    mp_pick_such: 'Pretraga …',
+    mp_pick_leer: 'Nema slobodnih kartica osoba.',
+    mp_pick_verknuepfen: 'Poveži',
+    mp_create_titel: 'Napravi novu karticu osobe',
+    mp_create_baum: 'U kojem stablu želite napraviti svoju karticu osobe?',
+    mp_create_geburtsort: 'Mjesto rođenja',
+    mp_create_foto: 'Preuzmi profilnu sliku',
+    mp_create_submit: 'Provjeri i napravi',
+    mp_dup_titel: 'Pronađeno moguće podudaranje',
+    mp_dup_text: 'Pronađena je osoba koja se možda podudara. Želite li povezati tu karticu osobe ili ipak napraviti novu?',
+    mp_dup_verknuepfen: 'Poveži postojeću',
+    mp_dup_neu: 'Ipak napravi novu',
+    mp_link_ok: 'Vaša kartica osobe je povezana.',
+    mp_link_belegt: 'Ova kartica je već povezana s nekim nalogom.',
+    mp_link_fehler: 'Povezivanje nije uspjelo.',
+    mp_erstellt_ok: 'Vaša kartica osobe je napravljena i povezana.',
+    mp_erstellen_fehler: 'Karticu nije moguće napraviti.',
+    mp_pflicht: 'Unesite barem ime.',
+    mp_abbrechen: 'Odustani',
     prof_sicht_privat: 'Privatno (samo ja)',
     prof_speichern: 'Sačuvaj',
     prof_gespeichert: 'Profil je sačuvan.',
@@ -8152,6 +9488,72 @@ const TEXTE = {
     merge_tree_b_bleibt: 'Keep “{b}", delete “{a}"',
     merge_tree_nein: 'No, keep trees separate',
     merge_tree_fertig: 'Trees merged.',
+    pdf_btn: 'Export as PDF',
+    pdf_titel: 'Export & print family tree',
+    pdf_sub: 'Choose scope, filters, layout and format. The recommendation adjusts the paper size automatically.',
+    pdf_umfang_titel: 'Scope',
+    pdf_wurzel: 'Starting person',
+    pdf_umfang: 'How far back?',
+    pdf_umfang_person: 'Selected person only',
+    pdf_umfang_eltern: 'Parents',
+    pdf_umfang_grosseltern: 'Parents + grandparents',
+    pdf_umfang_urgrosseltern: 'Parents + grand- + great-grandparents',
+    pdf_umfang_xgen: 'X generations back',
+    pdf_umfang_alles: 'Entire family tree',
+    pdf_gen_zurueck: 'Generations back',
+    pdf_gen_vor: 'Generations forward (children, grandchildren …)',
+    pdf_verknuepft_titel: 'Linked family trees',
+    pdf_verknuepft: 'Include linked family trees',
+    pdf_verknuepft_farbe: 'Mark trees by colour',
+    pdf_filter_titel: 'Person filter',
+    pdf_filter_status: 'Status',
+    pdf_filter_beide: 'Living and deceased',
+    pdf_filter_lebend: 'Living only',
+    pdf_filter_verstorben: 'Deceased only',
+    pdf_filter_unbestaetigt: 'Hide persons without dates',
+    pdf_filter_privat: 'Hide persons marked private',
+    pdf_layout_titel: 'Layout',
+    pdf_layout: 'Layout',
+    pdf_layout_vertikal: 'Classic (vertical)',
+    pdf_layout_horizontal: 'Horizontal',
+    pdf_layout_ahnen: 'Ancestor tree (ancestors only)',
+    pdf_layout_nachkommen: 'Descendant tree',
+    pdf_layout_kompakt: 'Compact print view',
+    pdf_inhalt_geburtsort: 'Show birthplace',
+    pdf_inhalt_foto: 'Show photo (if available)',
+    pdf_papier_titel: 'Paper & format',
+    pdf_papier: 'Paper size',
+    pdf_papier_auto: 'Recommended automatically',
+    pdf_orientierung: 'Orientation',
+    pdf_orient_auto: 'Automatic',
+    pdf_orient_quer: 'Landscape',
+    pdf_orient_hoch: 'Portrait',
+    pdf_poster: 'Multi-page print (poster mode)',
+    pdf_titelblatt: 'Title page with details',
+    pdf_format: 'Format',
+    pdf_format_druck: 'Print in browser',
+    pdf_erstellen: 'Export',
+    pdf_abbrechen: 'Cancel',
+    pdf_empf_text: '{n} people · {gen} generations · {baeume} trees → recommended: <b>{papier}</b> (minimum A4).',
+    pdf_empf_poster: 'Very large — multi-page print / poster mode recommended.',
+    pdf_prog_modell: 'Collecting data …',
+    pdf_prog_layout: 'Computing layout …',
+    pdf_prog_render: 'Drawing tree …',
+    pdf_prog_ausgabe: 'Creating file …',
+    pdf_prog_fertig: 'Done.',
+    pdf_fertig: 'Export complete.',
+    pdf_fehler: 'Export failed.',
+    pdf_keine_wurzel: 'Please choose a starting person.',
+    pdf_leer: 'No persons for this selection.',
+    pdf_kein_jspdf: 'PDF library not loaded — reload the page or use PNG/SVG/print.',
+    pdf_seite: 'Page {n} (row {r}, column {c})',
+    pdf_legend_titel: 'Family trees',
+    pdf_meta_titel: '{name} Family Tree',
+    pdf_meta_datum: 'Created: {d}',
+    pdf_meta_ersteller: 'Created by: {e}',
+    pdf_meta_personen: 'People: {n}',
+    pdf_meta_gen: 'Generations: {n}',
+    pdf_meta_baeume: 'Linked trees: {n}',
     dub_titel: 'Possible duplicate found',
     dub_intro: 'This person may already exist in another tree. You can create a new one anyway or request a link.',
     dub_fremde_familie: 'in another family',
@@ -8245,7 +9647,35 @@ const TEXTE = {
     shorts_hinweis: 'Quick family moments and memories.',
     baum_hinweis: 'Click for details · Scroll to zoom · Drag to pan · Double-click to reset',
     baum_zentrieren: 'Center tree',
+    ansicht_btn: 'Expanded view',
+    ansicht_titel: 'Expand view',
+    ansicht_sub: 'Choose which part of the family tree is shown.',
+    ansicht_keine_karte: 'No personal card linked in this tree — “Expanded view around my person” is unavailable.',
+    ansicht_opt_erweitert: 'Expanded view around my person',
+    ansicht_opt_erweitert_sub: 'Show additional family areas around your own card.',
+    ansicht_opt_zweig: 'Family branch from a specific person',
+    ansicht_opt_zweig_sub: 'Find a person and show their branch downward.',
+    ansicht_opt_voll: 'Show the entire tree',
+    ansicht_opt_voll_sub: 'All people, connections and linked branches.',
+    ansicht_kat_grosseltern: 'Grandparents',
+    ansicht_kat_urgrosseltern: 'Great-grandparents',
+    ansicht_kat_cousins: 'Cousins',
+    ansicht_kat_nachkommen: 'All descendants',
+    ansicht_basis_hinweis: 'Your person, parents, siblings and children are always included.',
+    ansicht_such_ph: 'Search name or birth date…',
+    ansicht_gen: 'Generations downward',
+    ansicht_gen_1: '1 generation',
+    ansicht_gen_2: '2 generations',
+    ansicht_gen_3: '3 generations',
+    ansicht_gen_5: '5 generations',
+    ansicht_gen_unbegrenzt: 'Unlimited',
+    ansicht_anwenden: 'Apply',
+    ansicht_abbrechen: 'Cancel',
+    ansicht_bitte_person: 'Please select a person first.',
+    ansicht_standard_info: '<strong>Personal view:</strong> {name}',
+    ansicht_zweig_info: '<strong>Branch from:</strong> {name}',
     baum_wechsel_hinweis: 'You are in the «{name}» tree. Use the selector at the top to switch between trees.',
+    baum_gen_hinweis: 'For clarity, the default view shows only <b>3 generations</b> around your person. For more (grandparents, cousins, the whole tree …) click <b>{icon} “{btn}”</b> at the bottom right.',
     pe_titel_fenster: 'Edit person',
     pe_geschlecht: 'Gender',
     pe_titel: 'Title',
@@ -8630,6 +10060,12 @@ const TEXTE = {
     prof_bild_sicht: 'Profile picture visible to',
     prof_sicht_verbund: 'Everyone in the network',
     prof_sicht_familie: 'My family only',
+    prof_geburtsname: 'Birth name',
+    prof_biografie: 'Short description',
+    prof_sync_hint: 'This data is synchronized with your linked person card — changes apply in both directions.',
+    mp_loesen: 'Remove link',
+    mp_loesen_frage: 'Really remove the link between account and person card? Both records remain, only the synchronization stops.',
+    mp_geloest: 'Link removed.',
     prof_sicht_privat: 'Private (only me)',
     prof_speichern: 'Save',
     prof_gespeichert: 'Profile saved.',
@@ -8664,6 +10100,37 @@ const TEXTE = {
     sec_fehler: 'Could not be loaded.',
     sec_bestaetigen: 'Really sign out all other sessions?',
     sec_geraet_unbekannt: 'Unknown device',
+    mp_titel: 'My person in the family tree',
+    mp_verknuepft: 'Linked to {name}',
+    mp_in_baum: 'in {baum}',
+    mp_nicht_verknuepft: 'Your account is not yet linked to any person card.',
+    mp_keine_karten: 'There are no person cards in your family trees yet.',
+    mp_btn_auswaehlen: 'Select existing person card',
+    mp_btn_erstellen: 'Create new person card',
+    mp_btn_spaeter: 'Remind me later',
+    mp_hinweis_titel: 'Your person in the family tree',
+    mp_hinweis_text: 'Your user account is not yet linked to a person in the family tree. Please select your person card or create a new person card.',
+    mp_pick_titel: 'Select person card',
+    mp_pick_intro: 'Choose your own card. Only cards that are not yet linked to an account are shown.',
+    mp_pick_such: 'Search …',
+    mp_pick_leer: 'No unlinked person cards found.',
+    mp_pick_verknuepfen: 'Link',
+    mp_create_titel: 'Create new person card',
+    mp_create_baum: 'In which family tree should your person card be created?',
+    mp_create_geburtsort: 'Place of birth',
+    mp_create_foto: 'Use profile picture',
+    mp_create_submit: 'Check & create',
+    mp_dup_titel: 'Possible match found',
+    mp_dup_text: 'A possibly matching person was found. Would you like to link that person card or create a new one anyway?',
+    mp_dup_verknuepfen: 'Link existing',
+    mp_dup_neu: 'Create new anyway',
+    mp_link_ok: 'Your person card has been linked.',
+    mp_link_belegt: 'This card is already linked to an account.',
+    mp_link_fehler: 'Linking failed.',
+    mp_erstellt_ok: 'Your person card has been created and linked.',
+    mp_erstellen_fehler: 'The card could not be created.',
+    mp_pflicht: 'Please enter at least the first name.',
+    mp_abbrechen: 'Cancel',
     login_email: 'Email',
     login_passwort: 'Password',
     login_pflicht: 'Please enter email and password.',
@@ -8986,6 +10453,12 @@ let aktuelleSprache = ermittleStartsprache();
 let aktuelleDaten = FAMILY_DATA;
 let fokusPersonId = null;
 let aktuelleAnsicht = 'baum';
+// Personalisierte Standard-/Ausschnitts-Ansicht (große Bäume): aktiver Modus + Parameter.
+// modus: null (Such-/Fokus-Altlogik) | 'standard' | 'voll' | 'zweig' | 'erweitert'
+let ansichtModus    = null;
+let ansichtFokusId  = null;          // Person, um die der Ausschnitt zentriert ist
+let ansichtGen      = 3;             // 'zweig': Generationen nach unten
+let ansichtKat      = null;          // 'erweitert': gewählte Verwandtschafts-Kategorien
 // Multi-Tree (B2): aktuell gewählter Stammbaum + Liste {id: name}
 let aktuellerStammbaumId = null;
 let stammbaeumeListe = {};
@@ -9237,9 +10710,13 @@ function wechselSprache(lang, speichern = true) {
     fuelleProfilSprache(document.getElementById('prof-sprache').value);
     fuelleProfilZeitzone(document.getElementById('prof-zeitzone').value);
     renderProfilKopf();
+    if (typeof renderMeinePersonBereich === 'function') renderMeinePersonBereich();   // "Meine Person" (nm/Texte)
     // Sicherheitsbereich (falls offen + geladen) in neuer Sprache neu beschriften
     if (document.getElementById('prof-sec-box').style.display !== 'none' && profilSecCache) renderSicherheit(profilSecCache);
   }
+  // "Meine Person": offene Auswahl-/Anlegen-Dialoge mit nm()-Inhalten neu rendern
+  if (offen('mp-pick-modal')   && typeof renderMpPick === 'function') renderMpPick();
+  if (offen('mp-create-modal') && typeof mpCreateSprachUpdate === 'function') mpCreateSprachUpdate();
   // Merge-Wizard: dynamische Inhalte des sichtbaren Schritts in neuer Sprache neu aufbauen
   if (offen('merge-modal')) {
     if (document.getElementById('merge-step2').style.display !== 'none' && mgFixPaar) mgRenderKandidaten();
@@ -9250,6 +10727,10 @@ function wechselSprache(lang, speichern = true) {
     }
     if (document.getElementById('merge-step4').style.display !== 'none') mgRenderTreeMerge();
   }
+  // PDF-Export-Dialog: Personenliste (nm) + Empfehlung in neuer Sprache neu aufbauen
+  if (typeof pdfModalSprachUpdate === 'function') pdfModalSprachUpdate();
+  // „Ansicht erweitern"-Overlay (Picker-Labels/Personennamen) neu aufbauen
+  if (typeof ansichtModalSprachUpdate === 'function') ansichtModalSprachUpdate();
   // ALLE Länder-Dropdowns (zentrale Komponente) in neuer Sprache neu befüllen — Auswahl bleibt.
   if (typeof fuelleLandSelects === 'function') fuelleLandSelects(document);
   if (document.getElementById('registrier-modal')?.classList.contains('aktiv')) {
@@ -9271,9 +10752,9 @@ function aktuelleWurzel() {
 function zeichneBaumNeu() {
   if (!baumG) return;
   const suche = document.getElementById('suche').value.trim();
-  if (suche) suchImBaum(suche);
-  else if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) zeichneBaum(fokusPersonId, 2, 2);
-  else zeichneBaum(aktuelleWurzel(), 12, 0);
+  if (suche) { suchImBaum(suche); return; }
+  // Aktive Ausschnitts-Ansicht (Standard/Erweitert/Zweig) nach Edit/Realtime-Reload erhalten.
+  rendereAktuelleAnsicht();
 }
 
 // ============================================================
@@ -9315,6 +10796,7 @@ async function ladeBaumAusSupabase() {
       _tree: row.stammbaum_id || null,
       _ident: row.identitaet_id || null,   // gleiche reale Person über Bäume (logische Verknüpfung)
       _hatKonto: !!row.user_id,
+      _userId: row.user_id || null,        // rohe Konto-ID -> "ist das MEINE Karte?" (Meine-Person-Feature)
       _pos: (row.pos_x != null && row.pos_y != null) ? { x: row.pos_x, y: row.pos_y } : null,
       _updated: row.updated_at || null   // P5: Stand für Optimistic-Locking-Vergleich
     };
@@ -9550,13 +11032,17 @@ function waehleStammbaum(treeId) {
   aktuellerStammbaumId = treeId;
   try { localStorage.setItem('vidovic_tree', treeId); } catch (e) {}   // zuletzt geöffneten Baum merken (Reload-Wiederherstellung)
   fokusPersonId = null;
+  ansichtModus = null;
   document.getElementById('suche').value = '';
   const sel = document.getElementById('tree-select');
   if (sel && sel.value !== treeId) sel.value = treeId;
   aktualisiereKopf();
   const root = findeStammbaumWurzel(treeId);
-  if (root) zeichneBaum(root, 12, 0);
-  else if (baumG) baumG.selectAll('*').remove();
+  // Personalisierte Standardansicht, wenn der Nutzer eine verknüpfte Karte in
+  // diesem Baum hat; sonst Fallback auf den vollen Baum (wie bisher).
+  if (zeigeStandardAnsicht()) { /* Standardansicht aktiv */ }
+  else if (root) { ansichtModus = 'voll'; zeichneBaum(root, 12, 0); }   // kein eigenes Profil im Baum -> Vollbaum (kein 3-Gen-Hinweis)
+  else { ansichtModus = null; if (baumG) baumG.selectAll('*').remove(); }
   aktualisiereBaumHinweis();
   startPresence(treeId);   // Live-Indikator an den jetzt offenen Baum koppeln (P2)
 }
@@ -9565,6 +11051,7 @@ function waehleStammbaum(treeId) {
 function aktualisiereBaumHinweis() {
   const el  = document.getElementById('baum-tree-hinweis');
   const txt = document.getElementById('baum-tree-hinweis-text');
+  const gen = document.getElementById('baum-tree-hinweis-gen');
   if (!el || !txt) return;
   // Banner ist immer sichtbar, solange man eingeloggt in einem Stammbaum ist
   // (kein Schließen-Button mehr). Wichtig zur Orientierung.
@@ -9573,6 +11060,21 @@ function aktualisiereBaumHinweis() {
     return;
   }
   txt.textContent = t('baum_wechsel_hinweis', { name: nm(stammbaeumeListe[aktuellerStammbaumId] || '') });
+  // Generationen-Hinweis NUR in der personalisierten Standardansicht (zeigt nur 3 Generationen
+  // rund um die eigene Karte) -> erklärt die Begrenzung + verweist auf „Erweiterte Ansicht".
+  if (gen) {
+    const standard = (ansichtModus === 'standard');
+    // Inline-Icon = exakt das Symbol des „Prošireni prikaz"-Buttons (unten rechts im Baum),
+    // damit Nutzer den Button optisch wiedererkennen. currentColor erbt die Banner-Textfarbe.
+    const ansichtIcon = '<svg viewBox="0 0 24 24" width="15" height="15" style="vertical-align:-2px;display:inline-block" aria-hidden="true" focusable="false">'
+      + '<circle cx="12" cy="6" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/>'
+      + '<circle cx="6" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/>'
+      + '<circle cx="18" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/>'
+      + '<path d="M12 8.6v3.4M12 12h-6v2.4M12 12h6v2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'
+      + '</svg>';
+    if (standard) gen.innerHTML = t('baum_gen_hinweis', { icon: ansichtIcon, btn: escapeHtml(t('ansicht_btn')) });
+    gen.style.display = standard ? '' : 'none';
+  }
   el.style.display = 'flex';
 }
 
@@ -10329,6 +11831,7 @@ function suchImBaum(suche, interaktiv) {
 
 function zentriereAufPerson(personId) {
   fokusPersonId = personId;
+  ansichtModus = null;   // Suchfokus -> klassische 2-auf-2-Ansicht
   zeichneBaum(personId, 2, 2);
 }
 
@@ -10352,19 +11855,375 @@ function waehleAusBaum(personId) {
 }
 
 function aktualisiereBaumInfo() {
+  const info = document.getElementById('baum-info');
+  // Personalisierte Ausschnitts-Ansichten
+  if ((ansichtModus === 'standard' || ansichtModus === 'erweitert') &&
+      ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) {
+    const p = aktuelleDaten.persons[ansichtFokusId];
+    info.innerHTML = t('ansicht_standard_info', { name: escapeHtml(nm(p.name)) });
+    return;
+  }
+  if (ansichtModus === 'zweig' && ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) {
+    const p = aktuelleDaten.persons[ansichtFokusId];
+    info.innerHTML = t('ansicht_zweig_info', { name: escapeHtml(nm(p.name)) }) +
+      `<button class="baum-zurueck-btn" onclick="zeigeStandardOderVoll()">← ${t('zurueck')}</button>`;
+    return;
+  }
   if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) {
     const p = aktuelleDaten.persons[fokusPersonId];
-    document.getElementById('baum-info').innerHTML =
+    info.innerHTML =
       t('baum_zentriert', {name: escapeHtml(nm(p.name))}) +
       `<button class="baum-zurueck-btn" onclick="zeigVollenBaum()">← ${t('zurueck')}</button>`;
   } else {
-    document.getElementById('baum-info').innerHTML = t('baum_info_hinweis');
+    info.innerHTML = t('baum_info_hinweis');
   }
 }
 
 function zeigVollenBaum() {
   fokusPersonId = null;
+  ansichtModus = null;
   zeichneBaum(aktuelleWurzel(), 12, 0);
+}
+
+// ============================================================
+// PERSONALISIERTE STANDARD-/AUSSCHNITTS-ANSICHT (große Bäume)
+// Alle Daten liegen weiter komplett im Speicher (RLS-begrenzt) — wir RENDERN
+// nur einen relevanten Ausschnitt (kein DB-Lazy-Loading, stack-konform).
+// v1-Grenze (bewusst, wie der übrige Renderer): der Baum zeigt EINE aufsteigende
+// Blutlinie (ein Elternteil je Ebene als Wurzel-Strang); der andere Elternteil
+// erscheint nur als Partnerkarte. Großeltern/Urgroßeltern + Halbgeschwister sind
+// daher nur entlang des gerenderten Strangs sichtbar (Single-Root-d3-Baum).
+// ============================================================
+
+// Identitäts-Zwillinge (gleiche reale Person über Bäume, identitaet_id)
+function _ansTwins(id) {
+  const p = aktuelleDaten.persons[id];
+  if (!p || !p._ident) return [id];
+  return Object.values(aktuelleDaten.persons).filter(q => q._ident === p._ident).map(q => q.id);
+}
+function _ansEltern(id) {
+  const out = new Set();
+  _ansTwins(id).forEach(t => {
+    const p = aktuelleDaten.persons[t]; if (!p) return;
+    (p.families_child || []).forEach(fid => {
+      const f = aktuelleDaten.families[fid]; if (!f) return;
+      if (f.husband) out.add(f.husband);
+      if (f.wife)    out.add(f.wife);
+    });
+  });
+  return out;
+}
+function _ansKinder(id) {
+  const out = new Set();
+  _ansTwins(id).forEach(t => {
+    const p = aktuelleDaten.persons[t]; if (!p) return;
+    (p.families_spouse || []).forEach(fid => {
+      const f = aktuelleDaten.families[fid]; if (!f) return;
+      (f.children || []).forEach(c => out.add(c));
+    });
+  });
+  return out;
+}
+function _ansPartner(id) {
+  const out = new Set(); const me = new Set(_ansTwins(id));
+  _ansTwins(id).forEach(t => {
+    const p = aktuelleDaten.persons[t]; if (!p) return;
+    (p.families_spouse || []).forEach(fid => {
+      const f = aktuelleDaten.families[fid]; if (!f) return;
+      if (f.husband && !me.has(f.husband)) out.add(f.husband);
+      if (f.wife    && !me.has(f.wife))    out.add(f.wife);
+    });
+  });
+  return out;
+}
+// Vollgeschwister UND Halbgeschwister (Kinder irgendeines Elternteils, ohne sich selbst)
+function _ansGeschwister(id) {
+  const out = new Set(); const me = new Set(_ansTwins(id));
+  _ansEltern(id).forEach(par => _ansKinder(par).forEach(c => { if (!me.has(c)) out.add(c); }));
+  return out;
+}
+// Ext-ID der MIT MEINEM KONTO verknüpften Karte im AKTUELL geöffneten Baum
+// (inkl. Identitäts-Zwilling, der im aktuellen Baum liegt).
+function meineKarteImBaum() {
+  if (!aktuellerUser || !aktuellerStammbaumId || !aktuelleDaten || !aktuelleDaten.persons) return null;
+  const uid = aktuellerUser.id;
+  let treffer = null;
+  Object.values(aktuelleDaten.persons).forEach(p => {
+    if (treffer || p._userId !== uid) return;
+    if (p._tree === aktuellerStammbaumId) { treffer = p.id; return; }
+    // verknüpfte Karte liegt in anderem Baum -> Zwilling im aktuellen Baum?
+    _ansTwins(p.id).forEach(t => {
+      const q = aktuelleDaten.persons[t];
+      if (!treffer && q && q._tree === aktuellerStammbaumId) treffer = t;
+    });
+  });
+  return treffer;
+}
+
+// Alle Nachkommen einer Person (rekursiv) + deren Partner über add() einsammeln.
+// (Die Start-Person selbst wird NICHT hinzugefügt — das macht der Aufrufer.)
+function _ansAlleNachkommen(startId, add) {
+  const stack = [startId], seen = new Set();
+  while (stack.length) {
+    const x = stack.pop(); if (seen.has(x)) continue; seen.add(x);
+    _ansPartner(x).forEach(add);
+    _ansKinder(x).forEach(c => { add(c); stack.push(c); });
+  }
+}
+
+// Set der anzuzeigenden Personen (ext-IDs inkl. aller Zwillinge) aus Kategorien.
+// kat: { eltern, partner, geschwister, kinder, grosseltern, urgrosseltern, cousins, nachkommen }
+function verwandtschaftsSet(focusId, kat) {
+  const S = new Set();
+  if (!aktuelleDaten.persons[focusId]) return S;
+  const add = id => { if (id) _ansTwins(id).forEach(t => S.add(t)); };
+  add(focusId);
+  const eltern = _ansEltern(focusId);
+  // Eltern sind die Verbindungs-Wurzel für Geschwister/Cousins -> immer mitnehmen,
+  // sobald eine dieser Kategorien aktiv ist.
+  const brauchtEltern = kat.eltern || kat.geschwister || kat.cousins;
+  if (brauchtEltern) eltern.forEach(add);
+  if (kat.partner)     _ansPartner(focusId).forEach(add);
+  if (kat.geschwister) _ansGeschwister(focusId).forEach(add);
+  if (kat.kinder)      _ansKinder(focusId).forEach(add);
+
+  const grosseltern = new Set();
+  eltern.forEach(p => _ansEltern(p).forEach(g => grosseltern.add(g)));
+  if (kat.grosseltern || kat.urgrosseltern || kat.cousins) {
+    eltern.forEach(add); grosseltern.forEach(add);
+  }
+  if (kat.urgrosseltern) grosseltern.forEach(g => _ansEltern(g).forEach(add));
+  if (kat.cousins) {
+    // "Rođaci": ALLE Seitenlinien. Die Cousins-Tiefe folgt der höchsten gewählten
+    // Ahnen-Ebene: mit Urgroßeltern -> alle Nachkommen der Urgroßeltern (Cousins 2. Grades,
+    // d.h. alle, die unter prababa/pradeda hängen); sonst alle Nachkommen der Großeltern
+    // (Cousins 1. Grades). Eigene Geschwister/Eltern/Kinder bleiben wie gehabt enthalten.
+    const urgross = new Set();
+    grosseltern.forEach(g => _ansEltern(g).forEach(u => urgross.add(u)));
+    const wurzeln = (kat.urgrosseltern && urgross.size) ? urgross
+                  : (grosseltern.size ? grosseltern : new Set(eltern));
+    wurzeln.forEach(a => { add(a); _ansAlleNachkommen(a, add); });
+  }
+  if (kat.nachkommen) {
+    const stack = [focusId], seen = new Set();
+    while (stack.length) {
+      const x = stack.pop(); if (seen.has(x)) continue; seen.add(x);
+      _ansKinder(x).forEach(c => { add(c); stack.push(c); });
+    }
+  }
+  return S;
+}
+
+// Oberste im Set enthaltene Vorfahren-Karte entlang des aufsteigenden Strangs
+// (bevorzugt Elternteil im aktuellen Baum) -> Wurzel für den Single-Root-Renderer.
+function _renderWurzelImSet(focusId, S) {
+  let cur = focusId, guard = 0;
+  while (guard++ < 40) {
+    const elt = [..._ansEltern(cur)].filter(e => S.has(e) && aktuelleDaten.persons[e]);
+    if (!elt.length) break;
+    const sameTree = elt.find(e => aktuelleDaten.persons[e]._tree === aktuellerStammbaumId);
+    cur = sameTree || elt[0];
+  }
+  return cur;
+}
+
+// Standardansicht: eigene Person + Eltern + (Voll-/Halb-)Geschwister + Kinder + Partner.
+// Rückgabe false, wenn keine eigene Karte im Baum -> Aufrufer macht Fallback.
+function zeigeStandardAnsicht(behalteZoom) {
+  const meId = meineKarteImBaum();
+  if (!meId) return false;
+  const S = verwandtschaftsSet(meId, {
+    eltern: true, partner: true, geschwister: true, kinder: true
+  });
+  ansichtModus = 'standard';
+  ansichtFokusId = meId;
+  ansichtKat = null;
+  fokusPersonId = null;
+  const root = _renderWurzelImSet(meId, S);
+  zeichneBaum(root, 12, 0, { erlaubt: S, fokusId: meId });
+  aktualisiereBaumHinweis();   // Generationen-Hinweis je nach Modus ein-/ausblenden
+  return true;
+}
+
+// Erweiterte Ansicht um die eigene Person (Kategorien aus dem Overlay).
+function zeigeErweitertAnsicht(kat, behalteZoom) {
+  const meId = meineKarteImBaum();
+  if (!meId) return false;
+  // Standardumfang ist immer Basis; Overlay-Kategorien erweitern additiv.
+  const voll = Object.assign({
+    eltern: true, partner: true, geschwister: true, kinder: true
+  }, kat || {});
+  const S = verwandtschaftsSet(meId, voll);
+  ansichtModus = 'erweitert';
+  ansichtFokusId = meId;
+  ansichtKat = kat || {};
+  fokusPersonId = null;
+  const root = _renderWurzelImSet(meId, S);
+  zeichneBaum(root, 12, 0, { erlaubt: S, fokusId: meId });
+  aktualisiereBaumHinweis();   // Generationen-Hinweis je nach Modus ein-/ausblenden
+  return true;
+}
+
+// Familienzweig ab einer beliebigen Person, N Generationen nach unten (0 = unbegrenzt).
+function zeigeZweigAbPerson(personId, gen, behalteZoom) {
+  if (!aktuelleDaten.persons[personId]) return false;
+  ansichtModus = 'zweig';
+  ansichtFokusId = personId;
+  ansichtGen = gen;
+  ansichtKat = null;
+  fokusPersonId = null;
+  const tiefe = (!gen || gen < 0) ? 99 : gen;
+  zeichneBaum(personId, tiefe, 0, { fokusId: personId });
+  aktualisiereBaumHinweis();   // Generationen-Hinweis (nur Standardansicht) aus-/einblenden
+  return true;
+}
+
+// Aktuelle Ansicht (Modus + Parameter) neu rendern — nach Edit/Realtime-Reload.
+function rendereAktuelleAnsicht() {
+  switch (ansichtModus) {
+    case 'standard':  if (zeigeStandardAnsicht(true)) return; break;
+    case 'erweitert': if (zeigeErweitertAnsicht(ansichtKat, true)) return; break;
+    case 'zweig':
+      if (ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) { zeigeZweigAbPerson(ansichtFokusId, ansichtGen, true); return; }
+      break;
+    case 'voll': zeichneBaum(aktuelleWurzel(), 12, 0); aktualisiereBaumHinweis(); return;
+  }
+  // Fallback: frühere Such-/Fokuslogik
+  if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) zeichneBaum(fokusPersonId, 2, 2);
+  else zeichneBaum(aktuelleWurzel(), 12, 0);
+}
+
+// Rücksprung aus einem Zweig: Standardansicht, sonst Vollbaum.
+function zeigeStandardOderVoll() {
+  if (!zeigeStandardAnsicht()) zeigVollenBaum();
+}
+
+// ---------- „Ansicht erweitern"-Overlay ----------
+let ansichtPickSel = null;   // im Zweig-Picker gewählte Person (ext-ID)
+
+function ansichtPersonLabel(p) {
+  const j = (p.birth_date && /\d{4}/.test(p.birth_date)) ? ' * ' + p.birth_date.match(/\d{4}/)[0] : '';
+  const baum = (p._tree && stammbaeumeListe[p._tree]) ? ' — ' + nm(stammbaeumeListe[p._tree]) : '';
+  return nm(p.name || p.id) + j + baum;
+}
+
+function oeffneAnsichtModal() {
+  ansichtPickSel = null;
+  const hatKarte = !!meineKarteImBaum();
+  const radioErwInput = document.querySelector('#ansicht-radio-erweitert input');
+  if (radioErwInput) radioErwInput.disabled = !hatKarte;
+  document.getElementById('ansicht-radio-erweitert').style.opacity = hatKarte ? '' : '0.5';
+  document.getElementById('ansicht-keine-karte').style.display = hatKarte ? 'none' : '';
+
+  // Vorauswahl des Radios: aktiver Modus, sonst sinnvoller Default.
+  let vorwahl = ['erweitert', 'zweig', 'voll'].includes(ansichtModus) ? ansichtModus
+              : (hatKarte ? 'erweitert' : 'voll');
+  if (vorwahl === 'erweitert' && !hatKarte) vorwahl = 'voll';
+  document.querySelectorAll('input[name="ansicht-modus"]').forEach(r => { r.checked = (r.value === vorwahl); });
+
+  document.getElementById('ans-kat-grosseltern').checked   = !!(ansichtKat && ansichtKat.grosseltern);
+  document.getElementById('ans-kat-urgrosseltern').checked = !!(ansichtKat && ansichtKat.urgrosseltern);
+  document.getElementById('ans-kat-cousins').checked       = !!(ansichtKat && ansichtKat.cousins);
+  document.getElementById('ans-kat-nachkommen').checked    = !!(ansichtKat && ansichtKat.nachkommen);
+  document.getElementById('ansicht-suche').value = '';
+  document.getElementById('ansicht-pick-list').innerHTML = '';
+  ansichtModusWahl();
+
+  const m = document.getElementById('ansicht-modal');
+  m.classList.add('aktiv');
+  if (!m._ansTip) {
+    m._ansTip = true;
+    tippAuswahl(document.getElementById('ansicht-pick-list'), '.ansicht-pick-item[data-id]',
+      el => ansichtPickWaehle(el.dataset.id));
+  }
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(m);
+}
+
+function schliesseAnsichtModal() {
+  document.getElementById('ansicht-modal').classList.remove('aktiv');
+}
+
+function ansichtModusWahl() {
+  const val = (document.querySelector('input[name="ansicht-modus"]:checked') || {}).value;
+  document.getElementById('ansicht-unter-erweitert').classList.toggle('offen', val === 'erweitert');
+  document.getElementById('ansicht-unter-zweig').classList.toggle('offen', val === 'zweig');
+  ['erweitert', 'zweig', 'voll'].forEach(v => {
+    const r = document.getElementById('ansicht-radio-' + v);
+    if (r) r.classList.toggle('aktiv', v === val);
+  });
+}
+
+function ansichtPickSuche() {
+  const q = document.getElementById('ansicht-suche').value.trim().toLowerCase();
+  const list = document.getElementById('ansicht-pick-list');
+  if (q.length < 2) { list.innerHTML = ''; return; }
+  // Lokale Suche über ALLE geladenen (RLS-sichtbaren) Personen = aktueller + verknüpfte Bäume.
+  const treffer = Object.values(aktuelleDaten.persons).filter(p => {
+    const name = (p.name || '').toLowerCase();
+    const bd   = (p.birth_date || '').toLowerCase();
+    return name.includes(q) || bd.includes(q);
+  }).slice(0, 40);
+  if (!treffer.length) {
+    list.innerHTML = `<div class="ansicht-pick-item" style="cursor:default;color:#8a7a5a">${t('keine_treffer')}</div>`;
+    return;
+  }
+  list.innerHTML = treffer.map(p =>
+    `<div class="ansicht-pick-item${ansichtPickSel === p.id ? ' gewaehlt' : ''}" data-id="${p.id}">${escapeHtml(ansichtPersonLabel(p))}</div>`
+  ).join('');
+}
+
+function ansichtPickWaehle(id) {
+  ansichtPickSel = id;
+  document.querySelectorAll('#ansicht-pick-list .ansicht-pick-item').forEach(el =>
+    el.classList.toggle('gewaehlt', el.dataset.id === id));
+}
+
+function ansichtAnwenden() {
+  const val = (document.querySelector('input[name="ansicht-modus"]:checked') || {}).value;
+  document.getElementById('suche').value = '';
+
+  if (val === 'voll') {
+    ansichtModus = 'voll'; fokusPersonId = null; ansichtFokusId = null;
+    zeichneBaum(aktuelleWurzel(), 12, 0);
+    aktualisiereBaumHinweis();   // Generationen-Hinweis ausblenden (Vollansicht)
+    schliesseAnsichtModal();
+    return;
+  }
+
+  if (val === 'zweig') {
+    if (!ansichtPickSel || !aktuelleDaten.persons[ansichtPickSel]) {
+      // Keine Person gewählt -> Hinweis im Picker, Modal bleibt offen.
+      document.getElementById('ansicht-pick-list').innerHTML =
+        `<div class="ansicht-pick-item" style="cursor:default;color:var(--akzent)">${t('ansicht_bitte_person')}</div>`;
+      document.getElementById('ansicht-suche').focus();
+      return;
+    }
+    const gen = parseInt(document.getElementById('ansicht-gen').value, 10);
+    zeigeZweigAbPerson(ansichtPickSel, gen);
+    schliesseAnsichtModal();
+    return;
+  }
+
+  // erweitert
+  const kat = {
+    grosseltern:   document.getElementById('ans-kat-grosseltern').checked,
+    urgrosseltern: document.getElementById('ans-kat-urgrosseltern').checked,
+    cousins:       document.getElementById('ans-kat-cousins').checked,
+    nachkommen:    document.getElementById('ans-kat-nachkommen').checked
+  };
+  if (!zeigeErweitertAnsicht(kat)) {
+    document.getElementById('ansicht-keine-karte').style.display = '';
+    return;
+  }
+  schliesseAnsichtModal();
+}
+
+// Sprachwechsel: offenes Overlay (Picker-Labels/Personennamen) neu aufbauen.
+function ansichtModalSprachUpdate() {
+  const m = document.getElementById('ansicht-modal');
+  if (!m || !m.classList.contains('aktiv')) return;
+  if (document.getElementById('ansicht-suche').value.trim().length >= 2) ansichtPickSuche();
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(m);
 }
 
 // ============================================================
@@ -12277,6 +14136,7 @@ async function reloadBaumBehalteFokus(fokusExtId) {
   }
   if (fokusExtId && aktuelleDaten.persons[fokusExtId]) {
     fokusPersonId = fokusExtId;
+    ansichtModus = null;   // gezielter Fokus -> Ausschnitts-Modus verlassen (Info-Banner stimmt)
     zeichneBaum(fokusExtId, 2, 2);
   } else {
     fokusPersonId = null;
@@ -12989,7 +14849,14 @@ function initBaum() {
 // „Stammbaum zentrieren"-Button + Fallback: Zoom auf Fit zurücksetzen, Baum mittig auf
 // die Blutlinie/Hauptperson ausrichten. Falls (noch) keine Fit-Transform existiert
 // (z. B. ungültiger Zustand), wird der Baum frisch gezeichnet.
+// „Stammbaum zentrieren": stellt die persönliche Standardansicht wieder her
+// (Fokus eigene Karte, Standardzoom, temporär erweiterte Bereiche eingeklappt).
+// Ohne eigene Karte: bisheriges Verhalten (Zoom/Pan auf Fit zurücksetzen).
 function zentriereBaumAnsicht() {
+  if (meineKarteImBaum()) {
+    document.getElementById('suche').value = '';
+    if (zeigeStandardAnsicht()) return;   // zeichnet neu inkl. Standardzoom (fitTransform)
+  }
   if (fitTransform && baumSvg && zoom) {
     baumSvg.transition().duration(500).call(zoom.transform, fitTransform);
   } else {
@@ -12997,11 +14864,14 @@ function zentriereBaumAnsicht() {
   }
 }
 
-function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
+function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
   baumG.selectAll('*').remove();
 
-  const wurzel = baueBaumDaten(rootPersonId, tiefeUnten, tiefeOben);
+  const wurzel = baueBaumDaten(rootPersonId, tiefeUnten, tiefeOben, opts);
   if (!wurzel) return;
+  // Hervorhebung: in Ausschnitts-Ansichten ist die fokussierte Person (z. B. die
+  // eigene Karte) markiert, nicht die Render-Wurzel.
+  const fokusKarte = opts.fokusId || rootPersonId;
 
   // Kopf an den aktuell angezeigten Stammbaum anpassen (#4: z.B. Petrović)
   aktualisiereKopf(rootPersonId);
@@ -13032,7 +14902,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   const knoten = baumG.selectAll('.knoten-gruppe')
     .data(wurzelNode.descendants())
     .enter().append('g')
-    .attr('class', d => 'knoten-gruppe' + (d.data.person.id === rootPersonId ? ' fokus' : ''))
+    .attr('class', d => 'knoten-gruppe' + (d.data.person.id === fokusKarte ? ' fokus' : ''))
     .attr('transform', d => `translate(${d.x},${d.y})`);
 
   knoten.each(function(d) {
@@ -13047,7 +14917,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
         .attr('x1', -6).attr('y1', 0).attr('x2', -156).attr('y2', 0);
       if (wife2) g.append('line').attr('class', 'ehe-linie')
         .attr('x1', 6).attr('y1', 0).attr('x2', 156).attr('y2', 0);
-      zeichneKnotenBox(g, p, 0, p.id === rootPersonId, istBl);
+      zeichneKnotenBox(g, p, 0, p.id === fokusKarte, istBl);
       if (wife1) zeichneKnotenBox(g, wife1, -162, false, false);
       if (wife2) zeichneKnotenBox(g, wife2, 162, false, false);
     } else {
@@ -13059,7 +14929,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
           .attr('x1', offset(i) + 76).attr('y1', 0)
           .attr('x2', offset(i + 1) - 76).attr('y2', 0);
       }
-      zeichneKnotenBox(g, p, offset(0), p.id === rootPersonId, istBl);
+      zeichneKnotenBox(g, p, offset(0), p.id === fokusKarte, istBl);
       partners.forEach((partner, i) => {
         zeichneKnotenBox(g, partner, offset(i + 1), false, false);
       });
@@ -13075,25 +14945,22 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2) {
   const tYMax = Math.max(...allY) + 42;
   const tW = tXMax - tXMin, tH = tYMax - tYMin;
 
-  // Auto-Fit: Blutlinie (x=0) auf die horizontale Mitte des Containers setzen.
-  // Skala so wählen, dass der gesamte Baum in den Container passt.
+  // Auto-Fit: den GESAMTEN Baum mittig und so groß wie möglich einpassen.
+  // (Früher wurde x=0/Blutlinie zwangsweise in die Bildmitte gelegt und pro Hälfte
+  //  skaliert — das führte bei asymmetrischen/breiten Bäumen zu Linksversatz und
+  //  unnötig kleinen Karten. Jetzt: volle Breite/Höhe nutzen + auf die geometrische
+  //  Baummitte zentrieren. Bei symmetrischen Blutlinien-Bäumen bleibt x=0 mittig.)
   const pad = 0.03;
-  const padPx = breite * pad;
+  const fitW = breite * (1 - 2 * pad);
   const fitT = hoehe * pad, fitH = hoehe * (1 - 2 * pad);
 
-  // Beide Hälften (links / rechts von x=0) müssen in je eine Container-Hälfte passen.
-  const hHalf = breite / 2 - padPx;
-  const skala_h = Math.min(
-    tXMax > 0 ? hHalf / tXMax : 5,
-    tXMin < 0 ? hHalf / (-tXMin) : 5
-  );
-  const skala_v = fitH / tH;
-  const skala = Math.min(skala_h, skala_v, 2.5);
-  const tx = breite / 2;                                         // x=0 → Bildmitte
+  const skala = Math.min(fitW / tW, fitH / tH, 2.5);
+  const cx = (tXMin + tXMax) / 2;                               // geometrische Baummitte
+  const tx = breite / 2 - cx * skala;                           // Baummitte → Bildmitte
   const ty = fitT + (fitH - tH * skala) / 2 - tYMin * skala;
 
-  // Zoom-Bereich: minZoom = Fit-Ansicht (90%), maxZoom = 3.0
-  zoom.scaleExtent([skala * 0.9, 3.0]);
+  // Zoom-Bereich: minZoom = Fit-Ansicht (90%), maxZoom = 4.0 (mehr Lese-Headroom bei großen Bäumen)
+  zoom.scaleExtent([skala * 0.9, 4.0]);
 
   // Pan-Begrenzung aktivieren: Welt-Bounding-Box des Baums (siehe constrain in initBaum).
   // So bleibt bei jeder Verschiebung mind. eine Karte sichtbar — der Baum kann nicht
@@ -13282,8 +15149,13 @@ function umbrucheNamen(s, max) {
 const BLUTLINIE_IDS = new Set(['I500009', 'I500007', 'I500003']);
 const BLUTLINIE_KINDER = { 'I500009': 'I500007', 'I500007': 'I500003' };
 
-function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
+function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {}) {
   if (!aktuelleDaten.persons[rootId]) return null;
+
+  // Ausschnitts-Ansicht: nur Personen aus dem erlaubten Set zeichnen (Set enthält
+  // ext-IDs inkl. aller Identitäts-Zwillinge). Ohne Set -> volles Verhalten wie bisher.
+  const ERLAUBT = opts.erlaubt || null;
+  const inErlaubt = (id) => !ERLAUBT || ERLAUBT.has(id);
 
   // Multi-Tree (B2): auf den gewählten Stammbaum begrenzen. Ohne Auswahl (oder
   // ohne _tree-Daten) verhält es sich wie früher (alles verbunden).
@@ -13356,7 +15228,7 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
     };
     const eheMap = new Map();                    // partnerKey -> { partnerId, partner, kinderIds, bruecke }
     const ohnePartner = { kinderIds: [], bruecke: false };
-    const globalKinder = new Set();
+    const globalKinder = new Map();   // childKey -> { cid, ziel }: bevorzugt die Karte des aktuellen Baums
     let hauptKey = null;
     twinsGeordnet.forEach(tid => {
       const tp = aktuelleDaten.persons[tid];
@@ -13371,7 +15243,9 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
         if (pk) {
           let e = eheMap.get(pk);
           if (!e) {
-            const partner = (!besucht.has(partnerId)) ? aktuelleDaten.persons[partnerId] : null;
+            // Partnerkarte in Ausschnitts-Ansicht nur zeigen, wenn im erlaubten Set
+            // (die Ehe/Kinder bleiben unabhängig davon erhalten -> Halbgeschwister).
+            const partner = (!besucht.has(partnerId) && inErlaubt(partnerId)) ? aktuelleDaten.persons[partnerId] : null;
             e = { partnerId, partner, kinderIds: [], bruecke: famBruecke };
             eheMap.set(pk, e);
             if (hauptKey === null) hauptKey = pk;
@@ -13383,8 +15257,22 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
         }
         (fam.children || []).forEach(cid => {
           const ck = childKey(cid);
-          if (globalKinder.has(ck)) return;     // global entdoppeln (überall dieselben Kinder)
-          globalKinder.add(ck);
+          const vorhanden = globalKinder.get(ck);
+          if (vorhanden) {
+            // Dieselbe reale Person kann in mehreren Bäumen je eine Karte haben (gleiche
+            // identitaet_id ODER – ohne Verknüpfung – gleicher Vorname unter denselben Eltern).
+            // Bevorzuge die Karte des AKTUELLEN Baums, sonst fällt das Kind durch den
+            // sameTree-Filter (zeigeKind) und verschwindet, obwohl es hier eine Karte hat.
+            if (!sameTree(vorhanden.cid) && sameTree(cid)) {
+              const arr = vorhanden.ziel.kinderIds;
+              const i = arr.indexOf(vorhanden.cid);
+              if (i >= 0) arr.splice(i, 1);
+              ziel.kinderIds.push(cid);
+              globalKinder.set(ck, { cid, ziel });
+            }
+            return;                               // global entdoppeln (überall dieselben Kinder)
+          }
+          globalKinder.set(ck, { cid, ziel });
           ziel.kinderIds.push(cid);
         });
       });
@@ -13410,8 +15298,9 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2) {
 
     if (tiefe <= 0) return knoten;
 
-    // Kind zeigen, wenn es im aktuellen Baum liegt ODER über eine Verknüpfungs-Brücke kommt.
-    const zeigeKind = (cid, bruecke) => bruecke || sameTree(cid);
+    // Kind zeigen, wenn es im aktuellen Baum liegt ODER über eine Verknüpfungs-Brücke kommt
+    // — und (bei Ausschnitts-Ansicht) im erlaubten Set liegt.
+    const zeigeKind = (cid, bruecke) => (bruecke || sameTree(cid)) && inErlaubt(cid);
 
     if (familien.length >= 2) {
       familien.forEach((fam, famIdx) => {
@@ -13541,6 +15430,588 @@ function parseGedcom(text) {
     }
   }
   return { persons, families };
+}
+
+// ============================================================
+// PDF-/DRUCK-EXPORT DES STAMMBAUMS (ab v9.2)
+// jsPDF + svg2pdf (siehe <head>). Baut ein eigenständiges, INLINE gestyltes SVG aus der
+// d3-Layoutlogik (reuse von zeichneBaum/baueBaumDaten) und exportiert es als PDF/PNG/SVG
+// oder druckt es. Vektor-PDF nur, wenn alle Zeichen WinAnsi-sicher sind (südslawische
+// Diakritika/Kyrillisch in Namen sind es NICHT) — sonst hochauflösendes Raster (i18n-treu).
+// ============================================================
+const PDF_PAPIER_MM = { A4:[210,297], A3:[297,420], A2:[420,594], A1:[594,841], A0:[841,1189] };
+const PDF_SVG_NS = 'http://www.w3.org/2000/svg';
+const PDF_TREE_FARBEN = ['#c8a840','#5a9bd4','#7bb274','#d98b5f','#b07cc6','#d46a8a','#54b3b0','#c0b04a'];
+let pdfBusy = false;
+let pdfEmpfTimer = null;
+function pdfEmpfDebounced() { clearTimeout(pdfEmpfTimer); pdfEmpfTimer = setTimeout(pdfBerechneEmpfehlung, 280); }
+
+function pdfEl(tag, attrs, parent) {
+  const e = document.createElementNS(PDF_SVG_NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function pdfTick() { return new Promise(r => setTimeout(r, 0)); }
+function pdfSetProgress(p, txt) {
+  const wrap = document.getElementById('pdf-progress');
+  const fill = document.getElementById('pdf-progress-fill');
+  const tx   = document.getElementById('pdf-progress-text');
+  if (!wrap) return;
+  wrap.style.display = p > 0 ? 'block' : 'none';
+  fill.style.width = Math.max(0, Math.min(100, p)) + '%';
+  tx.textContent = txt || '';
+}
+function pdfHinweis(msg, warn) {
+  const h = document.getElementById('pdf-hinweisbox');
+  if (!h) return;
+  h.textContent = msg || '';
+  h.classList.toggle('warn', !!warn);
+}
+
+// ---- Öffnen / Schließen --------------------------------------------------
+function oeffnePdfExport() {
+  pdfFuelleWurzelSelect();
+  pdfUmfangChange();
+  pdfBerechneEmpfehlung();
+  pdfHinweis('', false);
+  const m = document.getElementById('pdf-export-modal');
+  m.classList.add('aktiv');
+  // Live-Empfehlung bei Optionsänderung (einmalig anhängen)
+  ['pdf-wurzel','pdf-verknuepft','pdf-filter-status','pdf-filter-unbestaetigt',
+   'pdf-filter-privat','pdf-layout','pdf-gen-zurueck','pdf-gen-vor'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el._pdfL) { el._pdfL = true; el.addEventListener('change', pdfBerechneEmpfehlung); el.addEventListener('input', pdfEmpfDebounced); }
+  });
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(m);
+}
+function schliessePdfExport() {
+  document.getElementById('pdf-export-modal').classList.remove('aktiv');
+}
+function pdfUmfangChange() {
+  const u = document.getElementById('pdf-umfang').value;
+  document.getElementById('pdf-xgen-zurueck-wrap').style.display = (u === 'xgen') ? '' : 'none';
+  pdfBerechneEmpfehlung();
+}
+// Sprachwechsel: dynamische Inhalte (Personennamen, Empfehlung) neu aufbauen
+function pdfModalSprachUpdate() {
+  const m = document.getElementById('pdf-export-modal');
+  if (!m || !m.classList.contains('aktiv')) return;
+  pdfFuelleWurzelSelect();
+  pdfBerechneEmpfehlung();
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(m);
+}
+
+function pdfPersonLabel(p) {
+  const name = nm(((p.given || '') + ' ' + (p.surname || '')).trim()) || nm(p.id || '?');
+  const j = (p.birth_date && /\d{4}/.test(p.birth_date)) ? ' (* ' + p.birth_date.match(/\d{4}/)[0] + ')' : '';
+  const baum = (p._tree && stammbaeumeListe[p._tree]) ? ' — ' + nm(stammbaeumeListe[p._tree]) : '';
+  return name + j + baum;
+}
+function pdfFuelleWurzelSelect() {
+  const sel = document.getElementById('pdf-wurzel');
+  if (!sel) return;
+  const aktuell = sel.value;
+  let liste = Object.values(aktuelleDaten.persons || {});
+  if (aktuellerStammbaumId) {
+    const imBaum = liste.filter(p => p._tree === aktuellerStammbaumId);
+    if (imBaum.length) liste = imBaum;
+  }
+  liste.sort((a, b) => nm(((a.surname||'')+(a.given||''))).localeCompare(nm(((b.surname||'')+(b.given||'')))));
+  // Standard-Vorschlag: die EIGENE Karte des eingeloggten Nutzers (falls in der Liste),
+  // sonst Fokusperson, sonst Stammbaum-Wurzel. Der Nutzer kann jederzeit aendern.
+  const uid = (typeof aktuellerUser !== 'undefined' && aktuellerUser) ? aktuellerUser.id : null;
+  const eigene = uid ? liste.find(p => p._userId === uid) : null;
+  const standard = eigene ? eigene.id
+                 : (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) ? fokusPersonId
+                 : (typeof aktuelleWurzel === 'function' ? aktuelleWurzel() : (liste[0] && liste[0].id));
+  sel.innerHTML = liste.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(pdfPersonLabel(p))}</option>`).join('');
+  sel.value = (aktuell && aktuelleDaten.persons[aktuell]) ? aktuell : standard;
+  if (!sel.value && liste[0]) sel.value = liste[0].id;
+}
+
+// ---- Optionen einsammeln -------------------------------------------------
+function pdfSammleOptionen() {
+  const g = id => document.getElementById(id);
+  const layout = g('pdf-layout').value;
+  return {
+    wurzel: g('pdf-wurzel').value,
+    umfang: g('pdf-umfang').value,
+    genZurueck: g('pdf-gen-zurueck').value,
+    genVor: g('pdf-gen-vor').value,
+    verknuepft: g('pdf-verknuepft').checked,
+    farbe: g('pdf-verknuepft-farbe').checked,
+    status: g('pdf-filter-status').value,
+    unbestaetigt: g('pdf-filter-unbestaetigt').checked,
+    privat: g('pdf-filter-privat').checked,
+    layout, kompakt: layout === 'kompakt',
+    geburtsort: g('pdf-inhalt-geburtsort').checked,
+    foto: g('pdf-inhalt-foto').checked,
+    papier: g('pdf-papier').value,
+    orientierung: g('pdf-orientierung').value,
+    poster: g('pdf-poster').checked,
+    titelblatt: g('pdf-titelblatt').checked,
+    format: g('pdf-format').value
+  };
+}
+function pdfTiefen(opts) {
+  let oben;
+  const genVor = Math.max(0, parseInt(opts.genVor, 10) || 0);
+  switch (opts.umfang) {
+    case 'person': oben = 0; break;
+    case 'eltern': oben = 1; break;
+    case 'grosseltern': oben = 2; break;
+    case 'urgrosseltern': oben = 3; break;
+    case 'xgen': oben = Math.max(0, parseInt(opts.genZurueck, 10) || 0); break;
+    default: oben = 999;
+  }
+  let unten = (opts.umfang === 'alles') ? 999 : genVor;
+  if (opts.layout === 'ahnen') unten = 0;
+  if (opts.layout === 'nachkommen') { oben = 0; unten = (opts.umfang === 'alles') ? 999 : (genVor || 999); }
+  return { oben, unten };
+}
+// Modell bauen (reuse baueBaumDaten). Für „verknüpfte Bäume" wird der Baumfilter
+// temporär aufgehoben -> die ganze über Verknüpfungen verbundene Menge.
+function pdfBaueModell(opts) {
+  if (!opts.wurzel || !aktuelleDaten.persons[opts.wurzel]) return null;
+  const { oben, unten } = pdfTiefen(opts);
+  const saved = aktuellerStammbaumId;
+  try {
+    if (opts.verknuepft) aktuellerStammbaumId = null;
+    return baueBaumDaten(opts.wurzel, unten, oben);
+  } finally { aktuellerStammbaumId = saved; }
+}
+// Personenfilter (bottom-up; verbindende, nicht passende Knoten werden gedimmt statt entfernt).
+function pdfPasst(p, opts) {
+  const verstorben = !!(p.deceased || p.death_date);
+  if (opts.status === 'lebend' && verstorben) return false;
+  if (opts.status === 'verstorben' && !verstorben) return false;
+  if (opts.unbestaetigt && !(p.birth_date || p.death_date)) return false;
+  if (opts.privat && (p.privat === true || p.privat === 'ja' || p._privat === true)) return false;
+  return true;
+}
+function pdfFiltere(node, opts) {
+  if (!node) return null;
+  const behalten = [];
+  (node.children || []).forEach(c => { const k = pdfFiltere(c, opts); if (k) behalten.push(k); });
+  node.children = behalten;
+  const selbstOk = pdfPasst(node.person, opts);
+  if (selbstOk || behalten.length) { node._dim = !selbstOk; return node; }
+  return null;
+}
+function pdfModellZahlen(node) {
+  const pers = new Set(), trees = new Set(); let maxD = 0;
+  (function walk(n, d) {
+    if (!n) return;
+    pers.add(n.person.id); if (n.person._tree) trees.add(n.person._tree);
+    (n.partners || []).forEach(p => { pers.add(p.id); if (p._tree) trees.add(p._tree); });
+    maxD = Math.max(maxD, d);
+    (n.children || []).forEach(c => walk(c, d + 1));
+  })(node, 0);
+  return { personen: pers.size, baeume: trees.size, gens: maxD + 1 };
+}
+function pdfAutoPapier(n) { if (n > 500) return 'A0'; if (n > 250) return 'A1'; if (n > 100) return 'A2'; if (n > 25) return 'A3'; return 'A4'; }
+
+function pdfBerechneEmpfehlung() {
+  const box = document.getElementById('pdf-empfehlung');
+  if (!box) return;
+  const opts = pdfSammleOptionen();
+  if (!opts.wurzel) { box.innerHTML = ''; return; }
+  let model = pdfBaueModell(opts);
+  if (model) model = pdfFiltere(model, opts) || model;
+  const info = model ? pdfModellZahlen(model) : { personen: 0, baeume: 0, gens: 0 };
+  const papier = pdfAutoPapier(info.personen);
+  const poster = info.personen > 500;
+  box.innerHTML = t('pdf_empf_text', { n: info.personen, gen: info.gens, baeume: info.baeume, papier })
+    + (poster ? '<br>' + t('pdf_empf_poster') : '');
+}
+
+// ---- Layout (d3.tree, orientierungs-parametrisiert) ----------------------
+function pdfLayout(rootNode, opts) {
+  const orientV = opts.layout !== 'horizontal';
+  const cardW = opts.kompakt ? 120 : 152;
+  const cardH = opts.kompakt ? 60 : 76;
+  const breadthSpacing = orientV ? (cardW * 2 + 66) : (cardH * 2 + 70);
+  const depthSpacing   = orientV ? (cardH + 94) : (cardW + 90);
+  const partnerGap     = orientV ? (cardW + 10) : (cardH + 14);
+  const halfDepth      = orientV ? cardH / 2 : cardW / 2;
+
+  const hroot = d3.hierarchy(rootNode);
+  d3.tree().nodeSize([breadthSpacing, depthSpacing]).separation((a, b) => a.parent === b.parent ? 1.0 : 1.35)(hroot);
+
+  const toXY = (depth, breadth) => orientV ? { x: breadth, y: -depth } : { x: depth, y: breadth };
+  const rootTree = (aktuelleDaten.persons[opts.wurzel] || {})._tree || null;
+  const treeColorMap = {}; let colorIdx = 0;
+  const treeColor = (tid) => {
+    if (!opts.verknuepft || !opts.farbe || !tid || tid === rootTree) return null;
+    if (!treeColorMap[tid]) treeColorMap[tid] = PDF_TREE_FARBEN[colorIdx++ % PDF_TREE_FARBEN.length];
+    return treeColorMap[tid];
+  };
+
+  const cards = [], lines = [];
+  const personen = new Set(), baeume = new Set();
+  let minD = Infinity, maxD = -Infinity;
+
+  hroot.each(n => {
+    const d = n.data, p = d.person;
+    const partners = d.partners || [];
+    const slots = 1 + partners.length;
+    const startOff = -partnerGap * (slots - 1) / 2;
+    const depth = n.y;
+    minD = Math.min(minD, n.depth); maxD = Math.max(maxD, n.depth);
+    const slotBreadth = i => n.x + startOff + partnerGap * i;
+    const mkCard = (per, i, fokusOk) => {
+      const pt = toXY(depth, slotBreadth(i));
+      personen.add(per.id); if (per._tree) baeume.add(per._tree);
+      cards.push({ cx: pt.x, cy: pt.y, person: per, w: cardW, h: cardH, dim: !!d._dim,
+        isFocus: fokusOk && per.id === opts.wurzel, isBlut: BLUTLINIE_IDS.has(per.id),
+        treeColor: treeColor(per._tree) });
+    };
+    mkCard(p, 0, true);
+    partners.forEach((pa, i) => mkCard(pa, i + 1, false));
+    for (let i = 0; i < slots - 1; i++) {
+      const a = toXY(depth, slotBreadth(i)), b = toXY(depth, slotBreadth(i + 1));
+      lines.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, ehe: true });
+    }
+    n._depth = depth; n._cb = n.x;
+  });
+
+  hroot.descendants().forEach(parent => {
+    if (!parent.children || !parent.children.length) return;
+    const kids = parent.children;
+    const pEdge = parent._depth + halfDepth;
+    const cEdge = kids[0]._depth - halfDepth;
+    const mid = (pEdge + cEdge) / 2;
+    const cb = parent._cb;
+    let a = toXY(pEdge, cb), b = toXY(mid, cb);
+    lines.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+    const bs = kids.map(k => k._cb).concat([cb]);
+    a = toXY(mid, Math.min(...bs)); b = toXY(mid, Math.max(...bs));
+    lines.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+    kids.forEach(k => {
+      const c1 = toXY(mid, k._cb), c2 = toXY(k._depth - halfDepth, k._cb);
+      lines.push({ x1: c1.x, y1: c1.y, x2: c2.x, y2: c2.y });
+    });
+  });
+
+  let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
+  cards.forEach(c => {
+    xMin = Math.min(xMin, c.cx - c.w / 2); xMax = Math.max(xMax, c.cx + c.w / 2);
+    yMin = Math.min(yMin, c.cy - c.h / 2); yMax = Math.max(yMax, c.cy + c.h / 2);
+  });
+  const pad = 40;
+  const bounds = { x: xMin - pad, y: yMin - pad, w: (xMax - xMin) + 2 * pad, h: (yMax - yMin) + 2 * pad };
+  const gens = (maxD >= minD) ? (maxD - minD + 1) : 1;
+  const legend = Object.keys(treeColorMap).map(tid => ({ name: stammbaeumeListe[tid] || tid, color: treeColorMap[tid] }));
+  return { cards, lines, bounds, gens, personen, baeume, legend, cardW, cardH };
+}
+
+function pdfZeichneKarte(g, card, opts) {
+  const { cx, cy, person: p, w, h } = card;
+  const grp = pdfEl('g', card.dim ? { opacity: '0.45' } : {}, g);
+  const sex = p.sex;
+  const fill = sex === 'M' ? '#dbe9f3' : (sex === 'F' ? '#f4dde6' : '#fffaf0');
+  let stroke = sex === 'M' ? '#4a7fa8' : (sex === 'F' ? '#9e4060' : '#9c7c3c');
+  let sw = 1.8;
+  if (card.isBlut) { stroke = '#c8a840'; sw = 3; }
+  if (opts.verknuepft && opts.farbe && card.treeColor) { stroke = card.treeColor; sw = 3; }
+  if (card.isFocus) { stroke = '#722f37'; sw = 3.4; }
+  pdfEl('rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 6, fill, stroke, 'stroke-width': sw }, grp);
+
+  if (opts.foto) {
+    const src = p.foto || p.avatar || p.bild || '';
+    if (/^data:/.test(src)) pdfEl('image', { x: cx - w / 2 + 4, y: cy - h / 2 + 4, width: 18, height: 18, href: src, preserveAspectRatio: 'xMidYMid slice' }, grp);
+  }
+
+  const kompakt = opts.kompakt;
+  const fz = kompakt ? { name: 11, maiden: 8.5, daten: 9 } : { name: 13, maiden: 10, daten: 11 };
+  const zeilen = [];
+  umbrucheNamen(nm(p.given || '?'), kompakt ? 14 : 17).forEach(l => zeilen.push({ t: l, c: 'name' }));
+  const sn = nm(p.surname || ''); if (sn) umbrucheNamen(sn, kompakt ? 15 : 18).forEach(l => zeilen.push({ t: l, c: 'name' }));
+  const mn = nm((p.ehename || '').trim()); if (mn) zeilen.push({ t: '(' + (mn.length > 16 ? mn.slice(0, 15) + '…' : mn) + ')', c: 'maiden' });
+  if (p.birth_date || p.death_date) {
+    let dat = p.birth_date ? '* ' + formatDatumLang(p.birth_date) : '';
+    if (p.deceased || p.death_date) dat += (dat ? '  ' : '') + '† ' + (formatDatumLang(p.death_date) || '?');
+    if (dat) zeilen.push({ t: dat, c: 'daten' });
+  }
+  if (opts.geburtsort) {
+    const ort = nm((p.geburtsort || p.birth_place || '').trim());
+    if (ort) zeilen.push({ t: ort.length > 22 ? ort.slice(0, 21) + '…' : ort, c: 'daten' });
+  }
+  const LH = kompakt ? 12 : 15;
+  const startY = cy - ((zeilen.length - 1) * LH) / 2;
+  zeilen.forEach((z, i) => {
+    const fillc = z.c === 'maiden' ? '#6a5630' : (z.c === 'daten' ? '#3a2a10' : '#1a1008');
+    const fs = z.c === 'name' ? fz.name : (z.c === 'maiden' ? fz.maiden : fz.daten);
+    const te = pdfEl('text', { x: cx, y: startY + i * LH + 4, 'text-anchor': 'middle', 'font-family': 'Georgia, serif', 'font-size': fs, fill: fillc }, grp);
+    if (z.c === 'name') te.setAttribute('font-weight', 'bold');
+    if (z.c === 'maiden') te.setAttribute('font-style', 'italic');
+    te.textContent = z.t;
+  });
+}
+
+function pdfBaueSvg(layout, opts, extra) {
+  const b = layout.bounds;
+  const header = !!(extra && extra.header);
+  const meta = extra && extra.meta;
+  const headerH = header ? 130 : 0;
+  const legendH = layout.legend.length ? (34 + layout.legend.length * 24) : 0;
+  const W = b.w, H = b.h + headerH + legendH;
+  const svg = document.createElementNS(PDF_SVG_NS, 'svg');
+  svg.setAttribute('xmlns', PDF_SVG_NS);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  pdfEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#ffffff' }, svg);
+
+  if (header && meta) {
+    let hy = 46;
+    const tt = pdfEl('text', { x: 30, y: hy, 'font-family': 'Georgia, serif', 'font-size': 30, 'font-weight': 'bold', fill: '#722f37' }, svg);
+    tt.textContent = meta.titel; hy += 30;
+    [t('pdf_meta_datum', { d: meta.datum }),
+     t('pdf_meta_personen', { n: meta.personen }) + '    ' + t('pdf_meta_gen', { n: meta.gens }) + '    ' + t('pdf_meta_baeume', { n: meta.baeume })
+    ].forEach(l => { const e = pdfEl('text', { x: 30, y: hy, 'font-family': 'Georgia, serif', 'font-size': 15, fill: '#2c2418' }, svg); e.textContent = l; hy += 22; });
+  }
+
+  const g = pdfEl('g', { transform: `translate(${-b.x},${-b.y + headerH})` }, svg);
+  layout.lines.forEach(l => {
+    const at = { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, stroke: l.ehe ? '#c08a1e' : '#9c7c3c', 'stroke-width': 2.4, 'stroke-linecap': 'round' };
+    if (l.ehe) at['stroke-dasharray'] = '6 3';
+    pdfEl('line', at, g);
+  });
+  layout.cards.forEach(c => pdfZeichneKarte(g, c, opts));
+
+  if (layout.legend.length) {
+    let yy = b.h + headerH + 22;
+    const lt = pdfEl('text', { x: 30, y: yy, 'font-family': 'Georgia, serif', 'font-size': 16, fill: '#722f37' }, svg);
+    lt.textContent = t('pdf_legend_titel'); yy += 24;
+    layout.legend.forEach(le => {
+      pdfEl('rect', { x: 30, y: yy - 12, width: 22, height: 14, fill: le.color, stroke: '#000', 'stroke-width': 0.5 }, svg);
+      const e = pdfEl('text', { x: 60, y: yy, 'font-family': 'Georgia, serif', 'font-size': 14, fill: '#2c2418' }, svg);
+      e.textContent = nm(le.name); yy += 24;
+    });
+  }
+  return svg;
+}
+
+// ---- Metadaten / Titelblatt ----------------------------------------------
+function pdfMetadaten(layout, opts) {
+  const rp = aktuelleDaten.persons[opts.wurzel] || {};
+  const treeName = (rp._tree && stammbaeumeListe[rp._tree]) ? stammbaeumeListe[rp._tree] : (rp.surname || '');
+  const heute = new Date().toISOString().slice(0, 10);
+  const datum = formatDatumLang(heute) || new Date().toLocaleDateString();
+  let ersteller = '';
+  if (typeof meinProfil !== 'undefined' && meinProfil && (meinProfil.vorname || meinProfil.nachname)) {
+    ersteller = nm(((meinProfil.vorname || '') + ' ' + (meinProfil.nachname || '')).trim());
+  } else if (typeof aktuellerUser !== 'undefined' && aktuellerUser && aktuellerUser.email) {
+    ersteller = aktuellerUser.email;
+  }
+  return {
+    titel: t('pdf_meta_titel', { name: nm(treeName) || '—' }),
+    treeName: nm(treeName) || 'stablo', datum, ersteller,
+    personen: layout.personen.size, gens: layout.gens, baeume: layout.baeume.size
+  };
+}
+function pdfCanvasWrap(ctx, text, cx, cy, maxW, lh) {
+  const words = (text || '').split(' '); let line = ''; const zeilen = [];
+  words.forEach(w => { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { zeilen.push(line); line = w; } else line = test; });
+  if (line) zeilen.push(line);
+  const startY = cy - (zeilen.length - 1) * lh / 2;
+  zeilen.forEach((l, i) => ctx.fillText(l, cx, startY + i * lh));
+}
+function pdfTitelCanvas(meta, pageW_mm, pageH_mm, pxPerMm) {
+  const W = Math.round(pageW_mm * pxPerMm), Hp = Math.round(pageH_mm * pxPerMm);
+  const c = document.createElement('canvas'); c.width = W; c.height = Hp;
+  const x = c.getContext('2d');
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, Hp);
+  x.textAlign = 'center';
+  x.fillStyle = '#722f37'; x.font = 'bold ' + (pxPerMm * 9) + 'px Georgia, serif';
+  pdfCanvasWrap(x, meta.titel, W / 2, Hp * 0.30, W * 0.82, pxPerMm * 11);
+  x.strokeStyle = '#722f37'; x.lineWidth = Math.max(1, pxPerMm * 0.4);
+  x.beginPath(); x.moveTo(W * 0.32, Hp * 0.37); x.lineTo(W * 0.68, Hp * 0.37); x.stroke();
+  x.fillStyle = '#2c2418'; x.font = (pxPerMm * 4.6) + 'px Georgia, serif';
+  const lines = [
+    t('pdf_meta_datum', { d: meta.datum }),
+    meta.ersteller ? t('pdf_meta_ersteller', { e: meta.ersteller }) : null,
+    t('pdf_meta_personen', { n: meta.personen }),
+    t('pdf_meta_gen', { n: meta.gens }),
+    t('pdf_meta_baeume', { n: meta.baeume })
+  ].filter(Boolean);
+  let yy = Hp * 0.47; lines.forEach(l => { x.fillText(l, W / 2, yy); yy += pxPerMm * 7; });
+  x.fillStyle = '#9c7c3c'; x.font = 'italic ' + (pxPerMm * 4) + 'px Georgia, serif';
+  x.fillText('Vidović AI', W / 2, Hp * 0.93);
+  return c;
+}
+
+// ---- SVG -> Canvas / Downloads ------------------------------------------
+async function pdfSvgZuCanvas(svg, scale) {
+  const s = new XMLSerializer().serializeToString(svg);
+  const blob = new Blob([s], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('SVG-Bild')); im.src = url; });
+    const vbW = parseFloat(svg.getAttribute('width')), vbH = parseFloat(svg.getAttribute('height'));
+    const cw = Math.max(1, Math.round(vbW * scale)), ch = Math.max(1, Math.round(vbH * scale));
+    const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cw, ch);
+    ctx.drawImage(img, 0, 0, cw, ch);
+    return canvas;
+  } finally { URL.revokeObjectURL(url); }
+}
+function pdfDownloadBlob(blob, name) {
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = u; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+}
+function pdfDateiname(meta) {
+  const base = (meta.treeName || 'stablo').normalize('NFKD').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'stablo';
+  return 'Stammbaum_' + base;
+}
+
+// ---- Ausgabe-Pfade -------------------------------------------------------
+async function pdfExportPng(svg, fname) {
+  const vbW = parseFloat(svg.getAttribute('width')), vbH = parseFloat(svg.getAttribute('height'));
+  const cap = 16000; let scale = Math.min(3, cap / Math.max(vbW, vbH)); if (!(scale > 0)) scale = 1;
+  const canvas = await pdfSvgZuCanvas(svg, scale);
+  await new Promise(res => canvas.toBlob(b => { if (b) pdfDownloadBlob(b, fname); res(); }, 'image/png'));
+}
+function pdfDownloadSvg(svg, fname) {
+  const s = new XMLSerializer().serializeToString(svg);
+  pdfDownloadBlob(new Blob([s], { type: 'image/svg+xml;charset=utf-8' }), fname);
+}
+async function pdfDrucke(svg) {
+  const stage = document.getElementById('pdf-print-stage');
+  stage.innerHTML = '';
+  const clone = svg.cloneNode(true);
+  clone.removeAttribute('width'); clone.removeAttribute('height');
+  stage.appendChild(clone);
+  schliessePdfExport();
+  await pdfTick();
+  window.print();
+  setTimeout(() => { stage.innerHTML = ''; }, 1500);
+}
+async function pdfExportPdf(svg, layout, opts, meta, fname) {
+  const Ctor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+  if (!Ctor) { pdfHinweis(t('pdf_kein_jspdf'), true); return; }
+  const n = layout.personen.size;
+  const paper = (opts.papier === 'auto') ? pdfAutoPapier(n) : opts.papier;
+  const vbW = parseFloat(svg.getAttribute('width')), vbH = parseFloat(svg.getAttribute('height'));
+  let orientation = opts.orientierung;
+  if (orientation === 'auto') orientation = (vbW >= vbH) ? 'landscape' : 'portrait';
+  const dims = PDF_PAPIER_MM[paper] || PDF_PAPIER_MM.A4;
+  const pageW = orientation === 'landscape' ? dims[1] : dims[0];
+  const pageH = orientation === 'landscape' ? dims[0] : dims[1];
+  const fmt = paper.toLowerCase();
+  const doc = new Ctor({ orientation, unit: 'mm', format: fmt });
+  let pages = 0;
+
+  if (opts.titelblatt) {
+    const tc = pdfTitelCanvas(meta, pageW, pageH, 5);
+    doc.setFillColor(255, 255, 255); doc.rect(0, 0, pageW, pageH, 'F');
+    doc.addImage(tc, 'PNG', 0, 0, pageW, pageH); pages = 1;
+  }
+
+  const margin = 8;
+  if (!opts.poster) {
+    if (pages > 0) doc.addPage(fmt, orientation);
+    doc.setFillColor(255, 255, 255); doc.rect(0, 0, pageW, pageH, 'F');
+    const availW = pageW - 2 * margin, availH = pageH - 2 * margin;
+    const sc = Math.min(availW / vbW, availH / vbH);
+    const drawW = vbW * sc, drawH = vbH * sc, x = (pageW - drawW) / 2, y = (pageH - drawH) / 2;
+    const svgText = new XMLSerializer().serializeToString(svg);
+    const winAnsiSafe = !/[^\u0000-\u00FF]/.test(svgText);
+    let vektorOk = false;
+    if (winAnsiSafe && typeof doc.svg === 'function') {
+      try { await doc.svg(svg, { x, y, width: drawW, height: drawH }); vektorOk = true; } catch (e) { console.warn('svg2pdf fehlgeschlagen, Raster-Fallback:', e); }
+    }
+    if (!vektorOk) {
+      let cScale = (drawW * 11.8) / vbW;                    // ~300 dpi (scharfe Schrift)
+      cScale = Math.min(cScale, 16000 / Math.max(vbW, vbH));
+      const canvas = await pdfSvgZuCanvas(svg, Math.max(0.3, cScale));
+      doc.addImage(canvas, 'PNG', x, y, drawW, drawH);
+    }
+  } else {
+    // Poster: ein großes Raster, in Seiten-Kacheln mit Überlappung zerlegt.
+    const mmPerPx = 26 / layout.cardW;                      // Karte ~26 mm breit -> lesbar
+    const contentW = vbW * mmPerPx, contentH = vbH * mmPerPx;
+    const overlap = 10;
+    const usableW = pageW - 2 * margin, usableH = pageH - 2 * margin;
+    const stepW = Math.max(20, usableW - overlap), stepH = Math.max(20, usableH - overlap);
+    const cols = Math.max(1, Math.ceil((contentW - overlap) / stepW));
+    const rows = Math.max(1, Math.ceil((contentH - overlap) / stepH));
+    let pxPerMm = 8;                                        // ~200 dpi je Kachel
+    let canvasScale = pxPerMm * mmPerPx;
+    canvasScale = Math.min(canvasScale, 16000 / Math.max(vbW, vbH));
+    const big = await pdfSvgZuCanvas(svg, canvasScale);
+    const pxmm = canvasScale / mmPerPx;                     // big-px pro mm
+    const tilePxW = usableW * pxmm, tilePxH = usableH * pxmm;
+    for (let ry = 0; ry < rows; ry++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const sx = cx * stepW * pxmm, sy = ry * stepH * pxmm;
+        const sw = Math.min(tilePxW, big.width - sx), sh = Math.min(tilePxH, big.height - sy);
+        if (sw <= 1 || sh <= 1) continue;
+        const tmp = document.createElement('canvas'); tmp.width = Math.ceil(sw); tmp.height = Math.ceil(sh);
+        const tctx = tmp.getContext('2d');
+        tctx.fillStyle = '#ffffff'; tctx.fillRect(0, 0, tmp.width, tmp.height);
+        tctx.drawImage(big, sx, sy, sw, sh, 0, 0, sw, sh);
+        const seiteNr = ry * cols + cx + 1;
+        const fpx = Math.max(11, Math.round(3.5 * pxmm));
+        tctx.fillStyle = '#6b5836'; tctx.font = fpx + 'px Georgia, serif'; tctx.textAlign = 'right';
+        tctx.fillText(t('pdf_seite', { n: seiteNr, r: ry + 1, c: cx + 1 }), tmp.width - fpx, tmp.height - fpx);
+        if (pages > 0) doc.addPage(fmt, orientation);
+        pages++;
+        doc.setFillColor(255, 255, 255); doc.rect(0, 0, pageW, pageH, 'F');
+        doc.addImage(tmp, 'PNG', margin, margin, sw / pxmm, sh / pxmm);
+        await pdfTick();
+      }
+    }
+  }
+  doc.save(fname);
+}
+
+// ---- Haupt-Ablauf --------------------------------------------------------
+async function pdfExportStart() {
+  if (pdfBusy) return;
+  const opts = pdfSammleOptionen();
+  if (!opts.wurzel) { pdfHinweis(t('pdf_keine_wurzel'), true); return; }
+  if (opts.format === 'pdf') {
+    const Ctor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+    if (!Ctor) { pdfHinweis(t('pdf_kein_jspdf'), true); return; }
+  }
+  pdfBusy = true;
+  const startBtn = document.getElementById('pdf-start-btn');
+  if (startBtn) startBtn.disabled = true;
+  pdfHinweis('', false);
+  pdfSetProgress(5, t('pdf_prog_modell'));
+  try {
+    await pdfTick();
+    let model = pdfBaueModell(opts);
+    if (!model) { pdfHinweis(t('pdf_keine_wurzel'), true); return; }
+    model = pdfFiltere(model, opts) || model;
+    pdfSetProgress(25, t('pdf_prog_layout')); await pdfTick();
+    const layout = pdfLayout(model, opts);
+    if (!layout.cards.length) { pdfHinweis(t('pdf_leer'), true); return; }
+    pdfSetProgress(45, t('pdf_prog_render')); await pdfTick();
+    const meta = pdfMetadaten(layout, opts);
+    const wantHeader = (opts.format !== 'pdf') && opts.titelblatt;
+    const svg = pdfBaueSvg(layout, opts, { header: wantHeader, meta });
+    pdfSetProgress(62, t('pdf_prog_ausgabe')); await pdfTick();
+    const base = pdfDateiname(meta);
+    if (opts.format === 'svg') pdfDownloadSvg(svg, base + '.svg');
+    else if (opts.format === 'png') await pdfExportPng(svg, base + '.png');
+    else if (opts.format === 'druck') { await pdfDrucke(svg); }
+    else await pdfExportPdf(svg, layout, opts, meta, base + '.pdf');
+    pdfSetProgress(100, t('pdf_prog_fertig'));
+    if (opts.format !== 'druck') pdfHinweis(t('pdf_fertig'), false);
+  } catch (e) {
+    console.error('PDF-Export-Fehler:', e);
+    pdfHinweis(t('pdf_fehler') + (e && e.message ? ' (' + e.message + ')' : ''), true);
+  } finally {
+    pdfBusy = false;
+    if (startBtn) startBtn.disabled = false;
+    setTimeout(() => pdfSetProgress(0, ''), 1400);
+  }
 }
 
 // Start
