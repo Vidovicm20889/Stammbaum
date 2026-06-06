@@ -854,6 +854,7 @@ footer {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Runder Profil-Button (Avatar/Icon) in der Leiste — öffnet die Profileinstellungen */
 .profil-icon-btn {
+  position: relative;   /* Anker für den Ungelesen-Punkt (.profil-dot) */
   display: inline-flex; align-items: center; justify-content: center;
   padding: 0; margin: 0; border: none; background: none; cursor: pointer;
   border-radius: 50%; flex: 0 0 auto; line-height: 0;
@@ -2488,6 +2489,7 @@ async function setzeUser(user) {
 
   // Benachrichtigungen (z. B. Event-Einladungen) laden -> Ungelesen-Indikator.
   ladeBenachrichtigungen();
+  startBenachrSync();   // + Live-Updates ohne Reload (Realtime)
 
   // Deep-Link aus der Event-Einladungs-Mail (?event=<id>) nach dem Login einlösen.
   verarbeiteEventDeepLink();
@@ -2532,6 +2534,7 @@ function loescheUser() {
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
   stopObavPolling();     // Live-Updates beenden (ausgeloggt)
   stopRealtimeSync();    // Live-Sync der Baumdaten beenden (ausgeloggt)
+  stopBenachrSync();     // Live-Benachrichtigungen beenden (ausgeloggt)
   stopPresence();        // Live-Indikator beenden (ausgeloggt)
   aktualisiereAuthUI();
   resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
@@ -3074,6 +3077,50 @@ async function realtimeReloadAusfuehren() {
     realtimeReloadLaeuft = false;
     if (realtimePendingReload) realtimeReloadAnstossen();   // während Reload kam neues Event
   }
+}
+
+// ---- Live-Benachrichtigungen (Realtime) -------------------------------------
+// benachrichtigungen hat eine echte RLS-SELECT-Policy (eigene Zeilen) -> Supabase
+// Realtime liefert NUR die eigenen Zeilen. Trifft eine neue Benachrichtigung ein
+// (z. B. Event-Einladung), wird der Ungelesen-Indikator am Profilsymbol SOFORT
+// aktualisiert — ohne Klick/Reload. Wie der Live-Sync: KEIN Zurücksetzen des
+// Inaktivitäts-Timers (ladeBenachrichtigungen fasst sessAktivitaet nicht an);
+// gilt für ALLE eingeloggten Nutzer. DB: benachrichtigungen muss in der Publication
+// supabase_realtime liegen (supabase_benachrichtigungen_realtime.sql).
+let benachrChannel     = null;
+let benachrReloadTimer = null;
+let benachrPending     = false;
+
+function startBenachrSync() {
+  stopBenachrSync();
+  if (!aktuellerUser) return;
+  try {
+    benachrChannel = sbClient
+      .channel('benachr-sync')
+      .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'benachrichtigungen', filter: 'user_id=eq.' + aktuellerUser.id },
+          () => benachrSyncAnstossen())
+      .subscribe();
+  } catch (e) {
+    console.warn('Benachrichtigungs-Live-Sync nicht verfügbar:', e);
+    benachrChannel = null;
+  }
+}
+
+function stopBenachrSync() {
+  if (benachrReloadTimer) { clearTimeout(benachrReloadTimer); benachrReloadTimer = null; }
+  benachrPending = false;
+  if (benachrChannel) {
+    try { sbClient.removeChannel(benachrChannel); } catch (e) {}
+    benachrChannel = null;
+  }
+}
+
+function benachrSyncAnstossen() {
+  if (!aktuellerUser) return;
+  if (document.visibilityState !== 'visible') { benachrPending = true; return; }   // versteckter Tab: nachholen
+  if (benachrReloadTimer) clearTimeout(benachrReloadTimer);
+  benachrReloadTimer = setTimeout(() => { benachrReloadTimer = null; ladeBenachrichtigungen(); }, 400);
 }
 
 // ---- Live-Indikator (P2, Supabase Realtime Presence) ------------------------
@@ -10114,6 +10161,10 @@ function init() {
   // Tab wieder sichtbar -> während verstecktem Tab eingetroffene Live-Sync-Änderungen nachholen
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && realtimePendingReload) realtimeReloadAnstossen();
+  });
+  // Tab wieder sichtbar -> während verstecktem Tab eingetroffene Benachrichtigungen nachholen
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && benachrPending) { benachrPending = false; ladeBenachrichtigungen(); }
   });
   // Live-Indikator-Panel schließen bei Tipp außerhalb (pointerdown = touch-sicher, kein Ghost-Click)
   document.addEventListener('pointerdown', (e) => {
