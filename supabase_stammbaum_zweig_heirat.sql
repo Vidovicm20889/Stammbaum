@@ -9,9 +9,15 @@
 --
 -- Idee (siehe CLAUDE.md "Auto-Zweigbaum bei Heirat"): Heiratet im Baum eine
 -- Person und es entsteht durch den eingeheirateten Partner ein NEUER Nachname,
--- kann für diese Linie ein eigener Stammbaum angelegt werden – in DERSELBEN
--- Familie (gleicher Verbund -> Sichtbarkeit/Rechte automatisch, Isolation gewahrt,
--- kein separater Owner pro Baum: Owner hängt an der Familie).
+-- kann für diese Linie ein eigener Stammbaum angelegt werden.
+--
+-- AB VERSION 10.1 (Nutzerwunsch "eine Familie pro Baum"): Der neue Baum entsteht in
+-- einer NEUEN, EIGENEN Familie (eigener Owner/Verwaltung, eigener Eintrag im Familien-
+-- Dropdown) — NICHT mehr in derselben Familie wie früher. Die neue Familie liegt im
+-- GLEICHEN VERBUND wie die Ausgangsfamilie -> baumübergreifende Sichtbarkeit/Bearbeitung
+-- (verbund-basierte RLS) und eingeheiratete Personen bleiben erhalten; Isolation gegen
+-- fremde Verbünde bleibt gewahrt. Owner der neuen Familie = Owner der Ausgangsfamilie
+-- (ersatzweise der ausführende Admin), als auto=false (geschützt).
 --
 -- Personen werden NICHT verschoben/kopiert, sondern als GLEICHE Person über
 -- personen.identitaet_id in den neuen Baum GESPIEGELT (beide Karten bleiben
@@ -36,6 +42,7 @@ DECLARE
   v_verbund uuid;
   v_name    text;
   v_owner   uuid;
+  v_new_fam uuid;     -- neue, eigene Familie für diese Linie (gleicher Verbund)
   v_tree    uuid;
   v_rec     record;
   v_mir     uuid;
@@ -104,14 +111,31 @@ BEGIN
      SET identitaet_id = gen_random_uuid()
    WHERE id IN (SELECT pid FROM _zweig_src) AND identitaet_id IS NULL;
 
-  -- ---- Neuen Stammbaum in DERSELBEN Familie anlegen -----------------------
+  -- ---- Neue, EIGENE Familie für diese Linie (gleicher Verbund) -------------
+  -- Owner der Ausgangsfamilie ermitteln (ersatzweise der ausführende Admin).
   SELECT m.user_id INTO v_owner
     FROM public.mitgliedschaften m
    WHERE m.familie_id = v_fam AND m.rolle = 'familien_owner' AND m.aktiv
    ORDER BY m.aktiv DESC LIMIT 1;
+  v_owner := coalesce(v_owner, v_uid);
 
+  -- Neue Familie: Name = Linien-Nachname, GLEICHER Verbund (-> sichtbar verknüpft).
+  -- Ort/Land best-effort von der Ausgangsfamilie übernehmen (Admin kann es in
+  -- „Podešavanje porodice" anpassen — relevant fürs Zugriffsanfragen-Matching).
+  INSERT INTO public.familien (name, verbund_id, land, stadt, gemeinde)
+  SELECT v_name, v_verbund, f.land, f.stadt, f.gemeinde
+    FROM public.familien f WHERE f.id = v_fam
+  RETURNING id INTO v_new_fam;
+
+  -- Owner der neuen Familie setzen (auto=false = manuell/geschützt)
+  INSERT INTO public.mitgliedschaften (user_id, familie_id, rolle, aktiv, auto)
+  VALUES (v_owner, v_new_fam, 'familien_owner', true, false)
+  ON CONFLICT (user_id, familie_id)
+  DO UPDATE SET rolle = 'familien_owner', aktiv = true, auto = false;
+
+  -- Stammbaum in der NEUEN Familie anlegen
   INSERT INTO public.stammbaeume (familie_id, name, ersteller_id, owner_id, aktiv)
-  VALUES (v_fam, v_name, v_uid, coalesce(v_owner, v_uid), true)
+  VALUES (v_new_fam, v_name, v_uid, v_owner, true)
   RETURNING id INTO v_tree;
 
   -- ---- Spiegelkarten anlegen (Biografie übernehmen, identitaet teilen) -----
@@ -123,7 +147,7 @@ BEGIN
       (familie_id, stammbaum_id, externe_id, vorname, nachname, geburtsdatum,
        stammbaum_daten, identitaet_id)
     VALUES
-      (v_fam, v_tree,
+      (v_new_fam, v_tree,
        'I' || (extract(epoch from clock_timestamp())*1000)::bigint || '_' || substr(replace(v_rec.id::text,'-',''),1,8),
        v_rec.vorname, v_rec.nachname, NULL,
        v_rec.stammbaum_daten, v_rec.identitaet_id)
@@ -134,7 +158,7 @@ BEGIN
   -- ---- Beziehungen zwischen den Spiegelkarten neu aufbauen ----------------
   -- (nur Kanten, deren BEIDE Enden gespiegelt wurden -> keine verwaisten Zeilen)
   INSERT INTO public.beziehungen (familie_id, person_a, person_b, typ)
-  SELECT v_fam, ma.mir, mb.mir, b.typ
+  SELECT v_new_fam, ma.mir, mb.mir, b.typ
     FROM public.beziehungen b
     JOIN _zweig_map ma ON ma.src = b.person_a
     JOIN _zweig_map mb ON mb.src = b.person_b;
@@ -146,9 +170,10 @@ BEGIN
 
   SELECT count(*) INTO v_n FROM _zweig_map;
 
-  RETURN jsonb_build_object('ok', true, 'tree_id', v_tree, 'name', v_name, 'gespiegelt', v_n);
+  RETURN jsonb_build_object('ok', true, 'tree_id', v_tree, 'familie_id', v_new_fam,
+                            'name', v_name, 'gespiegelt', v_n);
 END $$;
 GRANT EXECUTE ON FUNCTION public.stammbaum_zweig_aus_heirat(uuid, uuid, text) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
-SELECT 'Auto-Zweigbaum bei Heirat angelegt: stammbaum_zweig_aus_heirat(p_wurzel, p_partner, p_name)' AS status;
+SELECT 'Auto-Zweigbaum bei Heirat (eigene Familie pro Baum, gleicher Verbund) aktualisiert: stammbaum_zweig_aus_heirat(p_wurzel, p_partner, p_name)' AS status;

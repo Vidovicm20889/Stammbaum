@@ -121,9 +121,16 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Noch offen (geplant, NICHT umgesetzt):** echtes Client-seitiges Delta-Merge (statt Vollreload bei
   jedem Live-Sync-Event). Damit ist die Echtzeit-Kollaboration (P1–P5) funktional vollständig.
 - **Mitglieder-Verwaltung – Familien-Dropdown**: Die Familienliste im „Upravljanje članovima"-
-  Overlay kommt aus der rollenbasierten RPC `verwaltbare_familien` (super_admin = ALLE Familien,
-  owner/admin = eigene) — NICHT aus den Mitglieder-Zeilen ableiten (sonst fehlen Familien ohne
-  Mitglieder). Das Frontend filtert die gelieferte Liste nicht zusätzlich.
+  Overlay UND im „Dodaj člana"-Overlay (`ladeMitglieder`/`ladeAddFamilien`) kommt aus der
+  rollenbasierten RPC `verwaltbare_familien` (super_admin = ALLE Familien, owner/admin = eigene)
+  — NICHT aus den Mitglieder-Zeilen ableiten (sonst fehlen Familien ohne Mitglieder). Das Frontend
+  filtert die gelieferte Liste nicht zusätzlich. **Findbar über BAUM-Namen (ab v10.1):** Rollen
+  sind familien-gebunden, ein Stammbaum kann aber anders heißen als seine Familie (z. B. ein bei
+  Heirat entstandener Zweigbaum „Stojanović" in der Familie „Vidović"). Damit der Admin die Familie
+  auch über den Baum-Namen findet, liefert `verwaltbare_familien` zusätzlich `baum_namen`
+  (string_agg der `stammbaeume.name` je Familie); das Frontend hängt diese über `familienSuchLabel`
+  ans sichtbare Optionslabel (Such-Match läuft über `ssRender`→`o.textContent`). Der gespeicherte
+  Wert bleibt die `familie_id`.
 - **Profileinstellungen / Benutzer-Profil (Phase 1, ab v8.9):** Konto-Stammdaten des EINGELOGGTEN
   Nutzers — bewusst getrennt von der „Stammbaum-Person" (`registrierungs_anfragen`/`personen`). Eigene
   Tabelle **`profile`** (1 Zeile je `auth.users`, PK=`user_id`; DB-Datei [supabase_profile.sql]) mit
@@ -138,7 +145,9 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   **Profil-Sprache steuert die App-Sprache** (`wechselSprache` beim Speichern UND beim Login via
   `ladeMeinProfil`). **Avatar**: neuer **Storage-Bucket `avatars`** (public; im Rahmen von Supabase →
   keine neue Library/Dienst), Bildverarbeitung clientseitig per **Canvas** (zentrierter Quadrat-Zuschnitt
-  → 512 px Haupt + 96 px Thumb, WEBP/JPEG-Fallback); Pfad `<user_id>/avatar.*` + `<user_id>/thumb.*`
+  → 1024 px Haupt + 128 px Thumb, WEBP/JPEG-Fallback q≈0.9, `imageSmoothingQuality:'high'`; das
+  Haupt-Bild speist die Namenskarten-Avatare, daher 1024 statt früher 512 für Retina/große Karten);
+  Pfad `<user_id>/avatar.*` + `<user_id>/thumb.*`
   (Storage-Policy: nur eigener Ordner). **Passwort ändern**: aktuelles PW per Re-Login
   (`signInWithPassword`, gleiche User-ID → KEIN Baum-Reload) verifiziert, dann `updateUser({password})`;
   Validierung ≥ 8 Zeichen + Buchstabe & Ziffer + Übereinstimmung. **Live-Update** (kein Reload):
@@ -251,7 +260,8 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   optional `opts.erlaubt` (Set erlaubter ext-IDs inkl. aller Zwillinge → Pruning in `zeigeKind`/
   Partner-Anzeige) und `opts.fokusId` (Hervorhebung der fokussierten Karte statt der Render-Wurzel;
   rückwärtskompatibel — ohne opts volles Altverhalten). **Standardansicht** (`zeigeStandardAnsicht`,
-  aufgerufen in `waehleStammbaum`): eigene Person + Eltern + (Voll-/Halb-)Geschwister + Kinder +
+  aufgerufen in `waehleStammbaum`): eigene Person + Eltern + (Voll-/Halb-)Geschwister **inkl. deren
+  Familien (Ehepartner + Kinder = Neffen/Nichten, Kategorie `geschwister_familie`)** + eigene Kinder +
   Partner; Wurzel = oberster im Set enthaltener Vorfahr entlang des aufsteigenden Strangs
   (`_renderWurzelImSet`). **„Stammbaum zentrieren"** (`zentriereBaumAnsicht`) stellt jetzt diese
   Standardansicht wieder her (Fokus eigene Karte, Standardzoom durch Neuzeichnen, erweiterte Bereiche
@@ -272,6 +282,15 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   entlang des gerenderten Strangs gezeichnet; das `verwandtschaftsSet` erfasst sie korrekt, die
   *Darstellung* ist durch den Single-Root begrenzt (echte beidseitige Ahnen-Spitzen = späteres
   Renderer-Rework).
+- **Namenskarten-Avatar zeigt Profilbild (ab v9.6):** Die Karten im „Familienmitglieder"-Grid
+  (`zeigeKarten`, `.person .avatar`) zeigen das hochgeladene **Profilbild** (`stammbaum_daten.foto`
+  bzw. `avatar`/`bild`, dieselben Felder wie PDF-Export), sonst wie bisher die **Initialen** als
+  Fallback (Bild liegt per `position:absolute; inset:0; object-fit:cover` über den Initialen; bei
+  Ladefehler `onerror=this.remove()` → Initial erscheint wieder). Alle Datenfelder bleiben unverändert.
+  **Schärfe:** Avatar-Upload erzeugt jetzt **1024 px** Haupt (+128 Thumb) statt 512, und das
+  Familienmitglieder-Grid nutzt **`auto-fill`** statt `auto-fit` — sonst streckt ein einzelner
+  Suchtreffer die Karte auf volle Breite und skaliert den Avatar unscharf hoch. **Bestandsavatare**
+  bleiben in alter Auflösung, bis sie im Profil **neu hochgeladen** werden.
 
 ## Architektur-Regeln
 - **Keine NEUEN externen Libraries/Dienste ohne ausdrückliche Absprache.**
@@ -314,9 +333,14 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Auto-Zweigbaum bei Heirat (neuer Nachname → neuer Stammbaum):** Entsteht beim Anlegen
   eines **Partners** ein NEUER Nachname (Partner-Nachname ≠ Nachname der heiratenden Person und
   im Verbund noch kein Baum dieses Namens), bietet die App **mit Bestätigung** („Vorschlag",
-  kein Automatismus) an, für diese Linie einen eigenen Stammbaum anzulegen. Der neue Baum
-  entsteht in **DERSELBEN Familie** (gleicher Verbund → Sichtbarkeit/Rechte automatisch,
-  Isolation gewahrt; **kein separater Owner pro Baum** — Owner hängt an der Familie). Personen
+  kein Automatismus) an, für diese Linie einen eigenen Stammbaum anzulegen. **Ab v10.1
+  (Nutzerwunsch „eine Familie pro Baum"):** Der neue Baum entsteht in einer **NEUEN, EIGENEN
+  Familie** (eigener Owner/Verwaltung, eigener Eintrag im Familien-Dropdown) — **NICHT mehr in
+  derselben Familie** wie früher. Die neue Familie liegt im **GLEICHEN VERBUND** wie die
+  Ausgangsfamilie → baumübergreifende Sichtbarkeit/Bearbeitung (verbund-basierte RLS) und
+  eingeheiratete Personen bleiben erhalten, Isolation gegen fremde Verbünde gewahrt. **Owner der
+  neuen Familie = Owner der Ausgangsfamilie** (ersatzweise der ausführende Admin), als
+  `auto=false` (geschützt). Personen
   werden **nicht verschoben/kopiert**, sondern als **gleiche Person** über `personen.identitaet_id`
   in den neuen Baum **gespiegelt** (beide Karten bleiben sichtbar; Biografie hält der Trigger
   `ident_sync` synchron). Wurzel des neuen Baums = eingeheirateter Partner; gespiegelt werden

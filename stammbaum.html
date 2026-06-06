@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="9.7">
+<meta name="app-version" content="10.1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -293,6 +293,16 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .short-card h3 { font-size: 18px; margin-bottom: 8px; }
 .short-card p { font-size: 13px; line-height: 1.65; color: #5e4b35; min-height: 48px; }
 .short-card .meta { margin-top: 14px; font-size: 12px; color: #7a6a50; letter-spacing: 0.6px; }
+/* Familienmitglieder-Grid: feste Spaltenbreite -> Karten (und damit die Avatar-Bilder)
+   bleiben in vernünftiger Größe. OHNE diese Regel wären die Karten volle Blockbreite
+   und das Profilbild würde unscharf hochskaliert (auto-fill: einzelne Karte streckt nicht). */
+.personen {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 24px;
+  align-items: start;
+  margin-top: 24px;
+}
 .person {
   background: var(--paper); color: var(--ink); padding: 18px;
   box-shadow: 0 2px 12px rgba(44,36,24,0.10), 0 0 0 1px rgba(156,124,60,0.3);
@@ -308,7 +318,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   color: var(--akzent); font-size: 18px;
 }
 .person .avatar {
-  width: 100%; aspect-ratio: 1;
+  width: 100%; aspect-ratio: 1; position: relative;
   display: flex; align-items: center; justify-content: center;
   font-size: 56px; color: var(--paper);
   margin-bottom: 12px; font-family: serif; overflow: hidden;
@@ -316,7 +326,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .person .avatar.male { background: linear-gradient(135deg, var(--male), #2a4a65); }
 .person .avatar.female { background: linear-gradient(135deg, var(--female), #6b2840); }
 .person .avatar.unknown { background: linear-gradient(135deg, var(--gold), var(--akzent)); }
-.person .avatar img { width: 100%; height: 100%; object-fit: cover; }
+/* Hochgeladenes Profilbild liegt ÜBER den Initialen (Fallback, falls Bild fehlt/fehlerhaft). */
+.person .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .person h3 { font-size: 17px; margin-bottom: 3px; }
 .person .nachname { color: var(--akzent); font-style: italic; font-size: 13px; }
 .person .nachname .maiden-name { font-size: 0.82em; opacity: 0.7; }
@@ -960,6 +971,26 @@ footer {
 }
 .profil-icon-btn:hover .user-avatar,
 .profil-icon-btn:focus-visible .user-avatar { border-color: var(--akzent); box-shadow: 0 0 0 2px var(--gold-hell); }
+/* Avatar-Menü (zentraler Einstieg: Obavještenja + Profil bearbeiten) */
+.avatar-menu { position: relative; display: inline-flex; }
+.avatar-obav-badge { position: absolute; top: -5px; right: -6px; margin: 0; }
+.avatar-menu-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 70;
+  min-width: 220px; background: var(--paper);
+  border: 1px solid var(--linie); box-shadow: 0 8px 22px rgba(44,36,24,0.2);
+  padding: 12px; display: none; flex-direction: column; gap: 8px;
+}
+.avatar-menu.offen .avatar-menu-panel { display: flex; }
+.avatar-menu-panel .account-btn {
+  width: 100%; text-align: center; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+/* Abschnittstitel im kombinierten Obavještenja-Modal */
+.obav-section-titel {
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--akzent); border-bottom: 1px solid var(--linie);
+  padding-bottom: 6px; margin-bottom: 4px; font-weight: bold;
+}
 /* Abmelden-Button oben rechts im Profilkopf */
 .prof-abmelden { margin-left: auto; align-self: flex-start; flex: 0 0 auto; }
 /* ===== Profileinstellungen (Modal) ===== */
@@ -1318,13 +1349,23 @@ footer {
     <div class="auth-bereich" id="auth-bereich">
       <button class="anmelden-btn" id="anmelden-btn" data-i18n="anmelden" onclick="zeigeLoginModal()"></button>
       <div class="user-badge" id="user-badge" style="display:none">
-        <span class="user-name" id="user-name" onclick="oeffneProfil()" style="cursor:pointer"></span>
+        <span class="user-name" id="user-name" onclick="toggleAvatarMenu(event)" style="cursor:pointer"></span>
         <span class="user-email" id="user-email"></span>
         <span class="user-rolle" id="user-rolle"></span>
-        <button class="profil-icon-btn" id="profil-icon-btn" type="button" onclick="oeffneProfil()" aria-label="Profileinstellungen">
-          <img class="user-avatar" id="user-avatar" alt="">
-          <span class="profil-dot" id="profil-dot" style="display:none"></span>
-        </button>
+        <!-- Zentraler Einstieg: Avatar öffnet ein Menü (Obavještenja + Profil bearbeiten) -->
+        <div class="avatar-menu" id="avatar-menu">
+          <button class="profil-icon-btn" id="profil-icon-btn" type="button" onclick="toggleAvatarMenu(event)"
+                  aria-haspopup="true" aria-expanded="false" aria-label="Menü">
+            <img class="user-avatar" id="user-avatar" alt="">
+            <span class="obav-badge avatar-obav-badge" id="avatar-obav-badge" style="display:none"></span>
+          </button>
+          <div class="avatar-menu-panel" id="avatar-menu-panel">
+            <button class="account-btn" type="button" id="avatar-obav-btn" onclick="oeffneObavZentral()">
+              <span data-i18n="obav_zentral_titel"></span><span class="obav-badge" id="avatar-menu-obav-badge" style="display:none"></span>
+            </button>
+            <button class="account-btn" type="button" data-i18n="prof_bearbeiten" onclick="oeffneProfilAusMenu()"></button>
+          </div>
+        </div>
       </div>
       <button class="account-btn" id="account-btn" data-i18n="account_anlegen" onclick="zeigeRegistrierModal()"></button>
     </div>
@@ -1343,7 +1384,7 @@ footer {
     <div class="nav-menu" id="nav-menu" style="display:none">
       <button class="nav-menu-toggle" id="nav-menu-toggle" onclick="toggleNavMenu(event)"
               aria-haspopup="true" aria-expanded="false" aria-label="Admin-Einstellungen">
-        <span class="nav-menu-icon">⚙</span><span class="pfeil">▾</span><span class="obav-badge" id="obav-badge-toggle" style="display:none"></span>
+        <span class="nav-menu-icon">⚙</span><span class="pfeil">▾</span>
       </button>
       <div class="nav-menu-panel" id="nav-menu-panel">
 
@@ -1354,7 +1395,6 @@ footer {
           <button class="account-btn" id="menu-add-btn" data-i18n="mv_add_titel" onclick="zeigeMitgliedHinzufuegen()"></button>
           <button class="account-btn" type="button" id="baum-anlegen-btn" data-i18n="admin_baum_anlegen" onclick="zeigeBaumNeu()"></button>
           <button class="account-btn admin-danger" type="button" id="baum-loeschen-btn" data-i18n="admin_baum_loeschen" onclick="loescheStammbaum()"></button>
-          <button class="account-btn" type="button" id="menu-obav-btn" onclick="zeigeObavModal()"><span data-i18n="admin_benachrichtigungen"></span><span class="obav-badge" id="obav-badge-btn" style="display:none"></span></button>
           <button class="account-btn" type="button" id="menu-merge-btn" data-i18n="merge_titel" onclick="zeigeMergeModal()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-gp-btn" data-i18n="gp_verknuepfen_titel" onclick="zeigeGleichePersonModal()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-bereinigung-btn" data-i18n="ber_titel" onclick="zeigeBereinigungModal()" style="display:none"></button>
@@ -1801,16 +1841,8 @@ footer {
     <div class="reg-gruppe-titel" data-i18n="mp_titel"></div>
     <div id="mp-bereich" class="mp-bereich"></div>
 
-    <!-- Benachrichtigungen (z. B. Event-Einladungen) -->
-    <button type="button" class="reg-gruppe-titel prof-pw-toggle" id="prof-benachr-toggle" onclick="profilBenachrToggle()" aria-expanded="false">
-      <span><span data-i18n="benachr_titel"></span><span class="benachr-badge" id="prof-benachr-badge" style="display:none"></span></span>
-      <span class="prof-pw-caret">▾</span>
-    </button>
-    <div class="prof-pw-box" id="prof-benachr-box" style="display:none">
-      <div id="prof-benachr-liste" class="benachr-liste"></div>
-      <button type="button" class="account-btn" id="prof-benachr-alle" style="margin-top:10px;display:none"
-        data-i18n="benachr_alle_gelesen" onclick="benachrAlleGelesen()"></button>
-    </div>
+    <!-- Benachrichtigungen (Obavještenja) wurden zentralisiert: Zugriff ausschließlich
+         über das Avatar-Menü (oeffneObavZentral). Daher hier KEINE eigene Sektion mehr. -->
 
     <!-- Profilbild -->
     <div class="reg-gruppe-titel" data-i18n="prof_bild_titel"></div>
@@ -2530,8 +2562,17 @@ footer {
 <div class="modal" id="obav-modal" style="z-index:210">
   <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseObavModal()">×</button>
-    <h2 data-i18n="admin_benachrichtigungen"></h2>
-    <div id="obav-liste" style="margin-top:14px"></div>
+    <h2 data-i18n="obav_zentral_titel"></h2>
+    <!-- Persönliche Benachrichtigungen (Event-/Zugriffs-Einladungen) — für ALLE Nutzer -->
+    <div class="obav-section-titel" data-i18n="obav_einladungen_titel"></div>
+    <div id="obav-benachr-liste" class="benachr-liste" style="margin-top:8px"></div>
+    <button type="button" class="account-btn" id="obav-benachr-alle" style="margin-top:10px;display:none"
+      data-i18n="benachr_alle_gelesen" onclick="benachrAlleGelesen()"></button>
+    <!-- Admin: Zugriffsanfragen genehmigen/ablehnen — nur Admins/Owner/Super-Admin -->
+    <div id="obav-anfragen-wrap" style="display:none">
+      <div class="obav-section-titel" data-i18n="obav_anfragen_titel" style="margin-top:22px"></div>
+      <div id="obav-liste" style="margin-top:8px"></div>
+    </div>
   </div>
 </div>
 
@@ -3021,9 +3062,8 @@ function aktualisiereAuthUI() {
     // Das ⚙-Dropdown: für ALLE eingeloggten Nutzer sichtbar (enthält jetzt mind. die Profileinstellungen).
     const zeigeMenu = true;
     if (navMenu) { navMenu.style.display = zeigeMenu ? '' : 'none'; if (!zeigeMenu) navMenu.classList.remove('offen'); }
-    // Obavještenja: nur Admins -> Button zeigen + offene Anfragen (Badge) laden
-    const obavBtn = document.getElementById('menu-obav-btn');
-    if (obavBtn) obavBtn.style.display = istAdm ? '' : 'none';
+    // Obavještenja sind ins Avatar-Menü zentralisiert (kein ⚙-Button mehr). Admin-Anfragen
+    // werden unten (istAdm-Block) für den gemeinsamen Avatar-Badge geladen.
     // Bäume verbinden / Dubletten-Merge: ausschließlich Super-Admin (für normale Nutzer unsichtbar)
     const mergeBtn = document.getElementById('menu-merge-btn');
     if (mergeBtn) mergeBtn.style.display = istSuperAdmin() ? '' : 'none';
@@ -3091,16 +3131,49 @@ function toggleNavMenu(e) {
   document.getElementById('nav-menu-toggle').setAttribute('aria-expanded', offen ? 'true' : 'false');
 }
 
+// Avatar-Menü (zentraler Einstieg) auf-/zuklappen — touch-sicher per pointerdown außerhalb (siehe init).
+function toggleAvatarMenu(e) {
+  if (e) e.stopPropagation();
+  const m = document.getElementById('avatar-menu');
+  if (!m) return;
+  const offen = m.classList.toggle('offen');
+  const btn = document.getElementById('profil-icon-btn');
+  if (btn) btn.setAttribute('aria-expanded', offen ? 'true' : 'false');
+}
+
+// Menüpunkt „Profil bearbeiten" — schließt das Avatar-Menü und öffnet das Profil.
+function oeffneProfilAusMenu() {
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  oeffneProfil();
+}
+
 // ============================================================
 // MITGLIEDER-VERWALTUNG (Admins)
 // ============================================================
 let mvFamilien = {};
 let mvAlle = [];
 let mvNameZuId = {};
+let mvFamilienBaeume = {};       // familie_id -> "Baum1, Baum2" (für das Such-Label)
 // Familienauswahl im Verwaltungs-Overlay (getrennt von der Add-Modal-Auswahl)
 let mvVerwaltFamilien = {};   // familie_id -> name
+let mvVerwaltBaeume = {};      // familie_id -> "Baum1, Baum2" (für das Such-Label)
 let mvVerwaltNameZuId = {};   // name(lower) -> familie_id
 let mvVerwaltFamilie = null;  // aktuell gewählte Familie
+
+// Such-Label für eine Familie im Porodica-Dropdown: Familienname + (falls abweichend)
+// die Namen ihrer Stammbäume. Rollen sind familien-gebunden, aber ein Stammbaum kann
+// anders heißen als seine Familie (z. B. ein bei Heirat entstandener Zweigbaum). Da der
+// Such-Match über den sichtbaren Optionstext läuft (ssRender -> o.textContent), hängen
+// wir die Baum-Namen ans Label, damit die Familie auch über den BAUM-Namen findbar ist.
+function familienSuchLabel(name, baumNamen) {
+  const fam = nm(name || '');
+  const extra = String(baumNamen || '').split(',').map(s => nm(s.trim())).filter(Boolean)
+    .filter(b => ssFold(b) !== ssFold(fam));
+  const uniq = [...new Set(extra)];
+  // Klammern statt Gedankenstrich: macht klar, dass die Bäume zur Familie GEHÖREN
+  // (und nicht zwei gleichrangige Familien sind).
+  return uniq.length ? `${fam} (${uniq.join(', ')})` : fam;
+}
 function zeigeMvFehler(msg) {
   document.getElementById('mv-info').style.display = 'none';
   const el = document.getElementById('mv-fehler');
@@ -3133,9 +3206,13 @@ async function ladeMitglieder() {
   if (rMit.error) { liste.innerHTML = `<p class="login-fehler" style="display:block">${escapeHtml(rMit.error.message)}</p>`; mvAlle = []; return; }
   mvAlle = rMit.data || [];
 
-  mvVerwaltFamilien = {};
+  mvVerwaltFamilien = {}; mvVerwaltBaeume = {};
   if (!rFam.error && rFam.data) {
-    rFam.data.forEach(f => { if (f.familie_id) mvVerwaltFamilien[f.familie_id] = f.familie_name; });
+    rFam.data.forEach(f => {
+      if (!f.familie_id) return;
+      mvVerwaltFamilien[f.familie_id] = f.familie_name;
+      mvVerwaltBaeume[f.familie_id] = f.baum_namen || '';
+    });
   } else {
     // Fallback (RPC noch nicht eingespielt): wie früher aus den Mitgliedern ableiten.
     if (rFam.error) console.warn('verwaltbare_familien:', rFam.error.message);
@@ -3145,10 +3222,11 @@ async function ladeMitglieder() {
   const eintraege = Object.entries(mvVerwaltFamilien)
     .sort((a, b) => nm(a[1] || '').localeCompare(nm(b[1] || '')));
   // <select>-Optionen (value = familie_id) -> bekommt automatisch dieselbe
-  // suchbare Dropdown-Funktion wie alle anderen Selects der App.
+  // suchbare Dropdown-Funktion wie alle anderen Selects der App. Label inkl.
+  // Baum-Namen, damit die Familie auch über einen STAMMBAUM-Namen findbar ist.
   const mvSel = document.getElementById('mv-familie-filter');
   mvSel.innerHTML = eintraege.map(([fid, name]) =>
-    `<option value="${escapeHtml(fid)}">${escapeHtml(nm(name))}</option>`).join('');
+    `<option value="${escapeHtml(fid)}">${escapeHtml(familienSuchLabel(name, mvVerwaltBaeume[fid]))}</option>`).join('');
 
   // Auswahl bestimmen: bestehende behalten -> sonst bei genau 1 Familie automatisch
   if (mvVerwaltFamilie && !mvVerwaltFamilien[mvVerwaltFamilie]) mvVerwaltFamilie = null;
@@ -3300,19 +3378,35 @@ function schliesseMitgliedHinzufuegen() {
   document.getElementById('mitglied-add-modal').classList.remove('aktiv');
 }
 
-// Nur Familien laden, die der angemeldete Admin verwalten darf (aus mitglieder_verwaltbar).
+// Nur Familien laden, die der angemeldete Admin verwalten darf. Quelle ist die
+// rollenbasierte RPC verwaltbare_familien (super_admin = ALLE Familien; owner/admin
+// = eigene) — NICHT aus den Mitglieder-Zeilen ableiten, sonst fehlen Familien/Bäume
+// OHNE (sichtbare) Mitglieder im Dropdown (z. B. ein Baum mit Personen, aber ohne
+// verknüpfte Konten). Fallback auf mitglieder_verwaltbar, falls die RPC fehlt.
 async function ladeAddFamilien() {
   const wrap = document.getElementById('ma-familie-wrap');
   const inp  = document.getElementById('ma-familie-input');   // jetzt <select>
   inp.innerHTML = '';
-  const { data, error } = await sbClient.rpc('mitglieder_verwaltbar');
-  if (error) { zeigeMaFehler(error.message); return; }
-  mvFamilien = {}; mvNameZuId = {};
-  (data || []).forEach(m => { mvFamilien[m.familie_id] = m.familie_name; });
-  // <select>-Optionen (value = familie_id) -> dieselbe suchbare Dropdown-Funktion
+  const rFam = await sbClient.rpc('verwaltbare_familien');
+  mvFamilien = {}; mvNameZuId = {}; mvFamilienBaeume = {};
+  if (!rFam.error && rFam.data) {
+    rFam.data.forEach(f => {
+      if (!f.familie_id) return;
+      mvFamilien[f.familie_id] = f.familie_name;
+      mvFamilienBaeume[f.familie_id] = f.baum_namen || '';
+    });
+  } else {
+    if (rFam.error) console.warn('verwaltbare_familien:', rFam.error.message);
+    const { data, error } = await sbClient.rpc('mitglieder_verwaltbar');
+    if (error) { zeigeMaFehler(error.message); return; }
+    (data || []).forEach(m => { if (m.familie_id) mvFamilien[m.familie_id] = m.familie_name; });
+  }
+  // <select>-Optionen (value = familie_id) -> dieselbe suchbare Dropdown-Funktion.
+  // Label = Familienname + (falls abweichend) Baum-Namen, damit die Familie auch
+  // über einen STAMMBAUM-Namen gefunden wird (Such-Match läuft über den Optionstext).
   inp.innerHTML = Object.entries(mvFamilien)
     .sort((a, b) => nm(a[1] || '').localeCompare(nm(b[1] || '')))
-    .map(([fid, name]) => `<option value="${escapeHtml(fid)}">${escapeHtml(nm(name))}</option>`).join('');
+    .map(([fid, name]) => `<option value="${escapeHtml(fid)}">${escapeHtml(familienSuchLabel(name, mvFamilienBaeume[fid]))}</option>`).join('');
   // Bei nur einer verwaltbaren Familie automatisch setzen + Feld ausblenden
   const keys = Object.keys(mvFamilien);
   if (keys.length <= 1) { wrap.style.display = 'none'; inp.value = keys[0] || ''; }
@@ -3405,11 +3499,8 @@ async function ladeOffeneAnfragen() {
 }
 
 function renderObavBadges() {
-  const n = offeneAnfragenCache.length + vknAnfragenCache.length;
-  ['obav-badge-toggle', 'obav-badge-btn'].forEach(id => {
-    const b = document.getElementById(id);
-    if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; }
-  });
+  // Admin-Anfragen + persönliche Benachrichtigungen fließen in den gemeinsamen Avatar-Badge.
+  if (typeof aktualisiereAvatarObavBadge === 'function') aktualisiereAvatarObavBadge();
 }
 
 // ---- Live-Updates für Obavještenja (Polling, kein Reload nötig) ---------------
@@ -3726,11 +3817,8 @@ async function oeffneProfil() {
   const secTog = document.getElementById('prof-sec-toggle');
   if (secBox) secBox.style.display = 'none';
   if (secTog) { secTog.classList.remove('offen'); secTog.setAttribute('aria-expanded', 'false'); }
-  // Benachrichtigungen eingeklappt starten + frisch laden/rendern (Ungelesen-Indikator).
-  const bnBox = document.getElementById('prof-benachr-box');
-  const bnTog = document.getElementById('prof-benachr-toggle');
-  if (bnBox) bnBox.style.display = 'none';
-  if (bnTog) bnTog.setAttribute('aria-expanded', 'false');
+  // Benachrichtigungen (Obavještenja) sind ins Avatar-Menü gewandert -> hier nur noch
+  // den Ungelesen-Indikator frisch halten (keine eigene Profil-Sektion mehr).
   ladeBenachrichtigungen();
   ['prof-sec-fehler','prof-sec-erfolg'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
   profilSecGeladen = false; profilSecCache = null;
@@ -4153,14 +4241,15 @@ function avatarBlob(img, size) {
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // sauberer Zuschnitt
     const min = Math.min(img.naturalWidth, img.naturalHeight);
     const sx = (img.naturalWidth - min) / 2;
     const sy = (img.naturalHeight - min) / 2;
     ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
     canvas.toBlob((b) => {
       if (b) resolve(b);
-      else canvas.toBlob(resolve, 'image/jpeg', 0.85);   // sehr alte Browser ohne WEBP
-    }, 'image/webp', 0.85);
+      else canvas.toBlob(resolve, 'image/jpeg', 0.9);    // sehr alte Browser ohne WEBP
+    }, 'image/webp', 0.9);
   });
 }
 function verarbeiteAvatar(file) {
@@ -4169,7 +4258,7 @@ function verarbeiteAvatar(file) {
     const url = URL.createObjectURL(file);
     img.onload = async () => {
       try {
-        const [mainBlob, thumbBlob] = await Promise.all([avatarBlob(img, 512), avatarBlob(img, 96)]);
+        const [mainBlob, thumbBlob] = await Promise.all([avatarBlob(img, 1024), avatarBlob(img, 128)]);
         URL.revokeObjectURL(url);
         if (!mainBlob || !thumbBlob) reject(new Error('toBlob null')); else resolve({ mainBlob, thumbBlob });
       } catch (e) { URL.revokeObjectURL(url); reject(e); }
@@ -4674,11 +4763,29 @@ function aktualisiereSyncBannerSprache() {
   }
 }
 
-function zeigeObavModal() {
-  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
-  renderObavListe();
+// Zentrales Obavještenja (über den Avatar): kombiniert persönliche Benachrichtigungen
+// (Event-/Zugriffs-Einladungen — für ALLE) mit den Admin-Zugriffsanfragen (nur Admins).
+// Beide bisherigen Einstiege (⚙-Menü, Profil-Sektion) sind dadurch ersetzt.
+async function oeffneObavZentral() {
+  if (!aktuellerUser) return;
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  renderObavZentral();
   document.getElementById('obav-modal').classList.add('aktiv');
-  ladeOffeneAnfragen().then(renderObavListe);   // frisch nachladen
+  // Frisch nachladen: persönliche immer, Admin-Anfragen nur für Admins.
+  await ladeBenachrichtigungen();
+  if (istAdmin()) await ladeOffeneAnfragen();
+  renderObavZentral();
+}
+// Alias für Deep-Link / Alt-Aufrufe.
+function zeigeObavModal() { oeffneObavZentral(); }
+
+// Rendert beide Abschnitte des kombinierten Modals (persönlich + ggf. Admin-Anfragen).
+function renderObavZentral() {
+  renderBenachrichtigungen();                  // persönliche Liste (#obav-benachr-liste)
+  const wrap = document.getElementById('obav-anfragen-wrap');
+  const admin = istAdmin();
+  if (wrap) wrap.style.display = admin ? '' : 'none';
+  if (admin) renderObavListe();                // Admin-Zugriffsanfragen (#obav-liste)
 }
 function schliesseObavModal() { document.getElementById('obav-modal').classList.remove('aktiv'); }
 
@@ -6988,6 +7095,10 @@ const TEXTE = {
     benachr_event_einladung: 'Event-Einladung',
     benachr_event_weg: 'Dieses Event ist nicht (mehr) verfügbar.',
     benachr_alle_gelesen: 'Alle als gelesen markieren',
+    obav_zentral_titel: 'Benachrichtigungen',
+    obav_einladungen_titel: 'Einladungen',
+    obav_anfragen_titel: 'Zugriffsanfragen',
+    prof_bearbeiten: 'Profil bearbeiten',
     etn_alle_sehen: 'Alle ausgewählt – jeder im Verbund sieht das Event.',
     etn_laedt: 'Benutzer werden geladen…',
     event_keine: 'Noch keine Events für diesen Stammbaum.',
@@ -7694,6 +7805,10 @@ const TEXTE = {
     benachr_event_einladung: 'Позивница за догађај',
     benachr_event_weg: 'Овај догађај није (више) доступан.',
     benachr_alle_gelesen: 'Означи све као прочитано',
+    obav_zentral_titel: 'Обавештења',
+    obav_einladungen_titel: 'Позивнице',
+    obav_anfragen_titel: 'Захтеви за приступ',
+    prof_bearbeiten: 'Уреди профил',
     etn_alle_sehen: 'Сви изабрани – сви у савезу виде догађај.',
     etn_laedt: 'Учитавање корисника…',
     event_keine: 'Још нема догађаја за ово стабло.',
@@ -8403,6 +8518,10 @@ const TEXTE = {
     benachr_event_einladung: 'Pozivnica za događaj',
     benachr_event_weg: 'Ovaj događaj nije (više) dostupan.',
     benachr_alle_gelesen: 'Označi sve kao pročitano',
+    obav_zentral_titel: 'Obavijesti',
+    obav_einladungen_titel: 'Pozivnice',
+    obav_anfragen_titel: 'Zahtjevi za pristup',
+    prof_bearbeiten: 'Uredi profil',
     etn_alle_sehen: 'Svi odabrani – svi u savezu vide događaj.',
     etn_laedt: 'Učitavanje korisnika…',
     event_keine: 'Još nema događaja za ovo stablo.',
@@ -9109,6 +9228,10 @@ const TEXTE = {
     benachr_event_einladung: 'Pozivnica za događaj',
     benachr_event_weg: 'Ovaj događaj nije (više) dostupan.',
     benachr_alle_gelesen: 'Označi sve kao pročitano',
+    obav_zentral_titel: 'Obavještenja',
+    obav_einladungen_titel: 'Pozivnice',
+    obav_anfragen_titel: 'Zahtjevi za pristup',
+    prof_bearbeiten: 'Uredi profil',
     etn_alle_sehen: 'Svi odabrani – svi u savezu vide događaj.',
     etn_laedt: 'Učitavanje korisnika…',
     event_keine: 'Još nema događaja za ovo stablo.',
@@ -9812,6 +9935,10 @@ const TEXTE = {
     benachr_event_einladung: 'Event invitation',
     benachr_event_weg: 'This event is no longer available.',
     benachr_alle_gelesen: 'Mark all as read',
+    obav_zentral_titel: 'Notifications',
+    obav_einladungen_titel: 'Invitations',
+    obav_anfragen_titel: 'Access requests',
+    prof_bearbeiten: 'Edit profile',
     etn_alle_sehen: 'All selected – everyone in the network sees the event.',
     etn_laedt: 'Loading users…',
     event_keine: 'No events for this tree yet.',
@@ -10702,9 +10829,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('kosten-modal')     && typeof renderKosten     === 'function') renderKosten();
   if (offen('event-teilnehmer-modal') && typeof renderEtnListe === 'function') renderEtnListe();   // Teilnehmer-Liste in neuer Sprache
   if (typeof aktualisiereBenachrBadge === 'function') aktualisiereBenachrBadge();   // Badge-Text (99+)
-  if (offen('profil-modal') && document.getElementById('prof-benachr-box')?.style.display !== 'none'
-      && typeof renderBenachrichtigungen === 'function') renderBenachrichtigungen();   // Benachrichtigungsliste neu
-  if (offen('obav-modal')       && typeof renderObavListe  === 'function') renderObavListe();
+  if (offen('obav-modal') && typeof renderObavZentral === 'function') renderObavZentral();   // kombiniertes Obavještenja neu
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
     fuelleProfilSprache(document.getElementById('prof-sprache').value);
@@ -11651,6 +11776,9 @@ function init() {
   document.addEventListener('pointerdown', (e) => {
     const menu = document.getElementById('nav-menu');
     if (menu && !menu.contains(e.target)) menu.classList.remove('offen');
+    // Avatar-Menü (Obavještenja/Profil) ebenso bei Tipp außerhalb schließen.
+    const aMenu = document.getElementById('avatar-menu');
+    if (aMenu && aMenu.classList.contains('offen') && !aMenu.contains(e.target)) aMenu.classList.remove('offen');
     // Kalender schließen bei Tipp außerhalb von Panel und aktivem Datumsfeld
     if (dpAktivInput && dpPanel && !dpPanel.contains(e.target) &&
         !(dpAktivInput._dpWrap && dpAktivInput._dpWrap.contains(e.target))) dpSchliesse();
@@ -11986,6 +12114,15 @@ function verwandtschaftsSet(focusId, kat) {
   if (kat.partner)     _ansPartner(focusId).forEach(add);
   if (kat.geschwister) _ansGeschwister(focusId).forEach(add);
   if (kat.kinder)      _ansKinder(focusId).forEach(add);
+  // Familien der Geschwister: deren Ehepartner + Kinder (Neffen/Nichten).
+  // (Werden als Nachkommen der Eltern-Render-Wurzel automatisch gezeichnet.)
+  if (kat.geschwister_familie) {
+    _ansGeschwister(focusId).forEach(g => {
+      add(g);
+      _ansPartner(g).forEach(add);
+      _ansKinder(g).forEach(add);
+    });
+  }
 
   const grosseltern = new Set();
   eltern.forEach(p => _ansEltern(p).forEach(g => grosseltern.add(g)));
@@ -12033,7 +12170,8 @@ function zeigeStandardAnsicht(behalteZoom) {
   const meId = meineKarteImBaum();
   if (!meId) return false;
   const S = verwandtschaftsSet(meId, {
-    eltern: true, partner: true, geschwister: true, kinder: true
+    eltern: true, partner: true, geschwister: true, kinder: true,
+    geschwister_familie: true   // Geschwister inkl. Ehepartner + Kinder (Neffen/Nichten)
   });
   ansichtModus = 'standard';
   ansichtFokusId = meId;
@@ -12051,7 +12189,8 @@ function zeigeErweitertAnsicht(kat, behalteZoom) {
   if (!meId) return false;
   // Standardumfang ist immer Basis; Overlay-Kategorien erweitern additiv.
   const voll = Object.assign({
-    eltern: true, partner: true, geschwister: true, kinder: true
+    eltern: true, partner: true, geschwister: true, kinder: true,
+    geschwister_familie: true
   }, kat || {});
   const S = verwandtschaftsSet(meId, voll);
   ansichtModus = 'erweitert';
@@ -12258,7 +12397,12 @@ function zeigeKarten() {
     
     const initialen = nm(((p.given[0] || '') + (p.surname[0] || '')).toUpperCase()) || '?';
     const avatarKlasse = p.sex === 'M' ? 'male' : (p.sex === 'F' ? 'female' : 'unknown');
-    
+    // Profilbild (falls hochgeladen) über den Initialen; bei Ladefehler bleibt das Initial.
+    const fotoUrl = p.foto || p.avatar || p.bild || '';
+    const avatarImg = fotoUrl
+      ? `<img src="${escapeHtml(fotoUrl)}" alt="" loading="lazy" onerror="this.remove()">`
+      : '';
+
     let lebensdaten = '';
     if (p.birth_date || p.death_date) {
       lebensdaten = `* ${formatDatumLang(p.birth_date) || '?'}`;
@@ -12266,7 +12410,7 @@ function zeigeKarten() {
     }
     
     karte.innerHTML = `
-      <div class="avatar ${avatarKlasse}">${initialen}</div>
+      <div class="avatar ${avatarKlasse}">${initialen}${avatarImg}</div>
       <h3>${escapeHtml(nm(p.given || '?'))}</h3>
       <p class="nachname">${escapeHtml(nm(p.surname || ''))}${p.ehename ? ` <span class="maiden-name">(${escapeHtml(nm(p.ehename))})</span>` : ''}</p>
       ${lebensdaten ? `<div class="daten">${lebensdaten}</div>` : ''}
@@ -12776,27 +12920,37 @@ async function ladeBenachrichtigungen() {
   if (error) { console.warn('Benachrichtigungen laden:', error); return; }
   meineBenachrichtigungen = data || [];
   aktualisiereBenachrBadge();
-  if (document.getElementById('profil-modal')?.classList.contains('aktiv')) renderBenachrichtigungen();
+  if (document.getElementById('obav-modal')?.classList.contains('aktiv')) renderBenachrichtigungen();
 }
 
 function benachrUngelesen() {
   return meineBenachrichtigungen.filter(b => !b.gelesen).length;
 }
 
+// Ungelesen-Indikator am Avatar = persönliche Benachrichtigungen + (für Admins) offene Anfragen.
+function aktualisiereAvatarObavBadge() {
+  const persoenlich = benachrUngelesen();
+  const anfragen = (typeof istAdmin === 'function' && istAdmin())
+    ? (offeneAnfragenCache.length + vknAnfragenCache.length) : 0;
+  const n = persoenlich + anfragen;
+  const txt = n > 99 ? '99+' : String(n);
+  ['avatar-obav-badge', 'avatar-menu-obav-badge'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) { b.textContent = txt; b.style.display = n > 0 ? '' : 'none'; }
+  });
+}
+
 function aktualisiereBenachrBadge() {
-  const n = benachrUngelesen();
-  const dot = document.getElementById('profil-dot');
-  if (dot) dot.style.display = n > 0 ? '' : 'none';
-  const badge = document.getElementById('prof-benachr-badge');
-  if (badge) { badge.textContent = n > 99 ? '99+' : String(n); badge.style.display = n > 0 ? '' : 'none'; }
+  aktualisiereAvatarObavBadge();
 }
 
 function renderBenachrichtigungen() {
-  const box = document.getElementById('prof-benachr-liste');
+  const box = document.getElementById('obav-benachr-liste');
   if (!box) return;
+  const alleBtn = document.getElementById('obav-benachr-alle');
   if (!meineBenachrichtigungen.length) {
     box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('benachr_keine'))}</div>`;
-    document.getElementById('prof-benachr-alle').style.display = 'none';
+    if (alleBtn) alleBtn.style.display = 'none';
     return;
   }
   box.innerHTML = meineBenachrichtigungen.map(b => {
@@ -12813,17 +12967,7 @@ function renderBenachrichtigungen() {
       </span>
     </div>`;
   }).join('');
-  document.getElementById('prof-benachr-alle').style.display = benachrUngelesen() > 0 ? '' : 'none';
-}
-
-function profilBenachrToggle() {
-  const box = document.getElementById('prof-benachr-box');
-  const tog = document.getElementById('prof-benachr-toggle');
-  const offen = box.style.display !== 'none';
-  box.style.display = offen ? 'none' : 'block';
-  tog.classList.toggle('offen', !offen);
-  tog.setAttribute('aria-expanded', String(!offen));
-  if (!offen) renderBenachrichtigungen();
+  if (alleBtn) alleBtn.style.display = benachrUngelesen() > 0 ? '' : 'none';
 }
 
 async function benachrOeffne(el) {
