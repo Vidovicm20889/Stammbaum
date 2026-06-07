@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="10.3">
+<meta name="app-version" content="10.4">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -11399,12 +11399,24 @@ function ssRender(filter) {
 
 function ssPositioniere(select) {
   const r  = select._ssControl.getBoundingClientRect();
-  const ph = ssPanel.offsetHeight;
-  const platzUnten = window.innerHeight - r.bottom;
-  const obenAuf = platzUnten < ph + 8 && r.top > platzUnten;   // nach oben klappen, wenn unten kein Platz
+  // Sichtbare Höhe bevorzugen (visualViewport berücksichtigt mobile Tastatur/Zoom).
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const rand = 8;                                   // Sicherheitsabstand zum Bildschirmrand
+  const platzUnten = vh - r.bottom - rand;
+  const platzOben  = r.top - rand;
+  // Standard: NACH UNTEN (direkt unter dem Feld). Nur nach oben, wenn unten zu eng
+  // ist UND oben spürbar mehr Platz hat — nicht schon bei knapp < 280px.
+  const nachUnten = platzUnten >= 160 || platzUnten >= platzOben;
+  // Panelhöhe an den verfügbaren Platz anpassen, statt es weit weg ans Bildschirm-
+  // ende zu klemmen (sonst löst sich die Liste vom Feld). Max. 280px (siehe CSS).
+  const hoehe = Math.max(120, Math.min(280, nachUnten ? platzUnten : platzOben));
+  ssPanel.style.maxHeight = hoehe + 'px';
+  const ph = Math.min(ssPanel.offsetHeight, hoehe);  // tatsächliche Höhe nach maxHeight
   ssPanel.style.left  = r.left + 'px';
   ssPanel.style.width = r.width + 'px';
-  ssPanel.style.top   = (obenAuf ? Math.max(4, r.top - ph - 2) : r.bottom + 2) + 'px';
+  // Beim Hochklappen an die FELD-Oberkante andocken (Panel-Unterkante = r.top - 2),
+  // damit kein Spalt entsteht; nach unten direkt an die Feld-Unterkante.
+  ssPanel.style.top   = (nachUnten ? r.bottom + 2 : Math.max(rand, r.top - ph - 2)) + 'px';
 }
 
 function ssOeffne(select) {
@@ -11670,13 +11682,20 @@ function dpRender() {
 
 function dpPositioniere(ref) {
   const r = ref.getBoundingClientRect();
+  // Sichtbare Höhe bevorzugen (visualViewport berücksichtigt mobile Tastatur/Zoom).
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
   const ph = dpPanel.offsetHeight, pw = dpPanel.offsetWidth;
-  const platzUnten = window.innerHeight - r.bottom;
-  const obenAuf = platzUnten < ph + 8 && r.top > platzUnten;
+  const rand = 8;
+  const platzUnten = vh - r.bottom - rand;
+  const platzOben  = r.top - rand;
+  // Standard: NACH UNTEN (direkt unter dem Feld). Nach oben nur, wenn unten nicht
+  // passt UND oben mehr Platz hat (Kalender hat feste Höhe, daher kein Shrink).
+  const nachUnten = platzUnten >= ph || platzUnten >= platzOben;
   let left = r.left;
-  if (left + pw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pw - 8);
+  if (left + pw > window.innerWidth - rand) left = Math.max(rand, window.innerWidth - pw - rand);
   dpPanel.style.left = left + 'px';
-  dpPanel.style.top  = (obenAuf ? Math.max(4, r.top - ph - 2) : r.bottom + 2) + 'px';
+  // Beim Hochklappen Panel-Unterkante an die Feld-Oberkante andocken (kein Spalt).
+  dpPanel.style.top  = (nachUnten ? r.bottom + 2 : Math.max(rand, r.top - ph - 2)) + 'px';
 }
 
 function dpOeffne(input) {
