@@ -131,6 +131,35 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   (string_agg der `stammbaeume.name` je Familie); das Frontend hängt diese über `familienSuchLabel`
   ans sichtbare Optionslabel (Such-Match läuft über `ssRender`→`o.textContent`). Der gespeicherte
   Wert bleibt die `familie_id`.
+- **Benutzer ↔ Namenskarte zuweisen (Admin/Super-Admin, ab v10.9):** Erweitert die Konto↔Karte-
+  Verknüpfung (`personen.user_id`) um einen **baumübergreifenden Admin-Pfad** (zusätzlich zu
+  Anfrage-Genehmigung und Self-Service „Meine Person"). DB-Datei
+  `supabase_user_karte_zuweisung.sql`. **Teil 1 – Such-Overlay `#uk-modal`:** Der 🔗-Button je
+  Mitglied (`renderMitglieder`) öffnet `oeffneUserKarte(userId)` → Live-Suche
+  `karten_suche_admin` (wie `personen_suche`, aber NUR zuweisbare Karten: `ist_super_admin() OR
+  kann_familie_bearbeiten` → Super-Admin alle Bäume, Familien-Admin eigene/Verbund; liefert
+  zusätzlich `belegt_user`/`belegt_email`). Treffer zeigen Belegt-Badge „🔗 belegt von {email}" /
+  „frei". Zuweisen über `karte_user_zuweisen(p_person,p_user,p_force)` (jsonb): hält **1 Karte pro
+  Konto** (löst die bisherige Karte des Kontos) UND **1 Konto pro Karte**; eine **belegte** (fremde)
+  Karte wird nur nach Warnung (`zeigeBestaetigung`, mit E-Mail) mit `p_force=true` übernommen und
+  rechnet die Auto-Rechte **beider** betroffener Konten neu (`rechte_neu_berechnen`). Entfernen über
+  bestehende `person_user_loesen`. Die Mitgliederzeile zeigt die zugeordnete Karte bzw.
+  „noch keine Person zugewiesen" (`mitglieder_verwaltbar` um `verknuepfte_person_*`/`verknuepfte_baum`
+  erweitert → DROP+CREATE). **Teil 2 – „Dodaj člana":** Felder Vorname/Nachname + Abschnitt
+  „Namenskarte zuweisen" mit Modus **keine / bestehende (Suche) / neue (Baum-Auswahl der Familie via
+  `stammbaeume_der_familie`)**. Möglich, weil `mitglied-einladen` (Edge Function) den Auth-User SOFORT
+  anlegt und `user_id` zurückgibt → das Frontend verknüpft danach via `karte_user_zuweisen` (neue
+  Karte zuerst per `namenskarte_anlegen`). **Teil 3:** Profil (`renderMeinePersonBereich`) zeigt bei
+  Verknüpfung zusätzlich die **Familie** (`meine_person_status` um `person_familie` erweitert).
+  **Teil 4 – Sync:** kein neuer Code — die bestehenden Profil↔Karte-Trigger
+  ([[project_realtime_kollaboration]]/`supabase_profil_person_sync.sql`) greifen, sobald `user_id`
+  gesetzt ist. i18n `uk_*`/`ma_karte_*`/`mp_in_familie`/`mv_keine_person` in allen 5 Blöcken;
+  `wechselSprache` ruft `ukSpracheUpdate` + rendert den Add-Modal-Kartenabschnitt neu. **Bewusste
+  Grenze:** „1 Konto pro Karte"/„1 Karte pro Konto" werden per RPC gehalten (KEIN DB-UNIQUE auf
+  `personen.user_id`, um Spiegel-/Bestandsdaten-Flows nicht zu brechen); E-Mail-Anzeige nur im
+  Admin-Overlay. Die alte familien-interne `mvVerknuepfung*`/`personen_fuer_verknuepfung`-Inline-
+  Auswahl ist durch das Overlay ersetzt (`personen_fuer_verknuepfung` bleibt nur noch im
+  Obavještenja-Genehmigungs-Flow im Einsatz).
 - **Profileinstellungen / Benutzer-Profil (Phase 1, ab v8.9):** Konto-Stammdaten des EINGELOGGTEN
   Nutzers — bewusst getrennt von der „Stammbaum-Person" (`registrierungs_anfragen`/`personen`). Eigene
   Tabelle **`profile`** (1 Zeile je `auth.users`, PK=`user_id`; DB-Datei [supabase_profile.sql]) mit
@@ -352,6 +381,46 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   `merge_norm`), DB-Datei `supabase_stammbaum_zweig_heirat.sql`. **v1-Grenze:** NACH dem Anlegen
   ergänzte Nachkommen werden NICHT physisch nachgespiegelt; ihre baumübergreifende Sichtbarkeit
   übernimmt die Render-Zusammenführung (siehe nächste Regel).
+- **Abweichender Nachname → Overlay „Abweichender Nachname erkannt" (3 Optionen, ab v10.8):**
+  Verallgemeinert den partner-only Auto-Zweigbaum auf **JEDE neu angelegte ODER bearbeitete Person**,
+  deren Nachname vom Namen des Baums abweicht. **Trigger:** (a) Personenanlage mit abweichendem
+  Nachnamen (alle Beziehungstypen, nicht nur Partner — ersetzt den früheren `pruefeHeiratsZweig`-
+  Aufruf in `speichereNeuePerson`), (b) Bearbeiten+Speichern, wenn der Nachname auf einen
+  abweichenden geändert wird (`speicherePerson`). **Import/automatische Anlagen lösen das Overlay
+  bewusst NICHT aus** (kein Massendialog). **Bedingung:** Nachname ≠ Baumname (`zweigNachnameNorm`)
+  UND Person hat noch keine baumübergreifende Verknüpfung (`identitaet_id`/`_ident`). Existiert im
+  Verbund bereits ein Baum dieses Nachnamens, wird **Option 1 ausgeblendet** (Hinweis
+  `abw_baum_existiert`) → nur Verknüpfen/Ohne. **Overlay `#abw-nachname-modal`**
+  (`pruefeAbweichenderNachname`/`oeffneAbwNachname`/`schliesseAbwNachname`, schließt nur per Button):
+  **Option 1 „Neuen Stammbaum erstellen"** (`abwNeuerBaum`) ruft die **neue generische RPC**
+  `stammbaum_zweig_aus_person(p_wurzel, p_name)` (DB-Datei `supabase_stammbaum_zweig_person.sql`,
+  SECURITY DEFINER) — wie die Heirat-Variante (neue Familie+Baum, gleicher Verbund, Owner=Owner der
+  Ausgangsfamilie auto=false), aber OHNE Partner-Zwang: gespiegelt werden Wurzel + Nachkommen +
+  Ehepartner. Aktueller Baum bleibt (`ladeBaumDaten`). **Option 2 „Mit bestehender Person
+  verknüpfen"** (`abwVerknuepfen`) wählt einen Beziehungstyp (`beztyp_*`) und öffnet den bestehenden
+  `zeigeVerbinden`/`vbVerknuepfe`-Flow (Suche `personen_suche`, Dubletten/Zyklus via
+  `verknuepfung_anfragen`, Cross-Tree-Merge greift). **Option 3 „Ohne Verknüpfung fortfahren"**
+  (`abwOhne`) lässt die Person wie gespeichert. i18n `abw_*` in allen 5 Blöcken (in i18n.js);
+  `wechselSprache` ruft `abwSpracheUpdate` (Titel + Beziehungs-Select). Die alte
+  `pruefeHeiratsZweig`/`stammbaum_zweig_aus_heirat` bleibt als Code/RPC erhalten, wird aber vom
+  neuen Flow nicht mehr aufgerufen.
+- **Geschwister ohne vorhandene Eltern → Platzhalter-Elternteil (ab v10.7):** Legt man im
+  „Person hinzufügen"-Overlay ein **Geschwister** zu einer Person an, die noch **keine Eltern**
+  hat (bzw. verknüpft eine bestehende Person als Geschwister), wird **NICHT mehr blockiert**
+  (früher Hinweis `pa_geschwister_keine_eltern`). Stattdessen legt das Frontend automatisch einen
+  **Platzhalter-Elternteil** an (`erzeugePlatzhalterElternteil`, Marker `stammbaum_daten.platzhalter:true`,
+  `angelegt_aus:'geschwister-platzhalter'`, ohne `user_id`) und hängt **beide Geschwister** als Kind
+  daran → echte Geschwister-Verknüpfung statt loser, im Single-Root-Baum unsichtbarer Karte. Der Nutzer
+  muss so keine Eltern vorab erfassen (Nutzerwunsch). Der **Anzeigename** des Platzhalters ist KEIN
+  Datenwert: `lokalisierePlatzhalterNamen` setzt ihn sprachabhängig (`pa_platzhalter_name`,
+  in allen 5 Blöcken; sr = „Непознато", `nm()` lässt Kyrillisch unverändert) — aufgerufen in
+  `ladeBaumAusSupabase` UND in `wechselSprache` (vor dem Neu-Rendern), damit er in allen Sprachen
+  stimmt. Folgende Geschwister-Adds reuse den Platzhalter automatisch (Bezugsperson hat dann Eltern).
+  Aufrufstellen: `speichereNeuePerson` (geschwister-Zweig) + `vbVerknuepfe` (geschwister). Platzhalter
+  ist normal editierbar (kann später mit echten Elterndaten gefüllt werden) und identitäts-frei löschbar.
+  **v1-Grenzen (bewusst):** kein Cross-Tree-Mirroring des Platzhalters (lokal im aktuellen Baum); werden
+  beide Kinder gelöscht, bleibt der Platzhalter als lose Karte (Auto-Leer-Bereinigung greift erst bei 0
+  Personen im Baum).
 - **Kind-Sichtbarkeit über beide Eltern — Vater/Mutter-Dialog + Spiegelung (ab v8.8/8.9):** Beim
   Anlegen eines Kindes (Personen-Overlay) gibt es **durchsuchbare Vater-/Mutter-Felder** (über
   aktuellen + alle Verbund-Bäume via RPC `personen_suche`; vorbelegt nach Geschlecht/eindeutigem
@@ -373,6 +442,41 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   gültige Karte hat (war der Bug: Mila als Kind von Slađana/Knežević + Milan/Vidović wurde im
   Knežević-Baum nicht angezeigt). Greift unabhängig von `identitaet_id` (rein render-seitig, keine
   DB-Änderung).
+  **EINGESCHRÄNKT ab v11 durch die Blutlinien-Kappung (siehe nächste Regel):** Spiegelung
+  (`kind_baeume_sync`) + Brücke (`bruecke`) + `globalKinder`-Entdopplung gelten weiterhin für die
+  **direkten Kinder** eines Blutlinien-Mitglieds (ein Kind taucht in jedem Baum auf, in dem ein
+  Elternteil liegt) — ABER der Renderer **steigt nicht mehr unbegrenzt baumübergreifend ab**: nach der
+  ersten ausgeheirateten Generation endet die Darstellung an einem Übergangspunkt, damit keine
+  doppelte Blutlinie entsteht.
+- **Blutlinien-Kappung im Renderer — „ein Stammbaum = eine Blutlinie" (Variante B, ab v11):** Ein
+  Stammbaum zeigt seine eigene Blutlinie (Vorfahren + Nachkommen entlang des Namens) **vollständig**,
+  dazu **Ehepartner**, **alle Kinder eines Blutlinien-Mitglieds** (unabhängig vom Nachnamen) UND deren
+  **Ehepartner + eigene Kinder** (die erste ausgeheiratete Generation bleibt komplett). Erst die
+  **ZWEITE auswärtige Generation in Folge** (Kinder einer bereits auswärtigen Person) wird — sofern für
+  ihren Nachnamen im Verbund ein eigener Baum existiert — als **Blatt** (Karte ohne Partner/Nachkommen)
+  + **klickbares Gold-Badge „→ {Baum}"** gekappt; ihre Nachkommen leben im Ziel-Baum → **keine doppelte
+  Blutlinie**. Technik (in `baueBaumDaten`): `baueKnoten` reicht `elternAuswaerts` durch; `selbstAuswaerts
+  = !istBlutName(p)`; bei `selbstAuswaerts && elternAuswaerts && zielBaumFuer(nachname)` → Blatt-Knoten
+  mit Flag `uebergang`. **`istBlutName` prüft Nachname UND Mädchenname (`ehename`/née) gegen den
+  Baumnamen** (`zweigNachnameNorm`) — damit eine eingeheiratete Blutlinien-Frau (z. B. née „Vidović")
+  NICHT fälschlich als auswärts zählt und ihre Kinder zu früh gekappt werden; **Fallback gegen leere
+  Mädchennamen:** trägt der **Vater** (husband der Geburtsfamilie, `families_child`) den Baumnamen,
+  gilt die Person als in die Blutlinie geboren (Geburtsname folgt dem Vater). **Daten-Pflege:** der
+  Mädchenname (`ehename`) SOLLTE bei verheirateten Frauen befüllt sein (Nutzer-Vorgabe ab v11), sonst
+  greift nur der Vater-Fallback. **Bewusst strukturell**
+  (zählt auswärtige Generationen) statt von `identitaet_id`-Spiegelung abhängig → **konsistent über
+  Geschwister** (frühere Fassung kappte nur gespiegelte Karten → inkonsistente Anzeige). `zeichneBaum`
+  zeichnet das Badge (`.uebergang-badge`, i18n `bl_uebergang`/`bl_uebergang_titel` in allen 5 Blöcken;
+  Klick = `waehleStammbaum(zielId)`). **Bewusste Grenze (verifiziert am Code):** Existiert für den
+  Fremdnamen **kein** Ziel-Baum (Import, Overlay-Option 3 „ohne Verknüpfung" [[project_familie_pro_baum]],
+  Altbestand vor v10.8), wird **NICHT** gekappt — sonst würden die Nachkommen NIRGENDWO erscheinen
+  (die Linie bleibt sichtbar, bis eine Generation einen eigenen Baum hat). **Geltungsbereich:** greift
+  in der **kanonischen Baum-Ansicht** (Voll-/Standardansicht) sowie im **Einzel-Baum-PDF**; bewusst
+  **abgeschaltet** (`opts.uebergangCut:false`) in den expliziten Explore-Modi (`zeigeZweigAbPerson`,
+  `zeigeErweitertAnsicht`) und im **PDF mit „verknüpfte Bäume einbeziehen"** (dort `aktuellerStammbaumId
+  = null` → Cut automatisch aus), weil diese Modi gezielt baumübergreifend/tiefer zeigen sollen.
+  **Backup vor Einführung:** Daten-Snapshot in Schema `backup_bl` (`backup_blutlinie_render_*.sql`) +
+  Git-Tag `pre-blutlinie-render-*`.
   **Löschen ist identitätsbewusst (ab v8.9) — Invariante, nicht zurückbauen:** `loeschePerson`
   entfernt ALLE `identitaet_id`-Zwillingskarten einer Person (über alle Bäume) + deren Beziehungen
   in EINEM Schritt → eine gelöschte Person (inkl. Spiegel) taucht NIRGENDWO mehr auf, **kein „zweimal
@@ -472,7 +576,26 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   (passend zur Commit-Versionsnummer). Die App vergleicht diese Version regelmäßig mit der
   Server-Version und zeigt sonst KEIN „neue Version verfügbar"-Banner. Vergisst man das Hochzählen,
   bemerken Nutzer neue Releases nicht aktiv.
+- **Ausgelagerte Dateien Cache-Busting (ab Phase-2…4-Refactor):** Aus `stammbaum.html` wurden
+  ausgelagert (jeweils als gleichrangige Datei im selben Verzeichnis, eingebunden mit `?v=X.Y`):
+  - **`stammbaum.css`** — der frühere `<style>`-Block (`<link rel="stylesheet" href="stammbaum.css?v=X.Y">`).
+  - **`i18n.js`** — `TEXTE` + `RECHTSTEXTE` als globale `const`, **vor** dem Haupt-Script geladen.
+    i18n-Texte werden jetzt hier gepflegt (weiterhin alle 5 Sprachen). **Schlüssel-Parität prüfen:**
+    `node i18n_lint.js` (meldet je Sprache fehlende Keys; idealerweise vor jedem Commit).
+  - **`pdf_export.js`** — der komplette PDF-/Druck-Export (`pdf*`-Funktionen + `PDF_*`-Konstanten),
+    **vor** dem Haupt-Script geladen; ruft Haupt-Globals (`t`, `d3`, `aktuelleWurzel`, …) erst zur
+    Laufzeit auf. `jsPDF`/`svg2pdf` weiterhin aus dem `<head>` (CDN).
+  - **Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an `stammbaum.css`, `i18n.js`
+    UND `pdf_export.js` auf dieselbe Version ziehen** — sonst liefert GitHub Pages die ausgelagerte
+    Datei veraltet aus (`hardReload`/`?v=timestamp` bricht nur den HTML-Cache, nicht die Sub-Ressourcen).
+  - Reihenfolge: die ausgelagerten `<script>` (i18n.js, pdf_export.js) müssen **vor** dem
+    Haupt-Inline-`<script>` stehen (globale `const`/Funktionen). Der `init();`-Bootstrap bleibt am
+    Ende des Haupt-Scripts. `split_i18n.js`/`split_css.js`/`split_pdf.js` waren Einmal-Auslagerungs-
+    werkzeuge (können entfallen); `i18n_lint.js` bleibt nützlich.
 - **DB-Änderungen**: als idempotente `.sql`-Datei im Repo ablegen → im Supabase SQL-Editor ausführen.
+  **SQL-Index/Reihenfolge für eine frische DB:** siehe `SCHEMA.md`. Einmal-/Vorfall-Skripte
+  (Diagnose/Reparatur/Restore/konto-spezifisch) liegen unter `sql_archiv/` und gehören NICHT
+  zum Neuaufbau.
 - **Edge Functions**: über das Supabase-Dashboard deployen (Supabase-CLI durch Citrix-Firewall blockiert).
 - **Push/Commit nur auf ausdrückliche Anweisung** des Users; vorher kein Veröffentlichen.
 
