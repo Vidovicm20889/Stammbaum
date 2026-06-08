@@ -43,6 +43,22 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Datumsfelder**: `<input class="login-feld dp-input">` → eigener Vanilla-Kalender,
   sprachabhängiges Format. Werte über `datumWert`/`datumSetzen`, Anzeige `formatDatumLang`
   (Speicherung als ISO, siehe Backend-/Daten-Regeln).
+- **Pflichtfelder & Feld-Fehler (app-weit, ab v11):** Jedes Pflichtfeld bekommt am Label die
+  Klasse **`.pflicht`** → rotes „ *" hinter der Beschriftung (CSS, sprachneutral — KEINE
+  hartcodierten `*` mehr; dynamisch umschaltbar, z. B. Mädchenname nur bei `geschlecht='F'` über
+  `pflichtMarkierung`). **Validierungsfehler werden DIREKT am Feld angezeigt, nicht (nur) unten im
+  Overlay:** `feldFehler(feldId, t('…'))` setzt roten Rahmen (`.input-fehler`) + Hinweis
+  (`.feld-fehler-text`) unter das Feld, **scrollt es in den Blick und fokussiert** es; Helfer geben
+  `false` zurück (Muster: `return feldFehler(...)`). Bei **searchable Selects** (`_ssControl`) wird
+  automatisch das sichtbare Steuerelement markiert/fokussiert (nicht das `display:none`-`<select>`).
+  `feldFokus(feldId)` = nur scrollen+fokussieren (wenn der Hinweis schon am Feld steht, z. B.
+  E-Mail-Check `markiereEmailFehler`). `feldFehlerReset(overlayId)` am Anfang jeder Validierung +
+  beim Öffnen aufräumen. Generische Meldung `feld_pflicht` in allen 5 Blöcken. **Reine Auswahl-/
+  Picker-Overlays** (etn/dub/vb/gp/mv/uk: „mind. eine Person wählen") behalten bewusst die Sammel-
+  Box (kein einzelnes Feld zum Anheften). **Server-/Zustandsfehler** ohne Feldbezug bleiben in der
+  Box; feldbezogene Serverfehler (z. B. „Name existiert", „aktuelles Passwort falsch") werden ans
+  Feld gehängt. Person-Editor: Vorname+Nachname Pflicht; **Mädchenname Pflicht bei Frauen**
+  (für [[project_blutlinie_kappung]]).
 - **Sprachwechsel**: `wechselSprache` MUSS dynamisch gerenderte Inhalte/Dropdowns neu aufbauen
   (Stammbaum-Dropdown, Orientierungs-Banner, offene Overlays wie Mitglieder/Kosten/Obavještenja).
   Neue dynamische Listen dort einhängen — sonst bleiben sie nach Sprachwechsel in der alten Sprache.
@@ -388,15 +404,22 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Aufruf in `speichereNeuePerson`), (b) Bearbeiten+Speichern, wenn der Nachname auf einen
   abweichenden geändert wird (`speicherePerson`). **Import/automatische Anlagen lösen das Overlay
   bewusst NICHT aus** (kein Massendialog). **Bedingung:** Nachname ≠ Baumname (`zweigNachnameNorm`)
-  UND Person hat noch keine baumübergreifende Verknüpfung (`identitaet_id`/`_ident`). Existiert im
-  Verbund bereits ein Baum dieses Nachnamens, wird **Option 1 ausgeblendet** (Hinweis
-  `abw_baum_existiert`) → nur Verknüpfen/Ohne. **Overlay `#abw-nachname-modal`**
+  UND Person hat noch keine baumübergreifende Verknüpfung (`identitaet_id`/`_ident`). **Option 1
+  wird IMMER angeboten (ab v11.2, Nutzerwunsch).** Existiert im Verbund bereits ein Baum dieses
+  Nachnamens, wird Option 1 NICHT mehr ausgeblendet, sondern nur ein Info-Hinweis darunter gezeigt
+  (`abw_baum_existiert`); beim Klick warnt das Frontend ausdrücklich (`zeigeBestaetigung`,
+  `abw_existiert_warnung`/`abw_trotzdem_anlegen`) und legt nur auf Bestätigung **trotzdem** einen
+  weiteren, eigenständigen Baum an — **zwei verschiedene Familien dürfen denselben Nachnamen tragen**
+  (z. B. zwei unabhängige „Simić"). **Overlay `#abw-nachname-modal`**
   (`pruefeAbweichenderNachname`/`oeffneAbwNachname`/`schliesseAbwNachname`, schließt nur per Button):
-  **Option 1 „Neuen Stammbaum erstellen"** (`abwNeuerBaum`) ruft die **neue generische RPC**
-  `stammbaum_zweig_aus_person(p_wurzel, p_name)` (DB-Datei `supabase_stammbaum_zweig_person.sql`,
+  **Option 1 „Neuen Stammbaum erstellen"** (`abwNeuerBaum`) ruft die **generische RPC**
+  `stammbaum_zweig_aus_person(p_wurzel, p_name, p_force)` (DB-Datei
+  `supabase_stammbaum_zweig_person_force.sql`, ersetzt `supabase_stammbaum_zweig_person.sql`,
   SECURITY DEFINER) — wie die Heirat-Variante (neue Familie+Baum, gleicher Verbund, Owner=Owner der
   Ausgangsfamilie auto=false), aber OHNE Partner-Zwang: gespiegelt werden Wurzel + Nachkommen +
-  Ehepartner. Aktueller Baum bleibt (`ladeBaumDaten`). **Option 2 „Mit bestehender Person
+  Ehepartner. **`p_force=true`** (gesetzt, wenn der Nutzer den Warnhinweis bei vorhandenem
+  gleichnamigem Baum bestätigt) überspringt die Existenzprüfung `zweig_existiert`. Aktueller Baum
+  bleibt (`ladeBaumDaten`). **Option 2 „Mit bestehender Person
   verknüpfen"** (`abwVerknuepfen`) wählt einen Beziehungstyp (`beztyp_*`) und öffnet den bestehenden
   `zeigeVerbinden`/`vbVerknuepfe`-Flow (Suche `personen_suche`, Dubletten/Zyklus via
   `verknuepfung_anfragen`, Cross-Tree-Merge greift). **Option 3 „Ohne Verknüpfung fortfahren"**

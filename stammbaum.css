@@ -232,6 +232,14 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   background: transparent; color: var(--gold); border: 1px solid var(--gold);
 }
 .login-hinweis-btn.sekundaer:hover { background: var(--gold); color: var(--paper); }
+/* Dezenter Hilfetext unter einem Formularfeld (z. B. Stammbaum-Zusatz-Erklärung) */
+.feld-hinweis { display: block; margin-top: 4px; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+/* Zwei nebeneinanderliegende Felder (z. B. Name + Zusatz): Beschriftung auf 2 Zeilen
+   reservieren, damit die Eingabefelder auf GLEICHER Höhe starten, auch wenn ein Label
+   umbricht und das andere nicht. Nur im 2-spaltigen Desktop-Layout. */
+@media (min-width: 481px) {
+  .login-label.feld-paar > span:first-child { display: block; min-height: 2.5em; line-height: 1.25; }
+}
 .shorts-header { margin-bottom: 24px; }
 .shorts-header h2 { font-size: clamp(28px, 4vw, 36px); color: var(--akzent); margin-bottom: 8px; }
 .shorts-header p { color: #5e4b35; font-size: 14px; max-width: 760px; line-height: 1.6; }
@@ -626,7 +634,13 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   border: 1px solid var(--gold); padding: 9px 11px; margin: 0 0 12px; line-height: 1.45; }
 /* Globale E-Mail-Validierung: Fehlerzustand */
 .login-feld.input-fehler { border-color: #b33 !important; background: #fdeaea; }
+/* Fehlerrahmen auch für Felder ohne .login-feld-Klasse (Selects/Textareas) */
+.input-fehler { border-color: #b33 !important; }
 .feld-fehler-text { color: #b33; font-size: 12px; margin-top: 4px; display: block; }
+/* Pflichtfeld-Markierung: rotes „ *" hinter der Label-Beschriftung (sprachneutral via CSS).
+   Greift an Labels mit Klasse .pflicht; dynamisch umschaltbar (z. B. Mädchenname nur bei Frauen).
+   Das * sitzt am ersten <span> (Beschriftung), NICHT hinter dem Eingabefeld. */
+label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weight: 700; }
 .modal h2 { color: var(--akzent); margin-bottom: 6px; font-size: 28px; }
 .modal .sub-name { font-style: italic; color: #888; margin-bottom: 20px; }
 .modal .info-zeile { margin: 8px 0; padding: 8px 0; border-bottom: 1px solid #ddd; font-size: 14px; }

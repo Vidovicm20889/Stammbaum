@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="11.1">
+<meta name="app-version" content="11.3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -28,7 +28,7 @@
 <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.1/dist/svg2pdf.umd.min.js"
         integrity="sha384-B3l2uNxzGBflyDLbL7qqONJYng+5kJd6tDEXetlgRA6b68u6pgeZYBRH5UAYiBZ3"
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=11.1">
+<link rel="stylesheet" href="stammbaum.css?v=11.3">
 </head>
 <body>
 
@@ -412,10 +412,10 @@
     <h2 data-i18n="anmelden"></h2>
     <p class="sub-name">Vidović AI</p>
     <div id="login-fehler" class="login-fehler"></div>
-    <label class="login-label"><span data-i18n="login_email"></span>
+    <label class="login-label pflicht"><span data-i18n="login_email"></span>
       <input type="email" id="login-email" class="login-feld" autocomplete="email" placeholder="name@beispiel.de" onkeydown="if(event.key==='Enter')anmelden()">
     </label>
-    <label class="login-label"><span data-i18n="login_passwort"></span>
+    <label class="login-label pflicht"><span data-i18n="login_passwort"></span>
       <input type="password" id="login-passwort" class="login-feld" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')anmelden()">
     </label>
     <button class="login-submit" data-i18n="anmelden" onclick="anmelden()"></button>
@@ -431,7 +431,7 @@
     <p class="sub-name">Vidović AI</p>
 
     <div class="reg-grid">
-      <label class="login-label reg-feld-voll"><span data-i18n="reg_email"></span> *
+      <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_email"></span>
         <input type="email" id="reg-email" class="login-feld" placeholder="name@beispiel.de">
       </label>
     </div>
@@ -439,13 +439,13 @@
     <!-- Informationen zum Familienstammbaum (4 Pflichtfelder) -->
     <div class="reg-gruppe-titel" data-i18n="reg_baum_info_titel"></div>
     <div class="reg-grid">
-      <label class="login-label reg-feld-voll"><span data-i18n="reg_baum_name"></span> *
-        <input type="text" id="reg-baum-name" class="login-feld" oninput="pruefeBaumMatchDebounced()"></label>
-      <label class="login-label"><span data-i18n="reg_land"></span> *
+      <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_baum_name"></span>
+        <input type="text" id="reg-baum-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this);pruefeBaumMatchDebounced()"></label>
+      <label class="login-label pflicht"><span data-i18n="reg_land"></span>
         <select id="reg-land" class="login-feld land-select" onchange="pruefeBaumMatchDebounced()"></select></label>
-      <label class="login-label"><span data-i18n="reg_stadt"></span> *
+      <label class="login-label pflicht"><span data-i18n="reg_stadt"></span>
         <input type="text" id="reg-stadt" class="login-feld" oninput="pruefeBaumMatchDebounced()"></label>
-      <label class="login-label"><span data-i18n="reg_gemeinde"></span> *
+      <label class="login-label pflicht"><span data-i18n="reg_gemeinde"></span>
         <input type="text" id="reg-gemeinde" class="login-feld" oninput="pruefeBaumMatchDebounced()"></label>
     </div>
 
@@ -465,7 +465,7 @@
       </div>
       <p class="reg-wahl-hinweis" id="reg-wahl-hinweis"></p>
       <div class="reg-grid" id="reg-rolle-block">
-        <label class="login-label reg-feld-voll"><span data-i18n="reg_rolle"></span> *
+        <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_rolle"></span>
           <select id="reg-rolle" class="login-feld">
             <option value="familien_mitglied" data-i18n="rolle_familien_mitglied"></option>
             <option value="familien_admin" data-i18n="rolle_familien_admin"></option>
@@ -526,11 +526,11 @@
     <h2 data-i18n="setpw_titel"></h2>
     <p class="sub-name">Vidović AI</p>
     <div id="setpw-fehler" class="login-fehler"></div>
-    <label class="login-label"><span data-i18n="setpw_neu"></span>
+    <label class="login-label pflicht"><span data-i18n="setpw_neu"></span>
       <input type="password" id="setpw-passwort" class="login-feld" autocomplete="new-password" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')document.getElementById('setpw-passwort2').focus()">
     </label>
-    <label class="login-label"><span data-i18n="setpw_neu2"></span>
+    <label class="login-label pflicht"><span data-i18n="setpw_neu2"></span>
       <input type="password" id="setpw-passwort2" class="login-feld" autocomplete="new-password" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')setzePasswort()">
     </label>
@@ -651,13 +651,13 @@
     <p class="sub-name">Vidović AI</p>
     <div id="prof-pw-fehler" class="login-fehler" style="display:none"></div>
     <div class="reg-grid">
-      <label class="login-label reg-feld-voll"><span data-i18n="prof_pw_aktuell"></span>
+      <label class="login-label reg-feld-voll pflicht"><span data-i18n="prof_pw_aktuell"></span>
         <input type="password" id="prof-pw-aktuell" class="login-feld" autocomplete="current-password" placeholder="••••••••">
       </label>
-      <label class="login-label"><span data-i18n="prof_pw_neu"></span>
+      <label class="login-label pflicht"><span data-i18n="prof_pw_neu"></span>
         <input type="password" id="prof-pw-neu" class="login-feld" autocomplete="new-password" placeholder="••••••••">
       </label>
-      <label class="login-label"><span data-i18n="prof_pw_neu2"></span>
+      <label class="login-label pflicht"><span data-i18n="prof_pw_neu2"></span>
         <input type="password" id="prof-pw-neu2" class="login-feld" autocomplete="new-password" placeholder="••••••••">
       </label>
     </div>
@@ -718,7 +718,7 @@
     </label>
 
     <div class="reg-grid">
-      <label class="login-label"><span data-i18n="prof_vorname"></span>
+      <label class="login-label pflicht"><span data-i18n="prof_vorname"></span>
         <input type="text" id="mp-create-vorname" class="login-feld" autocomplete="given-name">
       </label>
       <label class="login-label"><span data-i18n="prof_nachname"></span>
@@ -775,7 +775,7 @@
     <div class="reg-gruppe-titel" data-i18n="reg_personendaten"></div>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="pe_geschlecht"></span>
-        <select id="pe-geschlecht" class="login-feld">
+        <select id="pe-geschlecht" class="login-feld" onchange="pePflichtMarkierung()">
           <option value="" data-i18n="unbekannt"></option>
           <option value="M" data-i18n="maennlich"></option>
           <option value="F" data-i18n="weiblich"></option>
@@ -787,15 +787,15 @@
         </select></label>
       <label class="login-label" id="pe-row-sterbedatum" style="display:none"><span data-i18n="pe_sterbedatum"></span>
         <input type="text" id="pe-sterbedatum" class="login-feld dp-input"></label>
-      <label class="login-label"><span data-i18n="reg_vorname"></span>
+      <label class="login-label pflicht"><span data-i18n="reg_vorname"></span>
         <input type="text" id="pe-vorname" class="login-feld"></label>
-      <label class="login-label"><span data-i18n="reg_nachname"></span>
+      <label class="login-label pflicht"><span data-i18n="reg_nachname"></span>
         <input type="text" id="pe-nachname" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_titel"></span>
         <input type="text" id="pe-titel" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_namenszusatz"></span>
         <input type="text" id="pe-namenszusatz" class="login-feld"></label>
-      <label class="login-label"><span data-i18n="pe_ehename"></span>
+      <label class="login-label" id="pe-ehename-label"><span data-i18n="pe_ehename"></span>
         <input type="text" id="pe-ehename" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
         <input type="text" id="pe-geburtsdatum" class="login-feld dp-input"></label>
@@ -881,7 +881,7 @@
     </div>
 
     <div class="reg-gruppe-titel" data-i18n="pa_beziehung_titel"></div>
-    <label class="login-label reg-feld-voll"><span data-i18n="pa_beziehungstyp"></span> *
+    <label class="login-label reg-feld-voll pflicht"><span data-i18n="pa_beziehungstyp"></span>
       <select id="pa-beziehungstyp" class="login-feld" onchange="paPruefeFelder()">
         <option value="kind" data-i18n="bzt_kind"></option>
         <option value="elternteil" data-i18n="bzt_elternteil"></option>
@@ -913,12 +913,12 @@
 
     <div class="reg-gruppe-titel" data-i18n="pa_g_personendaten"></div>
     <div class="reg-grid">
-      <label class="login-label"><span data-i18n="reg_vorname"></span> *
+      <label class="login-label pflicht"><span data-i18n="reg_vorname"></span>
         <input type="text" id="pa-vorname" class="login-feld"></label>
-      <label class="login-label"><span data-i18n="reg_nachname"></span>
+      <label class="login-label pflicht"><span data-i18n="reg_nachname"></span>
         <input type="text" id="pa-nachname" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_geschlecht"></span>
-        <select id="pa-geschlecht" class="login-feld">
+        <select id="pa-geschlecht" class="login-feld" onchange="paPflichtMarkierung()">
           <option value="" data-i18n="unbekannt"></option>
           <option value="M" data-i18n="maennlich"></option>
           <option value="F" data-i18n="weiblich"></option>
@@ -944,7 +944,7 @@
         <input type="text" id="pa-titel" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_namenszusatz"></span>
         <input type="text" id="pa-namenszusatz" class="login-feld"></label>
-      <label class="login-label"><span data-i18n="pe_ehename"></span>
+      <label class="login-label" id="pa-ehename-label"><span data-i18n="pe_ehename"></span>
         <input type="text" id="pa-ehename" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_getauft"></span>
         <input type="text" id="pa-getauft" class="login-feld dp-input"></label>
@@ -1024,8 +1024,11 @@
     <button class="modal-schliessen" onclick="schliesseBaumNeu()">×</button>
     <h2 data-i18n="bn_titel"></h2>
     <p class="login-label" data-i18n="bn_info" style="margin-top:0"></p>
-    <label class="login-label"><span data-i18n="bn_name"></span> *
-      <input type="text" id="bn-name" class="login-feld" placeholder="z. B. Marković"></label>
+    <label class="login-label pflicht"><span data-i18n="bn_name"></span>
+      <input type="text" id="bn-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this)" placeholder="z. B. Marković"></label>
+    <label class="login-label"><span data-i18n="bn_zusatz"></span>
+      <input type="text" id="bn-zusatz" class="login-feld" autocomplete="off" placeholder="z. B. Desa">
+      <span class="feld-hinweis" data-i18n="bn_zusatz_hint"></span></label>
     <div class="reg-gruppe-titel" data-i18n="bn_erste_person"></div>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="reg_vorname"></span>
@@ -1086,17 +1089,20 @@
       <!-- Allgemeine Informationen -->
       <div class="reg-gruppe-titel" data-i18n="fe_sek_allgemein"></div>
       <div class="reg-grid">
-        <label class="login-label reg-feld-voll"><span data-i18n="fe_naziv"></span> *
-          <input type="text" id="fe-name" class="login-feld"></label>
+        <label class="login-label pflicht feld-paar"><span data-i18n="fe_naziv"></span>
+          <input type="text" id="fe-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this)"></label>
+        <label class="login-label feld-paar"><span data-i18n="fe_zusatz"></span>
+          <input type="text" id="fe-zusatz" class="login-feld" autocomplete="off" placeholder="z. B. Desa">
+          <span class="feld-hinweis" data-i18n="fe_zusatz_hint"></span></label>
         <label class="login-label reg-feld-voll"><span data-i18n="fe_opis"></span>
           <textarea id="fe-opis" class="login-feld" rows="3"></textarea></label>
-        <label class="login-label"><span data-i18n="fe_drzava"></span> *
+        <label class="login-label pflicht"><span data-i18n="fe_drzava"></span>
           <select id="fe-land" class="login-feld land-select"></select></label>
         <label class="login-label"><span data-i18n="fe_region"></span>
           <input type="text" id="fe-region" class="login-feld"></label>
-        <label class="login-label"><span data-i18n="fe_opstina"></span> *
+        <label class="login-label pflicht"><span data-i18n="fe_opstina"></span>
           <input type="text" id="fe-gemeinde" class="login-feld"></label>
-        <label class="login-label"><span data-i18n="fe_grad"></span> *
+        <label class="login-label pflicht"><span data-i18n="fe_grad"></span>
           <input type="text" id="fe-stadt" class="login-feld"></label>
       </div>
 
@@ -1208,7 +1214,7 @@
     <button class="modal-schliessen" onclick="schliesseEventModal()">×</button>
     <h2 id="event-modal-titel"></h2>
     <input type="hidden" id="ev-id">
-    <label class="login-label"><span data-i18n="event_titel"></span> *
+    <label class="login-label pflicht"><span data-i18n="event_titel"></span>
       <input type="text" id="ev-titel" class="login-feld"></label>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="event_datum"></span>
@@ -1549,14 +1555,14 @@
         <input type="text" id="ma-vorname" class="login-feld" autocomplete="given-name"></label>
       <label class="login-label"><span data-i18n="reg_nachname"></span>
         <input type="text" id="ma-nachname" class="login-feld" autocomplete="family-name"></label>
-      <label class="login-label reg-feld-voll"><span data-i18n="reg_email"></span> *
+      <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_email"></span>
         <input type="email" id="ma-email" class="login-feld" placeholder="name@beispiel.de"></label>
-      <label class="login-label"><span data-i18n="reg_rolle"></span> *
+      <label class="login-label pflicht"><span data-i18n="reg_rolle"></span>
         <select id="ma-rolle" class="login-feld">
           <option value="familien_mitglied" data-i18n="rolle_familien_mitglied"></option>
           <option value="familien_admin" data-i18n="rolle_familien_admin"></option>
         </select></label>
-      <label class="login-label" id="ma-familie-wrap"><span data-i18n="reg_familie"></span> *
+      <label class="login-label pflicht" id="ma-familie-wrap"><span data-i18n="reg_familie"></span>
         <select id="ma-familie-input" class="login-feld" onchange="maFamilieGewechselt()"></select></label>
     </div>
 
@@ -1641,7 +1647,7 @@
   </p>
 </footer>
 
-<script src="i18n.js?v=11.1"></script>
+<script src="i18n.js?v=11.3"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2232,7 +2238,7 @@ async function ukSuche() {
     ukTreffer[r.id] = r;
     const det = [];
     if (r.birth_date) det.push('* ' + escapeHtml(formatDatumLang(r.birth_date) || r.birth_date));
-    if (r.baum)       det.push(escapeHtml(nm(r.baum)));
+    if (r.baum)       det.push(escapeHtml(trefferBaumLabel(r)));
     if (r.eltern)     det.push(escapeHtml(nm(r.eltern)));
     const belegt = r.belegt_user
       ? (r.belegt_user === ukState.userId
@@ -2418,7 +2424,7 @@ async function maKarteSuche() {
     maKarteTreffer[r.id] = r;
     const det = [];
     if (r.birth_date) det.push('* ' + escapeHtml(formatDatumLang(r.birth_date) || r.birth_date));
-    if (r.baum)       det.push(escapeHtml(nm(r.baum)));
+    if (r.baum)       det.push(escapeHtml(trefferBaumLabel(r)));
     const belegt = r.belegt_user
       ? `<div class="uk-badge uk-badge-belegt">${escapeHtml(t('uk_belegt_von', { email: r.belegt_email || '?' }))}</div>`
       : `<div class="uk-badge uk-badge-frei">${escapeHtml(t('uk_frei'))}</div>`;
@@ -2487,17 +2493,15 @@ async function fuegeMitgliedEinladen() {
   const infoEl   = document.getElementById('ma-info');
   const button   = document.getElementById('ma-submit');
   fehlerEl.style.display = 'none'; infoEl.style.display = 'none';
+  feldFehlerReset('mitglied-add-modal');
 
   // Familie aus dem <select> (value = familie_id; bei nur einer automatisch)
   let familie_id;
   if (Object.keys(mvFamilien).length <= 1) familie_id = Object.keys(mvFamilien)[0];
   else familie_id = document.getElementById('ma-familie-input').value || null;
-  if (!email || !familie_id) { fehlerEl.textContent = t('reg_pflicht'); fehlerEl.style.display = 'block'; return; }
-  if (!isValidEmail(email)) {
-    markiereEmailFehler(document.getElementById('ma-email'), true);
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    document.getElementById('ma-email').focus(); return;
-  }
+  if (!email) return feldFehler('ma-email', t('feld_pflicht'));
+  if (!familie_id) return feldFehler('ma-familie-input', t('feld_pflicht'));
+  if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('ma-email'), true); return feldFokus('ma-email'); }
 
   // Optionale Namenskarten-Zuweisung vorab prüfen (Modus + Pflichtfelder)
   const karteModus = document.getElementById('ma-karte-modus').value;
@@ -2507,8 +2511,8 @@ async function fuegeMitgliedEinladen() {
     fehlerEl.textContent = t('ma_karte_keine_gewaehlt'); fehlerEl.style.display = 'block'; return;
   }
   if (karteModus === 'neue') {
-    if (!vorname && !nachname) { fehlerEl.textContent = t('ma_karte_name_pflicht'); fehlerEl.style.display = 'block'; return; }
-    if (!document.getElementById('ma-karte-baum').value) { fehlerEl.textContent = t('ma_karte_baum_pflicht'); fehlerEl.style.display = 'block'; return; }
+    if (!vorname && !nachname) return feldFehler('ma-vorname', t('ma_karte_name_pflicht'));
+    if (!document.getElementById('ma-karte-baum').value) return feldFehler('ma-karte-baum', t('ma_karte_baum_pflicht'));
   }
 
   const altText = button.textContent;
@@ -3142,7 +3146,7 @@ function oeffneMpCreate() {
   const baeume = mpZielBaeume();
   const wrap = document.getElementById('mp-create-baum-wrap');
   const sel  = document.getElementById('mp-create-baum');
-  sel.innerHTML = baeume.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name || '?'))}</option>`).join('');
+  sel.innerHTML = baeume.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(stammbaeumeListe[b.id] ? baumLabel(b.id) : nm(b.name || '?'))}</option>`).join('');
   // Ziel-Baum-Auswahl nur zeigen, wenn der Nutzer auf MEHRERE Bäume Zugriff hat.
   wrap.style.display = (baeume.length > 1) ? '' : 'none';
   if (baeume.length) sel.value = (aktuellerStammbaumId && stammbaeumeListe[aktuellerStammbaumId]) ? aktuellerStammbaumId : baeume[0].id;
@@ -3178,17 +3182,21 @@ function schliesseMpCreate() { document.getElementById('mp-create-modal').classL
 async function mpCreateAnlegen(skipDup) {
   if (!aktuellerUser) return;
   const fehlerEl = document.getElementById('mp-create-fehler'); fehlerEl.style.display = 'none';
+  feldFehlerReset('mp-create-modal');
   const submit   = document.getElementById('mp-create-submit');
 
   const vorname  = document.getElementById('mp-create-vorname').value.trim();
   const nachname = document.getElementById('mp-create-nachname').value.trim();
-  if (!vorname) { fehlerEl.textContent = t('mp_pflicht'); fehlerEl.style.display = 'block'; document.getElementById('mp-create-vorname').focus(); return; }
+  if (!vorname) return feldFehler('mp-create-vorname', t('feld_pflicht'));
   const emailEl = document.getElementById('mp-create-email');
-  if (!pruefeEmailFeld(emailEl, false)) { fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block'; emailEl.focus(); return; }
+  if (!pruefeEmailFeld(emailEl, false)) return feldFokus('mp-create-email');
 
   const baeume = mpZielBaeume();
   const baumId = (baeume.length > 1) ? document.getElementById('mp-create-baum').value : (baeume[0] && baeume[0].id);
-  if (!baumId) { fehlerEl.textContent = t('mp_erstellen_fehler'); fehlerEl.style.display = 'block'; return; }
+  if (!baumId) {
+    if (baeume.length > 1) return feldFehler('mp-create-baum', t('mp_erstellen_fehler'));
+    fehlerEl.textContent = t('mp_erstellen_fehler'); fehlerEl.style.display = 'block'; return;
+  }
 
   const sex   = document.getElementById('mp-create-geschlecht').value || '';
   const geb   = datumWert(document.getElementById('mp-create-geburtsdatum'));
@@ -3268,7 +3276,7 @@ function mpCreateSprachUpdate() {
   const sel = document.getElementById('mp-create-baum');
   if (sel) {
     const akt = sel.value;
-    sel.innerHTML = mpZielBaeume().map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name || '?'))}</option>`).join('');
+    sel.innerHTML = mpZielBaeume().map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(stammbaeumeListe[b.id] ? baumLabel(b.id) : nm(b.name || '?'))}</option>`).join('');
     if (akt) sel.value = akt;
   }
   if (document.getElementById('mp-create-dup')?.style.display !== 'none' && mpDupMatches.length) mpZeigeDuplikate(mpDupMatches);
@@ -3651,15 +3659,16 @@ async function profilPasswortAendern() {
   const f  = document.getElementById('prof-pw-fehler');
   const ok = document.getElementById('prof-pw-erfolg');
   f.style.display = 'none'; ok.style.display = 'none';
+  feldFehlerReset('passwort-modal');
   const aktuell = document.getElementById('prof-pw-aktuell').value;
   const neu     = document.getElementById('prof-pw-neu').value;
   const neu2    = document.getElementById('prof-pw-neu2').value;
 
-  if (!aktuell) { pwFehler(t('prof_pw_err_aktuell')); return; }
-  if (!neu || neu.length < 8) { pwFehler(t('prof_pw_err_kurz')); return; }
-  if (!/[A-Za-z]/.test(neu) || !/[0-9]/.test(neu)) { pwFehler(t('prof_pw_err_policy')); return; }
-  if (neu !== neu2) { pwFehler(t('prof_pw_err_ungleich')); return; }
-  if (neu === aktuell) { pwFehler(t('prof_pw_err_gleich')); return; }
+  if (!aktuell) return feldFehler('prof-pw-aktuell', t('prof_pw_err_aktuell'));
+  if (!neu || neu.length < 8) return feldFehler('prof-pw-neu', t('prof_pw_err_kurz'));
+  if (!/[A-Za-z]/.test(neu) || !/[0-9]/.test(neu)) return feldFehler('prof-pw-neu', t('prof_pw_err_policy'));
+  if (neu !== neu2) return feldFehler('prof-pw-neu2', t('prof_pw_err_ungleich'));
+  if (neu === aktuell) return feldFehler('prof-pw-neu', t('prof_pw_err_gleich'));
 
   const btn = document.getElementById('prof-pw-submit');
   btn.disabled = true; btn.textContent = t('reg_senden_laeuft');
@@ -3667,7 +3676,7 @@ async function profilPasswortAendern() {
     // 1) Aktuelles Passwort verifizieren (Re-Login mit derselben E-Mail; ändert die
     //    User-ID nicht -> onAuthStateChange löst KEINEN Baum-Reload aus).
     const ver = await sbClient.auth.signInWithPassword({ email: aktuellerUser.email, password: aktuell });
-    if (ver.error) { pwFehler(t('prof_pw_err_falsch')); return; }
+    if (ver.error) return feldFehler('prof-pw-aktuell', t('prof_pw_err_falsch'));
     // 2) Neues Passwort setzen
     const { error } = await sbClient.auth.updateUser({ password: neu });
     if (error) { pwFehler(error.message); return; }
@@ -4196,20 +4205,23 @@ async function erstelleStammbaum() {
   const erfolgEl = document.getElementById('bn-erfolg');
   const button   = document.getElementById('bn-submit');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  feldFehlerReset('baum-neu-modal');
   const v = id => document.getElementById(id).value.trim();
   const name = v('bn-name');
-  if (!name) { fehlerEl.textContent = t('bn_pflicht'); fehlerEl.style.display = 'block'; return; }
+  const zusatz = v('bn-zusatz');
+  if (!name) return feldFehler('bn-name', t('feld_pflicht'));
+  if (!istGueltigerBaumName(name)) return feldFehler('bn-name', t('name_nur_buchstaben'));
 
   const altText = button.textContent;
   button.disabled = true; button.textContent = t('reg_senden_laeuft');
   const { data, error } = await sbClient.rpc('stammbaum_anlegen',
-    { p_name: name, p_vorname: v('bn-vorname'), p_nachname: v('bn-nachname') });
+    { p_name: name, p_vorname: v('bn-vorname'), p_nachname: v('bn-nachname'), p_zusatz: zusatz || null });
   button.disabled = false; button.textContent = altText;
   if (error) {
     const msg = error.message || '';
-    // Dublette: RPC meldet 'stammbaum_name_existiert' -> freundliche Meldung
-    fehlerEl.textContent = /stammbaum_name_existiert/i.test(msg) ? t('bn_existiert') : (t('reg_fehler') + msg);
-    fehlerEl.style.display = 'block'; return;
+    // Dublette: RPC meldet 'stammbaum_name_existiert' -> freundliche Meldung am Namensfeld
+    if (/stammbaum_name_existiert/i.test(msg)) return feldFehler('bn-name', t('bn_existiert'));
+    fehlerEl.textContent = t('reg_fehler') + msg; fehlerEl.style.display = 'block'; return;
   }
 
   erfolgEl.textContent = t('bn_erfolg'); erfolgEl.style.display = 'block';
@@ -4264,6 +4276,58 @@ function bindeEmailLiveCheck(root) {
   });
 }
 
+// ── App-weite Feld-Fehler (ab v11): Validierungsfehler DIREKT am Feld zeigen (roter Rahmen +
+//    Hinweis darunter), das Feld in den sichtbaren Bereich scrollen UND fokussieren — statt den
+//    Fehler nur unten im Overlay anzuzeigen (dort leicht zu übersehen). Reuse der bestehenden
+//    .input-fehler/.feld-fehler-text-Optik (wie der E-Mail-Check). Gibt IMMER false zurück →
+//    praktisch als `return feldFehler('feld-id', t('...'));` in Validierungen.
+function feldFehler(input, msg) {
+  if (typeof input === 'string') input = document.getElementById(input);
+  if (!input) return false;
+  const sicht = input._ssControl || input;          // suchbares Select -> sichtbares Steuerelement
+  input.classList.add('input-fehler'); sicht.classList.add('input-fehler');
+  const host = input.closest('label') || input.parentNode;
+  let hint = host && host.querySelector(':scope > .feld-fehler-text:not(.email-hint)');
+  if (host && !hint) { hint = document.createElement('span'); hint.className = 'feld-fehler-text'; host.appendChild(hint); }
+  if (hint) hint.textContent = msg || '';
+  if (!input._fehlerBound) {                         // bei nächster Eingabe Fehler entschärfen
+    input._fehlerBound = true;
+    const weg = () => feldFehlerWeg(input);
+    input.addEventListener('input', weg);
+    input.addEventListener('change', weg);
+  }
+  try { sicht.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+  try { sicht.focus({ preventScroll: true }); } catch (e) { try { sicht.focus(); } catch (e2) {} }
+  return false;
+}
+// Nur ins Feld scrollen + fokussieren (ohne eigenen Hinweis) — z. B. wenn der Hinweis bereits
+// anderweitig am Feld steht (E-Mail-Check). Gibt false zurück.
+function feldFokus(input) {
+  if (typeof input === 'string') input = document.getElementById(input);
+  if (!input) return false;
+  const sicht = input._ssControl || input;
+  try { sicht.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+  try { sicht.focus({ preventScroll: true }); } catch (e) { try { sicht.focus(); } catch (e2) {} }
+  return false;
+}
+// Fehlerzustand eines einzelnen Feldes entfernen (eigener Hinweis, nicht der E-Mail-Hinweis).
+function feldFehlerWeg(input) {
+  if (typeof input === 'string') input = document.getElementById(input);
+  if (!input) return;
+  input.classList.remove('input-fehler');
+  if (input._ssControl) input._ssControl.classList.remove('input-fehler');
+  const host = input.closest('label') || input.parentNode;
+  const hint = host && host.querySelector(':scope > .feld-fehler-text:not(.email-hint)');
+  if (hint) hint.textContent = '';
+}
+// Alle Feld-Fehler in einem Container/Overlay zurücksetzen (vor erneuter Validierung).
+function feldFehlerReset(container) {
+  container = (typeof container === 'string') ? document.getElementById(container) : container;
+  if (!container) return;
+  container.querySelectorAll('.input-fehler').forEach(i => i.classList.remove('input-fehler'));
+  container.querySelectorAll('.feld-fehler-text:not(.email-hint)').forEach(e => e.textContent = '');
+}
+
 // ============================================================
 // PODEŠAVANJE PORODICE — Stammbaum-Stammdaten bearbeiten (pro Stammbaum)
 // Owner/Admin/Super dürfen bearbeiten; Mitglieder sehen alles schreibgeschützt.
@@ -4300,7 +4364,7 @@ async function oeffneFamilieEinstellungen() {
 function zeigeFeWahl(baeume) {
   const liste = document.getElementById('fe-wahl-liste');
   liste.innerHTML = baeume.map(b =>
-    `<button type="button" data-id="${escapeHtml(b.id)}">${escapeHtml(nm(b.name || '?'))}</button>`).join('');
+    `<button type="button" data-id="${escapeHtml(b.id)}">${escapeHtml(stammbaeumeListe[b.id] ? baumLabel(b.id) : nm(b.name || '?'))}</button>`).join('');
   liste.querySelectorAll('button').forEach(btn =>
     btn.addEventListener('click', () => { schliesseFeWahl(); zeigeFamilieEinstellungen(btn.dataset.id); }));
   document.getElementById('fe-wahl-modal').classList.add('aktiv');
@@ -4332,7 +4396,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   // Felder leeren + Länder-Dropdown füllen
   fuelleLandSelect('fe-land');
   document.getElementById('fe-land').value = '';
-  ['fe-name','fe-opis','fe-stadt','fe-gemeinde', ...Object.values(FE_EINST_FELDER)]
+  ['fe-name','fe-zusatz','fe-opis','fe-stadt','fe-gemeinde', ...Object.values(FE_EINST_FELDER)]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   ['foto','wappen'].forEach(a => {
     const img = document.getElementById('fe-' + a + '-preview'); if (img) { img.src = ''; img.style.display = 'none'; }
@@ -4354,6 +4418,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   const d = data || {};
   const e = d.einstellungen || {};
   document.getElementById('fe-name').value     = d.name     || '';
+  document.getElementById('fe-zusatz').value   = d.zusatz   || '';
   document.getElementById('fe-opis').value     = d.opis     || '';
   setLandSelect('fe-land', d.land);
   document.getElementById('fe-stadt').value     = d.stadt    || '';
@@ -4610,7 +4675,8 @@ async function bestaetigeOwnerWechsel() {
   const fehlerEl = document.getElementById('ow-fehler');
   const erfolgEl = document.getElementById('ow-erfolg');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
-  if (!sid || !uid) { fehlerEl.textContent = t('ow_bitte_waehlen'); fehlerEl.style.display = 'block'; return; }
+  feldFehlerReset('owner-modal');
+  if (!sid || !uid) return feldFehler('ow-mitglied', t('ow_bitte_waehlen'));
 
   const ok = await zeigeBestaetigung(t('ow_bestaetigung'));
   if (!ok) return;
@@ -4707,22 +4773,23 @@ async function speichereFamilieEinstellungen() {
   const erfolgEl = document.getElementById('fe-erfolg');
   const button   = document.getElementById('fe-submit');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  feldFehlerReset('familie-einst-modal');
 
   const v = id => (document.getElementById(id).value || '').trim();
   const sid = document.getElementById('fe-stammbaum-id').value || null;
-  const name = v('fe-name'), land = v('fe-land'), stadt = v('fe-stadt'), gemeinde = v('fe-gemeinde');
+  const name = v('fe-name'), zusatz = v('fe-zusatz'), land = v('fe-land'), stadt = v('fe-stadt'), gemeinde = v('fe-gemeinde');
   const opis = v('fe-opis');
 
   if (!sid) { fehlerEl.textContent = t('fe_keine_familie'); fehlerEl.style.display = 'block'; return; }
-  if (!name || !land || !stadt || !gemeinde) {
-    fehlerEl.textContent = t('fe_pflicht'); fehlerEl.style.display = 'block'; return;
-  }
+  if (!name)     return feldFehler('fe-name', t('feld_pflicht'));
+  if (!istGueltigerBaumName(name)) return feldFehler('fe-name', t('name_nur_buchstaben'));
+  if (!land)     return feldFehler('fe-land', t('feld_pflicht'));
+  if (!stadt)    return feldFehler('fe-stadt', t('feld_pflicht'));
+  if (!gemeinde) return feldFehler('fe-gemeinde', t('feld_pflicht'));
   // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt
   const kontaktEmail = document.getElementById('fe-kontakt-email');
   if (kontaktEmail.value.trim() && !isValidEmail(kontaktEmail.value)) {
-    markiereEmailFehler(kontaktEmail, true);
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    kontaktEmail.focus(); return;
+    markiereEmailFehler(kontaktEmail, true); return feldFokus('fe-kontakt-email');
   }
 
   const altText = button.textContent;
@@ -4735,7 +4802,8 @@ async function speichereFamilieEinstellungen() {
     p_land:          land,
     p_stadt:         srCyr2Lat(stadt),
     p_gemeinde:      srCyr2Lat(gemeinde),
-    p_einstellungen: feSammleEinstellungen()
+    p_einstellungen: feSammleEinstellungen(),
+    p_zusatz:        srCyr2Lat(zusatz) || null
   });
   button.disabled = false; button.textContent = altText;
 
@@ -5109,7 +5177,8 @@ async function mgPruefen(){
   if (pa === pb){ fehler.textContent = t('merge_gleiche_karte'); fehler.style.display = 'block'; return; }   // Karte nicht mit sich selbst mergen
 
   mgBaumA = ba; mgBaumB = bb;
-  mgBaumAName = stammbaeumeListe[ba] || ''; mgBaumBName = stammbaeumeListe[bb] || '';
+  mgBaumAName = (stammbaeumeListe[ba] || '') + (stammbaeumeZusatz[ba] ? ' (' + stammbaeumeZusatz[ba] + ')' : '');
+  mgBaumBName = (stammbaeumeListe[bb] || '') + (stammbaeumeZusatz[bb] ? ' (' + stammbaeumeZusatz[bb] + ')' : '');
 
   // Auto-Dublettensuche nur ÜBER ZWEI verschiedene Bäume. Bei Merge INNERHALB eines
   // Baums (gleicher Baum links+rechts) nur das explizit gewählte Paar verwenden
@@ -5352,19 +5421,11 @@ async function anmelden() {
   const passwort = document.getElementById('login-passwort').value;
   const fehlerEl = document.getElementById('login-fehler');
   fehlerEl.style.display = 'none';
+  feldFehlerReset('login-modal');
 
-  if (!email || !passwort) {
-    fehlerEl.textContent   = t('login_pflicht');
-    fehlerEl.style.display = 'block';
-    return;
-  }
-  if (!isValidEmail(email)) {
-    markiereEmailFehler(document.getElementById('login-email'), true);
-    fehlerEl.textContent   = t('email_ungueltig');
-    fehlerEl.style.display = 'block';
-    document.getElementById('login-email').focus();
-    return;
-  }
+  if (!email) return feldFehler('login-email', t('feld_pflicht'));
+  if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('login-email'), true); return feldFokus('login-email'); }
+  if (!passwort) return feldFehler('login-passwort', t('feld_pflicht'));
 
   const { error } = await sbClient.auth.signInWithPassword({ email, password: passwort });
   if (error) {
@@ -5385,17 +5446,9 @@ async function passwortVergessen() {
   const email    = document.getElementById('login-email').value.trim();
   const fehlerEl = document.getElementById('login-fehler');
   fehlerEl.style.display = 'none';
-  if (!email) {
-    fehlerEl.textContent = t('pw_email_noetig');
-    fehlerEl.style.display = 'block';
-    return;
-  }
-  if (!isValidEmail(email)) {
-    markiereEmailFehler(document.getElementById('login-email'), true);
-    fehlerEl.textContent = t('email_ungueltig');
-    fehlerEl.style.display = 'block';
-    return;
-  }
+  feldFehlerReset('login-modal');
+  if (!email) return feldFehler('login-email', t('pw_email_noetig'));
+  if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('login-email'), true); return feldFokus('login-email'); }
   const { error } = await sbClient.auth.resetPasswordForEmail(email, {
     redirectTo: location.origin + location.pathname
   });
@@ -5457,16 +5510,11 @@ async function setzePasswort() {
   const button   = document.querySelector('#setpw-modal .login-submit');
   fehlerEl.style.display = 'none';
   erfolgEl.style.display = 'none';
+  feldFehlerReset('setpw-modal');
 
   // Bug 1: zwei Eingaben, müssen übereinstimmen
-  if (!pw || pw.length < 6) {
-    fehlerEl.textContent = t('setpw_fehler') + '≥ 6';
-    fehlerEl.style.display = 'block'; return;
-  }
-  if (pw !== pw2) {
-    fehlerEl.textContent = t('setpw_ungleich');
-    fehlerEl.style.display = 'block'; return;
-  }
+  if (!pw || pw.length < 6) return feldFehler('setpw-passwort', t('setpw_fehler') + '≥ 6');
+  if (pw !== pw2) return feldFehler('setpw-passwort2', t('setpw_ungleich'));
 
   // Bug 2: sicherstellen, dass die Session aus dem Invite-/Recovery-Link aktiv ist
   const { data: { session } } = await sbClient.auth.getSession();
@@ -5611,25 +5659,17 @@ async function sendeRegistrierAnfrage() {
   const val  = id => document.getElementById(id).value.trim();
   const vald = id => datumWert(document.getElementById(id));   // Datumsfelder -> ISO/Freitext
 
-  // Pflichtfelder: E-Mail + die vier Baum-Felder (Naziv/Država/Grad/Opština)
+  feldFehlerReset('registrier-modal');
+  // Pflichtfelder: E-Mail + die vier Baum-Felder (Naziv/Država/Grad/Opština) — Fehler am Feld
   const email = val('reg-email');
-  if (!email || !val('reg-baum-name') || !val('reg-land') || !val('reg-stadt') || !val('reg-gemeinde')) {
-    fehlerEl.textContent = t('reg_pflicht');
-    fehlerEl.style.display = 'block';
-    return;
-  }
+  if (!email)                return feldFehler('reg-email', t('feld_pflicht'));
+  if (!val('reg-baum-name')) return feldFehler('reg-baum-name', t('feld_pflicht'));
+  if (!val('reg-land'))      return feldFehler('reg-land', t('feld_pflicht'));
+  if (!val('reg-stadt'))     return feldFehler('reg-stadt', t('feld_pflicht'));
+  if (!val('reg-gemeinde'))  return feldFehler('reg-gemeinde', t('feld_pflicht'));
   // E-Mail-Format (Pflicht-E-Mail) + optionale Kontakt-E-Mail prüfen
-  if (!isValidEmail(email)) {
-    markiereEmailFehler(document.getElementById('reg-email'), true);
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    document.getElementById('reg-email').focus();
-    return;
-  }
-  if (!pruefeEmailFeld(document.getElementById('reg-kontakt-email'), false)) {
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    document.getElementById('reg-kontakt-email').focus();
-    return;
-  }
+  if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('reg-email'), true); return feldFokus('reg-email'); }
+  if (!pruefeEmailFeld(document.getElementById('reg-kontakt-email'), false)) return feldFokus('reg-kontakt-email');
 
   // Aktuellen Match-Status sicherstellen (falls der User vor dem Debounce absendet).
   await pruefeBaumMatch();
@@ -5641,7 +5681,7 @@ async function sendeRegistrierAnfrage() {
   // Vorhandener Baum -> Zugriffsanfrage an die Admins (Entscheidung in der App).
   const familie_id = regMatchFamilie.id;
   const rolle      = document.getElementById('reg-rolle').value;
-  if (!rolle) { fehlerEl.textContent = t('reg_pflicht'); fehlerEl.style.display = 'block'; return; }
+  if (!rolle) return feldFehler('reg-rolle', t('feld_pflicht'));
 
   const altText = button.textContent;
   button.disabled = true;
@@ -5718,20 +5758,11 @@ async function regNeueFamilieAnlegen() {
   const email        = val('reg-email');
   const familie_name = val('reg-baum-name');   // Naziv stabla = Name der neuen Familie/des Baums
 
-  if (!email || !familie_name) {
-    fehlerEl.textContent = t('reg_pflicht');
-    fehlerEl.style.display = 'block';
-    return;
-  }
-  if (!isValidEmail(email)) {
-    markiereEmailFehler(document.getElementById('reg-email'), true);
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    document.getElementById('reg-email').focus(); return;
-  }
-  if (!pruefeEmailFeld(document.getElementById('reg-kontakt-email'), false)) {
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    document.getElementById('reg-kontakt-email').focus(); return;
-  }
+  if (!email)        return feldFehler('reg-email', t('feld_pflicht'));
+  if (!familie_name) return feldFehler('reg-baum-name', t('feld_pflicht'));
+  if (!istGueltigerBaumName(familie_name)) return feldFehler('reg-baum-name', t('name_nur_buchstaben'));
+  if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('reg-email'), true); return feldFokus('reg-email'); }
+  if (!pruefeEmailFeld(document.getElementById('reg-kontakt-email'), false)) return feldFokus('reg-kontakt-email');
 
   const altText = button.textContent;
   button.disabled = true;
@@ -5927,6 +5958,7 @@ let ansichtKat      = null;          // 'erweitert': gewählte Verwandtschafts-K
 // Multi-Tree (B2): aktuell gewählter Stammbaum + Liste {id: name}
 let aktuellerStammbaumId = null;
 let stammbaeumeListe = {};
+let stammbaeumeZusatz = {};    // stammbaum_id -> Zusatz/Unterscheidung (z. B. „Desa"); Anzeige via baumLabel()
 let stammbaumZuFamilie = {};   // stammbaum_id -> familie_id (für Podešavanje porodice)
 let meineRollenProFamilie = {};   // familie_id -> Rolle des aktuellen Users (Standard-Stammbaum-Priorität)
 let startBaumGewaehlt = false;    // Start-Stammbaum nach Login einmalig bestimmt?
@@ -6247,7 +6279,7 @@ async function ladeBaumAusSupabase() {
   const [pRes, bRes, sRes] = await Promise.all([
     sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id, updated_at'),
     sbClient.from('beziehungen').select('person_a, person_b, typ'),
-    sbClient.from('stammbaeume').select('id, name, familie_id')
+    sbClient.from('stammbaeume').select('id, name, zusatz, familie_id')
   ]);
   if (pRes.error || bRes.error) {
     console.warn('Supabase-Baum: Ladefehler, nutze eingebettete Daten.', pRes.error || bRes.error);
@@ -6255,9 +6287,11 @@ async function ladeBaumAusSupabase() {
   }
   // Baumliste merken (id -> name) für Auswahl & Kopf; id -> familie_id für Stammdaten
   stammbaeumeListe = {};
+  stammbaeumeZusatz = {};
   stammbaumZuFamilie = {};
   (sRes.data || []).forEach(s => {
     stammbaeumeListe[s.id] = s.name;
+    if (s.zusatz && String(s.zusatz).trim()) stammbaeumeZusatz[s.id] = String(s.zusatz).trim();
     if (s.familie_id) stammbaumZuFamilie[s.id] = s.familie_id;
   });
   const rows = pRes.data || [];
@@ -6430,7 +6464,7 @@ function zeigeStandardWahl(ids) {
   if (!sel) return;
   const groessen = stammbaumGroessen();
   sel.innerHTML = ids.map(id =>
-    `<option value="${escapeHtml(id)}">${escapeHtml(nm(stammbaeumeListe[id] || '?'))} (${groessen[id] || 0})</option>`).join('');
+    `<option value="${escapeHtml(id)}">${escapeHtml(baumLabel(id))} (${groessen[id] || 0})</option>`).join('');
   sel.value = ids[0];
   document.getElementById('standard-wahl-modal').classList.add('aktiv');
   macheAlleSelectsSuchbar(document.getElementById('standard-wahl-modal'));
@@ -6459,7 +6493,7 @@ function fuelleStandardBaumSelect() {
   const groessen = stammbaumGroessen();
   const vorher = sel.value;
   sel.innerHTML = verantwortlich.map(id =>
-    `<option value="${escapeHtml(id)}">${escapeHtml(nm(stammbaeumeListe[id] || '?'))} (${groessen[id] || 0})</option>`).join('');
+    `<option value="${escapeHtml(id)}">${escapeHtml(baumLabel(id))} (${groessen[id] || 0})</option>`).join('');
   const ziel = verantwortlich.includes(vorher) ? vorher : (getStandardBaum() || aktuellerStammbaumId);
   sel.value = verantwortlich.includes(ziel) ? ziel : (verantwortlich[0] || '');
   macheAlleSelectsSuchbar(document.getElementById('standard-baum-modal'));
@@ -6506,7 +6540,7 @@ function befuelleStammbaumAuswahl() {
     .filter(id => z[id])
     .sort((a, b) => (z[b] || 0) - (z[a] || 0) || (stammbaeumeListe[a] || '').localeCompare(stammbaeumeListe[b] || ''));
   sel.innerHTML = ids.map(id =>
-    `<option value="${id}">${escapeHtml(nm(stammbaeumeListe[id]))} (${z[id]})</option>`
+    `<option value="${id}">${escapeHtml(baumLabel(id))} (${z[id]})</option>`
   ).join('');
   sel.style.display = ids.length ? '' : 'none';
 }
@@ -6570,7 +6604,7 @@ function aktualisiereBaumHinweis() {
     el.style.display = 'none';
     return;
   }
-  txt.textContent = t('baum_wechsel_hinweis', { name: nm(stammbaeumeListe[aktuellerStammbaumId] || '') });
+  txt.textContent = t('baum_wechsel_hinweis', { name: baumLabel(aktuellerStammbaumId) });
   // Generationen-Hinweis NUR in der personalisierten Standardansicht (zeigt nur 3 Generationen
   // rund um die eigene Karte) -> erklärt die Begrenzung + verweist auf „Erweiterte Ansicht".
   if (gen) {
@@ -7283,7 +7317,12 @@ function aktualisiereKopf(rootId) {
     const wp = aktuelleDaten.persons[wurzel];
     name = (wp && wp.surname) ? wp.surname : t('kopf_neutral');
   }
-  if (h1) h1.textContent = nm(String(name).toLocaleUpperCase('de'));
+  if (h1) {
+    let txt = nm(String(name).toLocaleUpperCase('de'));
+    const zus = aktuellerStammbaumId && stammbaeumeZusatz[aktuellerStammbaumId];
+    if (zus) txt += ' (' + nm(zus) + ')';   // Zusatz zur Unterscheidung gleichnamiger Bäume
+    h1.textContent = txt;
+  }
 
   // Zahlen: Personen im aktuellen Baum (sonst Gesamt)
   if (stats) {
@@ -7660,7 +7699,7 @@ let ansichtPickSel = null;   // im Zweig-Picker gewählte Person (ext-ID)
 
 function ansichtPersonLabel(p) {
   const j = (p.birth_date && /\d{4}/.test(p.birth_date)) ? ' * ' + p.birth_date.match(/\d{4}/)[0] : '';
-  const baum = (p._tree && stammbaeumeListe[p._tree]) ? ' — ' + nm(stammbaeumeListe[p._tree]) : '';
+  const baum = (p._tree && stammbaeumeListe[p._tree]) ? ' — ' + baumLabel(p._tree) : '';
   return nm(p.name || p.id) + j + baum;
 }
 
@@ -8435,8 +8474,9 @@ async function speichereEvent() {
   const erfolgEl = document.getElementById('ev-erfolg');
   const button   = document.getElementById('ev-submit');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  feldFehlerReset('event-modal');
   const titel = v('ev-titel');
-  if (!titel) { fehlerEl.textContent = t('event_pflicht'); fehlerEl.style.display = 'block'; return; }
+  if (!titel) return feldFehler('ev-titel', t('feld_pflicht'));
 
   const id = document.getElementById('ev-id').value || null;
   const alt = button.textContent; button.disabled = true; button.textContent = t('reg_senden_laeuft');
@@ -9170,7 +9210,7 @@ function findeZwillinge(p) {
   Object.values(aktuelleDaten.persons).forEach(q => {
     if (q._uuid && q._uuid !== p._uuid && q._ident === p._ident) {
       out.push({ extId: q.id, uuid: q._uuid, name: q.name || q.given || '', treeId: q._tree,
-                 treeName: (q._tree && stammbaeumeListe[q._tree]) || '' });
+                 treeName: (q._tree && stammbaeumeListe[q._tree]) ? baumLabel(q._tree) : '' });
     }
   });
   return out;
@@ -9478,6 +9518,8 @@ async function zeigePersonBearbeiten(personId) {
   set('pe-ausbildung', p.ausbildung); set('pe-beschreibung', p.beschreibung);
   document.getElementById('pe-fehler').style.display = 'none';
   document.getElementById('pe-erfolg').style.display = 'none';
+  feldFehlerReset('person-edit-modal');   // alte Feld-Fehler/Hinweise löschen
+  pePflichtMarkierung();                   // Mädchenname-* je nach Geschlecht setzen
   pePruefeFelder();   // bedingte Felder (Sterbedatum / Hochzeit / Sonstige) anzeigen
   document.getElementById('person-edit-modal').classList.add('aktiv');
   // P3: Stand merken + evtl. alten Hinweis entfernen (Formular wurde frisch befüllt).
@@ -9506,18 +9548,24 @@ function schliessePersonEdit() {
   if (meinLockPerson) presenceTrack(null);   // P4: Bearbeitungssperre freigeben
 }
 
-// Pflichtprüfung Namen (ab v11): Nachname IMMER Pflicht; bei Frauen zusätzlich der Mädchenname
-// (ehename) — nötig für die korrekte Blutlinien-Erkennung im Renderer (istBlutName). Zeigt den
-// Fehler im übergebenen Element und gibt false zurück, wenn etwas fehlt.
-function pruefeNamePflicht(sex, nachname, ehename, fehlerEl) {
-  if (!nachname) {
-    fehlerEl.textContent = t('pe_nachname_pflicht'); fehlerEl.style.display = 'block'; return false;
-  }
-  if (sex === 'F' && !ehename) {
-    fehlerEl.textContent = t('pe_ehename_pflicht'); fehlerEl.style.display = 'block'; return false;
-  }
+// Pflichtprüfung Namen (ab v11): Vorname + Nachname IMMER Pflicht; bei Frauen zusätzlich der
+// Mädchenname (ehename) — nötig für die korrekte Blutlinien-Erkennung im Renderer (istBlutName).
+// Zeigt den Fehler DIREKT am betroffenen Feld (feldFehler, scrollt+fokussiert) und gibt false
+// zurück. `prefix` = 'pe' (Bearbeiten) bzw. 'pa' (Hinzufügen) adressiert die Feld-IDs.
+function pruefeNamePflicht(prefix, vorname, nachname, sex, ehename) {
+  if (!vorname)  return feldFehler(prefix + '-vorname',  t('pe_vorname_pflicht'));
+  if (!nachname) return feldFehler(prefix + '-nachname', t('pe_nachname_pflicht'));
+  if (sex === 'F' && !ehename) return feldFehler(prefix + '-ehename', t('pe_ehename_pflicht'));
   return true;
 }
+// Pflicht-* dynamisch umschalten: der Mädchenname ist NUR bei Frauen Pflicht.
+function pflichtMarkierung(geschlechtId, ehenameLabelId) {
+  const sel = document.getElementById(geschlechtId);
+  const lab = document.getElementById(ehenameLabelId);
+  if (lab) lab.classList.toggle('pflicht', !!sel && sel.value === 'F');
+}
+function pePflichtMarkierung() { pflichtMarkierung('pe-geschlecht', 'pe-ehename-label'); }
+function paPflichtMarkierung() { pflichtMarkierung('pa-geschlecht', 'pa-ehename-label'); }
 
 async function speicherePerson(force) {
   if (!istAdmin()) return;
@@ -9527,20 +9575,16 @@ async function speicherePerson(force) {
   const erfolgEl = document.getElementById('pe-erfolg');
   const button   = document.getElementById('pe-submit');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  feldFehlerReset('person-edit-modal');   // alte Feld-Fehler zurücksetzen
   if (!pObj || !pObj._uuid) { fehlerEl.textContent = 'Person nicht gefunden.'; fehlerEl.style.display = 'block'; return; }
 
   const v  = id => document.getElementById(id).value.trim();
   const vd = id => datumWert(document.getElementById(id));   // Datumsfelder -> ISO/Freitext
-  // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt
-  if (!pruefeEmailFeld(document.getElementById('pe-email'), false)) {
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    document.getElementById('pe-email').focus(); return;
-  }
-  // Pflicht: Nachname (alle) + Mädchenname bei Frauen
+  // Pflicht: Vorname + Nachname (alle) + Mädchenname bei Frauen — Fehler direkt am Feld
   const sexE = document.getElementById('pe-geschlecht').value || '';
-  if (!pruefeNamePflicht(sexE, v('pe-nachname'), v('pe-ehename'), fehlerEl)) {
-    document.getElementById(!v('pe-nachname') ? 'pe-nachname' : 'pe-ehename').focus(); return;
-  }
+  if (!pruefeNamePflicht('pe', v('pe-vorname'), v('pe-nachname'), sexE, v('pe-ehename'))) return;
+  // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt (Hinweis steht am Feld)
+  if (!pruefeEmailFeld(document.getElementById('pe-email'), false)) return feldFokus('pe-email');
   const altText = button.textContent;
   button.disabled = true; button.textContent = t('reg_senden_laeuft');
 
@@ -9856,7 +9900,7 @@ function vbErgebnisHtml(r) {
   const det = [];
   if (r.birth_date) det.push(`* ${escapeHtml(formatDatumLang(r.birth_date) || r.birth_date)}`);
   if (r.death_date) det.push(`† ${escapeHtml(formatDatumLang(r.death_date) || r.death_date)}`);
-  if (r.baum)    det.push(`${escapeHtml(t('merge_info_baum'))}: ${escapeHtml(nm(r.baum))}`);
+  if (r.baum)    det.push(`${escapeHtml(t('merge_info_baum'))}: ${escapeHtml(trefferBaumLabel(r))}`);
   if (r.eltern)  det.push(`${escapeHtml(t('merge_info_eltern'))}: ${escapeHtml(nm(r.eltern))}`);
   if (r.partner) det.push(`${escapeHtml(t('merge_info_partner'))}: ${escapeHtml(nm(r.partner))}`);
   return `<div class="mg-kandidat">
@@ -9969,6 +10013,8 @@ function zeigePersonHinzufuegen(personId, vorTyp) {
 
   document.getElementById('pa-fehler').style.display = 'none';
   document.getElementById('pa-erfolg').style.display = 'none';
+  feldFehlerReset('person-add-modal');   // alte Feld-Fehler/Hinweise löschen
+  paPflichtMarkierung();                  // Mädchenname-* je nach Geschlecht setzen
   paPruefeFelder();
   // Hilfe nur beim ersten Mal automatisch zeigen (dismissible)
   let gesehen = false;
@@ -10044,7 +10090,7 @@ async function paElternSuche(rolle) {
     paElternTreffer[rw.id] = nm(rw.name || '');
     const det = [];
     if (rw.birth_date) det.push('* ' + escapeHtml(formatDatumLang(rw.birth_date) || rw.birth_date));
-    if (rw.baum)       det.push(escapeHtml(nm(rw.baum)));
+    if (rw.baum)       det.push(escapeHtml(trefferBaumLabel(rw)));
     return `<div class="pa-elt-opt" onclick="paWaehleErgebnis('${rolle}','${rw.id}')">${escapeHtml(nm(rw.name || ''))}${rw.identitaet_id ? ' 🔗' : ''}<span class="pa-elt-meta">${det.join(' · ')}</span></div>`;
   }).join('');
 }
@@ -10081,6 +10127,7 @@ async function speichereNeuePerson() {
   const erfolgEl = document.getElementById('pa-erfolg');
   const button   = document.getElementById('pa-submit');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
+  feldFehlerReset('person-add-modal');   // alte Feld-Fehler zurücksetzen
 
   const aktivId = document.getElementById('pa-context-id').value;
   const aktiv   = aktuelleDaten.persons[aktivId];
@@ -10088,23 +10135,16 @@ async function speichereNeuePerson() {
 
   const v  = id => document.getElementById(id).value.trim();
   const vd = id => datumWert(document.getElementById(id));   // Datumsfelder -> ISO/Freitext
-  const vorname = v('pa-vorname');
-  if (!vorname) { fehlerEl.textContent = t('pa_pflicht'); fehlerEl.style.display = 'block'; return; }
-  // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt
-  if (!pruefeEmailFeld(document.getElementById('pa-email'), false)) {
-    fehlerEl.textContent = t('email_ungueltig'); fehlerEl.style.display = 'block';
-    document.getElementById('pa-email').focus(); return;
-  }
+  const vorname  = v('pa-vorname');
+  const nachname = v('pa-nachname') || aktiv.surname || '';
+  const sex      = document.getElementById('pa-geschlecht').value || '';
+  // Pflicht: Vorname + Nachname (alle) + Mädchenname bei Frauen — Fehler direkt am Feld
+  if (!pruefeNamePflicht('pa', vorname, nachname, sex, v('pa-ehename'))) return;
+  // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt (Hinweis steht am Feld)
+  if (!pruefeEmailFeld(document.getElementById('pa-email'), false)) return feldFokus('pa-email');
 
   const typ        = document.getElementById('pa-beziehungstyp').value;   // kind | elternteil | partner
   const verstorben = document.getElementById('pa-status').value === 'verstorben';
-  const nachname   = v('pa-nachname') || aktiv.surname || '';
-  const sex        = document.getElementById('pa-geschlecht').value || '';
-
-  // Pflicht: Nachname (alle) + Mädchenname bei Frauen
-  if (!pruefeNamePflicht(sex, nachname, v('pa-ehename'), fehlerEl)) {
-    document.getElementById(!nachname ? 'pa-nachname' : 'pa-ehename').focus(); return;
-  }
 
   const altText = button.textContent;
   button.disabled = true; button.textContent = t('reg_senden_laeuft');
@@ -10252,8 +10292,61 @@ function zweigNachnameNorm(s) {
   // GLEICHE Name in unterschiedlicher Schrift (z. B. Baum „Видовиц" vs. Eingabe
   // „Vidović"/„Vidovic") fälschlich als abweichend -> das Overlay erschien irrtümlich
   // und konnte (Option 1) eine lose Person in einem neuen Baum erzeugen.
-  return srCyr2Lat((s || '').toString()).trim().toLowerCase()
+  // ZUSÄTZLICH: ein Zusatz im BAUM-Namen zur Unterscheidung zweier gleichnamiger Bäume ist
+  // KEIN Teil des Nachnamens. Zwei Muster kommen vor:
+  //   • Klammer-Zusatz: „Pisarević (Desa)", „Stojanović (Nebojša)"  -> Klammer entfernen
+  //   • Vorangestellter Zusatz mit Leerzeichen: „Stephen - Vidović", „Porodica Pisarević"
+  // Der eigentliche Nachname ist in beiden Fällen das LETZTE buchstabenhaltige Wort. Sonst
+  // matcht der Blutlinien-Vergleich (istBlutName/zielBaumFuer) den reinen Nachnamen/Mädchennamen
+  // „Pisarević"/„Vidović" nicht gegen den Baumnamen und kappt die ganze Blutlinie dieses Baums
+  // fälschlich als „auswärts" (eine geborene Vidović/Pisarević bekäme ein „→{Baum}"-Badge).
+  // Echte zusammengesetzte Nachnamen mit Bindestrich OHNE Leerzeichen (z. B. „Mujkić-Vidović")
+  // bleiben unangetastet, da nur an LEERZEICHEN getrennt wird.
+  const v = srCyr2Lat((s || '').toString())
+    .replace(/\([^)]*\)/g, ' ')   // geschlossene Klammer-Zusätze überall entfernen
+    .replace(/\(.*$/, ' ')        // unvollständige Klammer (fehlendes ")") -> Rest bis Zeilenende
+    .toLowerCase()
     .replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd');
+  const toks = v.split(/\s+/).filter(w => /[a-z0-9]/.test(w));
+  return toks.length ? toks[toks.length - 1] : '';
+}
+
+// Anzeige-Label eines Stammbaums: „Name (Zusatz)" — der Name ist nur der Nachname,
+// der optionale Zusatz (eigenes Feld, z. B. „Desa") unterscheidet gleichnamige Familien
+// und erscheint NUR in der Anzeige/Suche, nie im Blutlinien-Vergleich. nm() transliteriert
+// bei SR nach Kyrillisch (Name + Zusatz).
+function baumLabelNZ(name, zusatz) {
+  const n = nm((name || '').toString().trim());
+  const z = (zusatz || '').toString().trim();
+  return z ? `${n} (${nm(z)})` : n;
+}
+function baumLabel(treeId) {
+  return baumLabelNZ(stammbaeumeListe[treeId] || '?', stammbaeumeZusatz[treeId] || '');
+}
+// Baum-Label für ein Such-Trefferobjekt (personen_suche/karten_suche_admin liefern baum_id +
+// baum): bevorzugt das lokale „Name (Zusatz)" über baum_id, sonst den RPC-Namen. So erscheint
+// der Unterscheidungs-Zusatz auch in den Suchergebnissen gleichnamiger Bäume.
+function trefferBaumLabel(r) {
+  if (r && r.baum_id && stammbaeumeListe[r.baum_id]) return baumLabel(r.baum_id);
+  return (r && r.baum) ? nm(r.baum) : '';
+}
+
+// Stammbaum-/Familienname darf NUR Buchstaben (inkl. Diakritika/Kyrillisch), Leerzeichen,
+// Bindestrich und Apostroph enthalten — keine Ziffern, Klammern, Sonderzeichen. Zusatzinfos
+// zur Unterscheidung gehören ins eigene „Zusatz"-Feld, nicht in den Namen.
+const BAUMNAME_ERLAUBT = /[^\p{L} '’\-]/gu;          // global -> nur für replace/match (NICHT test)
+function istGueltigerBaumName(s) {
+  const v = (s || '').toString().trim();
+  return v.length > 0 && !/[^\p{L} '’\-]/u.test(v) && /\p{L}/u.test(v);
+}
+// Live-Filter für Namensfelder: unerlaubte Zeichen direkt entfernen (Cursor-Position halten).
+function filterBaumNameInput(el) {
+  if (!el) return;
+  const pos = el.selectionStart || 0;
+  const entfernteDavor = (el.value.slice(0, pos).match(BAUMNAME_ERLAUBT) || []).length;
+  el.value = el.value.replace(BAUMNAME_ERLAUBT, '');
+  const np = Math.max(0, pos - entfernteDavor);
+  try { el.setSelectionRange(np, np); } catch (e) {}
 }
 
 // Heirat mit NEUEM Nachnamen erkennen und – nach Bestätigung – einen eigenen
@@ -10358,9 +10451,19 @@ function schliesseAbwNachname() {
 // alle Beziehungstypen). Aktuell geöffneter Baum bleibt (CLAUDE.md), Dropdown wird aktualisiert.
 async function abwNeuerBaum() {
   if (!abwKontext) return;
-  const { uuid, nachname } = abwKontext;
+  const { uuid, nachname, sameName } = abwKontext;
+  // Existiert im Verbund bereits ein Baum dieses Nachnamens, NICHT hart blockieren: zwei
+  // verschiedene Familien können denselben Nachnamen tragen. Stattdessen ausdrücklich warnen
+  // und auf Bestätigung trotzdem anlegen (p_force=true überspringt die Existenzprüfung der RPC).
+  let force = false;
+  if (sameName) {
+    const ok = await zeigeBestaetigung(t('abw_existiert_warnung', { name: nm(nachname) }),
+      { jaText: t('abw_trotzdem_anlegen'), neinText: t('abbrechen') });
+    if (!ok) return;
+    force = true;
+  }
   schliesseAbwNachname();
-  const { error } = await sbClient.rpc('stammbaum_zweig_aus_person', { p_wurzel: uuid, p_name: nachname });
+  const { error } = await sbClient.rpc('stammbaum_zweig_aus_person', { p_wurzel: uuid, p_name: nachname, p_force: force });
   if (error) {
     const msg = error.message && error.message.includes('zweig_existiert')
       ? t('zweig_existiert') : (t('reg_fehler') + (error.message || '—'));
@@ -11074,7 +11177,13 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
   // Existiert KEIN Ziel-Baum (Import/Option-3 „ohne Verknüpfung"/Altbestand), wird NICHT
   // gekappt — sonst verschwänden Nachkommen nirgends. Abschaltbar über opts.uebergangCut===false.
   const cutAn = !!treeId && opts.uebergangCut !== false;
-  const treeNameN = treeId ? zweigNachnameNorm(stammbaeumeListe[treeId] || '') : '';
+  // Klammer-Zusätze im Baumnamen (z. B. „Pisarević (Desa)", „Stojanović (Nebojša)") gehören NICHT
+  // zur Blutlinie — sie unterscheiden nur gleichnamige Bäume. Für die Blutlinien-Erkennung daher den
+  // REINEN Nachnamen verwenden; sonst zählt selbst eine geborene Trägerin (née == Baumname, z. B. Ana
+  // née Pisarević) als auswärts und wird samt Partner/Kindern fälschlich gekappt. Bewusst NUR hier —
+  // zweigNachnameNorm/zielBaumFuer bleiben strikt (Voll-Name), damit gleichnamige Bäume weiterhin
+  // unterscheidbar bleiben (CLAUDE.md v11.2: zwei Familien dürfen denselben Nachnamen tragen).
+  const treeNameN = treeId ? zweigNachnameNorm((stammbaeumeListe[treeId] || '').replace(/\s*\([^)]*\)\s*/g, ' ')) : '';
   const istBlutName = (p) => {
     if (!p) return false;
     if (zweigNachnameNorm(p.surname || '') === treeNameN) return true;
@@ -11431,7 +11540,7 @@ function pdfModalSprachUpdate() {
 function pdfPersonLabel(p) {
   const name = nm(((p.given || '') + ' ' + (p.surname || '')).trim()) || nm(p.id || '?');
   const j = (p.birth_date && /\d{4}/.test(p.birth_date)) ? ' (* ' + p.birth_date.match(/\d{4}/)[0] + ')' : '';
-  const baum = (p._tree && stammbaeumeListe[p._tree]) ? ' — ' + nm(stammbaeumeListe[p._tree]) : '';
+  const baum = (p._tree && stammbaeumeListe[p._tree]) ? ' — ' + baumLabel(p._tree) : '';
   return name + j + baum;
 }
 function pdfFuelleWurzelSelect() {
@@ -11628,7 +11737,7 @@ function pdfLayout(rootNode, opts) {
   const pad = 40;
   const bounds = { x: xMin - pad, y: yMin - pad, w: (xMax - xMin) + 2 * pad, h: (yMax - yMin) + 2 * pad };
   const gens = (maxD >= minD) ? (maxD - minD + 1) : 1;
-  const legend = Object.keys(treeColorMap).map(tid => ({ name: stammbaeumeListe[tid] || tid, color: treeColorMap[tid] }));
+  const legend = Object.keys(treeColorMap).map(tid => ({ name: baumLabelNZ(stammbaeumeListe[tid] || tid, stammbaeumeZusatz[tid] || ''), color: treeColorMap[tid] }));
   return { cards, lines, bounds, gens, personen, baeume, legend, cardW, cardH };
 }
 
@@ -11723,6 +11832,9 @@ function pdfBaueSvg(layout, opts, extra) {
 function pdfMetadaten(layout, opts) {
   const rp = aktuelleDaten.persons[opts.wurzel] || {};
   const treeName = (rp._tree && stammbaeumeListe[rp._tree]) ? stammbaeumeListe[rp._tree] : (rp.surname || '');
+  // Zusatz zur Unterscheidung gleichnamiger Bäume nur im sichtbaren Titel (nicht im Dateinamen)
+  const treeZusatz = (rp._tree && stammbaeumeZusatz[rp._tree]) ? stammbaeumeZusatz[rp._tree] : '';
+  const titelName = baumLabelNZ(treeName || '—', treeZusatz);
   const heute = new Date().toISOString().slice(0, 10);
   const datum = formatDatumLang(heute) || new Date().toLocaleDateString();
   let ersteller = '';
@@ -11732,7 +11844,7 @@ function pdfMetadaten(layout, opts) {
     ersteller = aktuellerUser.email;
   }
   return {
-    titel: t('pdf_meta_titel', { name: nm(treeName) || '—' }),
+    titel: t('pdf_meta_titel', { name: titelName || '—' }),
     treeName: nm(treeName) || 'stablo', datum, ersteller,
     personen: layout.personen.size, gens: layout.gens, baeume: layout.baeume.size
   };
