@@ -500,6 +500,24 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   = null` → Cut automatisch aus), weil diese Modi gezielt baumübergreifend/tiefer zeigen sollen.
   **Backup vor Einführung:** Daten-Snapshot in Schema `backup_bl` (`backup_blutlinie_render_*.sql`) +
   Git-Tag `pre-blutlinie-render-*`.
+- **Stammbaum-Name = REINER Nachname; Unterscheidung gleichnamiger Familien im Feld `zusatz`
+  (ab v11.3):** Der Baum-/Familienname enthält NUR den Nachnamen — erlaubt sind Buchstaben (inkl.
+  Diakritika/Kyrillisch), Leerzeichen, Bindestrich, Apostroph (Frontend `istGueltigerBaumName` +
+  Live-Filter `filterBaumNameInput`; Fehlermeldung `name_nur_buchstaben`). Zusätze zur Unterscheidung
+  (früher als Klammer im Namen, z. B. „Pisarević (Desa)", oder „Stephen - Vidović") gehören in die
+  **eigene Spalte `stammbaeume.zusatz`** (DB-Datei `supabase_stammbaum_zusatz.sql`; Migration splittet
+  Bestandsnamen automatisch). Anzeige überall als **„Name (Zusatz)"** über die Helfer `baumLabel(treeId)`
+  / `baumLabelNZ(name, zusatz)` / `trefferBaumLabel(r)` (Dropdown, Kopf, Suche, PDF, Merge); im
+  Frontend in den Maps `stammbaeumeListe` (reiner Name) + `stammbaeumeZusatz`. **Folge für die
+  Blutlinien-Kappung:** `istBlutName`/`zielBaumFuer` vergleichen jetzt den SAUBEREN `name` — die
+  „letztes Wort"-Heuristik in `zweigNachnameNorm` (Klammer-/„ - "-Strip) bleibt nur als Sicherheitsnetz
+  für Altbestand/Fehleingaben. RPCs mit Zusatz: `stammbaum_anlegen`(+`p_zusatz`),
+  `stammbaum_einstellungen_holen/speichern`, `verwaltbare_familien` (zeigt „Name (Zusatz)" für die
+  Mitglieder-Suche). **Eingabe-/Editier-Stellen:** „Kreiraj novo stablo" (`bn-zusatz`) und
+  Familieneinstellungen (`fe-zusatz`); „Kreiraj nalog" validiert nur den Namen (Zusatz dort nicht,
+  Edge-Function-Pfad — nachträglich über Einstellungen setzbar). **Konventions-Grenze:** Regel nimmt
+  als Nachname das letzte Wort → ein bewusst zweiwortiger Name (Zusatz OHNE Klammer HINTER den Namen)
+  wird nicht erkannt; Zusätze daher ins Feld bzw. in Klammern.
   **Löschen ist identitätsbewusst (ab v8.9) — Invariante, nicht zurückbauen:** `loeschePerson`
   entfernt ALLE `identitaet_id`-Zwillingskarten einer Person (über alle Bäume) + deren Beziehungen
   in EINEM Schritt → eine gelöschte Person (inkl. Spiegel) taucht NIRGENDWO mehr auf, **kein „zweimal

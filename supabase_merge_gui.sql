@@ -350,7 +350,7 @@ RETURNS TABLE(id uuid, name text, baum text, geboren text, geburtsort text,
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT pe.id,
     trim(coalesce(pe.vorname,'')||' '||coalesce(pe.nachname,'')) AS name,
-    s.name AS baum,
+    s.name || coalesce(' (' || nullif(btrim(s.zusatz),'') || ')', '') AS baum,
     nullif(trim(coalesce(pe.stammbaum_daten->>'birth_date','')),'')  AS geboren,
     nullif(trim(coalesce(pe.stammbaum_daten->>'birth_place','')),'') AS geburtsort,
     (SELECT string_agg(DISTINCT trim(coalesce(po.vorname,'')||' '||coalesce(po.nachname,'')), ', ')

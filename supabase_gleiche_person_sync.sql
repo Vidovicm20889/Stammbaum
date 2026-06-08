@@ -114,7 +114,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     SELECT pe.id, pe.identitaet_id,
            trim(coalesce(pe.vorname,'')||' '||coalesce(pe.nachname,'')) AS person,
            coalesce(pe.stammbaum_daten->>'birth_date','') AS geboren,
-           s.name AS baum,
+           s.name || coalesce(' (' || nullif(btrim(s.zusatz),'') || ')', '') AS baum,
            public.merge_norm(pe.vorname) || '|' ||
              substring(coalesce(pe.stammbaum_daten->>'birth_date','') from '\d{4}') AS k
     FROM public.personen pe

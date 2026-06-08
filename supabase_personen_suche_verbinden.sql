@@ -87,10 +87,20 @@ $$;
 
 -- ---------- 3) PRÜFUNG vor dem Verknüpfen (Selbstbezug / Doppelkante / Zyklus) ----------
 -- Wirft bei Verletzung: vkn_selbst | vkn_kante_existiert | vkn_zyklus.
+-- IDEMPOTENT pro Kante: 'vkn_kante_existiert' wird NUR geworfen, wenn KEINE der zu
+-- erzeugenden Kanten neu wäre. Existiert z. B. der zweite Elternteil bereits als Kind-Kante,
+-- die erste (gewünschte) aber NICHT, wird NICHT abgebrochen — die fehlende Kante wird ergänzt.
+-- (Hintergrund: "Kind verknüpfen" wählt bei genau einem Ehepartner diesen automatisch als
+-- zweiten Elternteil; ist dieser bereits Elternteil des Kindes, darf das den Vorgang nicht
+-- blockieren, sonst lässt sich der noch fehlende Elternteil nie nachtragen.)
 CREATE OR REPLACE FUNCTION public._vkn_pruefe_beziehung(
   p_kontext uuid, p_ziel uuid, p_typ text, p_zweiter uuid)
 RETURNS void LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_parent uuid; v_child uuid;
+DECLARE
+  v_parent uuid; v_child uuid;
+  v_primaer_neu  boolean;
+  v_zweiter_aktiv boolean := false;   -- gültiger zweiter Elternteil im Spiel?
+  v_zweiter_neu   boolean := false;   -- ...und seine Kante wäre neu?
 BEGIN
   IF p_kontext IS NULL OR p_ziel IS NULL THEN RETURN; END IF;
   IF p_kontext = p_ziel THEN RAISE EXCEPTION 'vkn_selbst'; END IF;
@@ -109,21 +119,25 @@ BEGIN
     RETURN;   -- unbekannter Typ -> keine Spezialprüfung
   END IF;
 
-  -- Eltern-Kind: Selbstbezug, Doppelkante, Zyklus
+  -- Eltern-Kind: Selbstbezug + Zyklus bleiben harte Fehler.
   IF v_parent = v_child THEN RAISE EXCEPTION 'vkn_selbst'; END IF;
-  IF EXISTS (SELECT 1 FROM public.beziehungen b
-              WHERE b.typ='elternteil' AND b.person_a=v_parent AND b.person_b=v_child)
-    THEN RAISE EXCEPTION 'vkn_kante_existiert'; END IF;
   -- Künftiger Elternteil darf kein Nachkomme des Kindes sein (sonst Kreis).
   IF public._ist_vorfahre(v_parent, v_child) THEN RAISE EXCEPTION 'vkn_zyklus'; END IF;
+  v_primaer_neu := NOT EXISTS (SELECT 1 FROM public.beziehungen b
+    WHERE b.typ='elternteil' AND b.person_a=v_parent AND b.person_b=v_child);
 
   -- Zweiter Elternteil (nur bei typ='kind') ebenfalls prüfen
   IF p_typ='kind' AND p_zweiter IS NOT NULL AND p_zweiter <> v_parent THEN
     IF p_zweiter = v_child THEN RAISE EXCEPTION 'vkn_selbst'; END IF;
-    IF EXISTS (SELECT 1 FROM public.beziehungen b
-                WHERE b.typ='elternteil' AND b.person_a=p_zweiter AND b.person_b=v_child)
-      THEN RAISE EXCEPTION 'vkn_kante_existiert'; END IF;
     IF public._ist_vorfahre(p_zweiter, v_child) THEN RAISE EXCEPTION 'vkn_zyklus'; END IF;
+    v_zweiter_aktiv := true;
+    v_zweiter_neu := NOT EXISTS (SELECT 1 FROM public.beziehungen b
+      WHERE b.typ='elternteil' AND b.person_a=p_zweiter AND b.person_b=v_child);
+  END IF;
+
+  -- Doppelkante NUR, wenn nichts Neues anzulegen ist (weder primär noch zweiter Elternteil).
+  IF NOT v_primaer_neu AND NOT (v_zweiter_aktiv AND v_zweiter_neu) THEN
+    RAISE EXCEPTION 'vkn_kante_existiert';
   END IF;
 END $$;
 
@@ -140,22 +154,33 @@ BEGIN
     RETURN;
   END IF;
 
-  -- modus='beziehung': erst prüfen (Selbstbezug/Doppelkante/Zyklus), dann anlegen
+  -- modus='beziehung': erst prüfen (Selbstbezug/Doppelkante/Zyklus), dann anlegen.
+  -- INSERTs sind idempotent (NOT EXISTS): bereits vorhandene Kanten werden übersprungen,
+  -- nur die fehlende(n) werden ergänzt (passt zur kanten-weisen Prüfung oben).
   PERFORM public._vkn_pruefe_beziehung(p_kontext, p_ziel, p_typ, p_zweiter);
 
   IF p_kontext IS NOT NULL AND p_ziel IS NOT NULL THEN
     IF p_typ = 'elternteil' THEN
       INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
-      VALUES (p_ziel, p_kontext, 'elternteil', p_quelle_fam);
+      SELECT p_ziel, p_kontext, 'elternteil', p_quelle_fam
+      WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b
+        WHERE b.typ='elternteil' AND b.person_a=p_ziel AND b.person_b=p_kontext);
     ELSIF p_typ = 'partner' THEN
       INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
-      VALUES (p_kontext, p_ziel, 'ehepartner', p_quelle_fam);
+      SELECT p_kontext, p_ziel, 'ehepartner', p_quelle_fam
+      WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b WHERE b.typ='ehepartner'
+        AND ((b.person_a=p_kontext AND b.person_b=p_ziel)
+          OR (b.person_a=p_ziel    AND b.person_b=p_kontext)));
     ELSIF p_typ = 'kind' THEN
       INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
-      VALUES (p_kontext, p_ziel, 'elternteil', p_quelle_fam);
+      SELECT p_kontext, p_ziel, 'elternteil', p_quelle_fam
+      WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b
+        WHERE b.typ='elternteil' AND b.person_a=p_kontext AND b.person_b=p_ziel);
       IF p_zweiter IS NOT NULL AND p_zweiter <> p_kontext THEN
         INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
-        VALUES (p_zweiter, p_ziel, 'elternteil', p_quelle_fam);
+        SELECT p_zweiter, p_ziel, 'elternteil', p_quelle_fam
+        WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b
+          WHERE b.typ='elternteil' AND b.person_a=p_zweiter AND b.person_b=p_ziel);
       END IF;
     END IF;
   END IF;

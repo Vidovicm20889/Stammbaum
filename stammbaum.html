@@ -2394,7 +2394,7 @@ function maRenderKarteChip() {
   const belegt = (maKarteWahl.belegt_user)
     ? ` <span class="uk-badge uk-badge-belegt">${escapeHtml(t('uk_belegt_von', { email: maKarteWahl.belegt_email || '?' }))}</span>` : '';
   chip.style.display = 'flex';
-  chip.innerHTML = `<span>${escapeHtml(t('ma_karte_gewaehlt', { name: nm(maKarteWahl.name || '?') }))}${maKarteWahl.baum ? ' (' + escapeHtml(nm(maKarteWahl.baum)) + ')' : ''}${belegt}</span>` +
+  chip.innerHTML = `<span>${escapeHtml(t('ma_karte_gewaehlt', { name: nm(maKarteWahl.name || '?') }))}${maKarteWahl.baum ? ' (' + escapeHtml(trefferBaumLabel(maKarteWahl)) + ')' : ''}${belegt}</span>` +
     ` <button type="button" class="mv-del" onclick="maKarteEntfernen()">${escapeHtml(t('pa_eltern_entfernen'))}</button>`;
 }
 function maKarteEntfernen() { maKarteWahl = null; maRenderKarteChip(); }
@@ -2437,7 +2437,7 @@ async function maKarteSuche() {
 }
 function maKarteWaehle(personId) {
   const r = maKarteTreffer[personId]; if (!r) return;
-  maKarteWahl = { id: r.id, name: r.name, baum: r.baum, belegt_user: r.belegt_user, belegt_email: r.belegt_email };
+  maKarteWahl = { id: r.id, name: r.name, baum: r.baum, baum_id: r.baum_id, belegt_user: r.belegt_user, belegt_email: r.belegt_email };
   document.getElementById('ma-karte-erg').innerHTML = '';
   document.getElementById('ma-karte-such').value = '';
   maRenderKarteChip();
@@ -3096,7 +3096,7 @@ function renderMpPick() {
   }
   liste.innerHTML = gefiltert.map(k => {
     const datum = k.geburtsdatum ? (formatDatumLang(k.geburtsdatum) || k.geburtsdatum) : '';
-    const meta  = [datum, k.baum ? nm(k.baum) : ''].filter(Boolean).join(' · ');
+    const meta  = [datum, trefferBaumLabel(k)].filter(Boolean).join(' · ');
     return `<div class="mp-pick-row" data-id="${escapeHtml(k.person_id)}">
       <div><div class="mp-pick-name">${escapeHtml(nm(k.name || '?'))}</div>
         <div class="mp-pick-meta">${escapeHtml(meta)}</div></div>
@@ -4079,7 +4079,7 @@ async function obavNeueKarteStart(id, familieId) {
   akt.innerHTML = `<div class="event-media-empty">…</div>`;
   const { data, error } = await sbClient.rpc('stammbaeume_der_familie', { p_familie: familieId });
   const baeume = error ? [] : (data || []);
-  const baumOpts = baeume.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name))}</option>`).join('');
+  const baumOpts = baeume.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(stammbaeumeListe[b.id] ? baumLabel(b.id) : nm(b.name))}</option>`).join('');
   const a = (offeneAnfragenCache || []).find(x => x.id === id) || {};
   akt.innerHTML = `
     <div class="kosten-form" style="margin-top:0">

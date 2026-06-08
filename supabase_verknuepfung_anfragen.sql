@@ -58,7 +58,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   )
   SELECT pe.id,
          trim(coalesce(pe.vorname,'')||' '||coalesce(pe.nachname,'')) AS name,
-         CASE WHEN public.sieht_familie(pe.familie_id) THEN s.name        END AS baum,
+         CASE WHEN public.sieht_familie(pe.familie_id) THEN s.name || coalesce(' (' || nullif(btrim(s.zusatz),'') || ')', '') END AS baum,
          CASE WHEN public.sieht_familie(pe.familie_id) THEN pe.stammbaum_id END AS baum_id,
          CASE WHEN public.sieht_familie(pe.familie_id) THEN pe.familie_id  END AS familie_id,
          public.sieht_familie(pe.familie_id) AS sichtbar
@@ -172,9 +172,9 @@ RETURNS TABLE(
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT v.id, v.created_at, v.modus, v.bez_typ,
     trim(coalesce(pk.vorname,'')||' '||coalesce(pk.nachname,'')) AS kontext_name,
-    sq.name AS quelle_baum_name,
+    sq.name || coalesce(' (' || nullif(btrim(sq.zusatz),'') || ')', '') AS quelle_baum_name,
     trim(coalesce(pz.vorname,'')||' '||coalesce(pz.nachname,'')) AS ziel_name,
-    sz.name AS ziel_baum_name,
+    sz.name || coalesce(' (' || nullif(btrim(sz.zusatz),'') || ')', '') AS ziel_baum_name,
     u.email AS antragsteller_email
   FROM public.verknuepfungs_anfragen v
   LEFT JOIN public.personen   pk ON pk.id = v.kontext_person
