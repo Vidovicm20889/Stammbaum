@@ -446,9 +446,11 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 /* Druck-Bühne: nur im Druck sichtbar; blendet die App aus und zeigt nur den Baum. */
 #pdf-print-stage { display: none; }
 @media print {
-  body > *:not(#pdf-print-stage) { display: none !important; }
-  #pdf-print-stage { display: block !important; position: static; background: #ffffff; }
-  #pdf-print-stage svg { width: 100%; height: auto; display: block; }
+  /* Nur im Stammbaum-Druck aktiv (body.print-pdf), sonst kollidiert es mit dem
+     Kostenübersicht-Druck (#kosten-modal) -> blendet diesen sonst komplett aus. */
+  body.print-pdf > *:not(#pdf-print-stage) { display: none !important; }
+  body.print-pdf #pdf-print-stage { display: block !important; position: static; background: #ffffff; }
+  body.print-pdf #pdf-print-stage svg { width: 100%; height: auto; display: block; }
   @page { margin: 8mm; }
 }
 
@@ -488,6 +490,14 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   font-family: inherit; font-size: 13px; padding: 7px 16px; cursor: pointer; border-radius: 6px;
 }
 .etn-mehr-btn:hover { background: var(--akzent); color: var(--paper); }
+/* Mobile: KEIN verschachteltes Scrollen. Die Teilnehmerliste sitzt im bereits
+   scrollbaren Overlay (.modal-inhalt); zwei ineinander liegende Scroll-Container
+   „verschlucken" auf iOS/Android die Touch-Geste -> die Liste lässt sich nicht
+   scrollen. Auf kleinen Screens daher EINE Scroll-Fläche: die Liste wächst frei,
+   das ganze Overlay scrollt. */
+@media (max-width: 480px) {
+  .etn-liste { max-height: none; overflow: visible; }
+}
 
 /* ===== Benachrichtigungen (Profil) ===== */
 .benachr-badge {
@@ -893,11 +903,12 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
 #update-banner button:hover { background: var(--paper); }
 
 @media print {
-  body * { visibility: hidden !important; }
-  #kosten-modal, #kosten-modal * { visibility: visible !important; }
-  #kosten-modal { position: absolute !important; inset: 0 !important; display: block !important; background: #fff !important; overflow: visible !important; padding: 0 !important; }
-  #kosten-modal .modal-inhalt { box-shadow: none !important; max-width: 100% !important; max-height: none !important; overflow: visible !important; border: none !important; margin: 0 !important; }
-  .kosten-print-hide, #kosten-modal .modal-schliessen { display: none !important; }
+  /* Nur im Kostenübersicht-Druck aktiv (body.print-kosten), getrennt vom Stammbaum-Druck. */
+  body.print-kosten * { visibility: hidden !important; }
+  body.print-kosten #kosten-modal, body.print-kosten #kosten-modal * { visibility: visible !important; }
+  body.print-kosten #kosten-modal { position: absolute !important; inset: 0 !important; display: block !important; background: #fff !important; overflow: visible !important; padding: 0 !important; }
+  body.print-kosten #kosten-modal .modal-inhalt { box-shadow: none !important; max-width: 100% !important; max-height: none !important; overflow: visible !important; border: none !important; margin: 0 !important; }
+  body.print-kosten .kosten-print-hide, body.print-kosten #kosten-modal .modal-schliessen { display: none !important; }
 }
 .modal .zurueck-btn {
   background: none; border: none; color: var(--akzent);
@@ -1155,6 +1166,13 @@ footer {
 .ss-opt:hover { background: var(--gold-hell); }
 .ss-opt.ss-selected { font-weight: bold; color: var(--akzent); }
 .ss-empty { padding: 12px; color: #8a7a5a; font-size: 13px; text-align: center; }
+/* TOUCH/MOBILE: das Panel wird zum stabilen Sheet (am oberen Rand des sichtbaren
+   Bereichs verankert, ssPositioniere setzt left/top/width/max-height per JS). Größere
+   Tap-Targets, abgerundet, deutlicher Schatten. Verhindert das Hochklapp-/Overlap-
+   Chaos auf dem Handy (Suchfeld antippbar, schließt nicht beim Tippen). */
+.ss-panel.ss-sheet { border-radius: 12px; box-shadow: 0 16px 44px rgba(44,36,24,0.4); }
+.ss-panel.ss-sheet .ss-search { padding: 13px 15px; }
+.ss-panel.ss-sheet .ss-opt { padding: 13px 15px; font-size: 15px; }
 
 /* ---- Datumsfelder mit Vanilla-Kalender (Date Picker) ---- */
 .dp-wrap { position: relative; display: block; }

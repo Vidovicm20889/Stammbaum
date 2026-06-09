@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="11.3">
+<meta name="app-version" content="11.7">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -28,7 +28,7 @@
 <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.1/dist/svg2pdf.umd.min.js"
         integrity="sha384-B3l2uNxzGBflyDLbL7qqONJYng+5kJd6tDEXetlgRA6b68u6pgeZYBRH5UAYiBZ3"
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=11.3">
+<link rel="stylesheet" href="stammbaum.css?v=11.7">
 </head>
 <body>
 
@@ -1647,7 +1647,7 @@
   </p>
 </footer>
 
-<script src="i18n.js?v=11.3"></script>
+<script src="i18n.js?v=11.7"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -5437,7 +5437,10 @@ async function anmelden() {
 }
 
 async function abmelden() {
-  await sbClient.auth.signOut();
+  // scope:'local' -> meldet NUR diese Session/dieses Gerät ab. Default wäre 'global' und
+  // würde ALLE Sessions des Kontos serverseitig widerrufen -> andere aktive Tabs/Geräte
+  // (oder das Handy) würden mitgerissen. Andere Sitzungen gezielt beenden = Sicherheitsbereich.
+  await sbClient.auth.signOut({ scope: 'local' });
 }
 
 // Passwort vergessen: Recovery-Mail mit Einmal-Link senden. Der Link führt
@@ -6717,10 +6720,35 @@ function ssRender(filter) {
   ).join('');
 }
 
+function ssIstTouch() {
+  return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+}
+
 function ssPositioniere(select) {
+  const vv = window.visualViewport;
+  // TOUCH/MOBILE: stabiles Sheet, am OBEREN Rand des SICHTBAREN Bereichs verankert.
+  // Folgt bewusst NICHT dem Feld und springt NICHT, wenn die Tastatur aufgeht — die
+  // Tastatur liegt unten, das Sheet oben (über der Tastatur), die Höhe schrumpft mit
+  // visualViewport.height. Löst: halb verdeckter Screen / Hochklapp-Chaos, Suchfeld
+  // nicht antippbar, Panel schließt beim Tippen (Overlap mit dem Steuerelement).
+  if (ssIstTouch()) {
+    const rand = 10;
+    const vw   = (vv && vv.width)  || window.innerWidth;
+    const vh   = (vv && vv.height) || window.innerHeight;
+    const offX = (vv && vv.offsetLeft) || 0;
+    const offY = (vv && vv.offsetTop)  || 0;
+    const breite = Math.min(440, vw - 2 * rand);
+    ssPanel.classList.add('ss-sheet');
+    ssPanel.style.width     = breite + 'px';
+    ssPanel.style.maxHeight = Math.max(160, vh - 2 * rand) + 'px';
+    ssPanel.style.left      = (offX + (vw - breite) / 2) + 'px';
+    ssPanel.style.top       = (offY + rand) + 'px';
+    return;
+  }
+  ssPanel.classList.remove('ss-sheet');
   const r  = select._ssControl.getBoundingClientRect();
   // Sichtbare Höhe bevorzugen (visualViewport berücksichtigt mobile Tastatur/Zoom).
-  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const vh = (vv && vv.height) || window.innerHeight;
   const rand = 8;                                   // Sicherheitsabstand zum Bildschirmrand
   const platzUnten = vh - r.bottom - rand;
   const platzOben  = r.top - rand;
@@ -6750,10 +6778,11 @@ function ssOeffne(select) {
   ssPositioniere(select);
   ssPanel.style.visibility = '';
   select._ssControl.classList.add('ss-open');
-  // Auto-Fokus (Tastatur) nur auf Desktop; auf Touch würde die Tastatur die Liste
-  // verdecken + Reflows auslösen — der Nutzer tippt das Suchfeld bei Bedarf selbst an.
-  const grob = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-  if (!grob) setTimeout(() => ssSearch.focus(), 30);
+  // Auto-Fokus auf Touch SYNCHRON im selben User-Gesture (sonst öffnet iOS die
+  // Tastatur nicht) und ohne Page-Scroll (preventScroll) — das Sheet sitzt stabil
+  // oben über der Tastatur, verdeckt die Liste also nicht mehr.
+  if (ssIstTouch()) { try { ssSearch.focus({ preventScroll: true }); } catch (_) { ssSearch.focus(); } }
+  else setTimeout(() => ssSearch.focus(), 30);
   ssRaf = requestAnimationFrame(ssSichtbarkeitsWaechter);   // schließt Panel, wenn Overlay/Menü zugeht
 }
 
@@ -7132,7 +7161,10 @@ async function sessionAutoLogout() {
   versteckeSessionWarnung();
   clearTimeout(sessIdleTimer); clearTimeout(sessWarnTimer);
   sessionStorage.setItem('reloadNachLogin', '1');   // nächster Login -> harter Reload (neueste Version)
-  try { await sbClient.auth.signOut(); } catch (e) {}   // -> onAuthStateChange -> loescheUser
+  // scope:'local': NUR diese (inaktive) Session abmelden. Default 'global' würde alle
+  // Sessions des Kontos serverseitig widerrufen -> eine andere, GERADE AKTIVE Session
+  // (zweiter Tab/Handy) flöge mitten in der Arbeit ohne Warnung raus (SIGNED_OUT).
+  try { await sbClient.auth.signOut({ scope: 'local' }); } catch (e) {}   // -> onAuthStateChange -> loescheUser
   zeigeHinweis(t('session_abgemeldet'));
 }
 function initSessionUeberwachung() {
@@ -8110,10 +8142,11 @@ async function zeigeShorts() {
       ${ev.typ ? `<div class="meta">${escapeHtml(t('evt_' + ev.typ))}</div>` : ''}
       ${ev.organisator ? `<div class="meta" style="margin-top:6px;font-size:12px;color:#8a7a5a">${escapeHtml(t('event_organizer'))} ${escapeHtml(nm(ev.organisator))}</div>` : ''}
       ${ev.beschreibung ? `<div class="meta" style="margin-top:10px;font-size:13px;color:#5e4b35;line-height:1.5">${escapeHtml(ev.beschreibung)}</div>` : ''}
-      ${darfBearbeiten ? `<div class="event-aktionen" style="margin-top:14px">
-        <button class="mv-toggle" type="button" onclick="event.stopPropagation(); zeigeEventBearbeiten('${ev.id}')">${escapeHtml(t('event_edit'))}</button>
-        <button class="mv-del" type="button" onclick="event.stopPropagation(); loescheEvent('${ev.id}')">${escapeHtml(t('event_loeschen_btn'))}</button>
-      </div>` : ''}
+      <div class="event-aktionen" style="margin-top:14px">
+        <button class="mv-toggle" type="button" onclick="event.stopPropagation(); oeffneKosten('${ev.id}')">${escapeHtml(t('kosten_titel'))}</button>
+        ${darfBearbeiten ? `<button class="mv-toggle" type="button" onclick="event.stopPropagation(); zeigeEventBearbeiten('${ev.id}')">${escapeHtml(t('event_edit'))}</button>
+        <button class="mv-del" type="button" onclick="event.stopPropagation(); loescheEvent('${ev.id}')">${escapeHtml(t('event_loeschen_btn'))}</button>` : ''}
+      </div>
     </div>`).join('');
 }
 
@@ -8554,10 +8587,9 @@ async function zeigeEventDetail(eventId) {
       <div class="event-section-line"><div class="event-section-label">${t('event_media')}</div></div>
       ${media.length ? buildEventMediaHtml(media, eventId, false) : `<div class="event-media-empty">${t('event_no_media')}</div>`}
     </div>
-    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="baum-zeigen" style="margin-top:0" onclick="schliesseModal(); oeffneKosten('${eventId}')">${t('kosten_titel')}</button>
-      ${istAdmin() ? `<button class="baum-zeigen" style="margin-top:0" onclick="schliesseModal(); zeigeEventBearbeiten('${eventId}')">${t('event_edit')}</button>` : ''}
-    </div>
+    ${istAdmin() ? `<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="baum-zeigen" style="margin-top:0" onclick="schliesseModal(); zeigeEventBearbeiten('${eventId}')">${t('event_edit')}</button>
+    </div>` : ''}
   `;
   document.getElementById('modal').classList.add('aktiv');
 }
@@ -8796,7 +8828,14 @@ async function kostenAusgabeLoeschen(id) {
   if (kostenEditId === id) kostenEditId = null;
   await ladeKostenDaten(); renderKosten();
 }
-function druckeKosten() { window.print(); }
+function druckeKosten() {
+  // Druckmodus markieren -> @media print (body.print-kosten) blendet nur die Kostenübersicht ein.
+  document.body.classList.add('print-kosten');
+  const aufraeumen = () => { document.body.classList.remove('print-kosten'); window.removeEventListener('afterprint', aufraeumen); };
+  window.addEventListener('afterprint', aufraeumen);
+  setTimeout(aufraeumen, 2000);   // Fallback (afterprint feuert nicht überall zuverlässig)
+  window.print();
+}
 
 async function zeigeShort(shortId) {
   const event = getEventConfig(shortId);
@@ -11926,6 +11965,10 @@ async function pdfDrucke(svg) {
   stage.appendChild(clone);
   schliessePdfExport();
   await pdfTick();
+  document.body.classList.add('print-pdf');   // @media print (body.print-pdf) zeigt nur die Druck-Bühne
+  const aufraeumen = () => { document.body.classList.remove('print-pdf'); window.removeEventListener('afterprint', aufraeumen); };
+  window.addEventListener('afterprint', aufraeumen);
+  setTimeout(aufraeumen, 2000);
   window.print();
   setTimeout(() => { stage.innerHTML = ''; }, 1500);
 }
