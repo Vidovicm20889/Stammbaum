@@ -60,11 +60,23 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
 31. `supabase_merge_gui.sql` — aktuelles Merge-Werkzeug `person_merge_aufgeloest`
 32. `supabase_merge_zwilling_schutz.sql`
 33. `supabase_kind_baeume_sync.sql` — `kind_baeume_sync` (Kind über beide Eltern spiegeln)
+33a. `supabase_person_anlegen_atomar.sql` — `person_anlegen_atomar(p_op jsonb)`: legt Person +
+    ALLE Beziehungen (inkl. optionalem Geschwister-Platzhalter) in EINER Transaktion an
+    (Audit Vorschlag 2 gegen „lose Inseln"). **VOR Frontend-Deploy ausführen** — `speichereNeuePerson`
+    ruft die RPC ab v12.4 auf. (Voraussetzung: 3 `supabase_verbund.sql`.)
 34. `supabase_meine_person.sql` — Self-Service Konto↔Karte
 
 ### 6 — Blutlinien-Rechte (auto, additiv)
 35. `supabase_blutlinie_rechte.sql`
 36. `supabase_blutlinie_phase2.sql`
+
+### 6a — Diagnose (read-only, dauerhaft)
+36a. `supabase_baum_integritaet.sql` — `baum_integritaet_pruefen(p_stammbaum_id)`: read-only
+    „TÜV-Bericht" eines Baums. Findet **Inseln** (Personen ohne Kanten-Pfad zur Render-Wurzel
+    = im Diagramm unsichtbar, Zeile existiert), **lose Personen** (Grad 0), **verwaiste Kanten**
+    (Beziehung mit fehlendem Endpunkt) und **Personen ohne stammbaum_id**. SCHREIBT NICHTS.
+    Trennt „Anzeigeproblem" vs. „Datenproblem". Rechte: Admin/Owner/Super der Familie.
+    (Voraussetzung: 3 `supabase_verbund.sql`.)
 
 ### 7 — Profil
 37. `supabase_profile.sql` — Tabelle `profile` + Bucket `avatars`
@@ -100,6 +112,19 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
 ### 12 — Länder / Familieneinstellungen
 52. `supabase_land_iso_migration.sql` — Länder auf ISO-Codes
 53. `supabase_familie_einstellungen.sql` — `stammbaeume.einstellungen` (jsonb) + Bucket `familien`
+
+### 13 — Personen-Medien (Fotos & Dokumente) & Lebensgeschichten
+54. `supabase_personen_fotos.sql` — Foto-Galerie pro Person: Tabelle `personen_fotos` + **public** Bucket `personen-fotos` + Storage-Policies (verbund-RLS, Schreiben über erstes Pfad-Segment = `stammbaum_id`). (Voraussetzung: `personen` + Verbund-Helfer)
+55. `supabase_personen_dokumente.sql` — Dokumente & Quellen pro Person: Tabelle `personen_dokumente` + **privater** Bucket `personen-dokumente` (signierte URLs) + Storage-Policies (`darf_dokordner_sehen`/`darf_dokordner_bearbeiten`). (Voraussetzung: `personen` + Verbund-Helfer)
+56. `supabase_personen_geschichten.sql` — Mehrsprachige Lebensgeschichten pro Person: Tabelle `personen_geschichten` (UNIQUE person_id+sprache [`de|sr|hr|ba|en`], Markdown), verbund-RLS (Entwürfe nur für Bearbeiter), Identitäts-Sync-Trigger `geschichte_ident_sync` (Zwillinge, analog `ident_sync`) + Backfill `beschreibung`→`de`. KEIN Bucket. (Voraussetzung: `personen` + `identitaet_id` aus `supabase_gleiche_person_sync.sql` + Verbund-Helfer)
+
+### 14 — Chat (verbundweit)
+56. `supabase_chat.sql` — Chat (1:1 + Gruppen): Tabellen `chats`/`chat_teilnehmer`/`chat_nachrichten`,
+    rekursionsfreie RLS über `ist_chat_teilnehmer`, RPCs `verbund_nutzer`/`direkt_chat_finden_oder_anlegen`/
+    `gruppen_chat_anlegen`/`chat_nachricht_senden`/`chat_gelesen`/`chat_teilnehmer_entfernen`/
+    `chat_gruppen_admin_setzen` + Aufnahme von `chat_nachrichten`/`chat_teilnehmer` in die Publication
+    `supabase_realtime`. **VOR Frontend-Deploy ausführen** (neue Tabellen/RPCs). (Voraussetzung: 3
+    `supabase_verbund.sql`, 6 `supabase_mitglieder_komplett.sql`, 37 `supabase_profile.sql`)
 
 ---
 

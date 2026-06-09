@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="12.2">
+<meta name="app-version" content="12.4">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -11,7 +11,10 @@
      blockiert dennoch injizierte EXTERNE Skripte, begrenzt Datenabfluss (connect-src) und
      unterbindet Plugins/<object>. (frame-ancestors/X-Frame-Options sind per <meta> nicht
      setzbar -> Klickjacking-Schutz nur über HTTP-Header möglich, auf GitHub Pages nicht.) -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob: https://*.supabase.co; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'self' blob: https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<!-- Leaflet-Karte: style-src braucht cdn.jsdelivr.net (leaflet.css), img-src die OSM-Tile-Server
+     (*.tile.openstreetmap.org), connect-src Nominatim (Ortssuche/Geocoding, fetch). Marker sind
+     CSS-DivIcons (kein externes Marker-Bild) -> keine weitere img-Quelle nötig. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org; media-src 'self' blob: https://*.supabase.co; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org; frame-src 'self' blob: https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- CDN-Skripte auf EXAKTE Versionen gepinnt + Subresource Integrity (Lieferketten-Schutz).
      Versionswechsel erfordert neuen integrity-Hash (sonst lädt der Browser die Datei nicht). -->
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
@@ -28,7 +31,21 @@
 <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.1/dist/svg2pdf.umd.min.js"
         integrity="sha384-B3l2uNxzGBflyDLbL7qqONJYng+5kJd6tDEXetlgRA6b68u6pgeZYBRH5UAYiBZ3"
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=12.2">
+<!-- marked (Markdown -> HTML) NUR für die mehrsprachigen Lebensgeschichten. Vom User
+     freigegeben. Exakt gepinnt + SRI (sha384), wie d3/jsPDF/svg2pdf. Output wird IMMER per
+     geschCleanElement (Whitelist-Sanitizer im Haupt-Script) nachgesäubert, nie ungefiltert ins DOM. -->
+<script src="https://cdn.jsdelivr.net/npm/marked@18.0.5/lib/marked.umd.min.js"
+        integrity="sha384-MU0bL51BF1u980ujv+Pk0Z0qCjhzfBIEHIFPkUq81289nkiAr+q1jSxEkdlIeHLJ"
+        crossorigin="anonymous"></script>
+<!-- Leaflet (Karten-Ansicht + Geocoding-Editor). Nur für die Event-Karte. OpenStreetMap-Tiles,
+     KEIN API-Key (passt zu GitHub Pages). Exakt gepinnt + offizielle Leaflet-SRI-Hashes (sha256). -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin="anonymous"></script>
+<link rel="stylesheet" href="stammbaum.css?v=12.4">
 </head>
 <body>
 
@@ -59,6 +76,9 @@
           <div class="avatar-menu-panel" id="avatar-menu-panel">
             <button class="account-btn" type="button" id="avatar-obav-btn" onclick="oeffneObavZentral()">
               <span data-i18n="obav_zentral_titel"></span><span class="obav-badge" id="avatar-menu-obav-badge" style="display:none"></span>
+            </button>
+            <button class="account-btn" type="button" id="avatar-chat-btn" onclick="oeffneChat()">
+              <span data-i18n="chat_menu"></span><span class="obav-badge" id="avatar-menu-chat-badge" style="display:none"></span>
             </button>
             <button class="account-btn" type="button" data-i18n="prof_bearbeiten" onclick="oeffneProfilAusMenu()"></button>
             <button class="account-btn" type="button" id="menu-standard-btn" data-i18n="std_menu" onclick="oeffneStandardBaumAusMenu()" style="display:none"></button>
@@ -100,6 +120,7 @@
           <button class="account-btn" type="button" id="menu-merge-btn" data-i18n="merge_titel" onclick="zeigeMergeModal()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-gp-btn" data-i18n="gp_verknuepfen_titel" onclick="zeigeGleichePersonModal()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-bereinigung-btn" data-i18n="ber_titel" onclick="zeigeBereinigungModal()" style="display:none"></button>
+          <button class="account-btn" type="button" id="menu-integ-btn" data-i18n="integ_menu" onclick="oeffneIntegritaet()"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
         </div>
 
@@ -184,6 +205,8 @@
               role="tab" data-i18n="ev_modus_liste" onclick="evSetModus('liste')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-zeit" data-ev-modus="zeit"
               role="tab" data-i18n="ev_modus_zeit" onclick="evSetModus('zeit')"></button>
+      <button type="button" class="ev-modus-btn" id="ev-modus-karte" data-ev-modus="karte"
+              role="tab" data-i18n="ev_modus_karte" onclick="evSetModus('karte')"></button>
     </div>
     <button class="pa-add-btn" id="event-neu-btn" style="display:none;margin:10px auto 0;max-width:280px"
       onclick="zeigeEventNeu()">＋ <span data-i18n="event_neu"></span></button>
@@ -209,6 +232,30 @@
     </div>
     <div class="zs-bio-kopf" id="zs-bio-kopf" style="display:none"></div>
     <div class="zs-timeline" id="zs-timeline"></div>
+  </div>
+
+  <!-- Ansicht C: Karte (rein lesend; Leaflet/OpenStreetMap). Zwei Modi:
+       (a) alle verorteten Events des aktiven Baums, (b) Migrationspfad EINER Person
+       (ihre Events chronologisch, Polyline, Start grün/Ende rot). Scope = aktiver Baum. -->
+  <div id="ev-karte-wrap" style="display:none">
+    <div class="karte-toolbar">
+      <div class="karte-modus" id="karte-modus" role="tablist">
+        <button type="button" class="karte-modus-btn aktiv" data-karte-modus="alle"
+                role="tab" data-i18n="karte_modus_alle" onclick="karteSetModus('alle')"></button>
+        <button type="button" class="karte-modus-btn" data-karte-modus="person"
+                role="tab" data-i18n="karte_modus_person" onclick="karteSetModus('person')"></button>
+      </div>
+      <label class="karte-person-feld" id="karte-person-wrap" style="display:none">
+        <span data-i18n="karte_filter_person"></span>
+        <select id="karte-f-person" class="filter" onchange="karteRender()"></select>
+      </label>
+    </div>
+    <div id="karte-leer" class="keine-treffer" style="display:none"></div>
+    <div id="event-karte" class="event-karte"></div>
+    <div class="karte-legende" id="karte-legende" style="display:none">
+      <span class="karte-leg-item"><span class="karte-leg-dot start"></span><span data-i18n="karte_start"></span></span>
+      <span class="karte-leg-item"><span class="karte-leg-dot ende"></span><span data-i18n="karte_ende"></span></span>
+    </div>
   </div>
 </section>
 
@@ -916,12 +963,64 @@
     <label class="login-label"><span data-i18n="pe_beschreibung"></span>
       <textarea id="pe-beschreibung" class="login-feld" rows="4"></textarea></label>
 
+    <!-- Mehrsprachige Lebensgeschichte (Markdown) — nur Bearbeiter; per JS (geschEditOeffnen) befüllt -->
+    <div class="reg-gruppe-titel" data-i18n="gesch_titel"></div>
+    <div id="pe-geschichte" class="gesch-box">
+      <div class="gesch-tabs" id="gesch-tabs"></div>
+      <label class="login-label"><span data-i18n="gesch_feld_titel"></span>
+        <input type="text" id="gesch-titel-input" class="login-feld" maxlength="200"
+               data-i18n-placeholder="gesch_titel_ph" oninput="geschFeldInput()"></label>
+      <div class="gesch-edit-grid">
+        <label class="login-label gesch-textfeld"><span data-i18n="gesch_feld_text"></span>
+          <textarea id="gesch-text-input" class="login-feld" rows="8"
+                    data-i18n-placeholder="gesch_text_ph" oninput="geschFeldInput()"></textarea></label>
+        <div class="gesch-vorschau-wrap">
+          <div class="gesch-vorschau-label" data-i18n="gesch_vorschau"></div>
+          <div id="gesch-vorschau" class="markdown-body gesch-vorschau"></div>
+        </div>
+      </div>
+      <div class="gesch-md-hilfe" data-i18n="gesch_md_hilfe"></div>
+      <label class="gesch-pub"><input type="checkbox" id="gesch-veroeffentlicht" checked onchange="geschFeldInput()">
+        <span data-i18n="gesch_veroeffentlicht"></span></label>
+      <div class="gesch-entwurf-hinweis" data-i18n="gesch_entwurf_hinweis"></div>
+      <div class="gesch-aktionen">
+        <button type="button" class="gesch-save-btn" onclick="geschSpeichern()" data-i18n="gesch_speichern"></button>
+        <button type="button" class="gesch-del-btn" onclick="geschLoeschen()" data-i18n="gesch_loeschen"></button>
+      </div>
+      <div id="gesch-status" class="gesch-status" style="display:none"></div>
+    </div>
+
     <!-- Foto-Galerie (Verwaltung) — nur Bearbeiter; per JS in zeigePersonBearbeiten befüllt -->
     <div class="reg-gruppe-titel" data-i18n="gal_titel"></div>
     <div id="pe-galerie" class="galerie-grid"></div>
     <input type="file" id="pe-foto-input" accept="image/*" multiple style="display:none" onchange="galerieUpload(this)">
     <button type="button" class="gal-upload-btn" id="pe-foto-btn"
             onclick="document.getElementById('pe-foto-input').click()" data-i18n="gal_hochladen"></button>
+
+    <!-- Dokumente & Quellen (Verwaltung) — nur Bearbeiter; per JS in zeigePersonBearbeiten befüllt -->
+    <div class="reg-gruppe-titel" data-i18n="dok_titel"></div>
+    <div id="pe-dok-liste" class="dok-liste"></div>
+    <div class="dok-upload" id="pe-dok-form">
+      <div class="reg-grid">
+        <label class="login-label reg-feld-voll"><span data-i18n="dok_datei"></span>
+          <input type="file" id="pe-dok-input" accept="application/pdf,image/jpeg,image/png,image/webp" class="login-feld"></label>
+        <label class="login-label reg-feld-voll"><span data-i18n="dok_feld_titel"></span>
+          <input type="text" id="pe-dok-titel" class="login-feld" maxlength="200"></label>
+        <label class="login-label"><span data-i18n="dok_feld_typ"></span>
+          <select id="pe-dok-typ" class="login-feld">
+            <option value="geburtsurkunde" data-i18n="dok_typ_geburtsurkunde"></option>
+            <option value="heiratsurkunde" data-i18n="dok_typ_heiratsurkunde"></option>
+            <option value="kirchenbuch" data-i18n="dok_typ_kirchenbuch"></option>
+            <option value="brief" data-i18n="dok_typ_brief"></option>
+            <option value="sonstiges" data-i18n="dok_typ_sonstiges"></option>
+          </select></label>
+        <label class="login-label"><span data-i18n="dok_feld_datum"></span>
+          <input type="text" id="pe-dok-datum" class="login-feld dp-input"></label>
+        <label class="login-label reg-feld-voll"><span data-i18n="dok_feld_quelle"></span>
+          <textarea id="pe-dok-quelle" class="login-feld" rows="2" data-i18n-placeholder="dok_quelle_ph"></textarea></label>
+      </div>
+      <button type="button" class="gal-upload-btn" id="pe-dok-btn" onclick="dokUpload()" data-i18n="dok_hochladen"></button>
+    </div>
 
     <div id="pe-fehler" class="login-fehler"></div>
     <button class="login-submit" id="pe-submit" data-i18n="event_save" onclick="speicherePerson()"></button>
@@ -1296,7 +1395,31 @@
         </select></label>
       <label class="login-label reg-feld-voll"><span data-i18n="event_organizer"></span>
         <input type="text" id="ev-organisator" class="login-feld"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="ev_bezugsperson"></span>
+        <select id="ev-bezugsperson" class="login-feld"></select></label>
     </div>
+
+    <!-- Geokoordinaten: Ortssuche (Nominatim) + Karte zum manuellen Setzen.
+         Verortet das Event für die Karten-Ansicht (Marker / Migrationspfad). -->
+    <div class="geo-block" id="ev-geo-block">
+      <div class="reg-gruppe-titel" data-i18n="geo_titel"></div>
+      <div class="geo-such-zeile">
+        <input type="text" id="ev-geo-suche" class="login-feld" inputmode="search" enterkeyhint="search"
+               autocomplete="off" data-i18n-placeholder="geo_suche_placeholder" oninput="geoSucheDebounce()">
+        <button type="button" class="account-btn geo-such-btn" id="ev-geo-btn"
+                data-i18n="geo_suche_btn" onclick="geoSucheAusfuehren()"></button>
+      </div>
+      <div id="ev-geo-treffer" class="geo-treffer"></div>
+      <div class="geo-hint" data-i18n="geo_klick_hinweis"></div>
+      <div id="ev-geo-map" class="geo-edit-map"></div>
+      <div class="geo-status-zeile">
+        <span id="ev-geo-status" class="geo-status"></span>
+        <button type="button" class="mv-toggle geo-clear-btn" id="ev-geo-clear"
+                data-i18n="geo_entfernen" onclick="geoEntfernen()" style="display:none"></button>
+      </div>
+      <input type="hidden" id="ev-lat"><input type="hidden" id="ev-lng">
+    </div>
+
     <label class="login-label"><span data-i18n="event_beschreibung"></span>
       <textarea id="ev-beschreibung" class="login-feld" rows="4"></textarea></label>
 
@@ -1384,6 +1507,58 @@
       <div class="obav-section-titel" data-i18n="obav_anfragen_titel" style="margin-top:22px"></div>
       <div id="obav-liste" style="margin-top:8px"></div>
     </div>
+  </div>
+</div>
+
+<!-- CHAT (1:1 + Gruppen, verbundweit) — schließt NUR per Button (CLAUDE.md) -->
+<div class="modal" id="chat-modal" style="z-index:215">
+  <div class="modal-inhalt chat-box" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseChat()">×</button>
+    <div class="chat-head">
+      <h2 data-i18n="chat_titel"></h2>
+      <button type="button" class="chat-neu-btn" onclick="chatNeuOeffnen()" data-i18n="chat_neuer"></button>
+    </div>
+    <div class="chat-body" id="chat-body">
+      <div class="chat-spalte-links">
+        <div class="chat-liste" id="chat-liste"></div>
+      </div>
+      <div class="chat-spalte-rechts" id="chat-konv">
+        <div class="chat-konv-leer" id="chat-konv-leer" data-i18n="chat_leer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Neuer Chat: Personen aus dem Verbund wählen (1 = Direktchat, mehrere = Gruppe) -->
+<div class="modal" id="chat-neu-modal" style="z-index:220">
+  <div class="modal-inhalt chat-neu-box" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="chatNeuSchliessen()">×</button>
+    <h2 data-i18n="chat_neuer_titel"></h2>
+    <p class="mv-legende" data-i18n="chat_personen_hint" style="margin-top:-6px"></p>
+    <input type="text" class="login-feld" id="chat-neu-suche" data-i18n-placeholder="chat_suche_ph"
+      inputmode="search" autocomplete="off" oninput="chatNeuFilter()" style="margin-top:10px">
+    <div class="chat-pers-liste" id="chat-neu-liste"></div>
+    <label class="login-label" id="chat-neu-gruppe-wrap" style="display:none;margin-top:12px">
+      <span data-i18n="chat_gruppe_name" class="pflicht"></span>
+      <input type="text" class="login-feld" id="chat-neu-gruppenname"
+        data-i18n-placeholder="chat_gruppe_name_ph" autocomplete="off">
+    </label>
+    <div class="fe-actions" style="margin-top:14px">
+      <button type="button" class="login-submit" id="chat-neu-erstellen" onclick="chatNeuErstellen()" data-i18n="chat_erstellen"></button>
+      <button type="button" class="login-submit fe-abbrechen" onclick="chatNeuSchliessen()" data-i18n="chat_abbrechen"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Gruppen-Info: Mitglieder, entfernen, Admin setzen, verlassen -->
+<div class="modal" id="chat-info-modal" style="z-index:225">
+  <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="chatInfoSchliessen()">×</button>
+    <h2 data-i18n="chat_info"></h2>
+    <div id="chat-info-name" style="font-size:18px;color:var(--akzent);margin-top:6px"></div>
+    <div id="chat-info-liste" style="margin-top:12px"></div>
+    <button type="button" class="login-submit fe-abbrechen" id="chat-info-verlassen"
+      onclick="chatGruppeVerlassen()" data-i18n="chat_verlassen" style="margin-top:16px"></button>
   </div>
 </div>
 
@@ -1740,7 +1915,31 @@
   <div class="lightbox-zaehler" id="lightbox-zaehler"></div>
 </div>
 
-<script src="i18n.js?v=12.2"></script>
+<!-- Dokument-Vorschau (PDF im Browser-Viewer / Bild). Bewusst KEIN .modal: schließt
+     per Hintergrund-Tap, Button + Esc — wie die Foto-Lightbox. -->
+<div class="lightbox dok-viewer" id="dok-viewer" onclick="if(event.target===this)schliesseDokViewer()">
+  <button type="button" class="lightbox-schliessen" data-i18n-title="dok_schliessen"
+          aria-label="×" onclick="schliesseDokViewer()">×</button>
+  <div class="dok-viewer-inner">
+    <div class="dok-viewer-kopf" id="dok-viewer-kopf"></div>
+    <div class="dok-viewer-buehne" id="dok-viewer-buehne"></div>
+    <a class="dok-viewer-download" id="dok-viewer-download" href="#" target="_blank" rel="noopener" download
+       data-i18n="dok_download"></a>
+  </div>
+</div>
+
+<!-- Baum-Integrität (read-only Diagnose) — Admin/Owner/Super -->
+<div class="modal" id="integ-modal" style="z-index:215">
+  <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseIntegritaet()">×</button>
+    <h2 data-i18n="integ_titel"></h2>
+    <p class="login-label" data-i18n="integ_info" style="margin-top:0"></p>
+    <button class="login-submit" id="integ-pruefen-btn" data-i18n="integ_pruefen" onclick="ladeIntegritaet()"></button>
+    <div id="integ-ergebnis" class="integ-ergebnis"></div>
+  </div>
+</div>
+
+<script src="i18n.js?v=12.4"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -1887,6 +2086,9 @@ async function setzeUser(user) {
   ladeBenachrichtigungen();
   startBenachrSync();   // + Live-Updates ohne Reload (Realtime)
 
+  // Chat (1:1 + Gruppen, verbundweit): Nutzerliste/Chats laden + Realtime-Channel.
+  startChat();
+
   // Deep-Link aus der Event-Einladungs-Mail (?event=<id>) nach dem Login einlösen.
   verarbeiteEventDeepLink();
 
@@ -1938,6 +2140,7 @@ function loescheUser() {
   stopRealtimeSync();    // Live-Sync der Baumdaten beenden (ausgeloggt)
   stopBenachrSync();     // Live-Benachrichtigungen beenden (ausgeloggt)
   stopPresence();        // Live-Indikator beenden (ausgeloggt)
+  stopChat();            // Chat-Realtime + Zustand beenden (ausgeloggt)
   aktualisiereAuthUI();
   resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
 }
@@ -2916,6 +3119,511 @@ function nutzerAnzeigeName() {
   const teile = lokal.split(/[._\-]+/).filter(Boolean)
     .map(w => w.charAt(0).toUpperCase() + w.slice(1));
   return teile.join(' ') || mail;
+}
+
+// ============================================================
+// CHAT (1:1 + Gruppen, verbundweit) — Supabase Realtime (wie Live-Sync der Baumdaten)
+// Geltungsbereich = verbund_id (CLAUDE.md). Transport: echte RLS-SELECT-Policies +
+// Publication supabase_realtime. Der Realtime-Callback setzt den Inaktivitäts-/
+// Auto-Logout-Timer NICHT zurück (eingehende Nachrichten zählen nicht als Aktivität).
+// ============================================================
+let chatNutzer       = [];     // verbund_nutzer(): [{user_id, anzeigename, avatar_url, familie_name, baum_namen}]
+let chatNutzerMap    = {};     // user_id -> Nutzer
+let chatListe        = [];     // [{id, typ, name, erstellt_am, teilnehmer:[{user_id,ist_gruppen_admin}], letzteText, letzteZeit, letzteGeloescht, ungelesen}]
+let chatById         = {};     // id -> Eintrag aus chatListe
+let chatAktivId      = null;   // aktuell geöffneter Chat
+let chatNachrichten  = [];     // Nachrichten des offenen Chats
+let chatNeuAuswahl   = new Set();
+let chatGeladen      = false;  // Nutzerliste schon geladen?
+let chatChannel      = null;   // Realtime-Channel
+let chatLiveTimer    = null;
+let chatLivePending  = false;
+let chatTippInit     = false;  // tippAuswahl nur einmal binden
+
+// ---- Lifecycle (analog startRealtimeSync/startPresence) ----------------------
+async function startChat() {
+  stopChat();
+  if (!aktuellerUser || !sbClient) return;
+  try {
+    await chatLadeNutzer();
+    await chatLadeListe();
+  } catch (e) { console.warn('Chat-Initialladung:', e); }
+  try {
+    chatChannel = sbClient.channel('chat-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_nachrichten' }, () => chatLiveAnstossen())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_teilnehmer'  }, () => chatLiveAnstossen())
+      .subscribe();
+  } catch (e) { console.warn('Chat-Realtime nicht verfügbar:', e); chatChannel = null; }
+}
+function stopChat() {
+  if (chatLiveTimer) { clearTimeout(chatLiveTimer); chatLiveTimer = null; }
+  chatLivePending = false;
+  if (chatChannel) { try { sbClient.removeChannel(chatChannel); } catch (e) {} chatChannel = null; }
+  chatNutzer = []; chatNutzerMap = {}; chatListe = []; chatById = {};
+  chatAktivId = null; chatNachrichten = []; chatNeuAuswahl.clear(); chatGeladen = false;
+  chatBadgeAktualisieren();
+}
+// Debounced Live-Reload; bei verstecktem Tab aufschieben (visibilitychange holt nach).
+// WICHTIG: KEIN resetInaktivTimer/sessAktivitaet hier (wie Live-Sync/Presence).
+function chatLiveAnstossen() {
+  if (!aktuellerUser) return;
+  if (document.visibilityState !== 'visible') { chatLivePending = true; return; }
+  if (chatLiveTimer) clearTimeout(chatLiveTimer);
+  chatLiveTimer = setTimeout(chatLiveAusfuehren, 500);
+}
+async function chatLiveAusfuehren() {
+  chatLiveTimer = null;
+  if (!aktuellerUser) return;
+  try {
+    await chatLadeListe();
+    if (chatAktivId && document.getElementById('chat-modal').classList.contains('aktiv')) {
+      await chatLadeNachrichten(chatAktivId, true);
+    }
+  } catch (e) { console.warn('Chat-Live-Reload:', e); }
+  finally { if (chatLivePending) { chatLivePending = false; chatLiveAnstossen(); } }
+}
+// Nachhol-Refresh, wenn der Tab wieder sichtbar wird (kein Timer-Reset).
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && chatLivePending && aktuellerUser) {
+    chatLivePending = false; chatLiveAnstossen();
+  }
+});
+
+// ---- Datenladen -------------------------------------------------------------
+async function chatLadeNutzer() {
+  const { data, error } = await sbClient.rpc('verbund_nutzer');
+  if (error) { console.warn('verbund_nutzer:', error.message); return; }
+  chatNutzer = data || [];
+  chatNutzerMap = {};
+  chatNutzer.forEach(u => { chatNutzerMap[u.user_id] = u; });
+  chatGeladen = true;
+}
+async function chatLadeListe() {
+  if (!aktuellerUser) return;
+  const me = aktuellerUser.id;
+  const { data: meine, error: e1 } = await sbClient
+    .from('chat_teilnehmer').select('chat_id, zuletzt_gelesen_am').eq('user_id', me);
+  if (e1) { console.warn('chat_teilnehmer (eigene):', e1.message); return; }
+  const ids = (meine || []).map(r => r.chat_id);
+  if (!ids.length) { chatListe = []; chatById = {}; chatRenderListe(); chatBadgeAktualisieren(); return; }
+  const gelesenMap = {};
+  (meine || []).forEach(r => { gelesenMap[r.chat_id] = r.zuletzt_gelesen_am; });
+
+  const [{ data: chats }, { data: alleT }, { data: msgs }] = await Promise.all([
+    sbClient.from('chats').select('id, typ, name, erstellt_am').in('id', ids),
+    sbClient.from('chat_teilnehmer').select('chat_id, user_id, ist_gruppen_admin').in('chat_id', ids),
+    sbClient.from('chat_nachrichten').select('chat_id, text, erstellt_am, absender_id, geloescht')
+      .in('chat_id', ids).order('erstellt_am', { ascending: false }).limit(500)
+  ]);
+
+  const teilnByChat = {};
+  (alleT || []).forEach(t => { (teilnByChat[t.chat_id] = teilnByChat[t.chat_id] || []).push(t); });
+
+  chatListe = (chats || []).map(c => {
+    const gelesen = gelesenMap[c.id];
+    const chatMsgs = (msgs || []).filter(m => m.chat_id === c.id);   // bereits desc sortiert
+    const letzte = chatMsgs[0] || null;
+    const ungelesen = chatMsgs.filter(m =>
+      m.absender_id !== me && (!gelesen || new Date(m.erstellt_am) > new Date(gelesen))).length;
+    return {
+      id: c.id, typ: c.typ, name: c.name, erstellt_am: c.erstellt_am,
+      teilnehmer: teilnByChat[c.id] || [],
+      letzteText: letzte ? (letzte.geloescht ? '' : letzte.text) : '',
+      letzteGeloescht: letzte ? letzte.geloescht : false,
+      letzteZeit: letzte ? letzte.erstellt_am : c.erstellt_am,
+      ungelesen
+    };
+  }).sort((a, b) => new Date(b.letzteZeit) - new Date(a.letzteZeit));
+
+  chatById = {}; chatListe.forEach(c => { chatById[c.id] = c; });
+  chatRenderListe();
+  chatBadgeAktualisieren();
+}
+async function chatLadeNachrichten(chatId, nurRender) {
+  if (!chatId) return;
+  const { data, error } = await sbClient.from('chat_nachrichten')
+    .select('*').eq('chat_id', chatId).order('erstellt_am', { ascending: true }).limit(500);
+  if (error) { console.warn('chat_nachrichten:', error.message); return; }
+  chatNachrichten = data || [];
+  chatRenderKonversation();
+  if (!nurRender) {
+    try { await sbClient.rpc('chat_gelesen', { p_chat: chatId }); } catch (e) {}
+    chatLadeListe();   // Ungelesen-Badge aktualisieren
+  }
+}
+
+// ---- Öffnen/Schließen -------------------------------------------------------
+async function oeffneChat() {
+  if (!aktuellerUser) return;
+  document.getElementById('avatar-menu')?.classList.remove('offen');
+  document.getElementById('chat-modal').classList.add('aktiv');
+  if (!chatTippInit) {
+    chatTippInit = true;
+    tippAuswahl(document.getElementById('chat-liste'),    '.chat-listitem', el => chatOeffneKonversation(el.dataset.id));
+    tippAuswahl(document.getElementById('chat-neu-liste'), '.chat-pers-row', el => chatNeuToggle(el.dataset.uid));
+  }
+  if (!chatGeladen) { try { await chatLadeNutzer(); } catch (e) {} }
+  await chatLadeListe();
+  if (!chatAktivId) chatZeigeLeer();
+}
+function schliesseChat() {
+  document.getElementById('chat-modal').classList.remove('aktiv');
+}
+function chatZeigeLeer() {
+  chatAktivId = null;
+  document.getElementById('chat-body').classList.remove('konv-offen');
+  const konv = document.getElementById('chat-konv');
+  konv.innerHTML = `<div class="chat-konv-leer">${escapeHtml(t('chat_leer'))}</div>`;
+  chatRenderListe();
+}
+function chatZurueck() { chatZeigeLeer(); }
+
+// ---- Anzeige-Helfer ---------------------------------------------------------
+function chatNameVon(uid) {
+  if (uid === (aktuellerUser && aktuellerUser.id)) return t('chat_du');
+  const u = chatNutzerMap[uid];
+  return u ? nm(u.anzeigename) : '—';
+}
+function chatTitelVon(c) {
+  if (c.typ === 'gruppe') return c.name || t('chat_gruppe');
+  const me = aktuellerUser.id;
+  const other = (c.teilnehmer || []).find(p => p.user_id !== me);
+  return other ? chatNameVon(other.user_id) : t('chat_titel');
+}
+function chatAvatarVon(c) {
+  if (c.typ === 'direkt') {
+    const me = aktuellerUser.id;
+    const other = (c.teilnehmer || []).find(p => p.user_id !== me);
+    const u = other && chatNutzerMap[other.user_id];
+    if (u && u.avatar_url) return u.avatar_url;
+  }
+  return AVATAR_PLATZHALTER;
+}
+function chatZeit(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), jetzt = new Date();
+  const loc = { de: 'de-DE', sr: 'sr-RS', hr: 'hr-HR', ba: 'bs-BA', en: 'en-US' }[aktuelleSprache] || 'de-DE';
+  const zeit = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === jetzt.toDateString()) return zeit;
+  const gestern = new Date(jetzt); gestern.setDate(jetzt.getDate() - 1);
+  if (d.toDateString() === gestern.toDateString()) return t('chat_gestern') + ' ' + zeit;
+  const datum = d.toLocaleDateString(loc, { day: '2-digit', month: '2-digit',
+    year: d.getFullYear() === jetzt.getFullYear() ? undefined : '2-digit' });
+  return datum + ' ' + zeit;
+}
+
+// ---- Liste rendern ----------------------------------------------------------
+function chatRenderListe() {
+  const box = document.getElementById('chat-liste');
+  if (!box) return;
+  if (!chatListe.length) {
+    box.innerHTML = `<div class="chat-leer-hinweis">${escapeHtml(t('chat_keine_chats'))}<br>` +
+      `<span style="opacity:.8">${escapeHtml(t('chat_keine_chats_hint'))}</span></div>`;
+    return;
+  }
+  box.innerHTML = chatListe.map(c => {
+    const aktiv = c.id === chatAktivId ? ' aktiv' : '';
+    const preview = c.letzteGeloescht ? t('chat_geloescht') : (c.letzteText || '');
+    const badge = c.ungelesen > 0 ? `<span class="chat-unread">${c.ungelesen}</span>` : '';
+    return `<div class="chat-listitem${aktiv}" data-id="${escapeHtml(c.id)}">
+      <img class="chat-li-avatar" src="${escapeHtml(chatAvatarVon(c))}" alt="" onerror="this.src='${AVATAR_PLATZHALTER}'">
+      <div class="chat-li-haupt">
+        <div class="chat-li-name">${escapeHtml(chatTitelVon(c))}</div>
+        <div class="chat-li-preview">${escapeHtml(preview)}</div>
+      </div>
+      <div class="chat-li-meta">
+        <span class="chat-li-zeit">${escapeHtml(chatZeit(c.letzteZeit))}</span>
+        ${badge}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- Konversation -----------------------------------------------------------
+async function chatOeffneKonversation(chatId) {
+  chatAktivId = chatId;
+  document.getElementById('chat-body').classList.add('konv-offen');
+  await chatLadeNachrichten(chatId);
+  chatRenderListe();
+}
+function chatRenderKonversation() {
+  const c = chatById[chatAktivId];
+  if (!c) return;
+  const konv = document.getElementById('chat-konv');
+  const me = aktuellerUser.id;
+  let sub;
+  if (c.typ === 'gruppe') {
+    sub = t('chat_mitglieder', { n: (c.teilnehmer || []).length });
+  } else {
+    const other = (c.teilnehmer || []).find(p => p.user_id !== me);
+    const u = other && chatNutzerMap[other.user_id];
+    sub = u ? [u.familie_name, u.baum_namen].filter(Boolean).join(' · ') : '';
+  }
+  const infoBtn = c.typ === 'gruppe'
+    ? `<button class="chat-konv-menu-btn" onclick="chatInfoOeffnen()" title="${escapeHtml(t('chat_info'))}">ⓘ</button>` : '';
+
+  // Nachrichten-Bubbles mit Tagestrennern
+  let html = '', letzterTag = '';
+  (chatNachrichten || []).forEach(m => {
+    const tag = new Date(m.erstellt_am).toDateString();
+    if (tag !== letzterTag) {
+      letzterTag = tag;
+      html += `<div class="chat-tagtrenner">${escapeHtml(chatTagLabel(m.erstellt_am))}</div>`;
+    }
+    const eigen = m.absender_id === me;
+    const klass = 'chat-msg ' + (eigen ? 'eigen' : 'fremd') + (m.geloescht ? ' geloescht' : '');
+    const absName = (!eigen && c.typ === 'gruppe')
+      ? `<div class="chat-msg-absender">${escapeHtml(chatNameVon(m.absender_id))}</div>` : '';
+    const text = m.geloescht ? t('chat_geloescht') : (m.text || '');
+    const fuss = escapeHtml(chatZeit(m.erstellt_am)) + (m.bearbeitet_am && !m.geloescht ? ' · ' + escapeHtml(t('chat_bearbeitet')) : '');
+    const aktionen = (eigen && !m.geloescht)
+      ? `<div class="chat-msg-aktionen">
+           <button onclick="chatMsgBearbeiten('${escapeHtml(m.id)}')">${escapeHtml(t('chat_bearbeiten'))}</button>
+           <button onclick="chatMsgLoeschen('${escapeHtml(m.id)}')">${escapeHtml(t('chat_loeschen'))}</button>
+         </div>` : '';
+    html += `<div class="${klass}" data-id="${escapeHtml(m.id)}">
+      ${absName}<div class="chat-msg-text">${escapeHtml(text)}</div>
+      <div class="chat-msg-fuss">${fuss}</div>${aktionen}</div>`;
+  });
+
+  konv.innerHTML = `
+    <div class="chat-konv-head">
+      <button class="chat-zurueck-btn" onclick="chatZurueck()" aria-label="${escapeHtml(t('chat_zurueck'))}">←</button>
+      <div class="chat-konv-info">
+        <div class="chat-konv-titel">${escapeHtml(chatTitelVon(c))}</div>
+        <div class="chat-konv-sub">${escapeHtml(sub)}</div>
+      </div>
+      ${infoBtn}
+    </div>
+    <div class="chat-nachrichten" id="chat-nachrichten">${html}</div>
+    <div class="chat-eingabe-zeile">
+      <textarea class="chat-eingabe" id="chat-eingabe" rows="1"
+        placeholder="${escapeHtml(t('chat_nachricht_ph'))}" oninput="chatEingabeWachsen(this)"
+        onkeydown="chatEingabeTaste(event)"></textarea>
+      <button class="chat-send-btn" onclick="chatSenden()" aria-label="${escapeHtml(t('chat_senden'))}">➤</button>
+    </div>`;
+  const liste = document.getElementById('chat-nachrichten');
+  if (liste) liste.scrollTop = liste.scrollHeight;
+}
+function chatTagLabel(iso) {
+  const d = new Date(iso), jetzt = new Date();
+  if (d.toDateString() === jetzt.toDateString()) return t('chat_heute');
+  const gestern = new Date(jetzt); gestern.setDate(jetzt.getDate() - 1);
+  if (d.toDateString() === gestern.toDateString()) return t('chat_gestern');
+  const loc = { de: 'de-DE', sr: 'sr-RS', hr: 'hr-HR', ba: 'bs-BA', en: 'en-US' }[aktuelleSprache] || 'de-DE';
+  return d.toLocaleDateString(loc, { day: '2-digit', month: 'long', year: 'numeric' });
+}
+function chatEingabeWachsen(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+function chatEingabeTaste(e) {
+  // Desktop: Enter sendet, Shift+Enter = neue Zeile. Mobil: Enter = neue Zeile.
+  if (e.key === 'Enter' && !e.shiftKey && !window.matchMedia('(max-width:480px)').matches) {
+    e.preventDefault(); chatSenden();
+  }
+}
+async function chatSenden() {
+  const feld = document.getElementById('chat-eingabe');
+  if (!feld || !chatAktivId) return;
+  const text = feld.value.trim();
+  if (!text) return;
+  feld.value = ''; chatEingabeWachsen(feld);
+  try {
+    const { error } = await sbClient.rpc('chat_nachricht_senden', { p_chat: chatAktivId, p_text: text });
+    if (error) throw error;
+    await chatLadeNachrichten(chatAktivId);
+    await chatLadeListe();
+  } catch (e) {
+    console.warn('chat_nachricht_senden:', e.message || e);
+    feld.value = text;   // bei Fehler Eingabe nicht verlieren
+    zeigeHinweis(t('chat_fehler'));
+  }
+}
+
+// ---- Nachricht bearbeiten / löschen (RLS: nur eigener Absender) --------------
+function chatMsgBearbeiten(id) {
+  const m = (chatNachrichten || []).find(x => x.id === id);
+  if (!m) return;
+  const bubble = document.querySelector(`.chat-msg[data-id="${id}"]`);
+  if (!bubble) return;
+  bubble.innerHTML = `
+    <textarea class="chat-msg-editfeld" id="chat-edit-${id}" rows="2">${escapeHtml(m.text || '')}</textarea>
+    <div class="chat-msg-aktionen">
+      <button onclick="chatMsgSpeichern('${escapeHtml(id)}')">${escapeHtml(t('chat_speichern'))}</button>
+      <button onclick="chatRenderKonversation()">${escapeHtml(t('chat_abbrechen'))}</button>
+    </div>`;
+  const ta = document.getElementById('chat-edit-' + id);
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+async function chatMsgSpeichern(id) {
+  const ta = document.getElementById('chat-edit-' + id);
+  if (!ta) return;
+  const neu = ta.value.trim();
+  if (!neu) return;
+  try {
+    const { error } = await sbClient.from('chat_nachrichten')
+      .update({ text: neu, bearbeitet_am: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
+    await chatLadeNachrichten(chatAktivId);
+    await chatLadeListe();
+  } catch (e) {
+    console.warn('Nachricht bearbeiten:', e.message || e);
+    zeigeHinweis(t('chat_fehler'));
+  }
+}
+async function chatMsgLoeschen(id) {
+  const ok = await zeigeBestaetigung(t('chat_loeschen_frage'), { gefahr: true, jaText: t('chat_loeschen') });
+  if (!ok) return;
+  try {
+    const { error } = await sbClient.from('chat_nachrichten')
+      .update({ geloescht: true, text: null }).eq('id', id);
+    if (error) throw error;
+    await chatLadeNachrichten(chatAktivId);
+    await chatLadeListe();
+  } catch (e) {
+    console.warn('Nachricht löschen:', e.message || e);
+    zeigeHinweis(t('chat_fehler'));
+  }
+}
+
+// ---- Neuer Chat (Personenwahl: 1 = direkt, mehrere = Gruppe) -----------------
+async function chatNeuOeffnen() {
+  chatNeuAuswahl.clear();
+  document.getElementById('chat-neu-suche').value = '';
+  if (!chatGeladen) { try { await chatLadeNutzer(); } catch (e) {} }
+  feldFehlerReset('chat-neu-modal');
+  chatNeuRender();
+  document.getElementById('chat-neu-modal').classList.add('aktiv');
+}
+function chatNeuSchliessen() { document.getElementById('chat-neu-modal').classList.remove('aktiv'); }
+function chatNeuFilter() { chatNeuRender(); }
+function chatNeuToggle(uid) {
+  if (chatNeuAuswahl.has(uid)) chatNeuAuswahl.delete(uid); else chatNeuAuswahl.add(uid);
+  chatNeuRender();
+}
+function chatNeuRender() {
+  const such = (document.getElementById('chat-neu-suche').value || '').trim().toLowerCase();
+  const liste = document.getElementById('chat-neu-liste');
+  const treffer = chatNutzer.filter(u => !such || (u.anzeigename || '').toLowerCase().includes(such)
+    || (u.familie_name || '').toLowerCase().includes(such) || (u.baum_namen || '').toLowerCase().includes(such));
+  if (!treffer.length) {
+    liste.innerHTML = `<div class="chat-leer-hinweis">${escapeHtml(t('chat_keine_nutzer'))}</div>`;
+  } else {
+    liste.innerHTML = treffer.map(u => {
+      const gewaehlt = chatNeuAuswahl.has(u.user_id) ? ' gewaehlt' : '';
+      const ctx = [u.familie_name, u.baum_namen].filter(Boolean).join(' · ');
+      return `<div class="chat-pers-row${gewaehlt}" data-uid="${escapeHtml(u.user_id)}">
+        <img class="chat-pers-avatar" src="${escapeHtml(u.avatar_url || AVATAR_PLATZHALTER)}" alt="" onerror="this.src='${AVATAR_PLATZHALTER}'">
+        <div class="chat-pers-haupt">
+          <div class="chat-pers-name">${escapeHtml(nm(u.anzeigename))}</div>
+          ${ctx ? `<div class="chat-pers-ctx">${escapeHtml(ctx)}</div>` : ''}
+        </div>
+        <div class="chat-pers-check">${gewaehlt ? '✓' : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  // Gruppenname-Feld nur bei Mehrfachauswahl
+  document.getElementById('chat-neu-gruppe-wrap').style.display = chatNeuAuswahl.size > 1 ? '' : 'none';
+}
+async function chatNeuErstellen() {
+  feldFehlerReset('chat-neu-modal');
+  const auswahl = Array.from(chatNeuAuswahl);
+  if (!auswahl.length) return feldFehler('chat-neu-suche', t('chat_mind_eine'));
+  try {
+    let chatId;
+    if (auswahl.length === 1) {
+      const { data, error } = await sbClient.rpc('direkt_chat_finden_oder_anlegen', { p_user2: auswahl[0] });
+      if (error) throw error;
+      chatId = data;
+    } else {
+      const name = document.getElementById('chat-neu-gruppenname').value.trim();
+      if (!name) return feldFehler('chat-neu-gruppenname', t('chat_gruppe_name_pflicht'));
+      const { data, error } = await sbClient.rpc('gruppen_chat_anlegen', { p_name: name, p_user_ids: auswahl });
+      if (error) throw error;
+      chatId = data;
+    }
+    chatNeuSchliessen();
+    await chatLadeListe();
+    await chatOeffneKonversation(chatId);
+  } catch (e) {
+    console.warn('Chat anlegen:', e.message || e);
+    zeigeHinweis(t('chat_fehler'));
+  }
+}
+
+// ---- Gruppen-Info: Mitglieder, entfernen, Admin, verlassen ------------------
+function chatInfoOeffnen() {
+  const c = chatById[chatAktivId];
+  if (!c || c.typ !== 'gruppe') return;
+  chatInfoRender();
+  document.getElementById('chat-info-modal').classList.add('aktiv');
+}
+function chatInfoSchliessen() { document.getElementById('chat-info-modal').classList.remove('aktiv'); }
+function chatInfoRender() {
+  const c = chatById[chatAktivId];
+  if (!c) return;
+  const me = aktuellerUser.id;
+  document.getElementById('chat-info-name').textContent = c.name || t('chat_gruppe');
+  const meinT = (c.teilnehmer || []).find(p => p.user_id === me);
+  const darfVerwalten = (meinT && meinT.ist_gruppen_admin) || istAdmin();
+  const box = document.getElementById('chat-info-liste');
+  box.innerHTML = (c.teilnehmer || []).map(tn => {
+    const istIch = tn.user_id === me;
+    const adminBadge = tn.ist_gruppen_admin ? `<span class="chat-info-badge">${escapeHtml(t('chat_admin_badge'))}</span>` : '';
+    let aktion = '';
+    if (darfVerwalten && !istIch) {
+      const adminBtn = tn.ist_gruppen_admin
+        ? `<button class="account-btn" style="padding:4px 8px;font-size:12px" onclick="chatAdminToggle('${escapeHtml(tn.user_id)}',false)">${escapeHtml(t('chat_admin_entziehen'))}</button>`
+        : `<button class="account-btn" style="padding:4px 8px;font-size:12px" onclick="chatAdminToggle('${escapeHtml(tn.user_id)}',true)">${escapeHtml(t('chat_admin_machen'))}</button>`;
+      aktion = `<div class="chat-info-aktion">${adminBtn}
+        <button class="account-btn admin-danger" style="padding:4px 8px;font-size:12px" onclick="chatTeilnehmerEntfernen('${escapeHtml(tn.user_id)}')">${escapeHtml(t('chat_entfernen'))}</button></div>`;
+    }
+    return `<div class="chat-info-row">
+      <span>${escapeHtml(chatNameVon(tn.user_id))}</span>${adminBadge}${aktion}</div>`;
+  }).join('');
+}
+async function chatAdminToggle(uid, wert) {
+  try {
+    const { error } = await sbClient.rpc('chat_gruppen_admin_setzen', { p_chat: chatAktivId, p_user: uid, p_wert: wert });
+    if (error) throw error;
+    await chatLadeListe(); chatInfoRender(); chatRenderKonversation();
+  } catch (e) { console.warn('Admin setzen:', e.message || e); zeigeHinweis(t('chat_fehler')); }
+}
+async function chatTeilnehmerEntfernen(uid) {
+  const ok = await zeigeBestaetigung(t('chat_entfernen_frage', { name: chatNameVon(uid) }), { gefahr: true, jaText: t('chat_entfernen') });
+  if (!ok) return;
+  try {
+    const { error } = await sbClient.rpc('chat_teilnehmer_entfernen', { p_chat: chatAktivId, p_user: uid });
+    if (error) throw error;
+    await chatLadeListe(); chatInfoRender(); chatRenderKonversation();
+  } catch (e) { console.warn('Teilnehmer entfernen:', e.message || e); zeigeHinweis(t('chat_fehler')); }
+}
+async function chatGruppeVerlassen() {
+  const ok = await zeigeBestaetigung(t('chat_verlassen_frage'), { gefahr: true, jaText: t('chat_verlassen') });
+  if (!ok) return;
+  try {
+    const { error } = await sbClient.rpc('chat_teilnehmer_entfernen', { p_chat: chatAktivId, p_user: aktuellerUser.id });
+    if (error) throw error;
+    chatInfoSchliessen();
+    chatZeigeLeer();
+    await chatLadeListe();
+  } catch (e) { console.warn('Gruppe verlassen:', e.message || e); zeigeHinweis(t('chat_fehler')); }
+}
+
+// ---- Ungelesen-Badge (Menüeintrag) ------------------------------------------
+function chatBadgeAktualisieren() {
+  const gesamt = (chatListe || []).reduce((s, c) => s + (c.ungelesen || 0), 0);
+  const badge = document.getElementById('avatar-menu-chat-badge');
+  if (badge) { badge.textContent = gesamt > 99 ? '99+' : String(gesamt); badge.style.display = gesamt > 0 ? '' : 'none'; }
+}
+
+// ---- Sprachwechsel: offene Chat-Oberflächen neu rendern ---------------------
+function chatSpracheUpdate() {
+  const offen = id => document.getElementById(id)?.classList.contains('aktiv');
+  if (offen('chat-modal')) {
+    chatRenderListe();
+    if (chatAktivId) chatRenderKonversation(); else chatZeigeLeer();
+  }
+  if (offen('chat-neu-modal')) chatNeuRender();
+  if (offen('chat-info-modal')) chatInfoRender();
 }
 
 // ============================================================
@@ -6312,6 +7020,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('event-teilnehmer-modal') && typeof renderEtnListe === 'function') renderEtnListe();   // Teilnehmer-Liste in neuer Sprache
   if (typeof aktualisiereBenachrBadge === 'function') aktualisiereBenachrBadge();   // Badge-Text (99+)
   if (offen('obav-modal') && typeof renderObavZentral === 'function') renderObavZentral();   // kombiniertes Obavještenja neu
+  if (typeof chatSpracheUpdate === 'function') chatSpracheUpdate();   // offene Chat-Oberflächen (Liste/Konversation/Picker/Info) neu rendern
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget/-Modal in neuer Sprache neu beschriften
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
@@ -6347,8 +7056,13 @@ function wechselSprache(lang, speichern = true) {
   if (typeof ansichtModalSprachUpdate === 'function') ansichtModalSprachUpdate();
   // „Abweichender Nachname"-Overlay: dynamischen Titel + Beziehungs-Select neu aufbauen
   if (typeof abwSpracheUpdate === 'function') abwSpracheUpdate();
+  // Baum-Integrität: offenen Diagnose-Bericht neu beschriften
+  if (typeof integSpracheUpdate === 'function') integSpracheUpdate();
   // Foto-Galerie: offene Grids (Editor/Detail) neu rendern (dynamische t()-Labels)
   if (typeof galerieSpracheUpdate === 'function') galerieSpracheUpdate();
+  if (typeof geschSpracheUpdate === 'function') geschSpracheUpdate();
+  // Dokumente & Quellen: offene Listen (Editor/Detail) in neuer Sprache neu rendern
+  if (typeof dokSpracheUpdate === 'function') dokSpracheUpdate();
   // ALLE Länder-Dropdowns (zentrale Komponente) in neuer Sprache neu befüllen — Auswahl bleibt.
   if (typeof fuelleLandSelects === 'function') fuelleLandSelects(document);
   if (document.getElementById('registrier-modal')?.classList.contains('aktiv')) {
@@ -8286,6 +9000,10 @@ async function zeigeShorts() {
   // ----- Ansicht B: Zeitstrahl (teilt eventsCache; Lebensdaten aus aktuelleDaten) -----
   zsFuelleFilter();   // Filter-Optionen (Personen/Jahrzehnte) aus den frischen Daten
   zsRender();         // Achse zeichnen (auch wenn versteckt -> nach Modus-Wechsel sofort da)
+
+  // ----- Ansicht C: Karte (teilt eventsCache; nur wenn aktiv neu zeichnen) -----
+  karteFuelleFilter();
+  if (evModus === 'karte') karteRender();
 }
 
 // ============================================================
@@ -8316,18 +9034,21 @@ function zsName(p) { return p ? nm(p.name || ((p.given || '') + ' ' + (p.surname
 function evApplyModusUI() {
   const lWrap = document.getElementById('ev-liste-wrap');
   const zWrap = document.getElementById('ev-zeit-wrap');
+  const kWrap = document.getElementById('ev-karte-wrap');
   if (lWrap) lWrap.style.display = (evModus === 'liste') ? '' : 'none';
   if (zWrap) zWrap.style.display = (evModus === 'zeit')  ? '' : 'none';
+  if (kWrap) kWrap.style.display = (evModus === 'karte') ? '' : 'none';
   document.querySelectorAll('#ev-modus .ev-modus-btn').forEach(b =>
     b.classList.toggle('aktiv', b.dataset.evModus === evModus));
 }
 function evSetModus(m) {
-  if (m !== 'liste' && m !== 'zeit') return;
+  if (m !== 'liste' && m !== 'zeit' && m !== 'karte') return;
   evModus = m;
   evApplyModusUI();
   const btn = document.getElementById('event-neu-btn');
   if (btn) btn.style.display = (istAdmin() && aktuellerStammbaumId && evModus === 'liste') ? '' : 'none';
-  if (m === 'zeit') { zsFuelleFilter(); zsRender(); }
+  if (m === 'zeit')  { zsFuelleFilter(); zsRender(); }
+  if (m === 'karte') { karteFuelleFilter(); karteRender(); }
 }
 
 // Marker aus BEIDEN Quellen bauen (nur aktiver Baum, nur parsebare ISO-Daten).
@@ -8511,6 +9232,283 @@ function zsMarkerHtml(mk) {
     </div>`;
 }
 
+// ============================================================
+// EREIGNIS-BEREICH — ANSICHT C: KARTE (rein lesend; Leaflet/OpenStreetMap)
+// Teilt eventsCache (events_fuer_mich). lat/lng + bezugsperson_id liegen am Event
+// (keine neue Tabelle/RPC). Marker sind CSS-DivIcons (kein externes Bild -> CSP-schonend).
+// Modus 'alle' = alle verorteten Events des aktiven Baums; Modus 'person' =
+// Migrationspfad EINER Bezugsperson (ihre verorteten Events chronologisch, Polyline,
+// Start grün/Ende rot). Scope = aktiver Baum (wie Liste/Zeitstrahl).
+// ============================================================
+let karteModus = 'alle';          // 'alle' | 'person'
+let karteMap = null;              // Leaflet-Map (lazy, erst wenn sichtbar)
+let karteLayer = null;            // FeatureGroup (wird je Render geleert)
+let karteInitFehler = false;      // Leaflet nicht geladen?
+
+// Verortete Events des aktiven Baums (lat/lng gesetzt).
+function karteEvents() {
+  return (eventsCache || []).filter(ev =>
+    (!ev.stammbaum_id || ev.stammbaum_id === aktuellerStammbaumId) &&
+    typeof ev.latitude === 'number' && typeof ev.longitude === 'number' &&
+    isFinite(ev.latitude) && isFinite(ev.longitude));
+}
+
+// Bezugspersonen mit ≥1 verortetem Event -> Personen-Filter (Migrationspfad).
+function kartePersonen() {
+  const seen = new Map();
+  karteEvents().forEach(ev => {
+    if (!ev.bezugsperson_id || seen.has(ev.bezugsperson_id)) return;
+    const p = Object.values(aktuelleDaten.persons || {})
+      .find(pp => pp && String(pp._uuid) === String(ev.bezugsperson_id));
+    seen.set(ev.bezugsperson_id, p ? zsName(p) : '');
+  });
+  return [...seen.entries()].map(([id, name]) => ({ id, name }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+}
+
+function karteSetModus(m) {
+  if (m !== 'alle' && m !== 'person') return;
+  karteModus = m;
+  document.querySelectorAll('#karte-modus .karte-modus-btn').forEach(b =>
+    b.classList.toggle('aktiv', b.dataset.karteModus === m));
+  const pw = document.getElementById('karte-person-wrap');
+  if (pw) pw.style.display = (m === 'person') ? '' : 'none';
+  karteRender();
+}
+
+function karteFuelleFilter() {
+  const fp = document.getElementById('karte-f-person');
+  if (!fp) return;
+  const personen = kartePersonen();
+  const alt = fp.value;
+  fp.innerHTML = `<option value="">${escapeHtml(t('karte_person_waehlen'))}</option>` +
+    personen.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || t('zs_alle'))}</option>`).join('');
+  fp.value = personen.some(p => String(p.id) === String(alt)) ? alt : '';
+}
+
+// Leaflet-Map lazy aufbauen (Container muss sichtbar + gemessen sein).
+function karteInit() {
+  if (karteMap || karteInitFehler) return karteMap;
+  if (typeof L === 'undefined') { karteInitFehler = true; return null; }
+  const el = document.getElementById('event-karte');
+  if (!el) return null;
+  karteMap = L.map(el, { scrollWheelZoom: true }).setView([44.0, 18.0], 5);   // Balkan-Default
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap'
+  }).addTo(karteMap);
+  karteLayer = L.featureGroup().addTo(karteMap);
+  return karteMap;
+}
+
+// DivIcon (CSS-Pin) — keine externen Marker-Bilder (CSP-schonend).
+function karteIcon(cls, label) {
+  return L.divIcon({ className: 'karte-pin-wrap',
+    html: `<span class="karte-pin ${cls}">${label != null ? label : ''}</span>`,
+    iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -26] });
+}
+
+function kartePopupHtml(ev) {
+  const typLb = ev.typ ? t('evt_' + ev.typ) : t('evt_sonstiges');
+  const zeilen = [
+    `<strong>${escapeHtml(ev.titel || '')}</strong>`,
+    ev.datum ? `${escapeHtml(t('event_datum'))}: ${escapeHtml(formatDatumLang(ev.datum))}` : '',
+    `${escapeHtml(t('event_typ'))}: ${escapeHtml(typLb)}`,
+    ev.ort ? `${escapeHtml(t('event_ort'))}: ${escapeHtml(uebersetzeOrt(ev.ort))}` : ''
+  ].filter(Boolean).join('<br>');
+  return `<div class="karte-popup">${zeilen}
+    <button class="karte-popup-btn" type="button" onclick="zeigeEventDetail('${ev.id}')">${escapeHtml(t('karte_details'))}</button></div>`;
+}
+
+function karteLeer(msg) {
+  const leer = document.getElementById('karte-leer');
+  if (leer) { leer.style.display = ''; leer.textContent = msg; }
+  if (karteLayer) karteLayer.clearLayers();
+  const leg = document.getElementById('karte-legende');
+  if (leg) leg.style.display = 'none';
+}
+function karteLeerAus() { const leer = document.getElementById('karte-leer'); if (leer) leer.style.display = 'none'; }
+function karteFit() {
+  if (!karteMap || !karteLayer) return;
+  const b = karteLayer.getBounds();
+  if (b && b.isValid()) karteMap.fitBounds(b, { padding: [40, 40], maxZoom: 13 });
+}
+
+function karteRender() {
+  const map = karteInit();
+  if (!map) { karteLeer(t('karte_nicht_geladen')); return; }
+  setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);   // 0-Höhe beim ersten Anzeigen
+  karteLayer.clearLayers();
+  const leg = document.getElementById('karte-legende');
+  if (leg) leg.style.display = 'none';
+
+  if (!aktuellerStammbaumId) { karteLeer(t('event_kein_baum')); return; }
+
+  if (karteModus === 'person') {
+    const fp  = document.getElementById('karte-f-person');
+    const pid = fp ? fp.value : '';
+    if (!pid) { karteLeer(t('karte_person_hinweis')); return; }
+    let evs = karteEvents().filter(ev => String(ev.bezugsperson_id) === String(pid) && zsIso(ev.datum));
+    evs.sort((a, b) => zsIso(a.datum).localeCompare(zsIso(b.datum)));   // chronologisch
+    if (evs.length === 0) { karteLeer(t('karte_keine_person_orte')); return; }
+    karteLeerAus();
+    const punkte = [];
+    evs.forEach((ev, i) => {
+      const ll = [ev.latitude, ev.longitude];
+      punkte.push(ll);
+      const cls = (i === 0) ? 'start' : (i === evs.length - 1 ? 'ende' : 'pfad');
+      L.marker(ll, { icon: karteIcon(cls, String(i + 1)) })
+        .bindPopup(kartePopupHtml(ev)).addTo(karteLayer);
+    });
+    if (punkte.length > 1)
+      L.polyline(punkte, { color: '#9c7c3c', weight: 3, opacity: 0.85, dashArray: '6 6' }).addTo(karteLayer);
+    if (leg && evs.length > 1) leg.style.display = '';
+    karteFit();
+    return;
+  }
+
+  // Modus 'alle': alle verorteten Events
+  const evs = karteEvents();
+  if (evs.length === 0) { karteLeer(t('karte_keine_orte')); return; }
+  karteLeerAus();
+  evs.forEach(ev => {
+    L.marker([ev.latitude, ev.longitude], { icon: karteIcon('event', '📍') })
+      .bindPopup(kartePopupHtml(ev)).addTo(karteLayer);
+  });
+  karteFit();
+}
+
+// ============================================================
+// GEOCODING-EDITOR (Event-Modal): Nominatim-Ortssuche + Klick-Karte
+// Setzt lat/lng am Event. Rate-Limit-schonend (debounced, min. ~1.1s zwischen
+// Anfragen). Fallback: Position direkt auf der Karte anklicken.
+// ============================================================
+let geoEditMap = null, geoEditMarker = null, geoSucheTimer = null, geoLetzteSuche = 0;
+
+function geoEditInit() {
+  if (typeof L === 'undefined') return null;
+  const el = document.getElementById('ev-geo-map');
+  if (!el) return null;
+  if (geoEditMap) { setTimeout(() => { try { geoEditMap.invalidateSize(); } catch (e) {} }, 60); return geoEditMap; }
+  geoEditMap = L.map(el, { scrollWheelZoom: false }).setView([44.0, 18.0], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap'
+  }).addTo(geoEditMap);
+  geoEditMap.on('click', e => geoSetze(e.latlng.lat, e.latlng.lng, false));   // manuell setzen
+  setTimeout(() => { try { geoEditMap.invalidateSize(); } catch (e) {} }, 60);
+  return geoEditMap;
+}
+
+// Editor-Karte beim Öffnen des Event-Modals vorbereiten (Container ist dann sichtbar).
+function geoEditOeffnen(lat, lng) {
+  const suche = document.getElementById('ev-geo-suche');
+  const tref  = document.getElementById('ev-geo-treffer');
+  if (suche) suche.value = '';
+  if (tref)  tref.innerHTML = '';
+  const map = geoEditInit();
+  if (geoEditMarker && map) { map.removeLayer(geoEditMarker); geoEditMarker = null; }
+  const hatKoord = lat != null && lng != null && lat !== '' && lng !== '' && !isNaN(+lat) && !isNaN(+lng);
+  if (hatKoord) {
+    geoSetze(+lat, +lng, true);
+  } else {
+    document.getElementById('ev-lat').value = '';
+    document.getElementById('ev-lng').value = '';
+    if (map) map.setView([44.0, 18.0], 5);
+    geoStatusAktualisieren();
+  }
+}
+
+// Marker + Felder setzen; recenter optional (true bei Treffer-Wahl, false bei Klick).
+function geoSetze(lat, lng, recenter) {
+  lat = +(+lat).toFixed(6); lng = +(+lng).toFixed(6);
+  document.getElementById('ev-lat').value = lat;
+  document.getElementById('ev-lng').value = lng;
+  const map = geoEditInit();
+  if (map) {
+    if (geoEditMarker) geoEditMarker.setLatLng([lat, lng]);
+    else geoEditMarker = L.marker([lat, lng], { icon: karteIcon('event', '📍') }).addTo(map);
+    if (recenter) map.setView([lat, lng], Math.max(map.getZoom() || 5, 11));
+  }
+  geoStatusAktualisieren();
+}
+
+function geoEntfernen() {
+  document.getElementById('ev-lat').value = '';
+  document.getElementById('ev-lng').value = '';
+  if (geoEditMap && geoEditMarker) { geoEditMap.removeLayer(geoEditMarker); geoEditMarker = null; }
+  geoStatusAktualisieren();
+}
+
+function geoStatusAktualisieren() {
+  const lat = document.getElementById('ev-lat').value;
+  const lng = document.getElementById('ev-lng').value;
+  const st  = document.getElementById('ev-geo-status');
+  const clr = document.getElementById('ev-geo-clear');
+  if (lat && lng) {
+    if (st)  st.textContent = t('geo_gesetzt') + ': ' + (+lat).toFixed(4) + ', ' + (+lng).toFixed(4);
+    if (clr) clr.style.display = '';
+  } else {
+    if (st)  st.textContent = t('geo_kein_koord');
+    if (clr) clr.style.display = 'none';
+  }
+}
+
+function geoSucheDebounce() {
+  clearTimeout(geoSucheTimer);
+  geoSucheTimer = setTimeout(geoSucheAusfuehren, 700);   // Tippen abwarten (Nominatim schonen)
+}
+
+async function geoSucheAusfuehren() {
+  clearTimeout(geoSucheTimer);
+  const inp = document.getElementById('ev-geo-suche');
+  const box = document.getElementById('ev-geo-treffer');
+  if (!inp || !box) return;
+  const q = inp.value.trim();
+  if (q.length < 3) { box.innerHTML = ''; return; }
+  // Nominatim-Policy: höchstens ~1 Anfrage/Sekunde -> Mindestabstand erzwingen.
+  const seit = Date.now() - geoLetzteSuche;
+  if (seit < 1100) { geoSucheTimer = setTimeout(geoSucheAusfuehren, 1100 - seit); return; }
+  geoLetzteSuche = Date.now();
+  box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_suchen_laeuft'))}</div>`;
+  try {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language='
+      + encodeURIComponent(aktuelleSprache || 'de') + '&q=' + encodeURIComponent(q);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const daten = await res.json();
+    if (!Array.isArray(daten) || daten.length === 0) {
+      box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_keine_treffer'))}</div>`;
+      return;
+    }
+    box.innerHTML = daten.map(d =>
+      `<button type="button" class="geo-treffer-item" data-name="${escapeHtml(d.display_name)}"
+         onclick="geoTrefferWahl(${(+d.lat)}, ${(+d.lon)}, this)">${escapeHtml(d.display_name)}</button>`).join('');
+  } catch (e) {
+    box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_keine_treffer'))}</div>`;
+  }
+}
+
+function geoTrefferWahl(lat, lng, btn) {
+  geoSetze(lat, lng, true);
+  const box = document.getElementById('ev-geo-treffer');
+  if (box) box.innerHTML = '';
+  // Wenn das Ort-Feld leer ist: Kurzform des Treffer-Namens übernehmen (Komfort).
+  const ortEl = document.getElementById('ev-ort');
+  if (ortEl && !ortEl.value.trim() && btn && btn.dataset.name)
+    ortEl.value = btn.dataset.name.split(',').slice(0, 2).join(', ').replace(/\s+/g, ' ').trim();
+}
+
+// Bezugsperson-Dropdown (Personen des aktiven Baums) füllen; Wert = personen.id (DB-UUID).
+function bezugspersonOptionen(selUuid) {
+  const sel = document.getElementById('ev-bezugsperson');
+  if (!sel) return;
+  const personen = Object.values(aktuelleDaten.persons || {})
+    .filter(p => p && p._tree === aktuellerStammbaumId && !p.platzhalter && p._uuid)
+    .map(p => ({ uuid: p._uuid, name: zsName(p) }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  sel.innerHTML = `<option value="">${escapeHtml(t('ev_bezugsperson_keine'))}</option>` +
+    personen.map(p => `<option value="${escapeHtml(p.uuid)}">${escapeHtml(p.name)}</option>`).join('');
+  sel.value = (selUuid && personen.some(p => String(p.uuid) === String(selUuid))) ? selUuid : '';
+}
+
 // ---- Event anlegen/bearbeiten/löschen (pro Stammbaum) ----
 function zeigeEventNeu() {
   if (!istAdmin() || !aktuellerStammbaumId) return;
@@ -8524,10 +9522,14 @@ function zeigeEventNeu() {
   document.getElementById('ev-fehler').style.display = 'none';
   document.getElementById('ev-erfolg').style.display = 'none';
   document.getElementById('event-modal-titel').textContent = t('event_neu');
+  // Geokoordinaten + Bezugsperson zurücksetzen
+  document.getElementById('ev-lat').value = '';
+  document.getElementById('ev-lng').value = '';
+  bezugspersonOptionen('');
   // Teilnehmer/Sichtbarkeit erst nach dem ersten Speichern (Event braucht eine id)
   document.getElementById('ev-teilnehmer-section').style.display = 'none';
   document.getElementById('event-modal').classList.add('aktiv');
-  setTimeout(() => document.getElementById('ev-titel').focus(), 60);
+  setTimeout(() => { geoEditOeffnen('', ''); document.getElementById('ev-titel').focus(); }, 80);
 }
 
 function zeigeEventBearbeiten(eventId) {
@@ -8544,6 +9546,11 @@ function zeigeEventBearbeiten(eventId) {
   document.getElementById('ev-media-input').value = '';
   document.getElementById('ev-media-status').textContent = '';
   ladeEventMedienListe(ev.id);                      // vorhandene Medien (Storage) anzeigen + löschbar
+  // Geokoordinaten + Bezugsperson vorbelegen
+  const hatGeo = typeof ev.latitude === 'number' && typeof ev.longitude === 'number';
+  document.getElementById('ev-lat').value = hatGeo ? ev.latitude : '';
+  document.getElementById('ev-lng').value = hatGeo ? ev.longitude : '';
+  bezugspersonOptionen(ev.bezugsperson_id || '');
   document.getElementById('ev-fehler').style.display = 'none';
   document.getElementById('ev-erfolg').style.display = 'none';
   document.getElementById('event-modal-titel').textContent = t('event_bearbeiten');
@@ -8551,6 +9558,7 @@ function zeigeEventBearbeiten(eventId) {
   document.getElementById('ev-teilnehmer-section').style.display = '';
   document.getElementById('ev-teilnehmer-status').textContent = '';
   document.getElementById('event-modal').classList.add('aktiv');
+  setTimeout(() => geoEditOeffnen(hatGeo ? ev.latitude : '', hatGeo ? ev.longitude : ''), 80);
 }
 
 // Medienliste eines Events (DB) in die Edit-Maske rendern — nutzt die geteilten
@@ -9066,12 +10074,19 @@ async function speichereEvent() {
   if (!titel) return feldFehler('ev-titel', t('feld_pflicht'));
 
   const id = document.getElementById('ev-id').value || null;
+  // Geokoordinaten (optional) + Bezugsperson (optional, DB-UUID) auslesen
+  const latRaw = document.getElementById('ev-lat').value;
+  const lngRaw = document.getElementById('ev-lng').value;
+  const pLat = (latRaw !== '' && !isNaN(+latRaw)) ? +latRaw : null;
+  const pLng = (lngRaw !== '' && !isNaN(+lngRaw)) ? +lngRaw : null;
+  const pBezug = document.getElementById('ev-bezugsperson').value || null;
   const alt = button.textContent; button.disabled = true; button.textContent = t('reg_senden_laeuft');
   const { data: gespeicherteId, error } = await sbClient.rpc('event_speichern', {
     p_id: id, p_tree: aktuellerStammbaumId, p_titel: titel,
     p_beschreibung: v('ev-beschreibung') || null, p_datum: datumWert(document.getElementById('ev-datum')) || null,
     p_ort: v('ev-ort') || null, p_typ: document.getElementById('ev-typ').value || null,
-    p_sprache: aktuelleSprache, p_organisator: v('ev-organisator') || null
+    p_sprache: aktuelleSprache, p_organisator: v('ev-organisator') || null,
+    p_latitude: pLat, p_longitude: pLng, p_bezugsperson: pBezug
   });
   if (error) {
     button.disabled = false; button.textContent = alt;
@@ -9934,7 +10949,10 @@ function zeigeDetails(personId) {
     ${p.ausbildung ? `<div class="info-zeile"><strong>${t('pe_ausbildung')}:</strong> ${escapeHtml(p.ausbildung)}</div>` : ''}
     ${(p.adresse || p.wohnort_stadt || p.wohnort_land) ? `<div class="info-zeile"><strong>${t('pe_g_wohnen')}:</strong> ${escapeHtml([uebersetzeOrt([p.adresse, p.wohnort_stadt].filter(Boolean).join(', ')), landAnzeige(p.wohnort_land)].filter(Boolean).join(', '))}</div>` : ''}
     ${(p.email || p.telefon || p.facebook || p.instagram) ? `<div class="info-zeile"><strong>${t('reg_kontakt')}:</strong> ${escapeHtml([p.email, p.telefon, p.facebook, p.instagram].filter(Boolean).join(' · '))}</div>` : ''}
-    ${p.beschreibung ? `<div class="info-zeile"><strong>${t('pe_beschreibung')}:</strong> ${escapeHtml(p.beschreibung)}</div>` : ''}
+    ${p.beschreibung ? `<div class="info-zeile" id="detail-beschreibung-zeile"><strong>${t('pe_beschreibung')}:</strong> ${escapeHtml(p.beschreibung)}</div>` : ''}
+
+    <!-- Mehrsprachige Lebensgeschichte (read-only) — per JS asynchron nach dem Öffnen befüllt -->
+    <div id="detail-geschichte"></div>
 
     ${sektion('eltern', buildVerwandte(eltern, 'eltern'), 'elternteil')}
     ${sektion('geschwister', buildVerwandte(geschwister, 'geschwister'), 'geschwister')}
@@ -9943,6 +10961,9 @@ function zeigeDetails(personId) {
 
     <!-- Foto-Galerie (read-only) — per JS asynchron nach dem Öffnen befüllt -->
     <div id="detail-galerie"></div>
+
+    <!-- Dokumente & Quellen (read-only) — per JS asynchron nach dem Öffnen befüllt -->
+    <div id="detail-dokumente"></div>
 
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
@@ -9957,6 +10978,8 @@ function zeigeDetails(personId) {
   detailWatchId = personId; detailWatchSig = personSignatur(personId);
   pruefeLockBanner();   // P4: ggf. „wird gerade von X bearbeitet" anzeigen
   galerieDetailRender(p);   // Foto-Galerie (read-only) asynchron nachladen
+  dokDetailRender(p);       // Dokumente & Quellen (read-only) asynchron nachladen
+  geschDetailRender(p);     // Lebensgeschichte (read-only, lokalisiert) asynchron nachladen
 }
 
 function schliesseModal() {
@@ -10305,6 +11328,8 @@ async function zeigePersonBearbeiten(personId) {
   const ban = document.getElementById('sync-hinweis-edit'); if (ban) ban.remove();
   presenceTrack(personId);   // P4: Bearbeitungssperre für diese Person setzen
   galerieEditOeffnen(p);     // Foto-Galerie (Verwaltung) laden + rendern (async)
+  dokEditOeffnen(p);         // Dokumente & Quellen (Verwaltung) laden + rendern (async)
+  geschEditOeffnen(p);       // Mehrsprachige Lebensgeschichten (Verwaltung) laden (async)
 }
 
 // Bedingte Felder im Editor ein-/ausblenden
@@ -10651,6 +11676,492 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') schliesseLightbox();
   else if (e.key === 'ArrowLeft') lightboxNav(-1);
   else if (e.key === 'ArrowRight') lightboxNav(1);
+});
+
+// ============================================================
+// MEHRSPRACHIGE LEBENSGESCHICHTEN pro Person (Tabelle personen_geschichten).
+// Erweitert das einfache Biografie-/Notiz-Feld (stammbaum_daten.beschreibung,
+// dessen Verhalten/Sync unverändert bleibt) um strukturierte, mehrsprachige
+// Geschichten mit Markdown. Verwaltung im Editor (#pe-geschichte, nur Bearbeiter),
+// read-only-Anzeige in der Detailkarte (#detail-geschichte, alle Nutzer) in der
+// aktuellen App-Sprache mit Fallback-Hinweis. Identitäts-Sync (Zwillinge) erfolgt
+// serverseitig im Trigger geschichte_ident_sync — analog zum beschreibung-Feld.
+// ============================================================
+const GESCH_SPRACHEN = ['de', 'sr', 'hr', 'ba', 'en'];
+let geschCtx    = null;   // { personUuid, personExt, stammbaumId, familieId }
+let geschDaten  = {};     // sprache -> { id, sprache, titel, text, veroeffentlicht, _exists, _dirty }
+let geschAktiv  = 'de';   // aktuell bearbeitete Sprache (Tab)
+
+// --- Markdown -> sicheres HTML ---------------------------------------------
+// Whitelist-Sanitizer (kein zweites Dependency wie DOMPurify): rendert Markdown
+// per marked und entfernt anschließend alle nicht erlaubten Tags/Attribute, damit
+// von Bearbeitern eingebettetes Roh-HTML kein Stored-XSS erzeugen kann.
+const GESCH_TAGS_OK = new Set(['P','BR','HR','STRONG','EM','B','I','U','S','DEL','MARK',
+  'H1','H2','H3','H4','H5','H6','UL','OL','LI','BLOCKQUOTE','CODE','PRE','A','IMG',
+  'TABLE','THEAD','TBODY','TR','TH','TD','SPAN']);
+const GESCH_TAGS_WEG = new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','FORM','INPUT',
+  'BUTTON','TEXTAREA','SELECT','SVG','MATH','LINK','META','BASE','TITLE','AUDIO','VIDEO','SOURCE']);
+
+function geschCleanElement(el) {
+  Array.from(el.children).forEach(kind => {
+    const tag = kind.tagName;
+    if (GESCH_TAGS_WEG.has(tag)) { kind.remove(); return; }
+    if (!GESCH_TAGS_OK.has(tag)) {                 // unbekanntes Tag: Inhalt zuerst säubern, dann auspacken
+      geschCleanElement(kind);
+      const p = kind.parentNode;
+      while (kind.firstChild) p.insertBefore(kind.firstChild, kind);
+      p.removeChild(kind);
+      return;
+    }
+    Array.from(kind.attributes).forEach(a => {     // nur sichere Attribute behalten
+      const n = a.name.toLowerCase();
+      const ok = (tag === 'A' && n === 'href') || (tag === 'IMG' && (n === 'src' || n === 'alt')) || n === 'title';
+      if (!ok) kind.removeAttribute(a.name);
+    });
+    if (tag === 'A') {
+      const h = kind.getAttribute('href') || '';
+      if (!/^(https?:|mailto:)/i.test(h)) kind.removeAttribute('href');
+      kind.setAttribute('target', '_blank');
+      kind.setAttribute('rel', 'noopener noreferrer nofollow');
+    }
+    if (tag === 'IMG') {
+      const s = kind.getAttribute('src') || '';
+      if (!/^https?:/i.test(s)) { kind.remove(); return; }
+      kind.setAttribute('loading', 'lazy');
+    }
+    geschCleanElement(kind);
+  });
+}
+
+function geschMarkdownHtml(md) {
+  const src = (md == null ? '' : String(md));
+  if (!src.trim()) return '';
+  if (window.marked && typeof marked.parse === 'function') {
+    let roh = null;
+    try { roh = marked.parse(src, { breaks: true, gfm: true }); } catch (e) { roh = null; }
+    if (roh != null) {
+      const tmpl = document.createElement('template');
+      tmpl.innerHTML = roh;
+      const tw = document.createTreeWalker(tmpl.content, NodeFilter.SHOW_COMMENT, null);
+      const weg = []; while (tw.nextNode()) weg.push(tw.currentNode); weg.forEach(n => n.remove());
+      geschCleanElement(tmpl.content);
+      return tmpl.innerHTML;
+    }
+  }
+  // Fallback ohne marked (z. B. CDN blockiert): escapter Klartext mit Zeilenumbrüchen.
+  return escapeHtml(src).replace(/\n/g, '<br>');
+}
+
+// --- Laden ------------------------------------------------------------------
+async function ladePersonGeschichten(personUuid) {
+  if (!personUuid) return [];
+  const { data, error } = await sbClient.from('personen_geschichten')
+    .select('id, person_id, sprache, titel, text, veroeffentlicht, aktualisiert_am')
+    .eq('person_id', personUuid);
+  if (error) { console.warn('Geschichten laden:', error); return []; }
+  return data || [];
+}
+
+// --- Verwaltung im Editor ---------------------------------------------------
+async function geschEditOeffnen(p) {
+  const box = document.getElementById('pe-geschichte');
+  if (!box || !p || !p._uuid) return;
+  const tree = p._tree || aktuellerStammbaumId || null;
+  geschCtx = { personUuid: p._uuid, personExt: p.id, stammbaumId: tree,
+               familieId: stammbaumZuFamilie[tree] || null };
+  geschDaten = {};
+  geschAktiv = GESCH_SPRACHEN.includes(aktuelleSprache) ? aktuelleSprache : 'de';
+  geschStatus('', null);
+  const rows = await ladePersonGeschichten(p._uuid);
+  rows.forEach(r => { geschDaten[r.sprache] = {
+    id: r.id, sprache: r.sprache, titel: r.titel || '', text: r.text || '',
+    veroeffentlicht: r.veroeffentlicht !== false, _exists: true, _dirty: false }; });
+  geschRenderTabs();
+  geschFuelleFelder();
+}
+
+// In-Memory-Puffer der aktiven Sprache holen/anlegen (Default: veröffentlicht).
+function geschPuffer(lang) {
+  if (!geschDaten[lang]) geschDaten[lang] = {
+    id: null, sprache: lang, titel: '', text: '', veroeffentlicht: true, _exists: false, _dirty: false };
+  return geschDaten[lang];
+}
+
+function geschRenderTabs() {
+  const wrap = document.getElementById('gesch-tabs');
+  if (!wrap) return;
+  wrap.innerHTML = GESCH_SPRACHEN.map(l => {
+    const d = geschDaten[l];
+    const hatInhalt = d && ((d.titel && d.titel.trim()) || (d.text && d.text.trim()));
+    const entwurf = d && d._exists && d.veroeffentlicht === false;
+    return `<button type="button" class="gesch-tab${l === geschAktiv ? ' aktiv' : ''}"
+              onclick="geschTabWechsel('${l}')">${l.toUpperCase()}${hatInhalt ? '<span class="gesch-tab-dot" title="' + escapeHtml(t(entwurf ? 'gesch_entwurf_badge' : 'gesch_veroeffentlicht')) + '"></span>' : ''}</button>`;
+  }).join('');
+}
+
+// Felder aus dem Puffer der aktiven Sprache befüllen + Vorschau aktualisieren.
+function geschFuelleFelder() {
+  const d = geschPuffer(geschAktiv);
+  const ti = document.getElementById('gesch-titel-input');
+  const tx = document.getElementById('gesch-text-input');
+  const vb = document.getElementById('gesch-veroeffentlicht');
+  if (ti) ti.value = d.titel || '';
+  if (tx) tx.value = d.text || '';
+  if (vb) vb.checked = d.veroeffentlicht !== false;
+  geschVorschau();
+}
+
+// Eingaben live in den Puffer übernehmen (Tab-Wechsel verliert nichts) + Vorschau.
+function geschFeldInput() {
+  const d = geschPuffer(geschAktiv);
+  d.titel = (document.getElementById('gesch-titel-input') || {}).value || '';
+  d.text  = (document.getElementById('gesch-text-input')  || {}).value || '';
+  const vb = document.getElementById('gesch-veroeffentlicht');
+  d.veroeffentlicht = vb ? vb.checked : true;
+  d._dirty = true;
+  geschVorschau();
+  geschRenderTabs();
+}
+
+function geschVorschau() {
+  const host = document.getElementById('gesch-vorschau');
+  if (!host) return;
+  const tx = document.getElementById('gesch-text-input');
+  host.innerHTML = geschMarkdownHtml(tx ? tx.value : '');
+}
+
+function geschTabWechsel(lang) {
+  if (!GESCH_SPRACHEN.includes(lang)) return;
+  geschFeldInput();      // aktuellen Stand sichern
+  geschAktiv = lang;
+  geschRenderTabs();
+  geschFuelleFelder();
+}
+
+function geschStatus(msg, ok) {
+  const el = document.getElementById('gesch-status');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.textContent = msg;
+  el.className = 'gesch-status' + (ok === false ? ' fehler' : ok === true ? ' ok' : '');
+  el.style.display = 'block';
+}
+
+async function geschSpeichern() {
+  if (!geschCtx) return;
+  if (!geschCtx.familieId || !geschCtx.stammbaumId) { geschStatus(t('gesch_fehler') + 'Baum/Familie', false); return; }
+  geschFeldInput();
+  const d = geschPuffer(geschAktiv);
+  const leer = !(d.titel && d.titel.trim()) && !(d.text && d.text.trim());
+  if (leer) {   // leere Geschichte = vorhandene löschen bzw. nichts tun
+    if (d._exists) return geschLoeschen(true);
+    geschStatus('', null); return;
+  }
+  const payload = {
+    person_id: geschCtx.personUuid, familie_id: geschCtx.familieId,
+    stammbaum_id: geschCtx.stammbaumId, sprache: d.sprache,
+    titel: d.titel.trim() || null, text: d.text.trim() || null,
+    veroeffentlicht: d.veroeffentlicht !== false
+  };
+  const { data, error } = await sbClient.from('personen_geschichten')
+    .upsert(payload, { onConflict: 'person_id,sprache' })
+    .select('id, sprache, titel, text, veroeffentlicht').single();
+  if (error) { geschStatus(t('gesch_fehler') + error.message, false); return; }
+  geschDaten[d.sprache] = { id: data.id, sprache: data.sprache, titel: data.titel || '',
+    text: data.text || '', veroeffentlicht: data.veroeffentlicht !== false, _exists: true, _dirty: false };
+  geschRenderTabs();
+  geschStatus(t('gesch_gespeichert'), true);
+}
+
+async function geschLoeschen(still) {
+  if (!geschCtx) return;
+  const d = geschDaten[geschAktiv];
+  if (!d || !d._exists || !d.id) {   // nur Puffer leeren
+    if (geschDaten[geschAktiv]) delete geschDaten[geschAktiv];
+    geschRenderTabs(); geschFuelleFelder(); return;
+  }
+  if (!still) {
+    const ok = await zeigeBestaetigung(t('gesch_loeschen_frage', { sprache: geschAktiv.toUpperCase() }), { gefahr: true });
+    if (!ok) return;
+  }
+  const { error } = await sbClient.from('personen_geschichten').delete().eq('id', d.id);
+  if (error) { geschStatus(t('gesch_fehler') + error.message, false); return; }
+  delete geschDaten[geschAktiv];
+  geschRenderTabs(); geschFuelleFelder();
+  geschStatus(t('gesch_geloescht'), true);
+}
+
+// --- Read-only-Anzeige in der Detailkarte -----------------------------------
+// Wählt die Geschichte in der aktuellen App-Sprache; sonst Fallback auf eine
+// vorhandene Sprachversion mit Hinweis. Entwürfe sieht nur ein Bearbeiter (RLS
+// filtert sie für andere ohnehin weg).
+function geschWaehleAnzeige(rows) {
+  const map = {}; rows.forEach(r => { map[r.sprache] = r; });
+  const sichtbar = r => r && (r.veroeffentlicht !== false || istAdmin()) && ((r.text && r.text.trim()) || (r.titel && r.titel.trim()));
+  if (sichtbar(map[aktuelleSprache])) return { row: map[aktuelleSprache], fallback: false };
+  for (const l of [aktuelleSprache, 'de', 'en', 'sr', 'hr', 'ba']) {
+    if (sichtbar(map[l])) return { row: map[l], fallback: true };
+  }
+  return { row: null, fallback: false };
+}
+
+async function geschDetailRender(p) {
+  const host = document.getElementById('detail-geschichte');
+  if (!host || !p || !p._uuid) return;
+  const rows = await ladePersonGeschichten(p._uuid);
+  if (aktuelleModalPersonId !== p.id) return;   // Modal inzwischen gewechselt
+  const { row, fallback } = geschWaehleAnzeige(rows);
+  if (!row) { host.innerHTML = ''; return; }
+  // Kurze beschreibung-Zeile ausblenden, wenn eine (reichere) Geschichte erscheint.
+  const bz = document.getElementById('detail-beschreibung-zeile'); if (bz) bz.style.display = 'none';
+  const fb = fallback ? `<div class="gesch-fallback-hinweis">${escapeHtml(t('gesch_fallback', { sprache: row.sprache.toUpperCase() }))}</div>` : '';
+  const entwurf = row.veroeffentlicht === false ? `<span class="gesch-entwurf-badge">${escapeHtml(t('gesch_entwurf_badge'))}</span>` : '';
+  host.innerHTML = `
+    <div class="beziehungen gesch-detail"><h3>${escapeHtml(t('gesch_titel'))} ${entwurf}</h3>
+      ${fb}
+      ${row.titel ? `<div class="gesch-detail-titel">${escapeHtml(row.titel)}</div>` : ''}
+      <div class="markdown-body gesch-detail-text">${geschMarkdownHtml(row.text)}</div>
+    </div>`;
+}
+
+// Sprachwechsel: offene Editor-Tabs/Vorschau + offene Detail-Anzeige neu aufbauen.
+function geschSpracheUpdate() {
+  const edit = document.getElementById('person-edit-modal');
+  if (edit && edit.classList.contains('aktiv') && geschCtx) { geschRenderTabs(); geschVorschau(); }
+  const modal = document.getElementById('modal');
+  if (modal && modal.classList.contains('aktiv')) {
+    const p = aktuelleDaten && aktuelleDaten.persons && aktuelleDaten.persons[aktuelleModalPersonId];
+    if (p) geschDetailRender(p);
+  }
+}
+
+// ============================================================
+// DOKUMENTE & QUELLEN pro Person (Tabelle personen_dokumente + PRIVATER Bucket
+// 'personen-dokumente'). Analog zur Foto-Galerie, aber für Belege (PDF/Bilder)
+// mit Typ + Quellenangabe + Dokumentdatum. Privater Bucket -> Zugriff über
+// signierte URLs (Urkunden sind sensibel). Read-only in der Detailkarte
+// (#detail-dokumente, alle Nutzer mit Lesezugriff), Verwaltung im Editor
+// (#pe-dok-liste/#pe-dok-form, nur Bearbeiter — istAdmin/RLS).
+// ============================================================
+const DOK_BUCKET = 'personen-dokumente';
+let dokListe = [];        // aktuell geladene Dokumente (gemeinsam Editor & Detail & Viewer)
+let dokCtx   = null;      // { personUuid, personExt, stammbaumId, familieId, editierbar }
+const DOK_TYP_ICON = { geburtsurkunde:'📜', heiratsurkunde:'💍', kirchenbuch:'⛪', brief:'✉️', sonstiges:'📄' };
+const DOK_SIGNED_SEK = 3600;   // signierte URL 1 h gültig (genug für Vorschau/Download)
+
+function dokTypIcon(typ)  { return DOK_TYP_ICON[typ] || DOK_TYP_ICON.sonstiges; }
+function dokTypLabel(typ) { return t('dok_typ_' + (DOK_TYP_ICON[typ] ? typ : 'sonstiges')); }
+function dokIstPdf(d)     { return /\.pdf$/i.test((d && d.storage_pfad) || ''); }
+
+// Signierte URL eines Dokument-Pfades (privater Bucket -> kein public URL).
+async function dokSignedUrl(pfad) {
+  if (!pfad) return '';
+  const { data, error } = await sbClient.storage.from(DOK_BUCKET).createSignedUrl(pfad, DOK_SIGNED_SEK);
+  if (error) { console.warn('Dok signierte URL:', error); return ''; }
+  return data.signedUrl;
+}
+
+// Dokumente einer Person laden (sortiert) + signierte URLs (gebündelt) anhängen.
+async function ladePersonDokumente(personUuid) {
+  if (!personUuid) return [];
+  const { data, error } = await sbClient.from('personen_dokumente')
+    .select('id, person_id, storage_pfad, titel, dok_typ, quellenangabe, dok_datum, sortierung')
+    .eq('person_id', personUuid)
+    .order('sortierung', { ascending: true })
+    .order('erstellt_am', { ascending: true });
+  if (error) { console.warn('Dokumente laden:', error); return []; }
+  const rows = data || [];
+  const pfade = rows.map(r => r.storage_pfad).filter(Boolean);
+  const urlMap = {};
+  if (pfade.length) {
+    const { data: signed } = await sbClient.storage.from(DOK_BUCKET).createSignedUrls(pfade, DOK_SIGNED_SEK);
+    (signed || []).forEach(s => { if (s && s.path && s.signedUrl) urlMap[s.path] = s.signedUrl; });
+  }
+  return rows.map(r => ({ ...r, _url: urlMap[r.storage_pfad] || '' }));
+}
+
+function dokFehler(msg) {
+  const el = document.getElementById('pe-fehler');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+// Eine Dokument-Zeile (Liste): Typ-Icon, Titel, Datum, Quellenangabe, Aktionen.
+function dokItemHtml(d, editierbar) {
+  const label = dokTypLabel(d.dok_typ);
+  const datum = d.dok_datum ? formatDatumLang(d.dok_datum) : '';
+  return `<div class="dok-item" data-id="${d.id}">
+    <span class="dok-icon" aria-hidden="true">${dokTypIcon(d.dok_typ)}</span>
+    <div class="dok-meta">
+      <div class="dok-titel">${escapeHtml(d.titel || label)}</div>
+      <div class="dok-sub">${escapeHtml(label)}${datum ? ` · ${escapeHtml(datum)}` : ''}</div>
+      ${d.quellenangabe ? `<div class="dok-quelle"><strong>${escapeHtml(t('dok_quelle_label'))}:</strong> ${escapeHtml(d.quellenangabe)}</div>` : ''}
+    </div>
+    <div class="dok-aktionen">
+      <button type="button" class="dok-act" title="${escapeHtml(t('dok_vorschau'))}" aria-label="${escapeHtml(t('dok_vorschau'))}" onclick="oeffneDokViewer('${d.id}')">👁</button>
+      <a class="dok-act" href="${escapeHtml(d._url || '#')}" target="_blank" rel="noopener" download
+         title="${escapeHtml(t('dok_download'))}" aria-label="${escapeHtml(t('dok_download'))}">⬇</a>
+      ${editierbar ? `<button type="button" class="dok-act dok-del" title="${escapeHtml(t('dok_loeschen'))}" aria-label="${escapeHtml(t('dok_loeschen'))}" onclick="dokLoeschen('${d.id}')">🗑</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// --- Verwaltung im Editor ---------------------------------------------------
+async function dokEditOeffnen(p) {
+  const liste = document.getElementById('pe-dok-liste');
+  if (!liste || !p || !p._uuid) return;
+  const tree = p._tree || aktuellerStammbaumId || null;
+  dokCtx = { personUuid: p._uuid, personExt: p.id, stammbaumId: tree,
+             familieId: stammbaumZuFamilie[tree] || null, editierbar: true };
+  dokFormReset();
+  liste.innerHTML = `<div class="galerie-laden">${escapeHtml(t('dok_laden'))}</div>`;
+  dokListe = await ladePersonDokumente(p._uuid);
+  dokEditRender();
+}
+
+function dokFormReset() {
+  const i  = document.getElementById('pe-dok-input');  if (i)  i.value = '';
+  const ti = document.getElementById('pe-dok-titel');  if (ti) ti.value = '';
+  const q  = document.getElementById('pe-dok-quelle'); if (q)  q.value = '';
+  const dd = document.getElementById('pe-dok-datum');  if (dd) datumSetzen(dd, '');
+  const sel = document.getElementById('pe-dok-typ');   if (sel) sel.value = 'geburtsurkunde';  // setter synct das Such-Label
+}
+
+function dokEditRender() {
+  const liste = document.getElementById('pe-dok-liste');
+  if (!liste) return;
+  liste.innerHTML = dokListe.length
+    ? dokListe.map(d => dokItemHtml(d, true)).join('')
+    : `<div class="galerie-leer">${escapeHtml(t('dok_leer'))}</div>`;
+}
+
+async function dokUpload() {
+  if (!dokCtx || !dokCtx.editierbar) return;
+  if (!dokCtx.stammbaumId || !dokCtx.familieId) { dokFehler(t('reg_fehler') + 'kein Baum/Familie'); return; }
+  const input  = document.getElementById('pe-dok-input');
+  const file   = input && input.files && input.files[0];
+  const titel  = document.getElementById('pe-dok-titel').value.trim();
+  const typ    = document.getElementById('pe-dok-typ').value || 'sonstiges';
+  const datum  = datumWert(document.getElementById('pe-dok-datum'));
+  const quelle = document.getElementById('pe-dok-quelle').value.trim();
+  if (!file)  { dokFehler(t('dok_datei_pflicht')); return; }
+  if (!titel) { dokFehler(t('dok_titel_pflicht')); return; }
+  const erlaubt = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  if (!erlaubt.includes(file.type)) { dokFehler(t('dok_typ_fehler')); return; }
+  if (file.size > 20 * 1024 * 1024) { dokFehler(t('dok_gross_fehler')); return; }
+  // date-Spalte: nur kanonisches ISO speichern, sonst NULL (kein Freitext -> Fehler 22008)
+  const datumIso = /^\d{4}-\d{2}-\d{2}$/.test(datum || '') ? datum : null;
+
+  const fehlerEl = document.getElementById('pe-fehler'); if (fehlerEl) fehlerEl.style.display = 'none';
+  const btn = document.getElementById('pe-dok-btn'); const altTxt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  try {
+    // Bilder clientseitig komprimieren (wie Galerie); PDFs unverändert hochladen.
+    let blob = file, ext = 'pdf';
+    if (file.type !== 'application/pdf') {
+      // Höhere Auflösung als die Foto-Galerie (2400 px): Urkunden-Feindruck muss lesbar bleiben.
+      try { blob = await galerieKomprimiere(file, 2400, 0.88); } catch (e) { blob = file; }
+      ext = blob.type === 'image/jpeg' ? 'jpg' : (blob.type === 'image/png' ? 'png' : 'webp');
+    }
+    const uuid = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2));
+    const pfad = `${dokCtx.stammbaumId}/${dokCtx.personUuid}/${uuid}.${ext}`;
+    const up = await sbClient.storage.from(DOK_BUCKET).upload(pfad, blob,
+      { cacheControl: '3600', contentType: blob.type || 'application/octet-stream', upsert: false });
+    if (up.error) { dokFehler(t('dok_upload_fehler') + up.error.message); return; }
+    const sort = dokListe.reduce((m, d) => Math.max(m, d.sortierung || 0), 0) + 10;
+    const { data: row, error: insErr } = await sbClient.from('personen_dokumente').insert({
+      person_id: dokCtx.personUuid, familie_id: dokCtx.familieId, stammbaum_id: dokCtx.stammbaumId,
+      storage_pfad: pfad, titel, dok_typ: typ, quellenangabe: quelle || null, dok_datum: datumIso, sortierung: sort
+    }).select('id, person_id, storage_pfad, titel, dok_typ, quellenangabe, dok_datum, sortierung').single();
+    if (insErr) {
+      try { await sbClient.storage.from(DOK_BUCKET).remove([pfad]); } catch (e) {}
+      dokFehler(t('dok_upload_fehler') + insErr.message); return;
+    }
+    dokListe.push({ ...row, _url: await dokSignedUrl(pfad) });
+    dokFormReset();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = altTxt || t('dok_hochladen'); }
+  }
+  dokEditRender();
+}
+
+async function dokLoeschen(id) {
+  if (!dokCtx || !dokCtx.editierbar) return;
+  const d = dokListe.find(x => x.id === id); if (!d) return;
+  if (!await zeigeBestaetigung(t('dok_loeschen_frage'), { gefahr: true })) return;
+  const { error } = await sbClient.from('personen_dokumente').delete().eq('id', id);
+  if (error) { dokFehler(t('reg_fehler') + error.message); return; }
+  try { await sbClient.storage.from(DOK_BUCKET).remove([d.storage_pfad]); } catch (e) { console.warn('Dok-Storage löschen:', e); }
+  dokListe = dokListe.filter(x => x.id !== id);
+  dokEditRender();
+}
+
+// --- Read-only-Liste in der Detailkarte (alle Nutzer mit Lesezugriff) ------
+async function dokDetailRender(p) {
+  const host = document.getElementById('detail-dokumente');
+  if (!host || !p || !p._uuid) return;
+  dokCtx = { personUuid: p._uuid, personExt: p.id, stammbaumId: p._tree || null,
+             familieId: stammbaumZuFamilie[p._tree] || null, editierbar: false };
+  dokListe = await ladePersonDokumente(p._uuid);
+  if (aktuelleModalPersonId !== p.id) return;   // Modal inzwischen gewechselt -> nicht überschreiben
+  if (!dokListe.length) { host.innerHTML = ''; return; }
+  host.innerHTML = `
+    <div class="beziehungen"><h3>${escapeHtml(t('dok_titel'))}</h3>
+      <div class="dok-liste">${dokListe.map(d => dokItemHtml(d, false)).join('')}</div>
+    </div>`;
+}
+
+// Storage-Dateien aller Dokumente der gegebenen Personen entfernen (keine Waisen
+// beim Personen-Löschen; die DB-Zeilen verschwinden per ON DELETE CASCADE).
+async function dokLoescheFuerPersonen(uuids) {
+  if (!uuids || !uuids.length) return;
+  try {
+    const { data } = await sbClient.from('personen_dokumente').select('storage_pfad').in('person_id', uuids);
+    const pfade = (data || []).map(r => r.storage_pfad).filter(Boolean);
+    if (pfade.length) await sbClient.storage.from(DOK_BUCKET).remove(pfade);
+  } catch (e) { console.warn('Dok-Cleanup (Person löschen):', e); }
+}
+
+// --- Vorschau-Overlay (PDF im Browser-Viewer / Bild) -----------------------
+function oeffneDokViewer(id) {
+  const d = dokListe.find(x => x.id === id); if (!d || !d._url) return;
+  const kopf   = document.getElementById('dok-viewer-kopf');
+  const buehne = document.getElementById('dok-viewer-buehne');
+  const dl     = document.getElementById('dok-viewer-download');
+  if (kopf) {
+    const datum = d.dok_datum ? formatDatumLang(d.dok_datum) : '';
+    kopf.innerHTML = `<span class="dvk-icon" aria-hidden="true">${dokTypIcon(d.dok_typ)}</span>
+      <span class="dvk-titel">${escapeHtml(d.titel || dokTypLabel(d.dok_typ))}</span>
+      <span class="dvk-sub">${escapeHtml(dokTypLabel(d.dok_typ))}${datum ? ` · ${escapeHtml(datum)}` : ''}${d.quellenangabe ? ` · ${escapeHtml(d.quellenangabe)}` : ''}</span>`;
+  }
+  if (buehne) {
+    buehne.innerHTML = dokIstPdf(d)
+      ? `<iframe class="dok-frame" src="${escapeHtml(d._url)}" title="${escapeHtml(d.titel || '')}"></iframe>`
+      : `<img class="dok-bild" src="${escapeHtml(d._url)}" alt="${escapeHtml(d.titel || '')}">`;
+  }
+  if (dl) dl.href = d._url;
+  document.getElementById('dok-viewer').classList.add('aktiv');
+}
+function schliesseDokViewer() {
+  const v = document.getElementById('dok-viewer'); if (!v) return;
+  v.classList.remove('aktiv');
+  const buehne = document.getElementById('dok-viewer-buehne'); if (buehne) buehne.innerHTML = '';   // iframe entladen
+}
+
+// Sprachwechsel: offene Dokument-Listen (Editor/Detail) mit neuen t()-Labels neu rendern.
+function dokSpracheUpdate() {
+  const edit = document.getElementById('person-edit-modal');
+  if (edit && edit.classList.contains('aktiv') && dokCtx && dokCtx.editierbar) dokEditRender();
+  const host  = document.getElementById('detail-dokumente');
+  const modal = document.getElementById('modal');
+  if (modal && modal.classList.contains('aktiv') && host && host.innerHTML.trim()) {
+    const p = aktuelleDaten && aktuelleDaten.persons && aktuelleDaten.persons[aktuelleModalPersonId];
+    if (p) dokDetailRender(p);
+  }
+}
+// Tastatur: Esc schließt den Dokument-Viewer (nur wenn offen).
+document.addEventListener('keydown', (e) => {
+  const v = document.getElementById('dok-viewer');
+  if (v && v.classList.contains('aktiv') && e.key === 'Escape') schliesseDokViewer();
 });
 
 // Pflichtprüfung Namen (ab v11): Vorname + Nachname IMMER Pflicht; bei Frauen zusätzlich der
@@ -11296,29 +12807,29 @@ async function speichereNeuePerson() {
     }
   }
 
-  // Tatsächliches Anlegen (wird ausgeführt, wenn keine Dublette ODER der Nutzer "Trotzdem anlegen" wählt)
+  // Tatsächliches Anlegen — ATOMAR (Person + alle Beziehungen in EINER Transaktion via
+  // RPC person_anlegen_atomar, supabase_person_anlegen_atomar.sql). Schlägt eine Kante fehl,
+  // wird die Person automatisch zurückgerollt -> es kann keine kanten-lose „lose Insel" mehr
+  // entstehen (Audit Vorschlag 2). Wird ausgeführt, wenn keine Dublette ODER „Trotzdem anlegen".
   async function doInsert() {
     button.disabled = true; button.textContent = t('reg_senden_laeuft');
-    const { data: neu, error: pErr } = await sbClient.from('personen').insert({
+    const op = {
       familie_id:   kontext.familie_id,
       stammbaum_id: kontext.stammbaum_id,
       externe_id:   externeId,
-      vorname, nachname,
-      geburtsdatum: null,           // Rohdatum bleibt in stammbaum_daten (Freitext)
-      stammbaum_daten
-    }).select('id').single();
-    if (pErr) {
-      button.disabled = false; button.textContent = altText;
-      fehlerEl.textContent = t('reg_fehler') + pErr.message; fehlerEl.style.display = 'block'; return;
-    }
-    const fid = kontext.familie_id;
-    const bezRows = [];
+      daten:        stammbaum_daten,
+      edges:        []
+    };
     if (typ === 'elternteil') {
-      bezRows.push({ person_a: neu.id, person_b: aktiv._uuid, typ: 'elternteil', familie_id: fid });
+      // neu = Elternteil (person_a), aktiv = Kind (person_b)
+      op.edges.push({ other: aktiv._uuid, typ: 'elternteil', new_ist_a: true });
     } else if (typ === 'partner') {
-      bezRows.push({ person_a: aktiv._uuid, person_b: neu.id, typ: 'ehepartner', familie_id: fid });
+      // aktiv = person_a, neu = person_b (ehepartner ist symmetrisch)
+      op.edges.push({ other: aktiv._uuid, typ: 'ehepartner', new_ist_a: false });
     } else if (typ === 'geschwister') {
-      // gleiche Eltern wie die aktive Person -> Eltern der aktiven Person als Elternteil setzen
+      // gleiche Eltern wie die aktive Person; hat sie keine, legt die RPC einen
+      // Platzhalter-Elternteil an und hängt BEIDE Geschwister daran (im selben Transaktions-
+      // schritt, daher kein loser Platzhalter mehr möglich).
       const geschwisterEltern = [];
       (aktiv.families_child || []).forEach(famId => {
         const fam = aktuelleDaten.families[famId]; if (!fam) return;
@@ -11327,36 +12838,32 @@ async function speichereNeuePerson() {
           if (par && par._uuid && !geschwisterEltern.includes(par._uuid)) geschwisterEltern.push(par._uuid);
         });
       });
-      // Bezugsperson hat noch KEINE Eltern -> Platzhalter-Elternteil ("Unbekannt") anlegen und
-      // BEIDE Geschwister daran hängen. So muss der Nutzer keine Eltern vorab erfassen und die
-      // Geschwister sind echt verknüpft (statt einer losen, im Baum unsichtbaren Karte).
-      if (!geschwisterEltern.length) {
-        const ph = await erzeugePlatzhalterElternteil(kontext.familie_id, kontext.stammbaum_id);
-        if (!ph) {
-          button.disabled = false; button.textContent = altText;
-          fehlerEl.textContent = t('reg_fehler') + '—'; fehlerEl.style.display = 'block'; return;
-        }
-        geschwisterEltern.push(ph);
-        bezRows.push({ person_a: ph, person_b: aktiv._uuid, typ: 'elternteil', familie_id: fid });   // bestehende Bezugsperson an Platzhalter
+      if (geschwisterEltern.length) {
+        geschwisterEltern.forEach(pu => op.edges.push({ other: pu, typ: 'elternteil', new_ist_a: false }));
+      } else {
+        const phLabel = t('pa_platzhalter_name');
+        const phExt   = 'I' + Date.now() + 'P' + Math.floor(Math.random() * 1000);
+        op.platzhalter = {
+          externe_id: phExt,
+          daten: { id: phExt, given: phLabel, surname: '', name: phLabel, sex: '',
+                   platzhalter: true, angelegt_aus: 'geschwister-platzhalter' },
+          kinder: [aktiv._uuid]
+        };
       }
-      geschwisterEltern.forEach(pu => bezRows.push({ person_a: pu, person_b: neu.id, typ: 'elternteil', familie_id: fid }));
     } else { // kind: an die gewählten Eltern (Vater/Mutter) hängen
-      elternUuids.forEach(pu => bezRows.push({ person_a: pu, person_b: neu.id, typ: 'elternteil', familie_id: fid }));
+      elternUuids.forEach(pu => op.edges.push({ other: pu, typ: 'elternteil', new_ist_a: false }));
     }
-    if (!bezRows.length) {
-      // Geschwister ohne bekannte Eltern: Person bleibt zunächst lose -> Hinweis
-      button.disabled = false; button.textContent = altText;
-      fehlerEl.textContent = t('pa_geschwister_keine_eltern'); fehlerEl.style.display = 'block';
-      await reloadBaumBehalteFokus(externeId);   // Fokus auf die NEU angelegte (lose) Person
-      return;
-    }
-    const { error: bErr } = await sbClient.from('beziehungen').insert(bezRows);
+
+    const { data: res, error: aErr } = await sbClient.rpc('person_anlegen_atomar', { p_op: op });
     button.disabled = false; button.textContent = altText;
-    if (bErr) { fehlerEl.textContent = t('reg_fehler') + bErr.message; fehlerEl.style.display = 'block'; return; }
+    if (aErr || !res || !res.ok) {
+      fehlerEl.textContent = t('reg_fehler') + (aErr ? aErr.message : '—'); fehlerEl.style.display = 'block'; return;
+    }
+    const neuId = res.person_id;
     // Kind in ALLE Bäume beider Eltern spiegeln (Sichtbarkeit). Löschen ist identitätsbewusst
     // (loeschePerson entfernt alle Zwillinge) -> kein „zweimal löschen".
     if (typ === 'kind') {
-      try { await sbClient.rpc('kind_baeume_sync', { p_kind: neu.id }); }
+      try { await sbClient.rpc('kind_baeume_sync', { p_kind: neuId }); }
       catch (e) { console.warn('kind_baeume_sync:', e); }
     }
     erfolgEl.textContent = t('pa_erfolg'); erfolgEl.style.display = 'block';
@@ -11387,6 +12894,98 @@ async function speichereNeuePerson() {
     return;
   }
   await doInsert();
+}
+
+// ============================================================
+// BAUM-INTEGRITÄT — read-only Diagnose-Overlay (Audit Vorschlag 1)
+// Ruft die RPC baum_integritaet_pruefen(aktueller Baum) und zeigt: unsichtbare INSELN
+// (Zeile existiert, vom Render-Wurzelpunkt nicht erreichbar → im Diagramm nicht gezeichnet),
+// LOSE Personen (ohne Kante), VERWAISTE Kanten und Personen OHNE Stammbaum. SCHREIBT NICHTS.
+// Sichtbar/aufrufbar nur für Admin/Owner/Super (RPC prüft kann_familie_bearbeiten zusätzlich).
+// ============================================================
+let integLetzter = null;   // letzter Bericht (für Sprach-Neuaufbau)
+
+function oeffneIntegritaet() {
+  const panel = document.getElementById('nav-menu-panel'); if (panel) panel.classList.remove('offen');
+  integLetzter = null;
+  const out = document.getElementById('integ-ergebnis'); if (out) out.innerHTML = '';
+  document.getElementById('integ-modal').classList.add('aktiv');
+  ladeIntegritaet();
+}
+function schliesseIntegritaet() {
+  document.getElementById('integ-modal').classList.remove('aktiv');
+}
+
+async function ladeIntegritaet() {
+  const out = document.getElementById('integ-ergebnis');
+  if (!out) return;
+  if (!aktuellerStammbaumId) { out.innerHTML = `<div class="integ-hinweis">${escapeHtml(t('integ_kein_baum'))}</div>`; return; }
+  out.innerHTML = `<div class="integ-hinweis">${escapeHtml(t('integ_laeuft'))}</div>`;
+  const { data, error } = await sbClient.rpc('baum_integritaet_pruefen', { p_stammbaum_id: aktuellerStammbaumId });
+  if (error || !data || !data.ok) {
+    out.innerHTML = `<div class="integ-hinweis warn">${escapeHtml(t('integ_fehler') + (error ? error.message : '—'))}</div>`;
+    return;
+  }
+  integLetzter = data;
+  renderIntegritaet(data);
+}
+
+// Klickbare Personen-Chips (Klick öffnet die Detailkarte zur Identifikation).
+function integPersonChips(liste) {
+  if (!liste || !liste.length) return '';
+  return '<div class="integ-chips">' + liste.map(p => {
+    const name  = nm(p.name || p.externe_id || '?');
+    const badge = p.platzhalter ? ` <span class="integ-badge">${escapeHtml(t('integ_platzhalter'))}</span>` : '';
+    const ext   = escapeHtml(p.externe_id || '');
+    return `<button type="button" class="integ-chip" onclick="integOeffnePerson('${ext}')">${escapeHtml(name)}${badge}</button>`;
+  }).join('') + '</div>';
+}
+
+function renderIntegritaet(r) {
+  const out = document.getElementById('integ-ergebnis');
+  if (!out) return;
+  const inselN  = r.inseln_personen || 0;
+  const loseN   = (r.lose_personen || []).length;
+  const waisenN = (r.verwaiste_kanten || []).length;
+  const ohneN   = (r.ohne_stammbaum || []).length;
+  let html = `<div class="integ-summary">${escapeHtml(t('integ_summary', {
+    total: r.personen_gesamt || 0, main: r.hauptkomponente_groesse || 0, komp: r.komponenten || 0 }))}</div>`;
+
+  if (!inselN && !loseN && !waisenN && !ohneN) {
+    out.innerHTML = html + `<div class="integ-hinweis ok">${escapeHtml(t('integ_ok'))}</div>`;
+    return;
+  }
+  if (r.inseln && r.inseln.length) {
+    html += `<div class="integ-block"><div class="integ-h">${escapeHtml(t('integ_inseln', { n: inselN }))}</div>`;
+    html += `<div class="integ-sub">${escapeHtml(t('integ_inseln_hint'))}</div>`;
+    r.inseln.forEach(ins => { html += integPersonChips(ins.personen); });
+    html += `</div>`;
+  }
+  if (loseN) {
+    html += `<div class="integ-block"><div class="integ-h">${escapeHtml(t('integ_lose', { n: loseN }))}</div>`;
+    html += `<div class="integ-sub">${escapeHtml(t('integ_lose_hint'))}</div>`;
+    html += integPersonChips(r.lose_personen) + `</div>`;
+  }
+  if (ohneN) {
+    html += `<div class="integ-block"><div class="integ-h warn">${escapeHtml(t('integ_ohnebaum', { n: ohneN }))}</div>`;
+    html += integPersonChips(r.ohne_stammbaum) + `</div>`;
+  }
+  if (waisenN) {
+    html += `<div class="integ-block"><div class="integ-h warn">${escapeHtml(t('integ_waisen', { n: waisenN }))}</div></div>`;
+  }
+  out.innerHTML = html;
+}
+
+function integOeffnePerson(ext) {
+  if (!ext) return;
+  schliesseIntegritaet();
+  if (aktuelleDaten.persons[ext] && typeof zeigeDetails === 'function') zeigeDetails(ext);
+}
+
+// Sprachwechsel: offenen Integritäts-Bericht neu beschriften.
+function integSpracheUpdate() {
+  if (!document.getElementById('integ-modal') || !document.getElementById('integ-modal').classList.contains('aktiv')) return;
+  if (integLetzter) renderIntegritaet(integLetzter);
 }
 
 // Nachname diakritik-/groß-klein-unempfindlich normalisieren (Frontend-Vorprüfung;
@@ -11652,6 +13251,7 @@ async function loeschePerson(personId) {
   //    den Personen; Storage-Dateien NICHT -> hier entfernen, keine Waisen). Vor dem
   //    Personen-Delete, solange die personen_fotos-Zeilen noch existieren.
   await galerieLoescheFuerPersonen(alleUuids);
+  await dokLoescheFuerPersonen(alleUuids);   // Dokument-Storage-Dateien (DB-Zeilen per CASCADE)
 
   // 1) Alle Beziehungen ALLER betroffenen Karten entfernen (keine verwaisten Kanten)
   let relErr = (await sbClient.from('beziehungen').delete().in('person_a', alleUuids)).error;
