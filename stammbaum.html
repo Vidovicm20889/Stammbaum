@@ -8828,13 +8828,193 @@ async function kostenAusgabeLoeschen(id) {
   if (kostenEditId === id) kostenEditId = null;
   await ladeKostenDaten(); renderKosten();
 }
-function druckeKosten() {
-  // Druckmodus markieren -> @media print (body.print-kosten) blendet nur die Kostenübersicht ein.
-  document.body.classList.add('print-kosten');
-  const aufraeumen = () => { document.body.classList.remove('print-kosten'); window.removeEventListener('afterprint', aufraeumen); };
-  window.addEventListener('afterprint', aufraeumen);
-  setTimeout(aufraeumen, 2000);   // Fallback (afterprint feuert nicht überall zuverlässig)
-  window.print();
+// Kostenübersicht als echtes PDF erzeugen (statt window.print – auf Mobil unzuverlässig:
+// iOS/Android drucken die Bildschirm-GUI statt die @media-print-Ansicht).
+// Glyph-treu (Diakritika č/ć/đ/ž/š + Kyrillisch) über den projektüblichen Weg:
+// eigenes Inline-SVG -> Raster (Canvas) -> jsPDF (kein Core-Font-Limit), seitenweise A4.
+// Fällt nur zurück auf window.print, wenn jsPDF fehlt.
+let kostenPdfLaeuft = false;
+async function druckeKosten() {
+  if (kostenPdfLaeuft) return;
+  const Ctor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+  if (!Ctor) {                       // Fallback: alter Druckweg
+    document.body.classList.add('print-kosten');
+    const auf = () => { document.body.classList.remove('print-kosten'); window.removeEventListener('afterprint', auf); };
+    window.addEventListener('afterprint', auf); setTimeout(auf, 2000);
+    window.print(); return;
+  }
+  kostenPdfLaeuft = true;
+  const btn = document.querySelector('[onclick="druckeKosten()"]');
+  const btnAlt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    await kostenPdfErzeugen();
+  } catch (e) {
+    console.warn('Kosten-PDF:', e);
+    await zeigeHinweis(t('reg_fehler') + (e && e.message ? e.message : e));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = btnAlt; }
+    kostenPdfLaeuft = false;
+  }
+}
+
+async function kostenPdfErzeugen() {
+  const ev = (eventsCache || []).find(e => e.id === kostenEventId);
+  const titel = ev ? (ev.titel || '') : '';
+  const tn = kostenDaten.teilnehmer, ks = kostenDaten.kosten;
+  const tnName = id => { const x = tn.find(p => p.id === id); return x ? nm(x.name) : '—'; };
+
+  // --- SVG-Layout (logische px) ---
+  const W = 760, P = 40, innerW = W - 2 * P;
+  const FAM = "Georgia, 'Times New Roman', serif";
+  const mess = document.createElement('canvas').getContext('2d');
+  const fontStr = (size, weight) => `${weight === 'bold' ? 'bold ' : ''}${size}px ${FAM}`;
+  const breite = (s, size, weight) => { mess.font = fontStr(size, weight); return mess.measureText(String(s)).width; };
+  const umbrich = (s, maxW, size, weight) => {
+    const woerter = String(s == null ? '' : s).split(/\s+/).filter(Boolean);
+    const lines = []; let cur = '';
+    woerter.forEach(w => {
+      const test = cur ? cur + ' ' + w : w;
+      if (breite(test, size, weight) <= maxW) { cur = test; return; }
+      if (cur) { lines.push(cur); cur = ''; }
+      if (breite(w, size, weight) <= maxW) { cur = w; return; }
+      let chunk = '';                                   // einzelnes überlanges Wort hart brechen
+      for (const ch of w) { if (breite(chunk + ch, size, weight) <= maxW) chunk += ch; else { lines.push(chunk); chunk = ch; } }
+      cur = chunk;
+    });
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [''];
+  };
+
+  // SVG-Knoten direkt erzeugen (pdfEl + textContent) -> kein XML-Escaping-Risiko, wie der Baum-Export.
+  const svg = document.createElementNS(PDF_SVG_NS, 'svg');
+  svg.setAttribute('xmlns', PDF_SVG_NS);
+  let y = 0;
+  const rect = (x, yy, w, h, fill) => pdfEl('rect', { x, y: yy, width: w, height: h, fill }, svg);
+  const line = (x1, x2, yy, col) => pdfEl('line', { x1, y1: yy, x2, y2: yy, stroke: col || '#9c7c3c', 'stroke-width': 1 }, svg);
+  const text = (x, yy, s, o = {}) => {
+    const e = pdfEl('text', { x, y: yy, 'font-family': FAM, 'font-size': o.size || 13, 'font-weight': o.weight || 'normal', fill: o.color || '#2a2a2a', 'text-anchor': o.anchor || 'start' }, svg);
+    e.textContent = String(s == null ? '' : s);
+  };
+  const sektion = label => {
+    y += 18;
+    text(P, y + 14, label, { size: 15, weight: 'bold', color: '#722f37' });
+    y += 22; line(P, W - P, y, '#9c7c3c'); y += 16;
+  };
+
+  // Hintergrund (volle Höhe wird unten nachgetragen, sobald y feststeht)
+  const bg = pdfEl('rect', { x: 0, y: 0, width: W, height: 0, fill: '#ffffff' }, svg);
+  svg.insertBefore(bg, svg.firstChild);
+
+  // Kopf (akzentrot)
+  const titelZeilen = umbrich(titel || t('kosten_titel'), innerW, 20, 'bold').slice(0, 2);
+  const kopfH = 34 + titelZeilen.length * 26;
+  rect(0, 0, W, kopfH, '#722f37');
+  let ty = 30;
+  titelZeilen.forEach(z => { text(P, ty, z, { size: 20, weight: 'bold', color: '#ffffff' }); ty += 26; });
+  text(P, ty, t('kosten_titel'), { size: 12, color: '#f0d9b5' });
+  y = kopfH + 8;
+
+  // Teilnehmer
+  sektion(`${t('kosten_teilnehmer')} (${tn.length})`);
+  const namen = tn.length ? tn.map(p => nm(p.name)).join(' · ') : t('kosten_keine_teilnehmer');
+  umbrich(namen, innerW, 13, 'normal').forEach(z => { text(P, y + 12, z, { size: 13 }); y += 19; });
+
+  // Ausgaben
+  sektion(`${t('kosten_ausgaben')} (${ks.length})`);
+  const cBez = P, wBez = innerW * 0.50;
+  const cBetrag = P + innerW * 0.70;      // rechtsbündig
+  const cPayer = P + innerW * 0.72, wPayer = innerW * 0.28;
+  if (ks.length) {
+    text(cBez, y + 12, t('kosten_bezeichnung'), { size: 12, weight: 'bold', color: '#722f37' });
+    text(cBetrag, y + 12, t('kosten_betrag'), { size: 12, weight: 'bold', color: '#722f37', anchor: 'end' });
+    text(cPayer, y + 12, t('kosten_bezahlt_von'), { size: 12, weight: 'bold', color: '#722f37' });
+    y += 18; line(P, W - P, y, '#d8c9a0'); y += 6;
+    ks.forEach(k => {
+      const bezZ = umbrich(k.bezeichnung, wBez, 13, 'normal');
+      const payZ = umbrich(k.payer_id ? tnName(k.payer_id) : '—', wPayer, 13, 'normal');
+      const zeilen = Math.max(bezZ.length, payZ.length);
+      const startY = y;
+      bezZ.forEach((z, i) => text(cBez, startY + 12 + i * 17, z, { size: 13 }));
+      payZ.forEach((z, i) => text(cPayer, startY + 12 + i * 17, z, { size: 13 }));
+      text(cBetrag, startY + 12, formatGeld(Math.round((Number(k.betrag) || 0) * 100), k.waehrung), { size: 13, anchor: 'end' });
+      y = startY + zeilen * 17;
+      if (k.beschreibung) { umbrich(k.beschreibung, wBez, 11, 'normal').forEach(z => { text(cBez, y + 11, z, { size: 11, color: '#8a7a5a' }); y += 15; }); }
+      y += 6; line(P, W - P, y, '#eee4cf'); y += 6;
+    });
+  } else {
+    text(P, y + 12, t('kosten_keine_ausgaben'), { size: 13, color: '#8a7a5a' }); y += 22;
+  }
+
+  // Zusammenfassung
+  sektion(t('kosten_zusammenfassung'));
+  const summe = berechneKosten();
+  if (!summe.length || tn.length === 0) {
+    text(P, y + 12, tn.length === 0 ? t('kosten_keine_teilnehmer') : t('kosten_keine_ausgaben'), { size: 13, color: '#8a7a5a' }); y += 22;
+  } else {
+    summe.forEach(blk => {
+      text(P, y + 13, t('kosten_summe'), { size: 14, weight: 'bold' });
+      text(W - P, y + 13, formatGeld(blk.total, blk.waehrung), { size: 14, weight: 'bold', anchor: 'end' }); y += 22;
+      text(P, y + 12, t('kosten_pro_person'), { size: 13 });
+      text(W - P, y + 12, formatGeld(blk.proPerson, blk.waehrung), { size: 13, anchor: 'end' }); y += 22;
+      // Salden-Tabelle
+      const sP = P, sR1 = P + innerW * 0.55, sR2 = P + innerW * 0.76, sR3 = W - P;
+      text(sP, y + 12, t('kosten_person'), { size: 12, weight: 'bold', color: '#722f37' });
+      text(sR1, y + 12, t('kosten_bezahlt'), { size: 12, weight: 'bold', color: '#722f37', anchor: 'end' });
+      text(sR2, y + 12, t('kosten_anteil'), { size: 12, weight: 'bold', color: '#722f37', anchor: 'end' });
+      text(sR3, y + 12, t('kosten_saldo'), { size: 12, weight: 'bold', color: '#722f37', anchor: 'end' });
+      y += 18; line(P, W - P, y, '#d8c9a0'); y += 4;
+      blk.salden.forEach(s => {
+        const col = s.saldo > 0 ? '#2e7d32' : (s.saldo < 0 ? '#b3261e' : '#2a2a2a');
+        const vz = s.saldo > 0 ? '+' : '';
+        text(sP, y + 13, nm(s.name), { size: 13 });
+        text(sR1, y + 13, formatGeld(s.bezahlt, blk.waehrung), { size: 13, anchor: 'end' });
+        text(sR2, y + 13, formatGeld(s.anteil, blk.waehrung), { size: 13, anchor: 'end' });
+        text(sR3, y + 13, vz + formatGeld(s.saldo, blk.waehrung), { size: 13, anchor: 'end', color: col });
+        y += 19;
+      });
+      y += 8;
+      text(P, y + 12, t('kosten_ausgleich'), { size: 13, weight: 'bold', color: '#9c7c3c' }); y += 20;
+      if (blk.ausgleich.length) {
+        blk.ausgleich.forEach(tr => {
+          umbrich(`${nm(tr.von)}  ${t('kosten_zahlt')}  ${nm(tr.an)}:  ${formatGeld(tr.betrag, blk.waehrung)}`, innerW, 13, 'normal')
+            .forEach(z => { text(P, y + 12, z, { size: 13 }); y += 18; });
+        });
+      } else {
+        text(P, y + 12, t('kosten_ausgeglichen'), { size: 13, color: '#8a7a5a' }); y += 18;
+      }
+      y += 12;
+    });
+  }
+  const totalH = y + P;
+
+  // SVG finalisieren + rastern
+  bg.setAttribute('height', totalH);
+  svg.setAttribute('width', W); svg.setAttribute('height', totalH);
+  svg.setAttribute('viewBox', `0 0 ${W} ${totalH}`);
+  const canvas = await pdfSvgZuCanvas(svg, 2);
+
+  // In A4-Hochformat seitenweise schneiden (volle Breite, vertikal blättern)
+  const doc = new ((window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF)({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const rand = 10, seitW = 210, seitH = 297;
+  const inhW = seitW - 2 * rand, inhH = seitH - 2 * rand;
+  const mmProPx = inhW / canvas.width;                    // Skalierung Bildbreite -> Inhaltsbreite
+  const seitePx = Math.floor(inhH / mmProPx);             // wie viele Canvas-px pro Seite
+  let srcY = 0, erste = true;
+  while (srcY < canvas.height) {
+    const sliceH = Math.min(seitePx, canvas.height - srcY);
+    const tmp = document.createElement('canvas');
+    tmp.width = canvas.width; tmp.height = sliceH;
+    const tctx = tmp.getContext('2d');
+    tctx.fillStyle = '#ffffff'; tctx.fillRect(0, 0, tmp.width, tmp.height);
+    tctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+    if (!erste) doc.addPage();
+    doc.addImage(tmp.toDataURL('image/png'), 'PNG', rand, rand, inhW, sliceH * mmProPx);
+    erste = false; srcY += sliceH;
+  }
+
+  const base = (titel || 'troskovi').normalize('NFKD').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'troskovi';
+  pdfDownloadBlob(doc.output('blob'), 'Troskovi_' + base + '.pdf');
 }
 
 async function zeigeShort(shortId) {
