@@ -336,6 +336,108 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Familienmitglieder-Grid nutzt **`auto-fill`** statt `auto-fit` — sonst streckt ein einzelner
   Suchtreffer die Karte auf volle Breite und skaliert den Avatar unscharf hoch. **Bestandsavatare**
   bleiben in alter Auflösung, bis sie im Profil **neu hochgeladen** werden.
+- **Geburtstags- & Gedenktag-Erinnerungen — „Anstehende Anlässe" (Stufe A, ab v11.8):** Wertet die
+  `birth_date`/`death_date` der Personen des **AKTIVEN Baums** (`aktuelleDaten.persons`) aus und zeigt
+  Anlässe der **nächsten 30 Tage**. **Rein clientseitig — KEIN Backend** (kein neuer Tabellen-/
+  RPC-/Realtime-Bedarf): `berechneAnlaesse` (lebende Person → **Geburtstag**, verstorbene
+  (`deceased`/`death_date`) → **Gedenktag/Todestag**; über `identitaet_id`-Spiegelkarten entdoppelt,
+  Platzhalter-Eltern übersprungen), `naechsterJahrestag` (nächstes Monat+Tag-Vorkommen ab heute aus
+  **ISO**-Datum; Freitext/ungefähre Altwerte ohne Monat/Tag werden übersprungen; 29.02. rollt auf
+  01.03.). **Zwei Oberflächen, eine Render-Funktion** (`renderAnlaesseListe`, fügt sich ins
+  Benachrichtigungs-Muster ein = gleiche `.benachr-liste`/`.benachr-item`-Optik): (1) **Dashboard-
+  Widget** = schwebender Button oben rechts im `#baum-container` (`#anlaesse-btn`, Tortensymbol +
+  Zähl-Badge, nur sichtbar bei eingeloggtem Nutzer + offenem Baum + ≥1 Anlass) → öffnet
+  `#anlaesse-modal`; (2) **Sektion im zentralen Obavještenja-Modal** (`#obav-anlaesse-wrap`, via
+  `renderObavZentral`). **Klick auf einen Eintrag öffnet die Personenkarte** (`anlaesseOeffne` →
+  `zeigeDetails`, schließt offene Modals). `aktualisiereAnlaesse` (zentrale Neuberechnung) wird in
+  **`waehleStammbaum`** (Baumwechsel/Login/Realtime-Reload), **`wechselSprache`** (Neu-Beschriftung)
+  und **`loescheUser`** (Logout → Widget verbergen) aufgerufen; setzt **NICHT** den Inaktivitäts-Timer
+  zurück (rein lesend). i18n `anl_*` in allen 5 Blöcken. **Bewusst NICHT** in den Avatar-Ungelesen-Badge
+  gemischt (Anlässe sind wiederkehrend/ambient, kein „ungelesen").
+- **Geburtstags-/Gedenktag-Erinnerungen — Stufe B (Backend, In-App-Persistenz, ab v11.8):** Ergänzt
+  Stufe A um **persistente** Benachrichtigungen (sichtbar auch ohne offene Client-Berechnung, Basis
+  für späteren E-Mail-Versand). DB-Datei **`supabase_benachrichtigungen_anlaesse.sql`** (idempotent):
+  (a) Idempotenz-Spalten `ref_person`(FK→personen, CASCADE)/`ref_jahr` an **`benachrichtigungen`** +
+  partieller `UNIQUE`-Index (betrifft NICHT die `event_einladung`-Zeilen mit `ref_person IS NULL`);
+  (b) Tabelle **`benachrichtigungs_einstellungen`** (`familie_id`,`user_id`,`email_geburtstage`,
+  `email_gedenktage`,`vorlauf_tage`) mit **RLS analog mitgliedschaften** (eigene Zeile bearbeitbar,
+  Admin/Verbund lesend); (c) **SECURITY-DEFINER-RPC `anlaesse_taeglich_erzeugen()`** (läuft im
+  Cron-/Service-Kontext OHNE `auth.uid()` → Sichtbarkeit explizit über den **Verbund** der
+  Einstellungs-Familie; schreibt je anstehendem Anlass [Monat+Tag = heute+`vorlauf_tage`] eine
+  `benachrichtigungen`-Zeile; lebende→Geburtstag, verstorbene→Gedenktag; über `identitaet_id`
+  entdoppelt, Platzhalter/Nicht-ISO übersprungen; `ON CONFLICT DO NOTHING` = idempotent; `GRANT` nur
+  `service_role`). **Trigger via pg_cron** ruft die Funktion DIREKT auf (**kein** pg_net/Edge nötig
+  für In-App) — auskommentiertes Snippet in der Datei (Nutzer aktiviert pg_cron + führt es EINMAL aus
+  = abstimmungspflichtig). **Frontend:** Schalter im Profil-Overlay (`#anl-pref-geb`/`#anl-pref-ged`,
+  `ladeAnlassEinstellungen`/`speichereAnlassEinstellungen` → Upsert je Familie aus
+  `meineRollenProFamilie`, RLS = nur eigene Zeilen); `renderBenachrichtigungen` beschriftet die neuen
+  Typen `anlass_geburtstag`/`anlass_gedenktag` (🎂/🕯️ + Name), Klick öffnet best-effort die
+  Personenkarte (`ref_person`→`_uuid` im geladenen Modell). **Vorlauf** (`#anl-pref-vorlauf`, Tage
+  vorher, 0–30, DB-Default 3) je Familie editierbar (UI zeigt/speichert den kleinsten Wert). i18n
+  `anl_pref_*` in allen 5 Blöcken.
+- **Geburtstags-/Gedenktag-Erinnerungen — E-Mail-Versand (ab v12.0):** Baut auf Stufe B auf. DB-Datei
+  **`supabase_benachrichtigungen_anlaesse_email.sql`** (idempotent): Spalte
+  `benachrichtigungen.email_gesendet` (Doppel-Mail-Schutz) + SECURITY-DEFINER-RPCs (nur `service_role`)
+  **`anlaesse_email_offen()`** (liefert noch nicht gemailte Anlass-Zeilen der letzten 2 Tage inkl.
+  E-Mail aus `auth.users`/Name+Sprache aus `profile`) und **`anlaesse_email_erledigt(uuid[])`**
+  (markiert gesendet). **Edge Function `anlaesse-erinnerung`** (`supabase/functions/anlaesse-erinnerung/`,
+  Deploy via Dashboard; Resend-Muster wie `event-einladung-senden`): ruft `anlaesse_taeglich_erzeugen()`
+  (In-App sicherstellen) → `anlaesse_email_offen()` → **eine gebündelte Digest-Mail je Empfänger**
+  (alle Anlässe, Sprache aus `profile`, Deep-Link `?obav=1`) → `anlaesse_email_erledigt()`. **Auth-Guard:**
+  nur Aufruf mit Service-Role-Bearer (Cron). **Aktivierung (abstimmungs-/setup-pflichtig):** pg_cron +
+  **pg_net** aktivieren, Function deployen (Secrets RESEND_API_KEY etc.), den reinen In-App-Cron
+  `anlaesse-taeglich` durch den pg_net-Cron `anlaesse-erinnerung` ersetzen (Snippet in der DB-Datei).
+  Idempotent: `email_gesendet`-Flag + 2-Tage-Fenster → kein Versand von Altbestand/Doppel-Mails.
+- **Ereignis-Bereich = EIN Bereich, zwei Ansichten (Liste + Zeitstrahl, ab v12.1):** Der Events-Tab
+  (`tab-shorts`, Sektion `#ansicht-shorts`) hat oben einen **segmented control** (`#ev-modus`,
+  `evSetModus`/`evApplyModusUI`, Zustand `evModus` 'liste'|'zeit'): **(A) „Liste"** = der bisherige
+  **Verwaltungs**-Modus (Event-Karten `#ev-liste-wrap`/`#shorts-grid`, Bearbeiten/Teilnehmer/Kosten/
+  Medien, „Neues Event") — **unverändert**; **(B) „Zeitstrahl"** = neue, **rein LESENDE** chronologische
+  Ansicht (`#ev-zeit-wrap`). **KEINE neue Tabelle/RPC/Library** — beide Ansichten teilen DIESELBE
+  Quelle: `zeigeShorts` lädt `events_fuer_mich` EINMAL in `eventsCache` und rendert beide; der
+  Zeitstrahl liest daraus mit (kein separater Call) und ergänzt clientseitig abgeleitete Lebensdaten
+  aus `aktuelleDaten`. **Marker (`zsBaueMarker`), Scope = aktiver Baum (`aktuellerStammbaumId`):**
+  (1) **organisierte Events** aus `eventsCache` — klickbar → bestehendes Event-Detail (`zsOeffneEvent`
+  → `zeigeEventDetail`, mit Kosten/Teilnehmern/Medien), Badge „Organisiertes Event" + Akzent-Rand;
+  (2) **Lebensdaten** aus den geladenen Personen (`p._tree === aktuellerStammbaumId`, Platzhalter
+  übersprungen): **Geburt** (`birth_date`), **Tod** (`death_date`, nur wenn `deceased`/Datum),
+  **Heirat** aus `families_spouse` **nur wenn ein Heiratsdatum vorhanden** ist
+  (`hochzeit_standesamt`/`hochzeit_kirchlich` liegt auf der PERSON, NICHT an `beziehungen`; je Paar
+  ein Marker via Dedupe-Schlüssel) — klickbar → Personenkarte (`zsOeffnePerson` → `zeigeDetails`,
+  `#modal`), rein lesend. **Nur Marker mit PARSEBAREM ISO-Datum** erscheinen (`zsIso`; nicht-parsebare
+  Freitext-Altwerte werden ignoriert); chronologisch sortiert, **nach Jahr gruppiert** (`.zs-jahr`).
+  **Filter** (`zsFuelleFilter`): Person, Art (organisierte Events / Geburt / Heirat / Tod), Jahrzehnt.
+  **„Lebenslauf einer Person"** = Person-Filter gesetzt → nur Marker dieser Person (+ Kopf
+  `zs_bio_titel`). Live: läuft über `zeigeShorts` (von `ladeBaumDaten`/`waehleStammbaum`/`wechselSprache`
+  aufgerufen) → Live-Sync-Reload aktualisiert die Achse mit, `evModus` bleibt erhalten; setzt den
+  Inaktivitäts-Timer NICHT zurück. Suchfeld im ganzen Bereich deaktiviert (wie bisher). i18n
+  `ev_modus_*`/`zs_*` in allen 5 Blöcken. **v1-Grenzen (bewusst):** Lebensdaten ohne parsebares Datum
+  erscheinen nicht; Heiraten nur mit Datum; keine baumübergreifende Chronik (nur aktiver Baum).
+- **Foto-Galerie pro Person (ab v12.1):** Baut auf dem bestehenden Medien-Upload (`feMediaUpload`/
+  Avatar-Canvas-Kompression) auf — **kein zweites System**. DB-Datei `supabase_personen_fotos.sql`
+  (idempotent): Tabelle **`personen_fotos`** (`person_id`→personen CASCADE, `familie_id`/`stammbaum_id`,
+  `storage_pfad`, `beschriftung`, `ist_hauptbild`, `aufnahme_datum`, `sortierung`, `erstellt_am`),
+  partieller `UNIQUE`-Index „**1 Hauptbild je Person**", **RLS verbund-basiert EXAKT wie `personen`**
+  (SELECT `sieht_familie`, Schreiben `kann_familie_bearbeiten`). **Storage:** eigener Bucket
+  **`personen-fotos`** (public-read wie `avatars`/`familien` → stabile URLs für Karten/PDF ohne
+  Signatur-Ablauf), Pfadschema **`{stammbaum_id}/{person_id}/{uuid}`**; Storage-RLS prüft die
+  Mitgliedschaft über das **erste Pfad-Segment** (`darf_fotoordner_bearbeiten` → `kann_familie_bearbeiten`)
+  → INSERT/UPDATE/DELETE nur in eigene Baum-Ordner, SELECT authenticated + public-Flag. **Frontend
+  (`stammbaum.html`):** Verwaltungs-Galerie im **Personen-Editor** (`#pe-galerie`, nur Bearbeiter über
+  `istAdmin`/RLS) — Upload mit **clientseitiger Canvas-Kompression** (`galerieKomprimiere`, längste Kante
+  1600 px, WEBP/JPEG, Seitenverhältnis erhalten), **„Als Hauptbild"** (`galerieHauptbild` hebt das alte
+  auf), **Beschriftung**, **Reihenfolge per Drag&Drop** (`galerieDragStart`, **Pointer-Events** →
+  touch-sicher, `touch-action:none`; `sortierung`), **Löschen**. **Read-only-Galerie + Lightbox** in der
+  Detailkarte (`#detail-galerie`, für ALLE Nutzer; `oeffneLightbox`/`lightboxNav`, schließt per Button/
+  Esc/Pfeile/Hintergrund-Tap — **bewusst KEIN `.modal`**). **Hauptbild → Karten-Avatar:** `setKarteFoto`
+  spiegelt die Public-URL in `stammbaum_daten.foto` → bestehende Baum-Karten-/PDF-Avatarlogik zeigt es
+  ohne weitere Änderung (erstes hochgeladene Foto wird automatisch Hauptbild); zieht die Optimistic-Lock-
+  Baseline des offenen Editors nach (kein Fehl-Konflikt). **Cleanup:** `loeschePerson` ruft
+  `galerieLoescheFuerPersonen` (Storage-Dateien; DB-Zeilen per CASCADE) → keine Waisen. Sprachwechsel:
+  `galerieSpracheUpdate` rendert offene Grids neu. i18n `gal_*` in allen 5 Blöcken. **v1-Grenzen
+  (bewusst):** Fotos hängen an EINER Karte (`person_id`) — identitäts-gespiegelte Zwillinge in anderen
+  Bäumen zeigen Galerie/Hauptbild nicht; Bucket public (URL-erreichbar, konsistent mit `avatars`/
+  `familien`); Touch-Drag final nur auf echtem Gerät verifizierbar.
 
 ## Architektur-Regeln
 - **Keine NEUEN externen Libraries/Dienste ohne ausdrückliche Absprache.**

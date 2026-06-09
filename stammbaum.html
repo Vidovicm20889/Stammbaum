@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="11.7">
+<meta name="app-version" content="12.2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -28,7 +28,7 @@
 <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.1/dist/svg2pdf.umd.min.js"
         integrity="sha384-B3l2uNxzGBflyDLbL7qqONJYng+5kJd6tDEXetlgRA6b68u6pgeZYBRH5UAYiBZ3"
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=11.7">
+<link rel="stylesheet" href="stammbaum.css?v=12.2">
 </head>
 <body>
 
@@ -171,14 +171,45 @@
   <div class="personen" id="personen-grid"></div>
 </section>
 
+<!-- EREIGNISSE: EIN Bereich, zwei Ansichten (Liste = Verwaltung | Zeitstrahl = rein lesend).
+     Beide teilen DIESELBE Datenquelle (eventsCache aus events_fuer_mich); der Zeitstrahl
+     ergänzt clientseitig abgeleitete Lebensdaten aus aktuelleDaten (keine neue RPC/Tabelle). -->
 <section id="ansicht-shorts">
   <div class="shorts-header">
     <h2 data-i18n="shorts_titel"></h2>
     <p class="shorts-hinweis" data-i18n="shorts_hinweis"></p>
+    <!-- Umschalter (segmented control) — touch-sicher: einfache Buttons, kein Außenklick nötig -->
+    <div class="ev-modus" id="ev-modus" role="tablist">
+      <button type="button" class="ev-modus-btn aktiv" id="ev-modus-liste" data-ev-modus="liste"
+              role="tab" data-i18n="ev_modus_liste" onclick="evSetModus('liste')"></button>
+      <button type="button" class="ev-modus-btn" id="ev-modus-zeit" data-ev-modus="zeit"
+              role="tab" data-i18n="ev_modus_zeit" onclick="evSetModus('zeit')"></button>
+    </div>
     <button class="pa-add-btn" id="event-neu-btn" style="display:none;margin:10px auto 0;max-width:280px"
       onclick="zeigeEventNeu()">＋ <span data-i18n="event_neu"></span></button>
   </div>
-  <div class="shorts-grid" id="shorts-grid"></div>
+
+  <!-- Ansicht A: Liste/Verwaltung (unverändert) -->
+  <div id="ev-liste-wrap">
+    <div class="shorts-grid" id="shorts-grid"></div>
+  </div>
+
+  <!-- Ansicht B: Zeitstrahl (rein lesend, chronologisch) -->
+  <div id="ev-zeit-wrap" style="display:none">
+    <div class="zs-filter" id="zs-filter">
+      <label class="zs-filter-feld"><span data-i18n="zs_filter_person"></span>
+        <select id="zs-f-person" class="filter" onchange="zsRender()"></select>
+      </label>
+      <label class="zs-filter-feld"><span data-i18n="zs_filter_art"></span>
+        <select id="zs-f-art" class="filter" onchange="zsRender()"></select>
+      </label>
+      <label class="zs-filter-feld"><span data-i18n="zs_filter_dekade"></span>
+        <select id="zs-f-dekade" class="filter" onchange="zsRender()"></select>
+      </label>
+    </div>
+    <div class="zs-bio-kopf" id="zs-bio-kopf" style="display:none"></div>
+    <div class="zs-timeline" id="zs-timeline"></div>
+  </div>
 </section>
 
 <section id="ansicht-baum">
@@ -201,6 +232,20 @@
         <line x1="18.5" y1="12" x2="22.5" y2="12" stroke="currentColor" stroke-width="2"/>
         <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
       </svg>
+    </button>
+    <button type="button" id="anlaesse-btn" class="anlaesse-btn" style="display:none"
+            onclick="oeffneAnlaesseModal()" data-i18n-title="anl_btn"
+            data-i18n-aria="anl_btn" aria-label="Anstehende Anlässe">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <path d="M5 10.5h14v8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5z"
+              fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M12 10.5V7m0 0a2 2 0 1 1 2-2c0 1.2-1 2-2 2m0 0a2 2 0 1 0-2-2c0 1.2 1 2 2 2"
+              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="9" y1="13" x2="9" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="12" y1="13" x2="12" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="15" y1="13" x2="15" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="anlaesse-badge" id="anlaesse-badge">0</span>
     </button>
     <button type="button" id="ansicht-erweitern-btn" class="ansicht-erweitern-btn"
             onclick="oeffneAnsichtModal()" data-i18n-title="ansicht_btn"
@@ -620,6 +665,17 @@
 
     <button class="login-submit" id="prof-submit" data-i18n="prof_speichern" onclick="speichereProfil()"></button>
     <div id="prof-erfolg" class="reg-erfolg" style="display:none"></div>
+
+    <!-- Erinnerungen: Geburtstage/Gedenktage (Stufe B; In-App jetzt, E-Mail-Versand folgt) -->
+    <div class="reg-gruppe-titel" data-i18n="anl_pref_titel"></div>
+    <p class="prof-hint" data-i18n="anl_pref_hint"></p>
+    <label class="pdf-check"><input type="checkbox" id="anl-pref-geb"><span data-i18n="anl_pref_geburtstage"></span></label>
+    <label class="pdf-check"><input type="checkbox" id="anl-pref-ged"><span data-i18n="anl_pref_gedenktage"></span></label>
+    <label class="login-label" style="max-width:240px"><span data-i18n="anl_pref_vorlauf"></span>
+      <input type="number" id="anl-pref-vorlauf" class="login-feld" min="0" max="30" step="1" inputmode="numeric" value="3">
+    </label>
+    <button class="account-btn" type="button" id="anl-pref-save" data-i18n="anl_pref_speichern" onclick="speichereAnlassEinstellungen()"></button>
+    <div id="anl-pref-erfolg" class="reg-erfolg" style="display:none"></div>
   </div>
 </div>
 
@@ -859,6 +915,13 @@
     <div class="reg-gruppe-titel" data-i18n="pe_g_ueber"></div>
     <label class="login-label"><span data-i18n="pe_beschreibung"></span>
       <textarea id="pe-beschreibung" class="login-feld" rows="4"></textarea></label>
+
+    <!-- Foto-Galerie (Verwaltung) — nur Bearbeiter; per JS in zeigePersonBearbeiten befüllt -->
+    <div class="reg-gruppe-titel" data-i18n="gal_titel"></div>
+    <div id="pe-galerie" class="galerie-grid"></div>
+    <input type="file" id="pe-foto-input" accept="image/*" multiple style="display:none" onchange="galerieUpload(this)">
+    <button type="button" class="gal-upload-btn" id="pe-foto-btn"
+            onclick="document.getElementById('pe-foto-input').click()" data-i18n="gal_hochladen"></button>
 
     <div id="pe-fehler" class="login-fehler"></div>
     <button class="login-submit" id="pe-submit" data-i18n="event_save" onclick="speicherePerson()"></button>
@@ -1311,11 +1374,26 @@
     <div id="obav-benachr-liste" class="benachr-liste" style="margin-top:8px"></div>
     <button type="button" class="account-btn" id="obav-benachr-alle" style="margin-top:10px;display:none"
       data-i18n="benachr_alle_gelesen" onclick="benachrAlleGelesen()"></button>
+    <!-- Anstehende Anlässe (Geburtstage/Gedenktage des aktiven Baums, clientseitig) — für ALLE Nutzer -->
+    <div id="obav-anlaesse-wrap" style="display:none">
+      <div class="obav-section-titel" data-i18n="anl_titel" style="margin-top:22px"></div>
+      <div id="obav-anlaesse-liste" class="benachr-liste" style="margin-top:8px"></div>
+    </div>
     <!-- Admin: Zugriffsanfragen genehmigen/ablehnen — nur Admins/Owner/Super-Admin -->
     <div id="obav-anfragen-wrap" style="display:none">
       <div class="obav-section-titel" data-i18n="obav_anfragen_titel" style="margin-top:22px"></div>
       <div id="obav-liste" style="margin-top:8px"></div>
     </div>
+  </div>
+</div>
+
+<!-- Anstehende Anlässe: Geburtstage & Gedenktage der nächsten 30 Tage (clientseitig, aktiver Baum) -->
+<div class="modal" id="anlaesse-modal" style="z-index:210">
+  <div class="modal-inhalt" style="max-width:520px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseAnlaesseModal()">×</button>
+    <h2 data-i18n="anl_titel"></h2>
+    <p class="mv-legende" data-i18n="anl_sub" style="margin-top:-6px"></p>
+    <div id="anlaesse-liste" class="benachr-liste" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -1647,7 +1725,22 @@
   </p>
 </footer>
 
-<script src="i18n.js?v=11.7"></script>
+<!-- Foto-Lightbox (Vollbild). Bewusst KEIN .modal: schließt per Hintergrund-Tap, Button + Esc. -->
+<div class="lightbox" id="foto-lightbox" onclick="if(event.target===this)schliesseLightbox()">
+  <button type="button" class="lightbox-schliessen" data-i18n-title="gal_schliessen"
+          aria-label="×" onclick="schliesseLightbox()">×</button>
+  <button type="button" class="lightbox-nav lb-prev" data-i18n-title="gal_zurueck"
+          aria-label="‹" onclick="lightboxNav(-1)">‹</button>
+  <button type="button" class="lightbox-nav lb-next" data-i18n-title="gal_weiter"
+          aria-label="›" onclick="lightboxNav(1)">›</button>
+  <div class="lightbox-inner">
+    <img class="lightbox-img" id="lightbox-img" alt="">
+    <div class="lightbox-cap" id="lightbox-cap"></div>
+  </div>
+  <div class="lightbox-zaehler" id="lightbox-zaehler"></div>
+</div>
+
+<script src="i18n.js?v=12.2"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -1838,6 +1931,7 @@ function loescheUser() {
   meinePersonStatus = null;   // "Meine Person"-Status verwerfen (ausgeloggt)
   meineBenachrichtigungen = [];   // Benachrichtigungen verwerfen + Indikator zurücksetzen
   aktualisiereBenachrBadge();
+  if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget verbergen (ausgeloggt)
   profilAvatarPending = undefined;
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
   stopObavPolling();     // Live-Updates beenden (ausgeloggt)
@@ -2940,6 +3034,7 @@ async function oeffneProfil() {
   renderProfilKopf();
   setProfilAvatarVorschau(meinAvatarUrl());
   renderMeinePersonBereich();   // "Meine Person im Stammbaum" (lädt Status bei Bedarf)
+  ladeAnlassEinstellungen();    // Erinnerungs-Schalter (Geburtstage/Gedenktage) laden
 
   document.getElementById('profil-modal').classList.add('aktiv');
   macheAlleSelectsSuchbar(document.getElementById('profil-modal'));
@@ -3931,6 +4026,11 @@ function zeigeObavModal() { oeffneObavZentral(); }
 // Rendert beide Abschnitte des kombinierten Modals (persönlich + ggf. Admin-Anfragen).
 function renderObavZentral() {
   renderBenachrichtigungen();                  // persönliche Liste (#obav-benachr-liste)
+  // Anstehende Anlässe (Geburtstage/Gedenktage, clientseitig) — Sektion nur, wenn vorhanden.
+  const anlWrap = document.getElementById('obav-anlaesse-wrap');
+  const hatAnl = (typeof anlaesseCache !== 'undefined') && anlaesseCache.length > 0;
+  if (anlWrap) anlWrap.style.display = hatAnl ? '' : 'none';
+  if (hatAnl) renderAnlaesseListe(document.getElementById('obav-anlaesse-liste'));
   const wrap = document.getElementById('obav-anfragen-wrap');
   const admin = istAdmin();
   if (wrap) wrap.style.display = admin ? '' : 'none';
@@ -6196,7 +6296,7 @@ function wechselSprache(lang, speichern = true) {
   aktualisiereSyncBannerSprache(); // P3: offene „aktualisiert"-Hinweise neu beschriften
   aktualisiereSucheZustand(aktuelleAnsicht); // Suchfeld-Tooltip (Events) in neuer Sprache
   if (aktuelleAnsicht === 'karten') zeigeKarten();
-  else if (aktuelleAnsicht === 'shorts') zeigeShorts();
+  else if (aktuelleAnsicht === 'shorts') zeigeShorts();   // rendert Liste UND (im Zeit-Modus) den Zeitstrahl in neuer Sprache neu
   else aktualisiereBaumInfo();
   zeichneBaumNeu();
   aktualisiereAuthUI();
@@ -6212,6 +6312,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('event-teilnehmer-modal') && typeof renderEtnListe === 'function') renderEtnListe();   // Teilnehmer-Liste in neuer Sprache
   if (typeof aktualisiereBenachrBadge === 'function') aktualisiereBenachrBadge();   // Badge-Text (99+)
   if (offen('obav-modal') && typeof renderObavZentral === 'function') renderObavZentral();   // kombiniertes Obavještenja neu
+  if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget/-Modal in neuer Sprache neu beschriften
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
     fuelleProfilSprache(document.getElementById('prof-sprache').value);
@@ -6246,6 +6347,8 @@ function wechselSprache(lang, speichern = true) {
   if (typeof ansichtModalSprachUpdate === 'function') ansichtModalSprachUpdate();
   // „Abweichender Nachname"-Overlay: dynamischen Titel + Beziehungs-Select neu aufbauen
   if (typeof abwSpracheUpdate === 'function') abwSpracheUpdate();
+  // Foto-Galerie: offene Grids (Editor/Detail) neu rendern (dynamische t()-Labels)
+  if (typeof galerieSpracheUpdate === 'function') galerieSpracheUpdate();
   // ALLE Länder-Dropdowns (zentrale Komponente) in neuer Sprache neu befüllen — Auswahl bleibt.
   if (typeof fuelleLandSelects === 'function') fuelleLandSelects(document);
   if (document.getElementById('registrier-modal')?.classList.contains('aktiv')) {
@@ -6593,6 +6696,10 @@ function waehleStammbaum(treeId) {
   else { ansichtModus = null; if (baumG) baumG.selectAll('*').remove(); }
   aktualisiereBaumHinweis();
   startPresence(treeId);   // Live-Indikator an den jetzt offenen Baum koppeln (P2)
+  if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Geburtstags-/Gedenktag-Widget für den jetzt offenen Baum
+  // Ereignis-Ansicht (Liste/Zeitstrahl) zeigt Baum-bezogene Daten -> beim Baumwechsel neu laden,
+  // da waehleStammbaum sonst nur die (versteckte) Baum-Ansicht neu zeichnet.
+  if (aktuelleAnsicht === 'shorts') zeigeShorts();
 }
 
 // Hinweis-Banner: in welchem Stammbaum man ist + dass man oben wechseln kann
@@ -7861,7 +7968,24 @@ function zeigeKarten() {
   const suche = document.getElementById('suche').value.trim().toLowerCase();
   const grid = document.getElementById('personen-grid');
 
+  // Identitäts-Zwillinge entdoppeln: dieselbe reale Person ist über mehrere Bäume
+  // gespiegelt (identitaet_id) und liegt als mehrere Karten in aktuelleDaten.persons
+  // (eigene externe_id je Baum). Pro Gruppe nur EINE Karte zeigen und dabei die des
+  // AKTUELLEN Baums bevorzugen (analog zur sameTree-Entdopplung im Diagramm).
+  const reprNachIdent = {};
+  Object.values(aktuelleDaten.persons).forEach(p => {
+    if (!p._ident) return;
+    const bisher = reprNachIdent[p._ident];
+    if (!bisher) { reprNachIdent[p._ident] = p; return; }
+    // aktuelle-Baum-Karte gewinnt; sonst bleibt die zuerst gesehene
+    if (aktuellerStammbaumId && p._tree === aktuellerStammbaumId && bisher._tree !== aktuellerStammbaumId) {
+      reprNachIdent[p._ident] = p;
+    }
+  });
+
   const gefiltert = Object.values(aktuelleDaten.persons).filter(p => {
+    // Zwilling, der NICHT der gewählte Repräsentant ist -> überspringen
+    if (p._ident && reprNachIdent[p._ident] !== p) return false;
     if (!suche) return true;
     // Echtzeit-Filter: Vorname, Nachname, vollständiger Name + Geburtsname (Mädchenname)
     const heu = [p.name, p.given, p.surname, p.ehename].filter(Boolean).join(' ').toLowerCase();
@@ -8110,44 +8234,281 @@ function zeigeBestaetigung(text, opts) {
   });
 }
 
-// Events des aktuell gewählten Stammbaums (aus der DB) anzeigen.
+// Ereignis-Bereich: lädt die Events des aktiven Baums (events_fuer_mich → eventsCache)
+// und rendert BEIDE Ansichten aus DERSELBEN Quelle — Liste (Verwaltung) und Zeitstrahl
+// (rein lesend). eventsCache wird hier EINMAL geladen; der Zeitstrahl liest daraus mit
+// (kein separater RPC-Aufruf) und ergänzt clientseitige Lebensdaten aus aktuelleDaten.
 let eventsCache = [];
 async function zeigeShorts() {
   const grid = document.getElementById('shorts-grid');
   const btn  = document.getElementById('event-neu-btn');
   const darfBearbeiten = istAdmin();
-  if (btn) btn.style.display = (darfBearbeiten && aktuellerStammbaumId) ? '' : 'none';
+  evApplyModusUI();   // Liste/Zeitstrahl-Wrapper + Umschalter-Status setzen
+  // „Neues Event" nur im Liste-/Verwaltungsmodus (Admin + Baum)
+  if (btn) btn.style.display = (darfBearbeiten && aktuellerStammbaumId && evModus === 'liste') ? '' : 'none';
 
-  if (!aktuellerStammbaumId) { grid.innerHTML = `<div class="keine-treffer">${t('event_kein_baum')}</div>`; eventsCache = []; return; }
+  if (!aktuellerStammbaumId) {
+    grid.innerHTML = `<div class="keine-treffer">${t('event_kein_baum')}</div>`;
+    eventsCache = []; zsFuelleFilter(); zsRender(); return;
+  }
 
   grid.innerHTML = `<div class="keine-treffer">…</div>`;
   const { data, error } = await sbClient.rpc('events_fuer_mich', { p_tree: aktuellerStammbaumId });
-  if (error) { grid.innerHTML = `<div class="keine-treffer">${escapeHtml(error.message)}</div>`; eventsCache = []; return; }
+  if (error) {
+    grid.innerHTML = `<div class="keine-treffer">${escapeHtml(error.message)}</div>`;
+    eventsCache = []; zsFuelleFilter(); zsRender(); return;
+  }
   eventsCache = data || [];
 
+  // ----- Ansicht A: Liste/Verwaltung (unverändert) -----
   // Namenssuche ist im Ereignis-Bereich bewusst deaktiviert (Suchfeld ausgegraut) →
   // hier kein Filter, immer alle Events des Baums anzeigen.
   const liste = eventsCache;
-
   if (liste.length === 0) {
     grid.innerHTML = `<div class="keine-treffer">${t(eventsCache.length ? 'keine_treffer' : 'event_keine')}</div>`;
-    return;
+  } else {
+    grid.innerHTML = liste.map(ev => `
+      <div class="short-card" style="cursor:pointer" onclick="zeigeEventDetail('${ev.id}')">
+        <div class="thumb">🗓</div>
+        <h3>${escapeHtml(ev.titel)}</h3>
+        ${(ev.datum || ev.ort) ? `<p>${escapeHtml([formatDatumLang(ev.datum), uebersetzeOrt(ev.ort)].filter(Boolean).join(' · '))}</p>` : ''}
+        ${ev.typ ? `<div class="meta">${escapeHtml(t('evt_' + ev.typ))}</div>` : ''}
+        ${ev.organisator ? `<div class="meta" style="margin-top:6px;font-size:12px;color:#8a7a5a">${escapeHtml(t('event_organizer'))} ${escapeHtml(nm(ev.organisator))}</div>` : ''}
+        ${ev.beschreibung ? `<div class="meta" style="margin-top:10px;font-size:13px;color:#5e4b35;line-height:1.5">${escapeHtml(ev.beschreibung)}</div>` : ''}
+        <div class="event-aktionen" style="margin-top:14px">
+          <button class="mv-toggle" type="button" onclick="event.stopPropagation(); oeffneKosten('${ev.id}')">${escapeHtml(t('kosten_titel'))}</button>
+          ${darfBearbeiten ? `<button class="mv-toggle" type="button" onclick="event.stopPropagation(); zeigeEventBearbeiten('${ev.id}')">${escapeHtml(t('event_edit'))}</button>
+          <button class="mv-del" type="button" onclick="event.stopPropagation(); loescheEvent('${ev.id}')">${escapeHtml(t('event_loeschen_btn'))}</button>` : ''}
+        </div>
+      </div>`).join('');
   }
 
-  grid.innerHTML = liste.map(ev => `
-    <div class="short-card" style="cursor:pointer" onclick="zeigeEventDetail('${ev.id}')">
-      <div class="thumb">🗓</div>
-      <h3>${escapeHtml(ev.titel)}</h3>
-      ${(ev.datum || ev.ort) ? `<p>${escapeHtml([formatDatumLang(ev.datum), uebersetzeOrt(ev.ort)].filter(Boolean).join(' · '))}</p>` : ''}
-      ${ev.typ ? `<div class="meta">${escapeHtml(t('evt_' + ev.typ))}</div>` : ''}
-      ${ev.organisator ? `<div class="meta" style="margin-top:6px;font-size:12px;color:#8a7a5a">${escapeHtml(t('event_organizer'))} ${escapeHtml(nm(ev.organisator))}</div>` : ''}
-      ${ev.beschreibung ? `<div class="meta" style="margin-top:10px;font-size:13px;color:#5e4b35;line-height:1.5">${escapeHtml(ev.beschreibung)}</div>` : ''}
-      <div class="event-aktionen" style="margin-top:14px">
-        <button class="mv-toggle" type="button" onclick="event.stopPropagation(); oeffneKosten('${ev.id}')">${escapeHtml(t('kosten_titel'))}</button>
-        ${darfBearbeiten ? `<button class="mv-toggle" type="button" onclick="event.stopPropagation(); zeigeEventBearbeiten('${ev.id}')">${escapeHtml(t('event_edit'))}</button>
-        <button class="mv-del" type="button" onclick="event.stopPropagation(); loescheEvent('${ev.id}')">${escapeHtml(t('event_loeschen_btn'))}</button>` : ''}
+  // ----- Ansicht B: Zeitstrahl (teilt eventsCache; Lebensdaten aus aktuelleDaten) -----
+  zsFuelleFilter();   // Filter-Optionen (Personen/Jahrzehnte) aus den frischen Daten
+  zsRender();         // Achse zeichnen (auch wenn versteckt -> nach Modus-Wechsel sofort da)
+}
+
+// ============================================================
+// EREIGNIS-BEREICH — ANSICHT B: ZEITSTRAHL (rein lesend)
+// Teilt die Datenquelle der Liste (eventsCache aus events_fuer_mich) und ergänzt
+// clientseitig abgeleitete LEBENSDATEN aus aktuelleDaten (Geburt/Tod/Heirat).
+// KEINE neue Tabelle/RPC/Library. Scope = aktiver Baum (wie die Event-Liste).
+// v1-GRENZEN (bewusst): nur Marker mit PARSEBAREM ISO-Datum erscheinen; Heiraten nur,
+// wenn ein Heiratsdatum (hochzeit_standesamt/-kirchlich) vorhanden ist; keine
+// baumübergreifende Chronik (nur p._tree === aktuellerStammbaumId).
+// ============================================================
+let evModus = 'liste';   // 'liste' = Verwaltung (Event-Karten) | 'zeit' = Zeitstrahl (lesend)
+
+// Icon je Marker-Art bzw. Event-Typ (Fallback: Kalender).
+const ZS_TYP_ICON = {
+  geburt: '👶', heirat: '💍', tod: '🕯️',
+  taufe: '⛪', hochzeit: '💍', jubilaeum: '🎉', treffen: '🤝', '': '🗓️'
+};
+
+// Beliebiges Datum -> ISO oder null (NUR datierte Marker erscheinen auf der Achse;
+// nicht-parsebare Freitext-Altwerte werden bewusst übersprungen).
+function zsIso(v) { return istIsoDatum(v) ? v : parseDatumZuIso(v); }
+function zsJahrAusIso(iso) { return iso ? +iso.slice(0, 4) : null; }
+// Anzeigename einer Modell-Person (sr -> Kyrillisch via nm()).
+function zsName(p) { return p ? nm(p.name || ((p.given || '') + ' ' + (p.surname || '')).trim()) : ''; }
+
+// Umschalter Liste/Zeitstrahl (segmented control) ----------------------------
+function evApplyModusUI() {
+  const lWrap = document.getElementById('ev-liste-wrap');
+  const zWrap = document.getElementById('ev-zeit-wrap');
+  if (lWrap) lWrap.style.display = (evModus === 'liste') ? '' : 'none';
+  if (zWrap) zWrap.style.display = (evModus === 'zeit')  ? '' : 'none';
+  document.querySelectorAll('#ev-modus .ev-modus-btn').forEach(b =>
+    b.classList.toggle('aktiv', b.dataset.evModus === evModus));
+}
+function evSetModus(m) {
+  if (m !== 'liste' && m !== 'zeit') return;
+  evModus = m;
+  evApplyModusUI();
+  const btn = document.getElementById('event-neu-btn');
+  if (btn) btn.style.display = (istAdmin() && aktuellerStammbaumId && evModus === 'liste') ? '' : 'none';
+  if (m === 'zeit') { zsFuelleFilter(); zsRender(); }
+}
+
+// Marker aus BEIDEN Quellen bauen (nur aktiver Baum, nur parsebare ISO-Daten).
+function zsBaueMarker() {
+  const marker = [];
+
+  // Quelle 1: organisierte Events (eventsCache der Liste; aktiver Baum)
+  (eventsCache || []).forEach(ev => {
+    if (ev.stammbaum_id && ev.stammbaum_id !== aktuellerStammbaumId) return;   // Scope aktiver Baum
+    const iso = zsIso(ev.datum);
+    if (!iso) return;
+    marker.push({ kat: 'event', art: 'event', iso, eventId: ev.id,
+                  titel: ev.titel || '', ort: ev.ort || '', typ: ev.typ || '',
+                  organisator: ev.organisator || '' });
+  });
+
+  // Quelle 2: abgeleitete Lebensdaten aus den geladenen Personen des aktiven Baums
+  const ps   = (aktuelleDaten && aktuelleDaten.persons)  || {};
+  const fams = (aktuelleDaten && aktuelleDaten.families) || {};
+  const ehePaare = new Set();
+  Object.values(ps).forEach(p => {
+    if (!p || p._tree !== aktuellerStammbaumId || p.platzhalter) return;
+    const gIso = zsIso(p.birth_date);
+    if (gIso) marker.push({ kat: 'leben', art: 'geburt', iso: gIso, personId: p.id, name: zsName(p) });
+    if (p.deceased || p.death_date) {
+      const dIso = zsIso(p.death_date);
+      if (dIso) marker.push({ kat: 'leben', art: 'tod', iso: dIso, personId: p.id, name: zsName(p) });
+    }
+    // Heirat: Datum liegt auf der PERSON (hochzeit_standesamt/-kirchlich), NICHT an der
+    // Beziehung. Je Paar nur EIN Marker (Dedupe über sortierten Paar-Schlüssel).
+    (p.families_spouse || []).forEach(fid => {
+      const fam = fams[fid]; if (!fam) return;
+      const partnerId = (fam.husband === p.id) ? fam.wife : (fam.wife === p.id ? fam.husband : null);
+      const key = [p.id, partnerId || ''].sort().join('__');
+      if (ehePaare.has(key)) return;
+      const partner = partnerId ? ps[partnerId] : null;
+      const hIso = zsIso(p.hochzeit_standesamt) || zsIso(p.hochzeit_kirchlich)
+                || (partner && (zsIso(partner.hochzeit_standesamt) || zsIso(partner.hochzeit_kirchlich)));
+      if (!hIso) return;                       // Heirat nur mit verfügbarem Datum
+      ehePaare.add(key);
+      marker.push({ kat: 'leben', art: 'heirat', iso: hIso, personId: p.id,
+                    partnerId: partnerId || null, name: zsName(p), partnerName: zsName(partner) });
+    });
+  });
+
+  return marker;
+}
+
+// Personen mit ≥1 Lebensmarker -> Personen-Filter (= „Lebenslauf einer Person").
+function zsPersonenListe(marker) {
+  const seen = new Map();
+  (marker || []).forEach(mk => {
+    if (mk.kat !== 'leben') return;
+    if (mk.personId  && !seen.has(mk.personId))  seen.set(mk.personId,  mk.name || '');
+    if (mk.partnerId && !seen.has(mk.partnerId)) seen.set(mk.partnerId, mk.partnerName || '');
+  });
+  return [...seen.entries()].map(([id, name]) => ({ id, name }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+}
+
+// Filter-Dropdowns (Person / Art / Jahrzehnt) — Auswahl bleibt erhalten, wenn gültig.
+function zsFuelleFilter() {
+  const marker   = zsBaueMarker();
+  const personen = zsPersonenListe(marker);
+
+  const fp = document.getElementById('zs-f-person');
+  if (fp) {
+    const alt = fp.value;
+    fp.innerHTML = `<option value="">${escapeHtml(t('zs_alle'))}</option>` +
+      personen.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
+    fp.value = personen.some(p => p.id === alt) ? alt : '';
+  }
+
+  const fa = document.getElementById('zs-f-art');
+  if (fa) {
+    const alt = fa.value;
+    const arten = [['', t('zs_alle')], ['event', t('zs_art_event')],
+                   ['geburt', t('zs_art_geburt')], ['heirat', t('zs_art_heirat')], ['tod', t('zs_art_tod')]];
+    fa.innerHTML = arten.map(([v, lab]) => `<option value="${v}">${escapeHtml(lab)}</option>`).join('');
+    fa.value = arten.some(a => a[0] === alt) ? alt : '';
+  }
+
+  const fd = document.getElementById('zs-f-dekade');
+  if (fd) {
+    const alt = fd.value;
+    const dekaden = [...new Set(marker.map(mk => zsJahrAusIso(mk.iso)).filter(j => j != null)
+                                       .map(j => Math.floor(j / 10) * 10))].sort((a, b) => a - b);
+    fd.innerHTML = `<option value="">${escapeHtml(t('zs_alle'))}</option>` +
+      dekaden.map(d => `<option value="${d}">${d}–${d + 9}</option>`).join('');
+    fd.value = dekaden.some(d => String(d) === alt) ? alt : '';
+  }
+}
+
+// Klick-Ziele: Event -> bestehendes Event-Detail (Kosten/Teilnehmer/Medien);
+// Lebensmarker -> Personenkarte (#modal). Beide rein lesend aus dieser Ansicht.
+function zsOeffneEvent(eventId) { if (typeof zeigeEventDetail === 'function') zeigeEventDetail(eventId); }
+function zsOeffnePerson(personId) { if (personId && aktuelleDaten.persons && aktuelleDaten.persons[personId]) zeigeDetails(personId); }
+
+// Achse rendern (gefiltert, chronologisch, nach Jahr gruppiert).
+function zsRender() {
+  const liste = document.getElementById('zs-timeline');
+  const kopf  = document.getElementById('zs-bio-kopf');
+  if (!liste) return;
+  if (kopf) { kopf.style.display = 'none'; kopf.innerHTML = ''; }
+
+  if (!aktuellerStammbaumId) { liste.innerHTML = `<div class="keine-treffer">${t('event_kein_baum')}</div>`; return; }
+
+  let marker = zsBaueMarker();
+  if (marker.length === 0) { liste.innerHTML = `<div class="keine-treffer">${t('zs_keine')}</div>`; return; }
+
+  const fPerson = (document.getElementById('zs-f-person') || {}).value || '';
+  const fArt    = (document.getElementById('zs-f-art')    || {}).value || '';
+  const fDekade = (document.getElementById('zs-f-dekade') || {}).value || '';
+
+  // Person gewählt = „Lebenslauf": nur Marker dieser Person (organisierte Events haben
+  // keinen Personenbezug und fallen damit heraus -> Fokus auf das Leben der Person).
+  if (fPerson) {
+    marker = marker.filter(mk => mk.personId === fPerson || mk.partnerId === fPerson);
+    const pName = zsName(aktuelleDaten.persons[fPerson]);
+    if (kopf) {
+      kopf.style.display = '';
+      kopf.innerHTML = `<span class="zs-bio-name">${escapeHtml(t('zs_bio_titel', { name: pName }))}</span>` +
+        `<span class="zs-bio-zahl">${escapeHtml(t('zs_bio_anzahl', { n: marker.length }))}</span>`;
+    }
+  }
+  if (fArt)    marker = marker.filter(mk => mk.art === fArt);
+  if (fDekade) marker = marker.filter(mk => Math.floor(zsJahrAusIso(mk.iso) / 10) * 10 === +fDekade);
+
+  if (marker.length === 0) { liste.innerHTML = `<div class="keine-treffer">${t('keine_treffer')}</div>`; return; }
+
+  marker.sort((a, b) => a.iso.localeCompare(b.iso));   // chronologisch (älteste zuerst)
+
+  // nach Jahr gruppieren
+  let html = '', jahr = null;
+  marker.forEach(mk => {
+    const j = zsJahrAusIso(mk.iso);
+    if (j !== jahr) { jahr = j; html += `<div class="zs-jahr">${j}</div>`; }
+    html += zsMarkerHtml(mk);
+  });
+  liste.innerHTML = html;
+}
+
+function zsMarkerHtml(mk) {
+  const icon = ZS_TYP_ICON[mk.art === 'event' ? (mk.typ || '') : mk.art] || ZS_TYP_ICON[''];
+  const datumTxt = formatDatumLang(mk.iso);
+
+  if (mk.kat === 'event') {
+    const typLb  = mk.typ ? t('evt_' + mk.typ) : t('evt_sonstiges');
+    const ortTxt = uebersetzeOrt(mk.ort);
+    return `
+      <div class="zs-item">
+        <div class="zs-marker"><span class="zs-icon zs-icon--event">${icon}</span></div>
+        <div class="zs-card zs-card--event" role="button" tabindex="0" onclick="zsOeffneEvent('${mk.eventId}')">
+          <div class="zs-card-head">
+            <span class="zs-datum">${escapeHtml(datumTxt)}</span>
+            <span class="zs-badge zs-badge--event">${escapeHtml(t('zs_event_badge'))}</span>
+            <span class="zs-typ">${escapeHtml(typLb)}</span>
+          </div>
+          <h3 class="zs-card-titel">${escapeHtml(mk.titel)}</h3>
+          ${ortTxt ? `<div class="zs-meta">📍 ${escapeHtml(ortTxt)}</div>` : ''}
+          ${mk.organisator ? `<div class="zs-meta">${escapeHtml(t('event_organizer'))} ${escapeHtml(nm(mk.organisator))}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  // Lebensmarker (Geburt/Tod/Heirat) — rein lesend, öffnet die Personenkarte.
+  const typLb = (mk.art === 'geburt') ? t('evt_geburt') : (mk.art === 'tod') ? t('evt_tod') : t('evt_hochzeit');
+  const titel = (mk.art === 'heirat')
+    ? `${escapeHtml(mk.name)}${mk.partnerName ? ' &amp; ' + escapeHtml(mk.partnerName) : ''}`
+    : escapeHtml(mk.name);
+  return `
+    <div class="zs-item">
+      <div class="zs-marker"><span class="zs-icon">${icon}</span></div>
+      <div class="zs-card zs-card--leben" role="button" tabindex="0" onclick="zsOeffnePerson('${mk.personId}')">
+        <div class="zs-card-head">
+          <span class="zs-datum">${escapeHtml(datumTxt)}</span>
+          <span class="zs-typ">${escapeHtml(typLb)}</span>
+        </div>
+        <h3 class="zs-card-titel">${titel}</h3>
       </div>
-    </div>`).join('');
+    </div>`;
 }
 
 // ---- Event anlegen/bearbeiten/löschen (pro Stammbaum) ----
@@ -8404,7 +8765,7 @@ async function ladeBenachrichtigungen() {
   if (!aktuellerUser || !sbClient) { meineBenachrichtigungen = []; aktualisiereBenachrBadge(); return; }
   const { data, error } = await sbClient
     .from('benachrichtigungen')
-    .select('id, typ, titel, text, event_id, gelesen, created_at')
+    .select('id, typ, titel, text, event_id, ref_person, gelesen, created_at')
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) { console.warn('Benachrichtigungen laden:', error); return; }
@@ -8444,11 +8805,22 @@ function renderBenachrichtigungen() {
     return;
   }
   box.innerHTML = meineBenachrichtigungen.map(b => {
-    const titel = b.typ === 'event_einladung' ? t('benachr_event_einladung') : escapeHtml(b.titel || '');
-    const text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
+    let titel, text;
+    if (b.typ === 'event_einladung') {
+      titel = t('benachr_event_einladung');
+      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
+    } else if (b.typ === 'anlass_geburtstag' || b.typ === 'anlass_gedenktag') {
+      // Anlass-Erinnerung (Stufe B): titel = Personenname, Typ liefert das Label.
+      const ic = b.typ === 'anlass_gedenktag' ? '🕯️ ' : '🎂 ';
+      titel = ic + t(b.typ === 'anlass_gedenktag' ? 'anl_gedenktag' : 'anl_geburtstag');
+      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
+    } else {
+      titel = escapeHtml(b.titel || '');
+      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
+    }
     const zeit  = b.created_at ? new Date(b.created_at).toLocaleString() : '';
     return `<div class="benachr-item ${b.gelesen ? 'gelesen' : 'ungelesen'}" data-id="${escapeHtml(String(b.id))}"
-                 data-event="${escapeHtml(String(b.event_id || ''))}" onclick="benachrOeffne(this)">
+                 data-event="${escapeHtml(String(b.event_id || ''))}" data-person="${escapeHtml(String(b.ref_person || ''))}" onclick="benachrOeffne(this)">
       <span class="bi-dot"></span>
       <span class="bi-body">
         <div class="bi-titel">${escapeHtml(titel)}</div>
@@ -8489,6 +8861,17 @@ async function benachrOeffne(el) {
     const da = (eventsCache || []).some(e => String(e.id) === String(eventId));
     if (da && typeof zeigeEventDetail === 'function') zeigeEventDetail(eventId);
     else if (typeof zeigeHinweis === 'function') zeigeHinweis(t('benachr_event_weg'));
+    return;
+  }
+  // Anlass-Erinnerung (Stufe B): best-effort die Personenkarte öffnen, falls die
+  // referenzierte Person im aktuell geladenen Modell liegt (über die DB-UUID -> _uuid).
+  const refPerson = el.dataset.person;
+  if (refPerson && aktuelleDaten && aktuelleDaten.persons) {
+    const treffer = Object.values(aktuelleDaten.persons).find(p => p && String(p._uuid) === String(refPerson));
+    if (treffer) { schliesseProfil();
+      if (document.getElementById('obav-modal')?.classList.contains('aktiv')) schliesseObavModal();
+      if (typeof zeigeDetails === 'function') zeigeDetails(treffer.id);
+    }
   }
 }
 
@@ -8498,6 +8881,177 @@ async function benachrAlleGelesen() {
   meineBenachrichtigungen.forEach(b => b.gelesen = true);
   aktualisiereBenachrBadge();
   renderBenachrichtigungen();
+}
+
+// ============================================================
+// ANSTEHENDE ANLÄSSE — Geburtstage & Gedenktage (Stufe A, rein clientseitig)
+// Wertet birth_date/death_date der Personen des AKTIVEN Baums (aktuelleDaten) aus
+// und zeigt Anlässe der nächsten 30 Tage. KEIN Backend: neu berechnet bei
+// Baumwechsel/Reload/Sprachwechsel. Klick öffnet die Personenkarte. Fügt sich ins
+// Benachrichtigungs-Muster ein (gleiche .benachr-liste-Optik): eigener Widget-Button
+// im Baum + Sektion im zentralen Obavještenja-Modal. Stufe B (E-Mail via pg_cron +
+// Edge Function) ist separat skizziert (supabase_benachrichtigungen_anlaesse.sql).
+// ============================================================
+const ANL_FENSTER_TAGE = 30;
+let anlaesseCache = [];
+
+// Nächstes Vorkommen von Monat+Tag eines ISO-Datums ab heute, falls <= Fenster.
+// Liefert { tage, jahre } oder null (Freitext/ungefähre Altwerte werden übersprungen,
+// da Monat/Tag fehlen). 29.02. rollt in Nicht-Schaltjahren automatisch auf den 01.03.
+function naechsterJahrestag(value, heute, fenster) {
+  const iso = istIsoDatum(value) ? value : parseDatumZuIso(value);
+  if (!iso) return null;
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return null;
+  const jahr0 = +m[1], monat = +m[2], tag = +m[3];
+  let ziel = new Date(heute.getFullYear(), monat - 1, tag); ziel.setHours(0, 0, 0, 0);
+  if (ziel < heute) ziel = new Date(heute.getFullYear() + 1, monat - 1, tag);
+  const tage = Math.round((ziel - heute) / 86400000);
+  if (tage < 0 || tage > fenster) return null;
+  return { tage, jahre: ziel.getFullYear() - jahr0 };
+}
+
+// Anlässe des aktiven Baums: lebende Personen -> Geburtstag, verstorbene -> Gedenktag
+// (Todestag). Über Spiegelkarten (identitaet_id) und Platzhalter-Eltern entdoppelt/gefiltert.
+function berechneAnlaesse() {
+  const out = [];
+  const persons = (aktuelleDaten && aktuelleDaten.persons) || null;
+  if (!persons) return out;
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const seen = new Set();
+  Object.values(persons).forEach(p => {
+    if (!p || p.platzhalter) return;
+    const grp = p._ident ? 'grp:' + p._ident : 'id:' + p.id;
+    const name = p.name || ((p.given || '') + ' ' + (p.surname || '')).trim();
+    const verstorben = !!(p.deceased || p.death_date);
+    if (!verstorben) {
+      const r = naechsterJahrestag(p.birth_date, heute, ANL_FENSTER_TAGE);
+      if (r && !seen.has(grp + '|gb')) { seen.add(grp + '|gb');
+        out.push({ personId: p.id, typ: 'geburtstag', tage: r.tage, zahl: r.jahre, name }); }
+    } else {
+      const r = naechsterJahrestag(p.death_date, heute, ANL_FENSTER_TAGE);
+      if (r && !seen.has(grp + '|gt')) { seen.add(grp + '|gt');
+        out.push({ personId: p.id, typ: 'gedenktag', tage: r.tage, zahl: r.jahre, name }); }
+    }
+  });
+  out.sort((a, b) => a.tage - b.tage);
+  return out;
+}
+
+function anlWannText(tage) {
+  if (tage <= 0) return t('anl_heute');
+  if (tage === 1) return t('anl_morgen');
+  return t('anl_in_tagen', { n: tage });
+}
+
+// Eine Anlass-Liste in eine Box rendern (gemeinsam: Widget-Modal + Obavještenja-Sektion).
+function renderAnlaesseListe(box) {
+  if (!box) return;
+  if (!anlaesseCache.length) {
+    box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('anl_keine'))}</div>`;
+    return;
+  }
+  box.innerHTML = anlaesseCache.map(a => {
+    const label  = t(a.typ === 'gedenktag' ? 'anl_gedenktag' : 'anl_geburtstag');
+    const zusatz = a.zahl > 0
+      ? (a.typ === 'gedenktag' ? t('anl_jahrestag', { n: a.zahl }) : t('anl_wird', { n: a.zahl }))
+      : '';
+    const meta = [anlWannText(a.tage), zusatz].filter(Boolean).join(' · ');
+    return `<div class="benachr-item anl-item anl-${a.typ}" data-person="${escapeHtml(String(a.personId))}" onclick="anlaesseOeffne(this)">
+      <span class="anl-icon" aria-hidden="true">${a.typ === 'gedenktag' ? '🕯️' : '🎂'}</span>
+      <span class="bi-body">
+        <div class="bi-titel">${escapeHtml(label)} — « ${escapeHtml(nm(a.name || '?'))} »</div>
+        <div class="bi-zeit">${escapeHtml(meta)}</div>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+// Zentral neu berechnen + alle Oberflächen aktualisieren (Widget-Button + offene Modals).
+// Setzt KEINEN Inaktivitäts-Timer zurück (rein lesend/render-seitig).
+function aktualisiereAnlaesse() {
+  anlaesseCache = aktuellerUser ? berechneAnlaesse() : [];
+  const n = anlaesseCache.length;
+  const btn = document.getElementById('anlaesse-btn');
+  const badge = document.getElementById('anlaesse-badge');
+  if (badge) badge.textContent = n > 99 ? '99+' : String(n);
+  if (btn) btn.style.display = (aktuellerUser && aktuellerStammbaumId && n > 0) ? '' : 'none';
+  if (document.getElementById('anlaesse-modal')?.classList.contains('aktiv'))
+    renderAnlaesseListe(document.getElementById('anlaesse-liste'));
+  const wrap = document.getElementById('obav-anlaesse-wrap');
+  if (wrap) wrap.style.display = n > 0 ? '' : 'none';
+  if (document.getElementById('obav-modal')?.classList.contains('aktiv'))
+    renderAnlaesseListe(document.getElementById('obav-anlaesse-liste'));
+}
+
+function oeffneAnlaesseModal() {
+  aktualisiereAnlaesse();
+  renderAnlaesseListe(document.getElementById('anlaesse-liste'));
+  document.getElementById('anlaesse-modal').classList.add('aktiv');
+}
+function schliesseAnlaesseModal() { document.getElementById('anlaesse-modal').classList.remove('aktiv'); }
+
+// Klick auf einen Anlass -> Personenkarte öffnen (offene Modals vorher schließen).
+function anlaesseOeffne(el) {
+  const pid = el.dataset.person; if (!pid) return;
+  schliesseAnlaesseModal();
+  if (document.getElementById('obav-modal')?.classList.contains('aktiv')) schliesseObavModal();
+  if (typeof zeigeDetails === 'function') zeigeDetails(pid);
+}
+
+// ---- Erinnerungs-Einstellungen (Stufe B: E-Mail-Schalter je Familie) ---------
+// UI im Profil-Overlay (ein globaler Schalter pro Anlass-Typ). Die Tabelle ist je
+// (familie_id, user_id) -> wir spiegeln die Wahl auf ALLE Familien-Mitgliedschaften
+// des Nutzers (Upsert je familie_id). RLS erlaubt nur die EIGENEN Zeilen.
+async function ladeAnlassEinstellungen() {
+  const gebEl = document.getElementById('anl-pref-geb');
+  const gedEl = document.getElementById('anl-pref-ged');
+  if (!gebEl || !gedEl || !sbClient || !aktuellerUser) return;
+  const vorEl = document.getElementById('anl-pref-vorlauf');
+  // Default: beides an + 3 Tage Vorlauf (entspricht DB-Default), bis Zeilen geladen sind.
+  gebEl.checked = true; gedEl.checked = true; if (vorEl) vorEl.value = '3';
+  try {
+    const { data, error } = await sbClient
+      .from('benachrichtigungs_einstellungen')
+      .select('email_geburtstage, email_gedenktage, vorlauf_tage')
+      .eq('user_id', aktuellerUser.id);
+    if (error) { console.warn('Erinnerungs-Einstellungen laden:', error); return; }
+    if (data && data.length) {
+      // „An", wenn IRGENDEINE Familien-Zeile aktiviert ist (global-tolerant).
+      gebEl.checked = data.some(r => r.email_geburtstage);
+      gedEl.checked = data.some(r => r.email_gedenktage);
+      // Vorlauf: kleinster gesetzter Wert (frühestmögliche Erinnerung gewinnt).
+      if (vorEl) { const vs = data.map(r => r.vorlauf_tage).filter(v => v != null);
+        if (vs.length) vorEl.value = String(Math.min(...vs)); }
+    }
+  } catch (e) { console.warn('Erinnerungs-Einstellungen:', e); }
+}
+
+async function speichereAnlassEinstellungen() {
+  const gebEl = document.getElementById('anl-pref-geb');
+  const gedEl = document.getElementById('anl-pref-ged');
+  const erfolg = document.getElementById('anl-pref-erfolg');
+  const btn = document.getElementById('anl-pref-save');
+  if (!gebEl || !gedEl || !sbClient || !aktuellerUser) return;
+  const familien = Object.keys(meineRollenProFamilie || {});
+  if (!familien.length) { if (erfolg) { erfolg.textContent = t('anl_pref_keine_familie'); erfolg.style.display = 'block'; } return; }
+  const vorEl = document.getElementById('anl-pref-vorlauf');
+  let vorlauf = vorEl ? parseInt(vorEl.value, 10) : 3;
+  if (!Number.isFinite(vorlauf)) vorlauf = 3;
+  vorlauf = Math.max(0, Math.min(30, vorlauf));   // auf 0..30 begrenzen (DB-CHECK)
+  if (vorEl) vorEl.value = String(vorlauf);
+  const rows = familien.map(fid => ({
+    familie_id: fid, user_id: aktuellerUser.id,
+    email_geburtstage: gebEl.checked, email_gedenktage: gedEl.checked, vorlauf_tage: vorlauf
+  }));
+  const alt = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  const { error } = await sbClient
+    .from('benachrichtigungs_einstellungen')
+    .upsert(rows, { onConflict: 'familie_id,user_id' });
+  if (btn) { btn.disabled = false; btn.textContent = alt || t('anl_pref_speichern'); }
+  if (error) { console.warn('Erinnerungs-Einstellungen speichern:', error);
+    if (erfolg) { erfolg.textContent = t('reg_fehler') + error.message; erfolg.style.display = 'block'; } return; }
+  if (erfolg) { erfolg.textContent = t('anl_pref_gespeichert'); erfolg.style.display = 'block';
+    setTimeout(() => { erfolg.style.display = 'none'; }, 2500); }
 }
 
 async function speichereEvent() {
@@ -9387,6 +9941,9 @@ function zeigeDetails(personId) {
     ${eheHtml}
     ${gpTwinHtml(p)}
 
+    <!-- Foto-Galerie (read-only) — per JS asynchron nach dem Öffnen befüllt -->
+    <div id="detail-galerie"></div>
+
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
     ${istAdmin() ? `
@@ -9399,6 +9956,7 @@ function zeigeDetails(personId) {
   // P3: Stand dieser Person merken, um Live-Änderungen anderer zu erkennen.
   detailWatchId = personId; detailWatchSig = personSignatur(personId);
   pruefeLockBanner();   // P4: ggf. „wird gerade von X bearbeitet" anzeigen
+  galerieDetailRender(p);   // Foto-Galerie (read-only) asynchron nachladen
 }
 
 function schliesseModal() {
@@ -9746,6 +10304,7 @@ async function zeigePersonBearbeiten(personId) {
   editBaselineUpdated = p._updated || null;   // P5: Stand beim Öffnen merken (Optimistic Locking)
   const ban = document.getElementById('sync-hinweis-edit'); if (ban) ban.remove();
   presenceTrack(personId);   // P4: Bearbeitungssperre für diese Person setzen
+  galerieEditOeffnen(p);     // Foto-Galerie (Verwaltung) laden + rendern (async)
 }
 
 // Bedingte Felder im Editor ein-/ausblenden
@@ -9766,6 +10325,333 @@ function schliessePersonEdit() {
   const ban = document.getElementById('sync-hinweis-edit'); if (ban) ban.remove();
   if (meinLockPerson) presenceTrack(null);   // P4: Bearbeitungssperre freigeben
 }
+
+// ============================================================
+// FOTO-GALERIE pro Person (Tabelle personen_fotos + Bucket 'personen-fotos').
+// Baut auf dem bestehenden Medien-Upload (feMediaUpload) + der Avatar-Canvas-
+// Kompression auf. Read-only in der Detailkarte (#detail-galerie, alle Nutzer),
+// Verwaltung im Editor (#pe-galerie, nur Bearbeiter — istAdmin/RLS).
+// Hauptbild wird zusätzlich als Karten-Avatar in stammbaum_daten.foto gespiegelt,
+// damit Baum-Karten/PDF-Export es ohne weitere Änderung anzeigen.
+// ============================================================
+const FOTO_BUCKET = 'personen-fotos';
+let galerieFotos = [];   // aktuell geladene Fotos (gemeinsam für Editor & Lightbox)
+let galerieCtx   = null; // { personUuid, personExt, stammbaumId, familieId, editierbar }
+let galerieDrag  = null; // Pointer-Drag-Zustand (touch-sicher)
+let lightboxIdx  = 0;
+
+// Öffentliche URL eines Galerie-Pfades (public Bucket -> stabile URL, kein Ablauf)
+function fotoUrl(pfad) {
+  if (!pfad) return '';
+  return sbClient.storage.from(FOTO_BUCKET).getPublicUrl(pfad).data.publicUrl;
+}
+
+// Fotos einer Person aus der DB laden, sortiert (sortierung, dann Anlagezeit).
+async function ladePersonFotos(personUuid) {
+  if (!personUuid) return [];
+  const { data, error } = await sbClient.from('personen_fotos')
+    .select('id, person_id, storage_pfad, beschriftung, ist_hauptbild, aufnahme_datum, sortierung')
+    .eq('person_id', personUuid)
+    .order('sortierung', { ascending: true })
+    .order('erstellt_am', { ascending: true });
+  if (error) { console.warn('Galerie laden:', error); return []; }
+  return (data || []).map(r => ({ ...r, _url: fotoUrl(r.storage_pfad) }));
+}
+
+// Clientseitige Kompression: Seitenverhältnis erhalten, längste Kante begrenzen,
+// WEBP (Fallback JPEG) — analog Avatar-Verarbeitung, aber ohne Quadrat-Zuschnitt.
+function galerieKomprimiere(file, maxKante = 1600, q = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const skala = Math.min(1, maxKante / Math.max(w, h));
+      w = Math.round(w * skala); h = Math.round(h * skala);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => { if (b) resolve(b);
+        else c.toBlob(b2 => b2 ? resolve(b2) : reject(new Error('toBlob null')), 'image/jpeg', q); },
+        'image/webp', q);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Bild laden fehlgeschlagen')); };
+    img.src = url;
+  });
+}
+
+function galerieFehler(msg) {
+  const el = document.getElementById('pe-fehler');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+// Hauptbild-URL als Karten-Avatar in stammbaum_daten.foto schreiben (oder löschen).
+// Aktualisiert In-Memory-Modell + zeichnet neu; hält den Optimistic-Lock-Stand des
+// offenen Editors konsistent (sonst meldet das nächste Speichern fälschlich Konflikt).
+async function setKarteFoto(ctx, url) {
+  try {
+    const { data: row, error } = await sbClient.from('personen')
+      .select('stammbaum_daten').eq('id', ctx.personUuid).single();
+    if (error) { console.warn('Karten-Foto lesen:', error); return; }
+    const sd = row.stammbaum_daten || {};
+    if (url) sd.foto = url; else delete sd.foto;
+    const { error: uErr } = await sbClient.from('personen')
+      .update({ stammbaum_daten: sd }).eq('id', ctx.personUuid);
+    if (uErr) { console.warn('Karten-Foto schreiben:', uErr); return; }
+    const p = aktuelleDaten && aktuelleDaten.persons && aktuelleDaten.persons[ctx.personExt];
+    if (p) { if (url) p.foto = url; else delete p.foto; }
+    const fresh = await sbClient.from('personen').select('updated_at').eq('id', ctx.personUuid).single();
+    if (fresh.data && editWatchId === ctx.personExt) editBaselineUpdated = fresh.data.updated_at || editBaselineUpdated;
+    if (typeof zeichneBaumNeu === 'function') zeichneBaumNeu();
+  } catch (e) { console.warn('setKarteFoto:', e); }
+}
+
+// --- Verwaltungs-Galerie im Editor -----------------------------------------
+async function galerieEditOeffnen(p) {
+  const grid = document.getElementById('pe-galerie');
+  if (!grid || !p || !p._uuid) return;
+  const tree = p._tree || aktuellerStammbaumId || null;
+  galerieCtx = {
+    personUuid: p._uuid, personExt: p.id, stammbaumId: tree,
+    familieId: stammbaumZuFamilie[tree] || null, editierbar: true
+  };
+  grid.innerHTML = `<div class="galerie-laden">${escapeHtml(t('gal_laden'))}</div>`;
+  galerieFotos = await ladePersonFotos(p._uuid);
+  galerieEditRender();
+}
+
+function galerieEditRender() {
+  const grid = document.getElementById('pe-galerie');
+  if (!grid) return;
+  if (!galerieFotos.length) { grid.innerHTML = `<div class="galerie-leer">${escapeHtml(t('gal_leer'))}</div>`; return; }
+  grid.innerHTML = galerieFotos.map((f, i) => `
+    <div class="gal-karte${f.ist_hauptbild ? ' ist-haupt' : ''}" data-id="${f.id}">
+      ${f.ist_hauptbild ? `<span class="gal-haupt-badge">${escapeHtml(t('gal_hauptbild'))}</span>` : ''}
+      <span class="gal-drag" title="${escapeHtml(t('gal_sortier_hilfe'))}" aria-label="${escapeHtml(t('gal_sortier_hilfe'))}"
+            onpointerdown="galerieDragStart(event,'${f.id}')">⠿</span>
+      <img class="gal-thumb" src="${escapeHtml(f._url)}" alt="" onclick="oeffneLightbox(${i})" onerror="this.style.visibility='hidden'">
+      <input class="gal-cap" type="text" maxlength="200" value="${escapeHtml(f.beschriftung || '')}"
+             placeholder="${escapeHtml(t('gal_beschriftung_ph'))}" onchange="galerieBeschriftung('${f.id}', this.value)">
+      <div class="gal-aktionen">
+        <button type="button" onclick="galerieHauptbild('${f.id}')" ${f.ist_hauptbild ? 'disabled' : ''}>★ ${escapeHtml(t('gal_hauptbild_setzen'))}</button>
+        <button type="button" class="gal-del" title="${escapeHtml(t('gal_loeschen'))}" aria-label="${escapeHtml(t('gal_loeschen'))}" onclick="galerieLoeschen('${f.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+async function galerieUpload(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';   // erlaubt erneutes Wählen derselben Datei
+  if (!files.length || !galerieCtx || !galerieCtx.editierbar) return;
+  if (!galerieCtx.stammbaumId || !galerieCtx.familieId) { galerieFehler(t('reg_fehler') + 'kein Baum/Familie'); return; }
+  const fehlerEl = document.getElementById('pe-fehler'); if (fehlerEl) fehlerEl.style.display = 'none';
+  const btn = document.getElementById('pe-foto-btn'); const altTxt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  const erlaubt = ['image/jpeg', 'image/png', 'image/webp'];
+  let sort = galerieFotos.reduce((m, f) => Math.max(m, f.sortierung || 0), 0);
+  try {
+    for (const file of files) {
+      if (!erlaubt.includes(file.type)) { galerieFehler(t('gal_typ_fehler')); continue; }
+      if (file.size > 15 * 1024 * 1024) { galerieFehler(t('gal_gross_fehler')); continue; }
+      let blob; try { blob = await galerieKomprimiere(file); } catch (e) { galerieFehler(t('gal_upload_fehler') + (e.message || e)); continue; }
+      const ext = blob.type === 'image/jpeg' ? 'jpg' : 'webp';
+      const uuid = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2));
+      const pfad = `${galerieCtx.stammbaumId}/${galerieCtx.personUuid}/${uuid}.${ext}`;
+      const up = await sbClient.storage.from(FOTO_BUCKET).upload(pfad, blob, { cacheControl: '3600', contentType: blob.type, upsert: false });
+      if (up.error) { galerieFehler(t('gal_upload_fehler') + up.error.message); continue; }
+      sort += 10;
+      const istErstes = galerieFotos.length === 0;   // erstes Foto -> automatisch Hauptbild
+      const { data: row, error: insErr } = await sbClient.from('personen_fotos').insert({
+        person_id: galerieCtx.personUuid, familie_id: galerieCtx.familieId, stammbaum_id: galerieCtx.stammbaumId,
+        storage_pfad: pfad, beschriftung: '', ist_hauptbild: istErstes, sortierung: sort
+      }).select('id, person_id, storage_pfad, beschriftung, ist_hauptbild, aufnahme_datum, sortierung').single();
+      if (insErr) { try { await sbClient.storage.from(FOTO_BUCKET).remove([pfad]); } catch (e) {} galerieFehler(t('gal_upload_fehler') + insErr.message); continue; }
+      galerieFotos.push({ ...row, _url: fotoUrl(row.storage_pfad) });
+      if (istErstes) await setKarteFoto(galerieCtx, fotoUrl(pfad));
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = altTxt || t('gal_hochladen'); }
+  }
+  galerieEditRender();
+}
+
+async function galerieHauptbild(fotoId) {
+  if (!galerieCtx || !galerieCtx.editierbar) return;
+  const foto = galerieFotos.find(f => f.id === fotoId); if (!foto) return;
+  // 1 Hauptbild je Person: erst alle aufheben, dann dieses setzen (partieller Unique-Index)
+  let r = await sbClient.from('personen_fotos').update({ ist_hauptbild: false })
+    .eq('person_id', galerieCtx.personUuid).eq('ist_hauptbild', true);
+  if (r.error) { galerieFehler(t('reg_fehler') + r.error.message); return; }
+  r = await sbClient.from('personen_fotos').update({ ist_hauptbild: true }).eq('id', fotoId);
+  if (r.error) { galerieFehler(t('reg_fehler') + r.error.message); return; }
+  galerieFotos.forEach(f => f.ist_hauptbild = (f.id === fotoId));
+  await setKarteFoto(galerieCtx, foto._url);
+  galerieEditRender();
+}
+
+async function galerieBeschriftung(fotoId, text) {
+  if (!galerieCtx || !galerieCtx.editierbar) return;
+  const wert = (text || '').trim();
+  const { error } = await sbClient.from('personen_fotos').update({ beschriftung: wert }).eq('id', fotoId);
+  if (error) { galerieFehler(t('reg_fehler') + error.message); return; }
+  const f = galerieFotos.find(x => x.id === fotoId); if (f) f.beschriftung = wert;
+}
+
+async function galerieLoeschen(fotoId) {
+  if (!galerieCtx || !galerieCtx.editierbar) return;
+  const foto = galerieFotos.find(f => f.id === fotoId); if (!foto) return;
+  if (!await zeigeBestaetigung(t('gal_loeschen_frage'), { gefahr: true })) return;
+  const { error } = await sbClient.from('personen_fotos').delete().eq('id', fotoId);
+  if (error) { galerieFehler(t('reg_fehler') + error.message); return; }
+  try { await sbClient.storage.from(FOTO_BUCKET).remove([foto.storage_pfad]); } catch (e) { console.warn('Foto-Storage löschen:', e); }
+  const warHaupt = foto.ist_hauptbild;
+  galerieFotos = galerieFotos.filter(f => f.id !== fotoId);
+  if (warHaupt) {   // Hauptbild gelöscht -> nächstes übernehmen, sonst Karten-Foto entfernen
+    if (galerieFotos.length) {
+      const next = galerieFotos[0];
+      await sbClient.from('personen_fotos').update({ ist_hauptbild: true }).eq('id', next.id);
+      next.ist_hauptbild = true;
+      await setKarteFoto(galerieCtx, next._url);
+    } else {
+      await setKarteFoto(galerieCtx, '');
+    }
+  }
+  galerieEditRender();
+}
+
+// --- Reihenfolge per Drag&Drop (Pointer-Events -> Maus UND Touch) ----------
+function galerieDragStart(ev, fotoId) {
+  if (!galerieCtx || !galerieCtx.editierbar) return;
+  ev.preventDefault();
+  const karte = ev.target.closest('.gal-karte');
+  const grid  = document.getElementById('pe-galerie');
+  if (!karte || !grid) return;
+  galerieDrag = { id: fotoId };
+  karte.classList.add('gal-ziehe');
+  try { ev.target.setPointerCapture(ev.pointerId); } catch (e) {}
+  window.addEventListener('pointermove', galerieDragMove);
+  window.addEventListener('pointerup', galerieDragEnd);
+  window.addEventListener('pointercancel', galerieDragEnd);
+}
+function galerieKarteUnter(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const k = el ? el.closest('.gal-karte') : null;
+  return (k && document.getElementById('pe-galerie').contains(k)) ? k : null;
+}
+function galerieDragMove(ev) {
+  if (!galerieDrag) return;
+  const ziel = galerieKarteUnter(ev.clientX, ev.clientY);
+  document.querySelectorAll('#pe-galerie .gal-karte.gal-ziel').forEach(k => k.classList.remove('gal-ziel'));
+  if (ziel && ziel.dataset.id !== galerieDrag.id) ziel.classList.add('gal-ziel');
+}
+async function galerieDragEnd(ev) {
+  window.removeEventListener('pointermove', galerieDragMove);
+  window.removeEventListener('pointerup', galerieDragEnd);
+  window.removeEventListener('pointercancel', galerieDragEnd);
+  if (!galerieDrag) return;
+  const dragId = galerieDrag.id;
+  const ziel = galerieKarteUnter(ev.clientX, ev.clientY);
+  galerieDrag = null;
+  document.querySelectorAll('#pe-galerie .gal-karte').forEach(k => { k.classList.remove('gal-ziehe'); k.classList.remove('gal-ziel'); });
+  if (!ziel) return;
+  const zielId = ziel.dataset.id;
+  if (!zielId || zielId === dragId) return;
+  const from = galerieFotos.findIndex(f => f.id === dragId);
+  const to   = galerieFotos.findIndex(f => f.id === zielId);
+  if (from < 0 || to < 0) return;
+  const [moved] = galerieFotos.splice(from, 1);
+  galerieFotos.splice(to, 0, moved);
+  galerieEditRender();
+  await galerieReihenfolgeSpeichern();
+}
+async function galerieReihenfolgeSpeichern() {
+  const updates = [];
+  galerieFotos.forEach((f, i) => { const neu = (i + 1) * 10; if (f.sortierung !== neu) { f.sortierung = neu; updates.push(f); } });
+  for (const f of updates) {
+    const { error } = await sbClient.from('personen_fotos').update({ sortierung: f.sortierung }).eq('id', f.id);
+    if (error) { console.warn('Reihenfolge speichern:', error); break; }
+  }
+}
+
+// --- Read-only-Galerie in der Detailkarte (alle Nutzer) --------------------
+async function galerieDetailRender(p) {
+  const host = document.getElementById('detail-galerie');
+  if (!host || !p || !p._uuid) return;
+  galerieCtx = { personUuid: p._uuid, personExt: p.id, stammbaumId: p._tree || null,
+                 familieId: stammbaumZuFamilie[p._tree] || null, editierbar: false };
+  galerieFotos = await ladePersonFotos(p._uuid);
+  if (aktuelleModalPersonId !== p.id) return;   // Modal inzwischen gewechselt -> nicht überschreiben
+  if (!galerieFotos.length) { host.innerHTML = ''; return; }
+  host.innerHTML = `
+    <div class="beziehungen"><h3>${escapeHtml(t('gal_titel'))}</h3>
+      <div class="galerie-grid">
+        ${galerieFotos.map((f, i) => `
+          <div class="gal-karte${f.ist_hauptbild ? ' ist-haupt' : ''}">
+            ${f.ist_hauptbild ? `<span class="gal-haupt-badge">${escapeHtml(t('gal_hauptbild'))}</span>` : ''}
+            <img class="gal-thumb" src="${escapeHtml(f._url)}" alt="" onclick="oeffneLightbox(${i})" onerror="this.style.visibility='hidden'">
+            ${f.beschriftung ? `<div class="gal-cap-view">${escapeHtml(f.beschriftung)}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// Storage-Dateien aller Fotos der gegebenen Personen entfernen (keine Waisen beim
+// Personen-Löschen; die DB-Zeilen verschwinden per ON DELETE CASCADE).
+async function galerieLoescheFuerPersonen(uuids) {
+  if (!uuids || !uuids.length) return;
+  try {
+    const { data } = await sbClient.from('personen_fotos').select('storage_pfad').in('person_id', uuids);
+    const pfade = (data || []).map(r => r.storage_pfad).filter(Boolean);
+    if (pfade.length) await sbClient.storage.from(FOTO_BUCKET).remove(pfade);
+  } catch (e) { console.warn('Foto-Cleanup (Person löschen):', e); }
+}
+
+// --- Lightbox (Vollbild) ---------------------------------------------------
+function oeffneLightbox(idx) {
+  if (!galerieFotos.length) return;
+  lightboxIdx = Math.max(0, Math.min(idx, galerieFotos.length - 1));
+  lightboxRender();
+  document.getElementById('foto-lightbox').classList.add('aktiv');
+}
+function lightboxRender() {
+  const f = galerieFotos[lightboxIdx]; if (!f) return;
+  document.getElementById('lightbox-img').src = f._url;
+  const datum = f.aufnahme_datum ? formatDatumLang(f.aufnahme_datum) : '';
+  document.getElementById('lightbox-cap').innerHTML =
+    `${escapeHtml(f.beschriftung || '')}${datum ? `<span class="lb-datum">${escapeHtml(datum)}</span>` : ''}`;
+  const mehr = galerieFotos.length > 1;
+  document.querySelector('#foto-lightbox .lb-prev').style.display = mehr ? '' : 'none';
+  document.querySelector('#foto-lightbox .lb-next').style.display = mehr ? '' : 'none';
+  document.getElementById('lightbox-zaehler').textContent = mehr ? `${lightboxIdx + 1} / ${galerieFotos.length}` : '';
+}
+function lightboxNav(d) {
+  if (!galerieFotos.length) return;
+  lightboxIdx = (lightboxIdx + d + galerieFotos.length) % galerieFotos.length;
+  lightboxRender();
+}
+function schliesseLightbox() { document.getElementById('foto-lightbox').classList.remove('aktiv'); }
+
+// Sprachwechsel: offene Galerie-Grids (Editor/Detail) mit neuen t()-Labels neu rendern.
+function galerieSpracheUpdate() {
+  const edit = document.getElementById('person-edit-modal');
+  if (edit && edit.classList.contains('aktiv') && galerieCtx && galerieCtx.editierbar) galerieEditRender();
+  const host  = document.getElementById('detail-galerie');
+  const modal = document.getElementById('modal');
+  if (modal && modal.classList.contains('aktiv') && host && host.innerHTML.trim()) {
+    const p = aktuelleDaten && aktuelleDaten.persons && aktuelleDaten.persons[aktuelleModalPersonId];
+    if (p) galerieDetailRender(p);
+  }
+}
+// Tastatur: Esc schließt, Pfeile navigieren (nur wenn Lightbox offen).
+document.addEventListener('keydown', (e) => {
+  const lb = document.getElementById('foto-lightbox');
+  if (!lb || !lb.classList.contains('aktiv')) return;
+  if (e.key === 'Escape') schliesseLightbox();
+  else if (e.key === 'ArrowLeft') lightboxNav(-1);
+  else if (e.key === 'ArrowRight') lightboxNav(1);
+});
 
 // Pflichtprüfung Namen (ab v11): Vorname + Nachname IMMER Pflicht; bei Frauen zusätzlich der
 // Mädchenname (ehename) — nötig für die korrekte Blutlinien-Erkennung im Renderer (istBlutName).
@@ -10761,6 +11647,11 @@ async function loeschePerson(personId) {
       if (fam.wife && aktuelleDaten.persons[fam.wife]) fallback = fallback || fam.wife;
     });
   }
+
+  // 0) Galerie-Fotos im Storage abräumen (DB-Zeilen hängen per ON DELETE CASCADE an
+  //    den Personen; Storage-Dateien NICHT -> hier entfernen, keine Waisen). Vor dem
+  //    Personen-Delete, solange die personen_fotos-Zeilen noch existieren.
+  await galerieLoescheFuerPersonen(alleUuids);
 
   // 1) Alle Beziehungen ALLER betroffenen Karten entfernen (keine verwaisten Kanten)
   let relErr = (await sbClient.from('beziehungen').delete().in('person_a', alleUuids)).error;

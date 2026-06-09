@@ -91,6 +91,8 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
 48. `supabase_obavjestenja.sql`
 49. `supabase_benachrichtigungen.sql`
 50. `supabase_benachrichtigungen_realtime.sql`
+50a. `supabase_benachrichtigungen_anlaesse.sql` — Geburtstags-/Gedenktag-Erinnerungen (Stufe B): `benachrichtigungs_einstellungen` + `anlaesse_taeglich_erzeugen()` + Idempotenz-Spalten an `benachrichtigungen`. pg_cron-Snippet separat aktivieren. (Voraussetzung: 49 + Verbund)
+50b. `supabase_benachrichtigungen_anlaesse_email.sql` — E-Mail-Layer: `benachrichtigungen.email_gesendet` + `anlaesse_email_offen()`/`anlaesse_email_erledigt()`. Edge Function `anlaesse-erinnerung` + pg_net-Cron separat aktivieren. (Voraussetzung: 50a)
 
 ### 11 — Realtime
 51. `supabase_realtime_publication.sql` — `personen`/`beziehungen`/`stammbaeume` in Publication
