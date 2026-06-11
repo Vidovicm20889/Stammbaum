@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="12.4">
+<meta name="app-version" content="12.5">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=12.4">
+<link rel="stylesheet" href="stammbaum.css?v=12.5">
 </head>
 <body>
 
@@ -58,6 +58,25 @@
     </div>
     <input type="text" class="suche" id="suche" inputmode="search" enterkeyhint="search" autocomplete="off" data-i18n-placeholder="suche_placeholder">
     <select class="filter" id="tree-select" title="Stammbaum wählen" onchange="waehleStammbaum(this.value)"></select>
+
+    <!-- Chat — Icon-Button direkt in der Leiste (zwischen Stammbaum-Dropdown und Benutzer).
+         Nur eingeloggt sichtbar (Steuerung in aktualisiereAuthUI). Schließen/Öffnen wie gehabt. -->
+    <button class="chat-nav-btn" id="chat-nav-btn" type="button" onclick="oeffneChat()"
+            data-i18n-title="chat_menu" data-i18n-aria="chat_menu" aria-label="Chat" style="display:none">
+      <svg class="chat-nav-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <!-- hintere Sprechblase -->
+        <path d="M3 6.2A2.2 2.2 0 0 1 5.2 4h8.6A2.2 2.2 0 0 1 16 6.2v3.6A2.2 2.2 0 0 1 13.8 12H8.5L5 14.6V12h-.3A2.2 2.2 0 0 1 3 9.8z"
+              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <!-- Punkte in der hinteren Blase -->
+        <circle cx="6.5" cy="8" r="0.95" fill="currentColor"/>
+        <circle cx="9.5" cy="8" r="0.95" fill="currentColor"/>
+        <circle cx="12.5" cy="8" r="0.95" fill="currentColor"/>
+        <!-- vordere Sprechblase (Gold-Akzent) -->
+        <path d="M10 13.4A1.9 1.9 0 0 1 11.9 11.5h6.9A1.9 1.9 0 0 1 20.7 13.4v3.1A1.9 1.9 0 0 1 18.8 18.4H18v2.3l-3-2.3h-3.1A1.9 1.9 0 0 1 10 16.5z"
+              fill="none" stroke="var(--gold)" stroke-width="1.6" stroke-linejoin="round"/>
+      </svg>
+      <span class="obav-badge chat-nav-badge" id="chat-nav-badge" style="display:none"></span>
+    </button>
 
     <!-- Anmelden / Benutzer — direkt in der Leiste -->
     <div class="auth-bereich" id="auth-bereich">
@@ -76,9 +95,6 @@
           <div class="avatar-menu-panel" id="avatar-menu-panel">
             <button class="account-btn" type="button" id="avatar-obav-btn" onclick="oeffneObavZentral()">
               <span data-i18n="obav_zentral_titel"></span><span class="obav-badge" id="avatar-menu-obav-badge" style="display:none"></span>
-            </button>
-            <button class="account-btn" type="button" id="avatar-chat-btn" onclick="oeffneChat()">
-              <span data-i18n="chat_menu"></span><span class="obav-badge" id="avatar-menu-chat-badge" style="display:none"></span>
             </button>
             <button class="account-btn" type="button" data-i18n="prof_bearbeiten" onclick="oeffneProfilAusMenu()"></button>
             <button class="account-btn" type="button" id="menu-standard-btn" data-i18n="std_menu" onclick="oeffneStandardBaumAusMenu()" style="display:none"></button>
@@ -1939,7 +1955,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=12.4"></script>
+<script src="i18n.js?v=12.5"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2156,9 +2172,12 @@ function aktualisiereAuthUI() {
   const adminBereich = document.getElementById('admin-bereich'); // "Admin-Einstellungen"
   const navMenu      = document.getElementById('nav-menu');       // ⚙ Einstellungs-Dropdown (nur Admins)
 
+  const chatNavBtn = document.getElementById('chat-nav-btn'); // Chat-Icon in der Leiste (nur eingeloggt)
+
   if (aktuellerUser) {
     anmeldenBtn.style.display = 'none';
     badge.style.display       = 'flex';
+    if (chatNavBtn) chatNavBtn.style.display = 'inline-flex';   // Chat für ALLE eingeloggten Nutzer
     emailEl.textContent       = aktuellerUser.email;
     rolleEl.textContent       = aktuelleRolle ? t('rolle_' + aktuelleRolle) : '';
     // Upload nur für Admins sichtbar
@@ -2213,6 +2232,7 @@ function aktualisiereAuthUI() {
   } else {
     anmeldenBtn.style.display = '';
     badge.style.display       = 'none';
+    if (chatNavBtn) chatNavBtn.style.display = 'none';   // ausgeloggt: kein Chat-Icon
     if (uploadLabel) uploadLabel.style.display = 'none';
     if (shortsTab)   shortsTab.style.display = 'none';
     if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
@@ -3178,6 +3198,16 @@ async function chatLiveAusfuehren() {
     await chatLadeListe();
     if (chatAktivId && document.getElementById('chat-modal').classList.contains('aktiv')) {
       await chatLadeNachrichten(chatAktivId, true);
+      // Unterhaltung ist offen & sichtbar (Tab visible, sonst liefe diese Funktion gar nicht):
+      // eingehende Nachrichten SOFORT als gelesen markieren, damit das Ungelesen-Badge nicht
+      // stehen bleibt (Bug: "1" blieb bis zum erneuten Klick auf die Person). Nur markieren,
+      // wenn wirklich Ungelesene da sind — sonst löst das eigene chat_gelesen-UPDATE wieder ein
+      // Realtime-Event aus → Endlosschleife. Nach dem Markieren ist ungelesen=0 → Schleife endet.
+      const aktiv = chatById[chatAktivId];
+      if (aktiv && aktiv.ungelesen > 0) {
+        try { await sbClient.rpc('chat_gelesen', { p_chat: chatAktivId }); } catch (e) {}
+        await chatLadeListe();   // Liste + Badge nach dem Gelesen-Markieren aktualisieren
+      }
     }
   } catch (e) { console.warn('Chat-Live-Reload:', e); }
   finally { if (chatLivePending) { chatLivePending = false; chatLiveAnstossen(); } }
@@ -3264,7 +3294,10 @@ async function oeffneChat() {
   }
   if (!chatGeladen) { try { await chatLadeNutzer(); } catch (e) {} }
   await chatLadeListe();
-  if (!chatAktivId) chatZeigeLeer();
+  // War beim Wieder-Öffnen noch eine Unterhaltung aktiv: frisch laden UND als gelesen markieren
+  // (nurRender=false → chat_gelesen), sonst die leere Spalte zeigen.
+  if (chatAktivId) { await chatLadeNachrichten(chatAktivId, false); }
+  else { chatZeigeLeer(); }
 }
 function schliesseChat() {
   document.getElementById('chat-modal').classList.remove('aktiv');
@@ -3611,8 +3644,9 @@ async function chatGruppeVerlassen() {
 // ---- Ungelesen-Badge (Menüeintrag) ------------------------------------------
 function chatBadgeAktualisieren() {
   const gesamt = (chatListe || []).reduce((s, c) => s + (c.ungelesen || 0), 0);
-  const badge = document.getElementById('avatar-menu-chat-badge');
-  if (badge) { badge.textContent = gesamt > 99 ? '99+' : String(gesamt); badge.style.display = gesamt > 0 ? '' : 'none'; }
+  // Ungelesen-Badge sitzt jetzt am Chat-Icon der Navigationsleiste (#chat-nav-badge).
+  const badge = document.getElementById('chat-nav-badge');
+  if (badge) { badge.textContent = gesamt > 99 ? '99+' : String(gesamt); badge.style.display = gesamt > 0 ? 'inline-flex' : 'none'; }
 }
 
 // ---- Sprachwechsel: offene Chat-Oberflächen neu rendern ---------------------

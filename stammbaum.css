@@ -177,6 +177,21 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .upload-btn:hover { background: var(--akzent); border-color: var(--akzent); color: var(--paper); }
 #gedcom-input { display: none; }
 
+/* Chat-Icon in der Navigationsleiste (zwischen Stammbaum-Dropdown und Benutzer).
+   Gleiche Höhe wie Sprach-/⚙-Button (einheitliche Leiste), edler Rahmen + Gold-Hover. */
+.chat-nav-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; min-height: 40px; box-sizing: border-box; padding: 0;
+  background: var(--bg-soft); color: var(--ink);
+  border: 1px solid var(--linie); cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.chat-nav-btn:hover { border-color: var(--gold); color: var(--akzent); }
+.chat-nav-btn:focus-visible { outline: none; border-color: var(--akzent); box-shadow: 0 0 0 2px var(--gold-hell); }
+.chat-nav-ico { display: block; width: 22px; height: 22px; }
+.chat-nav-btn .chat-nav-badge { position: absolute; top: -6px; right: -6px; margin: 0; }
+
 /* Menü-Dropdown (bündelt Sprache, Auth, GEDCOM) – einheitliche Optik */
 .nav-menu { position: relative; }
 .nav-menu-toggle {
