@@ -490,6 +490,59 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   @page { margin: 8mm; }
 }
 
+/* ===== „Lose Karten"-Leiste =====
+   Personen ohne (gültige) Verknüpfung — im Diagramm unsichtbar (Single-Root-Renderer),
+   hier unten am Baum sichtbar gemacht, bis ein Admin sie verbindet. Schlanke Leiste am
+   unteren Rand des #baum-container; Chips von links nach rechts, horizontal scrollbar. */
+.lose-leiste {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+  display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+  background: rgba(255,250,240,0.97); border-top: 1px solid var(--linie);
+  box-shadow: 0 -2px 12px rgba(44,36,24,0.18);
+}
+.lose-titel {
+  flex: 0 0 auto; max-width: 28%;
+  color: var(--akzent); font-family: serif; font-size: 13px; font-weight: 600;
+  letter-spacing: 0.3px; line-height: 1.25;
+}
+.lose-track {
+  flex: 1 1 auto; display: flex; gap: 10px; padding: 2px;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain;
+  scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+}
+.lose-chip {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
+  min-height: 48px; padding: 6px 14px 6px 6px; max-width: 230px;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--linie); border-radius: 26px; cursor: pointer;
+  font-family: inherit; font-size: 16px; transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.lose-chip:hover { border-color: var(--akzent); box-shadow: 0 2px 8px rgba(44,36,24,0.16); }
+.lose-chip:active { transform: scale(0.97); }
+.lose-avatar {
+  flex: 0 0 auto; position: relative; overflow: hidden;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: serif; font-size: 14px; font-weight: 700; color: var(--paper); letter-spacing: 0.4px;
+}
+.lose-avatar.male    { background: linear-gradient(135deg, var(--male), #2a4a65); }
+.lose-avatar.female  { background: linear-gradient(135deg, var(--female), #6b2840); }
+.lose-avatar.unknown { background: linear-gradient(135deg, var(--gold), var(--akzent)); }
+.lose-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lose-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Float-Buttons der unteren Reihe anheben, solange die Leiste sichtbar ist (kein Überdecken). */
+#baum-container.lose-aktiv .baum-zentrieren-btn,
+#baum-container.lose-aktiv .ansicht-erweitern-btn,
+#baum-container.lose-aktiv .pdf-export-btn { bottom: 86px; }
+@media (max-width: 480px) {
+  .lose-leiste { flex-direction: column; align-items: stretch; gap: 5px; padding: 6px 10px; }
+  .lose-titel { max-width: none; font-size: 12px; }
+  .lose-chip { max-width: 70vw; }
+  #baum-container.lose-aktiv .baum-zentrieren-btn,
+  #baum-container.lose-aktiv .ansicht-erweitern-btn,
+  #baum-container.lose-aktiv .pdf-export-btn { bottom: 120px; }
+}
+
 /* ===== Teilnehmerverwaltung / Event-Sichtbarkeit ===== */
 .etn-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .etn-actions .account-btn { flex: 1; min-width: 110px; }
@@ -603,6 +656,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .verbindung { fill: none; stroke: rgba(255,248,220,0.88); stroke-width: 2.5; }
 /* Ehelinien: Gold passend zum Sonnenuntergang im Bild */
 .ehe-linie { stroke: #d4a030; stroke-width: 2.5; stroke-dasharray: 6 3; }
+/* Paar-Knoten (Verwandtschafts-Ansicht/Beta): goldenes Rauten-Gelenk auf der Ehe-Linie */
+.paar-knoten { fill: #d4a030; stroke: rgba(255,248,220,0.85); stroke-width: 1; }
 
 .modal {
   display: none; position: fixed; inset: 0;
@@ -1381,6 +1436,17 @@ footer {
   font-size: 13px; line-height: 1.5; color: #555;
 }
 .pa-hilfe strong { display: block; color: var(--akzent); margin-bottom: 4px; }
+/* Statische Hilfebox (immer sichtbar, ohne Schließen-Button) — z. B. Stammbaum anlegen / Registrierung */
+.pa-hilfe.statisch { padding-right: 14px; }
+/* Runder „?"-Button (Hilfe wieder einblenden), links neben dem Schließen-× im Modal */
+.hilfe-toggle {
+  position: absolute; top: 12px; right: 58px; z-index: 10;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  background: var(--paper-soft); border: 1px solid var(--gold); border-radius: 50%;
+  font-size: 18px; font-weight: bold; line-height: 1; cursor: pointer;
+  color: var(--akzent); font-family: inherit; box-shadow: 0 1px 4px rgba(44,36,24,0.18);
+}
+.hilfe-toggle:hover { background: var(--gold-hell); }
 .pa-hilfe-zu {
   position: absolute; top: 6px; right: 8px; background: none; border: none;
   font-size: 18px; line-height: 1; cursor: pointer; color: #8a7a5a;

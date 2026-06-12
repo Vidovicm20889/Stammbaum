@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="12.5">
+<meta name="app-version" content="12.8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=12.5">
+<link rel="stylesheet" href="stammbaum.css?v=12.8">
 </head>
 <body>
 
@@ -332,6 +332,12 @@
       </svg>
       <span class="pdf-export-btn-text" data-i18n="pdf_btn"></span>
     </button>
+    <!-- Lose Karten: Personen ohne (gültige) Verknüpfung — im Diagramm unsichtbar, hier sichtbar
+         gemacht, bis sie verbunden werden. Nur für Admins, nur beim aktiven Baum (JS-gesteuert). -->
+    <div id="lose-leiste" class="lose-leiste" style="display:none">
+      <span class="lose-titel" data-i18n="lose_titel"></span>
+      <div id="lose-track" class="lose-track"></div>
+    </div>
   </div>
   <p class="baum-hinweis" data-i18n="baum_hinweis"></p>
 </section>
@@ -492,9 +498,18 @@
           <select id="ansicht-gen" class="login-feld">
             <option value="1" data-i18n="ansicht_gen_1"></option>
             <option value="2" data-i18n="ansicht_gen_2"></option>
-            <option value="3" selected data-i18n="ansicht_gen_3"></option>
+            <option value="3" data-i18n="ansicht_gen_3"></option>
             <option value="5" data-i18n="ansicht_gen_5"></option>
-            <option value="0" data-i18n="ansicht_gen_unbegrenzt"></option>
+            <option value="0" selected data-i18n="ansicht_gen_unbegrenzt"></option>
+          </select>
+        </label>
+        <label class="login-label" style="margin-top:8px"><span data-i18n="ansicht_gen_auf"></span>
+          <select id="ansicht-gen-auf" class="login-feld">
+            <option value="1" data-i18n="ansicht_gen_1"></option>
+            <option value="2" data-i18n="ansicht_gen_2"></option>
+            <option value="3" data-i18n="ansicht_gen_3"></option>
+            <option value="5" data-i18n="ansicht_gen_5"></option>
+            <option value="0" selected data-i18n="ansicht_gen_unbegrenzt"></option>
           </select>
         </label>
       </div>
@@ -538,6 +553,11 @@
     <h2 id="reg-titel" data-i18n="reg_titel_neu"></h2>
     <p class="sub-name">Vidović AI</p>
 
+    <div class="pa-hilfe statisch">
+      <strong data-i18n="reg_intro_titel"></strong>
+      <span data-i18n="reg_intro_text"></span>
+    </div>
+
     <div class="reg-grid">
       <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_email"></span>
         <input type="email" id="reg-email" class="login-feld" placeholder="name@beispiel.de">
@@ -548,7 +568,8 @@
     <div class="reg-gruppe-titel" data-i18n="reg_baum_info_titel"></div>
     <div class="reg-grid">
       <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_baum_name"></span>
-        <input type="text" id="reg-baum-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this);pruefeBaumMatchDebounced()"></label>
+        <input type="text" id="reg-baum-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this);pruefeBaumMatchDebounced()">
+        <span class="feld-hinweis" data-i18n="reg_baum_name_hint"></span></label>
       <label class="login-label pflicht"><span data-i18n="reg_land"></span>
         <select id="reg-land" class="login-feld land-select" onchange="pruefeBaumMatchDebounced()"></select></label>
       <label class="login-label pflicht"><span data-i18n="reg_stadt"></span>
@@ -1048,6 +1069,7 @@
 <div class="modal" id="person-add-modal">
   <div class="modal-inhalt" style="max-width:620px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliessePersonAdd()">×</button>
+    <button type="button" class="hilfe-toggle" onclick="togglePaHilfe()" data-i18n-title="hilfe_wieder" aria-label="?">?</button>
     <h2 data-i18n="pa_titel_fenster"></h2>
     <input type="hidden" id="pa-context-id">
     <p class="pa-kontext" id="pa-kontext"></p>
@@ -1061,6 +1083,7 @@
     <div class="reg-gruppe-titel" data-i18n="pa_beziehung_titel"></div>
     <label class="login-label reg-feld-voll pflicht"><span data-i18n="pa_beziehungstyp"></span>
       <select id="pa-beziehungstyp" class="login-feld" onchange="paPruefeFelder()">
+        <option value="" data-i18n="bzt_waehlen"></option>
         <option value="kind" data-i18n="bzt_kind"></option>
         <option value="elternteil" data-i18n="bzt_elternteil"></option>
         <option value="partner" data-i18n="bzt_partner"></option>
@@ -1201,9 +1224,13 @@
   <div class="modal-inhalt" style="max-width:460px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseBaumNeu()">×</button>
     <h2 data-i18n="bn_titel"></h2>
-    <p class="login-label" data-i18n="bn_info" style="margin-top:0"></p>
+    <div class="pa-hilfe statisch" style="margin-top:0">
+      <strong data-i18n="bn_info_titel"></strong>
+      <span data-i18n="bn_info"></span>
+    </div>
     <label class="login-label pflicht"><span data-i18n="bn_name"></span>
-      <input type="text" id="bn-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this)" placeholder="z. B. Marković"></label>
+      <input type="text" id="bn-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this)" placeholder="z. B. Marković">
+      <span class="feld-hinweis" data-i18n="bn_name_hint"></span></label>
     <label class="login-label"><span data-i18n="bn_zusatz"></span>
       <input type="text" id="bn-zusatz" class="login-feld" autocomplete="off" placeholder="z. B. Desa">
       <span class="feld-hinweis" data-i18n="bn_zusatz_hint"></span></label>
@@ -1657,11 +1684,32 @@
   </div>
 </div>
 
+<!-- Person in anderen Stammbaum verschieben (Admin) — schließt nur per Button -->
+<div class="modal" id="move-modal" style="z-index:218">
+  <div class="modal-inhalt" style="max-width:460px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseMoveBaum()">×</button>
+    <h2 data-i18n="move_titel"></h2>
+    <p class="sub-name" id="move-person" style="margin-bottom:6px"></p>
+    <p class="mv-legende" data-i18n="move_intro"></p>
+    <label class="login-label voll" style="margin-top:0"><span data-i18n="move_ziel"></span>
+      <select id="move-ziel" class="login-feld"></select></label>
+    <div id="move-fehler" class="login-fehler"></div>
+    <div class="merge-btn-zeile">
+      <button class="login-hinweis-btn sekundaer" type="button" data-i18n="dub_abbrechen" onclick="schliesseMoveBaum()"></button>
+      <button class="login-submit merge-btn-inline" type="button" id="move-submit" data-i18n="move_btn" onclick="moveBaumBestaetigen()"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Abweichender Nachname erkannt -> 3 Optionen (neuer Baum / verknüpfen / ohne) -->
 <div class="modal" id="abw-nachname-modal" style="z-index:218">
   <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseAbwNachname()">×</button>
     <h2 id="abw-titel" style="font-size:18px;line-height:1.45"></h2>
+    <div class="pa-hilfe statisch">
+      <strong data-i18n="abw_hilfe_titel"></strong>
+      <span data-i18n="abw_hilfe_text"></span>
+    </div>
     <div class="abw-optionen">
       <button class="abw-opt" type="button" id="abw-btn-neu" onclick="abwNeuerBaum()">
         <span class="abw-opt-titel" data-i18n="abw_opt1"></span>
@@ -1955,7 +2003,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=12.5"></script>
+<script src="i18n.js?v=12.8"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2150,6 +2198,7 @@ function loescheUser() {
   meineBenachrichtigungen = [];   // Benachrichtigungen verwerfen + Indikator zurücksetzen
   aktualisiereBenachrBadge();
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget verbergen (ausgeloggt)
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste verbergen (ausgeloggt)
   profilAvatarPending = undefined;
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
   stopObavPolling();     // Live-Updates beenden (ausgeloggt)
@@ -6798,7 +6847,8 @@ let aktuelleAnsicht = 'baum';
 // modus: null (Such-/Fokus-Altlogik) | 'standard' | 'voll' | 'zweig' | 'erweitert'
 let ansichtModus    = null;
 let ansichtFokusId  = null;          // Person, um die der Ausschnitt zentriert ist
-let ansichtGen      = 3;             // 'zweig': Generationen nach unten
+let ansichtGen      = 0;             // 'zweig': Generationen nach unten (0 = unbegrenzt, Default)
+let ansichtGenAuf   = 0;             // 'zweig': Generationen nach oben (0 = unbegrenzt, Default)
 let ansichtKat      = null;          // 'erweitert': gewählte Verwandtschafts-Kategorien
 // Multi-Tree (B2): aktuell gewählter Stammbaum + Liste {id: name}
 let aktuellerStammbaumId = null;
@@ -7050,12 +7100,15 @@ function wechselSprache(lang, speichern = true) {
     if (typeof maPruefeKarte === 'function') maPruefeKarte();
     if (typeof maRenderKarteChip === 'function') maRenderKarteChip();
   }
+  // Person-hinzufügen: Kopf zeigt die gewählte Beziehung (JS-befüllt) -> in neuer Sprache neu aufbauen
+  if (offen('person-add-modal') && typeof paAktualisiereKontext === 'function') paAktualisiereKontext();
   if (offen('kosten-modal')     && typeof renderKosten     === 'function') renderKosten();
   if (offen('event-teilnehmer-modal') && typeof renderEtnListe === 'function') renderEtnListe();   // Teilnehmer-Liste in neuer Sprache
   if (typeof aktualisiereBenachrBadge === 'function') aktualisiereBenachrBadge();   // Badge-Text (99+)
   if (offen('obav-modal') && typeof renderObavZentral === 'function') renderObavZentral();   // kombiniertes Obavještenja neu
   if (typeof chatSpracheUpdate === 'function') chatSpracheUpdate();   // offene Chat-Oberflächen (Liste/Konversation/Picker/Info) neu rendern
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget/-Modal in neuer Sprache neu beschriften
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Chips (Namen/SR-Transliteration) neu beschriften
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
     fuelleProfilSprache(document.getElementById('prof-sprache').value);
@@ -7117,6 +7170,7 @@ function aktuelleWurzel() {
 // Baum im aktuellen Zustand (Suche / Fokus / Vollansicht) neu zeichnen
 function zeichneBaumNeu() {
   if (!baumG) return;
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste mit jedem Neuzeichnen konsistent halten
   const suche = document.getElementById('suche').value.trim();
   if (suche) { suchImBaum(suche); return; }
   // Aktive Ausschnitts-Ansicht (Standard/Erweitert/Zweig) nach Edit/Realtime-Reload erhalten.
@@ -7445,6 +7499,7 @@ function waehleStammbaum(treeId) {
   aktualisiereBaumHinweis();
   startPresence(treeId);   // Live-Indikator an den jetzt offenen Baum koppeln (P2)
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Geburtstags-/Gedenktag-Widget für den jetzt offenen Baum
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste für den jetzt offenen Baum
   // Ereignis-Ansicht (Liste/Zeitstrahl) zeigt Baum-bezogene Daten -> beim Baumwechsel neu laden,
   // da waehleStammbaum sonst nur die (versteckte) Baum-Ansicht neu zeichnet.
   if (aktuelleAnsicht === 'shorts') zeigeShorts();
@@ -8274,9 +8329,12 @@ function suchImBaum(suche, interaktiv) {
     return;
   }
 
-  const treffer = Object.values(aktuelleDaten.persons).filter(p =>
-    p.name.toLowerCase().includes(suche.toLowerCase())
-  );
+  // Diakritik-/schrift-insensitiv (ssFold) + gespiegelte Karten (gleiche identitaet_id)
+  // als EINE Person entdoppeln.
+  const sq = ssFold(suche);
+  const treffer = entdoppeltePersonen(Object.values(aktuelleDaten.persons).filter(p =>
+    ssFold(p.name || '').includes(sq)
+  ));
 
   if (treffer.length === 0) {
     document.getElementById('baum-info').innerHTML =
@@ -8546,17 +8604,24 @@ function zeigeErweitertAnsicht(kat, behalteZoom) {
   return true;
 }
 
-// Familienzweig ab einer beliebigen Person, N Generationen nach unten (0 = unbegrenzt).
-function zeigeZweigAbPerson(personId, gen, behalteZoom) {
+// Familienzweig ab einer beliebigen Person: N Generationen nach unten UND M nach oben
+// (jeweils 0 = unbegrenzt). genAuf>0/unbegrenzt blendet die Vorfahren-Linie(n) mit ein.
+function zeigeZweigAbPerson(personId, gen, genAuf, behalteZoom) {
   if (!aktuelleDaten.persons[personId]) return false;
   ansichtModus = 'zweig';
   ansichtFokusId = personId;
   ansichtGen = gen;
+  ansichtGenAuf = (genAuf === undefined ? ansichtGenAuf : genAuf);
   ansichtKat = null;
   fokusPersonId = null;
-  const tiefe = (!gen || gen < 0) ? 99 : gen;
-  // Explizit gewählter Zweig N Generationen runter -> Kappung AUS (volle Tiefe zeigen).
-  zeichneBaum(personId, tiefe, 0, { fokusId: personId, uebergangCut: false });
+  const tiefe    = (!gen || gen < 0) ? 99 : gen;
+  const tiefeAuf = (!ansichtGenAuf || ansichtGenAuf < 0) ? 99 : ansichtGenAuf;
+  // BAUMÜBERGREIFEND: Der klassische Single-Root-Renderer ist baum-begrenzt (sameTree) und
+  // würde z. B. eine im Vidović-Baum liegende Karte ohne ihre Skulić-Eltern zeigen. Der
+  // „Familienzweig ab Person" rendert daher IMMER über die fokus-zentrierte Verwandtschafts-
+  // Logik (kanonisch über identitaet_id, alle Bäume) — Vorfahren naviše + Nachkommen naniže
+  // + Geschwister der Person.
+  zeichneGraph2(personId, tiefe, tiefeAuf, { fokusId: personId, upN: tiefeAuf, downN: tiefe });
   aktualisiereBaumHinweis();   // Generationen-Hinweis (nur Standardansicht) aus-/einblenden
   return true;
 }
@@ -8567,7 +8632,7 @@ function rendereAktuelleAnsicht() {
     case 'standard':  if (zeigeStandardAnsicht(true)) return; break;
     case 'erweitert': if (zeigeErweitertAnsicht(ansichtKat, true)) return; break;
     case 'zweig':
-      if (ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) { zeigeZweigAbPerson(ansichtFokusId, ansichtGen, true); return; }
+      if (ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) { zeigeZweigAbPerson(ansichtFokusId, ansichtGen, ansichtGenAuf, true); return; }
       break;
     case 'voll': zeichneBaum(aktuelleWurzel(), 12, 0); aktualisiereBaumHinweis(); return;
   }
@@ -8583,6 +8648,27 @@ function zeigeStandardOderVoll() {
 
 // ---------- „Ansicht erweitern"-Overlay ----------
 let ansichtPickSel = null;   // im Zweig-Picker gewählte Person (ext-ID)
+
+// Entdoppelt eine Personen-Trefferliste: Karten mit gleicher identitaet_id sind DIESELBE
+// reale Person (über Bäume gespiegelt) und erscheinen nur EINMAL. Funktioniert für IN-MEMORY-
+// Personen (Felder _ident/_uuid/_tree) UND für RPC-Treffer (identitaet_id/id/baum, z. B.
+// personen_suche). Repräsentant = bevorzugt die Karte im aktuell geöffneten Baum (konsistentes
+// Label), sonst die erste. Karten ohne identitaet_id bleiben einzeln. Reihenfolge bleibt erhalten.
+function entdoppeltePersonen(liste) {
+  const map = new Map();
+  (liste || []).forEach(p => {
+    if (!p) return;
+    const ident = p._ident || p.identitaet_id || null;
+    const uid   = p._uuid || p.id;
+    const tree  = p._tree || p.baum || null;
+    const key = ident ? ('i:' + ident) : ('u:' + uid);
+    const ex = map.get(key);
+    if (!ex) { map.set(key, p); return; }
+    const exTree = ex._tree || ex.baum || null;
+    if (exTree !== aktuellerStammbaumId && tree === aktuellerStammbaumId) map.set(key, p);
+  });
+  return [...map.values()];
+}
 
 function ansichtPersonLabel(p) {
   const j = (p.birth_date && /\d{4}/.test(p.birth_date)) ? ' * ' + p.birth_date.match(/\d{4}/)[0] : '';
@@ -8608,7 +8694,15 @@ function oeffneAnsichtModal() {
   document.getElementById('ans-kat-urgrosseltern').checked = !!(ansichtKat && ansichtKat.urgrosseltern);
   document.getElementById('ans-kat-cousins').checked       = !!(ansichtKat && ansichtKat.cousins);
   document.getElementById('ans-kat-nachkommen').checked    = !!(ansichtKat && ansichtKat.nachkommen);
-  document.getElementById('ansicht-suche').value = '';
+  // Generationen-Selects auf die gespeicherten Werte (Default unbegrenzt = '0')
+  const genEl = document.getElementById('ansicht-gen'); if (genEl) genEl.value = String(ansichtGen || 0);
+  const genAufEl = document.getElementById('ansicht-gen-auf'); if (genAufEl) genAufEl.value = String(ansichtGenAuf || 0);
+  // Zuletzt gewählte Zweig-Person vorbelegen (Feld gefüllt, Trefferliste zu)
+  const sf = document.getElementById('ansicht-suche');
+  if (ansichtModus === 'zweig' && ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) {
+    ansichtPickSel = ansichtFokusId;
+    if (sf) sf.value = nm(aktuelleDaten.persons[ansichtFokusId].name || ansichtFokusId);
+  } else if (sf) { sf.value = ''; }
   document.getElementById('ansicht-pick-list').innerHTML = '';
   ansichtModusWahl();
 
@@ -8637,15 +8731,19 @@ function ansichtModusWahl() {
 }
 
 function ansichtPickSuche() {
-  const q = document.getElementById('ansicht-suche').value.trim().toLowerCase();
+  // Schrift- UND diakritik-insensitiv (ssFold = Kyrillisch→Latein + ć č š ž đ → c c s z d,
+  // analog zur Logik der suchbaren Dropdowns / Backend merge_norm): „Sladana" findet „Slađana".
+  const q = ssFold(document.getElementById('ansicht-suche').value.trim());
   const list = document.getElementById('ansicht-pick-list');
   if (q.length < 2) { list.innerHTML = ''; return; }
   // Lokale Suche über ALLE geladenen (RLS-sichtbaren) Personen = aktueller + verknüpfte Bäume.
-  const treffer = Object.values(aktuelleDaten.persons).filter(p => {
-    const name = (p.name || '').toLowerCase();
+  const roh = Object.values(aktuelleDaten.persons).filter(p => {
+    const name = ssFold(p.name || '');
     const bd   = (p.birth_date || '').toLowerCase();
     return name.includes(q) || bd.includes(q);
-  }).slice(0, 40);
+  });
+  // Gespiegelte Karten (gleiche identitaet_id) = EINE reale Person -> nur 1x anzeigen.
+  const treffer = entdoppeltePersonen(roh).slice(0, 40);
   if (!treffer.length) {
     list.innerHTML = `<div class="ansicht-pick-item" style="cursor:default;color:#8a7a5a">${t('keine_treffer')}</div>`;
     return;
@@ -8657,8 +8755,12 @@ function ansichtPickSuche() {
 
 function ansichtPickWaehle(id) {
   ansichtPickSel = id;
-  document.querySelectorAll('#ansicht-pick-list .ansicht-pick-item').forEach(el =>
-    el.classList.toggle('gewaehlt', el.dataset.id === id));
+  // Gewählte Person ins Suchfeld übernehmen und die Trefferliste (Dropdown) schließen.
+  const p = aktuelleDaten.persons[id];
+  const sf = document.getElementById('ansicht-suche');
+  if (p && sf) sf.value = nm(p.name || p.id);
+  const list = document.getElementById('ansicht-pick-list');
+  if (list) list.innerHTML = '';
 }
 
 function ansichtAnwenden() {
@@ -8681,8 +8783,9 @@ function ansichtAnwenden() {
       document.getElementById('ansicht-suche').focus();
       return;
     }
-    const gen = parseInt(document.getElementById('ansicht-gen').value, 10);
-    zeigeZweigAbPerson(ansichtPickSel, gen);
+    const gen    = parseInt(document.getElementById('ansicht-gen').value, 10);
+    const genAuf = parseInt(document.getElementById('ansicht-gen-auf').value, 10);
+    zeigeZweigAbPerson(ansichtPickSel, gen, genAuf);
     schliesseAnsichtModal();
     return;
   }
@@ -10025,6 +10128,118 @@ function aktualisiereAnlaesse() {
     renderAnlaesseListe(document.getElementById('obav-anlaesse-liste'));
 }
 
+// ============================================================
+// LOSE KARTEN — Personen des aktiven Baums, die im Diagramm NICHT erreichbar sind
+// (gar keine Beziehung ODER falsch verknüpfte „Insel"). Der Single-Root-Renderer
+// (baueBaumDaten) zeichnet nur die zusammenhängende Kanten-Komponente der Wurzel; solche
+// Personen sind sonst unsichtbar (Vorfall Tadić/Jovanović). Diese Leiste macht sie unten
+// am Baum sichtbar, bis ein Admin sie verknüpft. REIN render-/speicherseitig (kein Backend);
+// spiegelt die ungerichtete Komponenten-Logik von baum_integritaet_pruefen
+// (supabase_baum_integritaet.sql). Nur für Admins (nur sie können verbinden) + aktiver Baum.
+// Setzt den Inaktivitäts-Timer NICHT zurück (rein lesend).
+// ============================================================
+let loseCache = [];
+function berechneLoseKarten() {
+  if (!aktuellerUser || !aktuellerStammbaumId || !istAdmin()) return [];
+  const treeId  = aktuellerStammbaumId;
+  const persons = aktuelleDaten.persons || {};
+
+  // 1) Identitätsgruppen (gleiche reale Person über Bäume, identitaet_id)
+  const identGruppen = {};
+  Object.values(persons).forEach(p => {
+    if (p && p._ident) (identGruppen[p._ident] = identGruppen[p._ident] || []).push(p.id);
+  });
+  // 2) Repräsentant einer BELIEBIGEN Karte IM aktiven Baum (sich selbst, falls im Baum;
+  //    sonst ein identitaet_id-Zwilling im Baum) -> baumübergreifende Kanten zählen als Brücke.
+  const rep = (ext) => {
+    const p = persons[ext];
+    if (!p) return null;
+    if (p._tree === treeId) return ext;
+    if (p._ident) {
+      const twin = (identGruppen[p._ident] || []).find(t => persons[t] && persons[t]._tree === treeId);
+      if (twin) return twin;
+    }
+    return null;
+  };
+  // 3) In-Tree-Personen + ungerichtete Nachbarschaft (Partner + Eltern↔Kind) auf Repräsentanten
+  const intree = Object.values(persons).filter(p => p._tree === treeId).map(p => p.id);
+  if (!intree.length) return [];
+  const adj = {};
+  intree.forEach(id => { adj[id] = new Set(); });
+  const verbinde = (a, b) => {
+    const ra = rep(a), rb = rep(b);
+    if (!ra || !rb || ra === rb) return;
+    (adj[ra] = adj[ra] || new Set()).add(rb);
+    (adj[rb] = adj[rb] || new Set()).add(ra);
+  };
+  Object.values(aktuelleDaten.families || {}).forEach(fam => {
+    if (fam.husband && fam.wife) verbinde(fam.husband, fam.wife);
+    (fam.children || []).forEach(cid => {
+      if (fam.husband) verbinde(fam.husband, cid);
+      if (fam.wife)    verbinde(fam.wife, cid);
+    });
+  });
+  // 4) Zusammenhangskomponenten; Haupt-Komponente = die der Render-Wurzel (Fallback: größte)
+  const compOf = {}; const groesse = {}; let compN = 0;
+  intree.forEach(seed => {
+    if (compOf[seed] != null) return;
+    const c = compN++; let g = 0; const stack = [seed]; compOf[seed] = c;
+    while (stack.length) {
+      const x = stack.pop(); g++;
+      (adj[x] || []).forEach(y => { if (compOf[y] == null) { compOf[y] = c; stack.push(y); } });
+    }
+    groesse[c] = g;
+  });
+  const wurzel    = (typeof aktuelleWurzel === 'function') ? aktuelleWurzel() : null;
+  const wurzelRep = wurzel ? rep(wurzel) : null;
+  let mainComp = (wurzelRep != null && compOf[wurzelRep] != null) ? compOf[wurzelRep] : null;
+  if (mainComp == null) {           // keine Wurzel im Baum -> größte Komponente gilt als Hauptbaum
+    let best = -1;
+    Object.keys(groesse).forEach(c => { if (groesse[c] > best) { best = groesse[c]; mainComp = +c; } });
+  }
+  // 5) Alles außerhalb der Haupt-Komponente = lose/Insel; Platzhalter („Unbekannt") nicht zeigen
+  const lose = [];
+  intree.forEach(id => {
+    if (compOf[id] === mainComp) return;
+    const p = persons[id];
+    if (!p || p.platzhalter) return;
+    lose.push(p);
+  });
+  lose.sort((a, b) => nm(a.name || a.given || '').localeCompare(nm(b.name || b.given || '')));
+  return lose;
+}
+
+// Leiste neu berechnen + zeigen/verstecken (Muster aktualisiereAnlaesse). Chips von links
+// nach rechts; wird eine Person verknüpft, fällt sie beim nächsten Reload aus der Liste und
+// die übrigen rutschen automatisch nach links (Flex-Reflow).
+function aktualisiereLoseKarten() {
+  loseCache = berechneLoseKarten();
+  const leiste    = document.getElementById('lose-leiste');
+  const track     = document.getElementById('lose-track');
+  const container = document.getElementById('baum-container');
+  const sichtbar  = loseCache.length > 0;
+  if (leiste)    leiste.style.display = sichtbar ? '' : 'none';
+  if (container) container.classList.toggle('lose-aktiv', sichtbar);
+  if (!track) return;
+  if (!sichtbar) { track.innerHTML = ''; return; }
+  track.innerHTML = loseCache.map(p => {
+    const initialen = nm((((p.given || '')[0] || '') + ((p.surname || '')[0] || '')).toUpperCase()) || '?';
+    const klasse    = p.sex === 'M' ? 'male' : (p.sex === 'F' ? 'female' : 'unknown');
+    const fotoUrl   = p.foto || p.avatar || p.bild || '';
+    const img       = fotoUrl ? `<img src="${escapeHtml(fotoUrl)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+    const name      = (nm(p.given || '') + ' ' + nm(p.surname || '')).trim() || nm(p.name || '?');
+    return `<button type="button" class="lose-chip" onclick="loseOeffne('${escapeHtml(p.id)}')" title="${escapeHtml(name)}">
+        <span class="lose-avatar ${klasse}">${escapeHtml(initialen)}${img}</span>
+        <span class="lose-name">${escapeHtml(name)}</span>
+      </button>`;
+  }).join('');
+}
+// Klick auf eine lose Karte -> Detailkarte öffnen; dort verbindet der Admin sie über die
+// vorhandenen Aktionen „Person hinzufügen"/„Verbinden".
+function loseOeffne(ext) {
+  if (ext && aktuelleDaten.persons[ext] && typeof zeigeDetails === 'function') zeigeDetails(ext);
+}
+
 function oeffneAnlaesseModal() {
   aktualisiereAnlaesse();
   renderAnlaesseListe(document.getElementById('anlaesse-liste'));
@@ -11000,7 +11215,10 @@ function zeigeDetails(personId) {
     <div id="detail-dokumente"></div>
 
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
+    ${graphRendererAn() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graphFokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
+    ${ansichtModus === 'zweig' ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graph2FokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
+    ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="oeffneMoveBaum('${p.id}')">↪ ${t('move_karte_btn')}</button>` : ''}
     ${istAdmin() ? `
       <div class="pa-aktionen">
         <button class="pa-add-btn" onclick="personPlus('${p.id}')">＋ ${t('person_hinzufuegen')}</button>
@@ -11075,6 +11293,86 @@ function springeZuBaumPerson(extId) {
   fokusPersonId = extId;
   const suche = document.getElementById('suche'); if (suche) suche.value = '';
   zeichneBaum(extId, 2, 2);
+}
+
+// ============================================================
+// PERSON IN ANDEREN STAMMBAUM VERSCHIEBEN (Admin)
+// Eine Karte kann im FALSCHEN Stammbaum liegen (taucht dann z. B. in der „Lose Karten"-
+// Leiste auf). Hier wählt der Admin den Ziel-Stammbaum; die RPC person_baum_verschieben
+// (supabase_person_baum_verschieben.sql) setzt stammbaum_id + familie_id neu. Der aktuell
+// geöffnete Baum wird NICHT gewechselt (CLAUDE.md); nach Erfolg wird neu geladen.
+// ============================================================
+let moveExtId = null;
+
+// Stammbäume, in die der aktuelle Nutzer verschieben DARF (eigene/verwaltete im Verbund;
+// Super-Admin alle). Aktueller Baum der Person ausgenommen. -> [{ id, label }]
+function verschiebbareZielBaeume(aktuellerTreeId) {
+  const out = [];
+  const superA = (typeof istSuperAdmin === 'function') && istSuperAdmin();
+  Object.keys(stammbaeumeListe).forEach(tid => {
+    if (tid === aktuellerTreeId) return;
+    if (!superA) {
+      const fam = stammbaumZuFamilie[tid];
+      const rolle = fam ? normalizeRolle(meineRollenProFamilie[fam] || '') : '';
+      if (!['familien_owner', 'familien_admin', 'super_admin'].includes(rolle)) return;
+    }
+    out.push({ id: tid, label: baumLabel(tid) });
+  });
+  out.sort((a, b) => a.label.localeCompare(b.label));
+  return out;
+}
+
+async function oeffneMoveBaum(ext) {
+  if (!istAdmin()) return;
+  const p = aktuelleDaten.persons[ext];
+  if (!p || !p._uuid) return;
+  // Warnung, falls die Person Beziehungen hat (Verwandte ziehen NICHT mit -> sie würde im
+  // Ziel-Baum zunächst lose erscheinen). Für lose Karten (keine Kanten) entfällt die Frage.
+  const hatKanten = (p.families_child || []).length || (p.families_spouse || []).length;
+  if (hatKanten) {
+    const ok = await zeigeBestaetigung(t('move_warnung_kanten'));
+    if (!ok) return;
+  }
+  const ziele = verschiebbareZielBaeume(p._tree);
+  if (!ziele.length) { await zeigeHinweis(t('move_keine_ziele')); return; }
+  moveExtId = ext;
+  document.getElementById('move-person').textContent =
+    nm(p.name || p.given || '?') + (p._tree && stammbaeumeListe[p._tree] ? ' — ' + baumLabel(p._tree) : '');
+  const sel = document.getElementById('move-ziel');
+  sel.innerHTML = ziele.map(z => `<option value="${escapeHtml(z.id)}">${escapeHtml(z.label)}</option>`).join('');
+  document.getElementById('move-fehler').style.display = 'none';
+  const modal = document.getElementById('move-modal');
+  modal.classList.add('aktiv');
+  macheAlleSelectsSuchbar(modal);   // searchable Dropdown (touch-sicher)
+}
+
+function schliesseMoveBaum() {
+  document.getElementById('move-modal').classList.remove('aktiv');
+  moveExtId = null;
+}
+
+async function moveBaumBestaetigen() {
+  if (!moveExtId) return;
+  const p = aktuelleDaten.persons[moveExtId];
+  const ziel = document.getElementById('move-ziel').value;
+  const fehlerEl = document.getElementById('move-fehler');
+  fehlerEl.style.display = 'none';
+  if (!p || !p._uuid || !ziel) { fehlerEl.textContent = t('reg_fehler'); fehlerEl.style.display = 'block'; return; }
+  const btn = document.getElementById('move-submit');
+  const altText = btn.textContent; btn.disabled = true; btn.textContent = t('reg_senden_laeuft');
+  const { data, error } = await sbClient.rpc('person_baum_verschieben', { p_person: p._uuid, p_ziel_baum: ziel });
+  btn.disabled = false; btn.textContent = altText;
+  if (error || !data || !data.ok) {
+    const msg = (error && error.message) || '';
+    let txt = t('reg_fehler') + msg;
+    if (/ziel_hat_zwilling/.test(msg)) txt = t('move_fehler_zwilling');
+    else if (/keine_berechtigung/.test(msg)) txt = t('move_fehler_recht');
+    fehlerEl.textContent = txt; fehlerEl.style.display = 'block'; return;
+  }
+  schliesseMoveBaum();
+  schliesseModal();
+  await reloadBaumBehalteFokus(null);   // neu laden -> Karte verlässt den aktuellen Baum, Lose-Leiste aktualisiert sich
+  await zeigeHinweis(t('move_erfolg'));
 }
 
 // ----- Overlay "Gleiche Person verknüpfen" (Super-Admin), analog zu "Bäume verbinden" -----
@@ -12433,11 +12731,19 @@ async function reloadBaumBehalteFokus(fokusExtId) {
     fokusPersonId = null;
     zeichneBaumNeu();
   }
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste nach Anlegen/Bearbeiten/Verknüpfen neu berechnen
 }
 
 function schliessePaHilfe() {
   document.getElementById('pa-hilfe').style.display = 'none';
   try { localStorage.setItem('hasSeenTreeHelp', 'true'); } catch (e) {}
+}
+
+// Hilfe per „?"-Button wieder ein-/ausblenden (auch nachdem sie einmal weggeklickt wurde)
+function togglePaHilfe() {
+  const box = document.getElementById('pa-hilfe');
+  if (!box) return;
+  box.style.display = (box.style.display === 'none') ? 'block' : 'none';
 }
 
 // Ehepartner der aktiven Person (für die Zweit-Elternteil-Abfrage beim Kind)
@@ -12542,7 +12848,8 @@ async function vbSuche() {
       if (x._ident === ctxP._ident && x._uuid) ausschluss.add(x._uuid);
     });
   }
-  const liste = (data || []).filter(r => !ausschluss.has(r.id));   // sich selbst + Zwillinge ausblenden
+  // sich selbst + Zwillinge ausblenden UND gespiegelte Karten (gleiche identitaet_id) = 1 Person
+  const liste = entdoppeltePersonen((data || []).filter(r => !ausschluss.has(r.id)));
   if (!liste.length) { box.innerHTML = `<p class="mv-legende">${t('vb_keine_treffer')}</p>`; return; }
   box.innerHTML = liste.map(vbErgebnisHtml).join('');
 }
@@ -12626,8 +12933,8 @@ function zeigePersonHinzufuegen(personId, vorTyp) {
   // (zentrale Komponente; wie Registrier-/Familieneinstellungen-Modal).
   fuelleLandSelects(document.getElementById('person-add-modal'));
   document.getElementById('pa-context-id').value = personId;
-  document.getElementById('pa-kontext').textContent =
-    t('pa_kontext', { name: nm(p.name || p.given || '?') });
+  // Kopf wird nach dem Setzen des Beziehungstyps über paAktualisiereKontext() (in
+  // paPruefeFelder) befüllt — er zeigt die GEWÄHLTE Beziehung deutlich an.
   // Alle Eingabefelder leeren
   ['pa-vorname','pa-nachname','pa-geburtsdatum','pa-geburtsort','pa-geburtsland','pa-sterbedatum',
    'pa-stadt','pa-gemeinde',
@@ -12641,8 +12948,10 @@ function zeigePersonHinzufuegen(personId, vorTyp) {
   document.getElementById('pa-geschlecht').value = '';
   document.getElementById('pa-status').value = 'lebend';
   document.getElementById('pa-beziehung').value = 'unbekannt';
+  // Expliziter Typ (Sektions-＋) -> vorbelegen; generischer "＋ Person hinzufügen" (kein vorTyp)
+  // -> LEER lassen, damit der Nutzer die Beziehung AKTIV wählen muss (kein stiller "Kind"-Default).
   document.getElementById('pa-beziehungstyp').value =
-    ['kind','elternteil','partner','geschwister'].includes(vorTyp) ? vorTyp : 'kind';
+    ['kind','elternteil','partner','geschwister'].includes(vorTyp) ? vorTyp : '';
 
   // Ehepartner der aktiven Person ermitteln (für die Eltern-Vorbelegung bei "Kind")
   paSpouses = [];
@@ -12686,6 +12995,29 @@ function paPruefeFelder() {
   // Vater/Mutter-Block nur bei "Kind"
   const typ = document.getElementById('pa-beziehungstyp').value;
   document.getElementById('pa-eltern-block').style.display = (typ === 'kind') ? '' : 'none';
+  paAktualisiereKontext();   // Kopf an die GEWÄHLTE Beziehung anpassen (live bei Dropdown-Wechsel)
+}
+
+// Kopf des Anlegen-Overlays: macht die GEWÄHLTE Beziehung deutlich sichtbar. Der prominente
+// generische "＋ Person hinzufügen"-Button startet auf "Kind" — wer den Beziehungstyp nicht
+// aktiv umstellt, legte sonst unbemerkt ein Kind statt z. B. eines Geschwisters an. Wird beim
+// Öffnen UND bei JEDEM Dropdown-Wechsel (onchange="paPruefeFelder()") aufgerufen. Der
+// Beziehungstyp wird gold hervorgehoben; sprach-/wortstellungssicher über Sentinel-Marker.
+function paAktualisiereKontext() {
+  const el = document.getElementById('pa-kontext'); if (!el) return;
+  const p = aktuelleDaten.persons[document.getElementById('pa-context-id').value];
+  if (!p) { el.textContent = ''; return; }
+  const typ  = document.getElementById('pa-beziehungstyp').value;
+  const name = nm(p.name || p.given || '?');
+  // Noch KEINE Beziehung gewählt (generischer Button) -> klare Aufforderung statt Label.
+  if (!typ) {
+    el.innerHTML = `<strong style="color:#9c7c3c">${escapeHtml(t('pa_kontext_bitte', { name }))}</strong>`;
+    return;
+  }
+  const tpl  = t('pa_kontext', { bez: '@@BEZ@@', name: '@@NAME@@' });   // Platzhalter-Marker
+  el.innerHTML = escapeHtml(tpl)
+    .replace('@@BEZ@@', `<strong style="color:#9c7c3c">${escapeHtml(t('beztyp_' + typ))}</strong>`)
+    .replace('@@NAME@@', `<strong>${escapeHtml(name)}</strong>`);
 }
 
 // --- Vater/Mutter-Picker (durchsuchbar über aktuellen + verknüpfte Bäume) ---
@@ -12726,13 +13058,15 @@ async function paElternSuche(rolle) {
   }
   const aktivUuid = (aktuelleDaten.persons[document.getElementById('pa-context-id').value] || {})._uuid;
   const andere = (rolle === 'vater' ? paMutter : paVater);
-  const seen = new Set(); const liste = [];
+  const seen = new Set(); const vor = [];
   [...(r1.data || []), ...(r2.data || [])].forEach(rw => {
     if (seen.has(rw.id)) return; seen.add(rw.id);
     if (rw.id === aktivUuid) return;                 // Kontext (= Kind-Bezug) nicht als Elternteil
     if (andere && rw.id === andere.uuid) return;     // bereits als anderer Elternteil gewählt
-    liste.push(rw);
+    vor.push(rw);
   });
+  // Gespiegelte Karten (gleiche identitaet_id) = EINE reale Person -> nur 1x anbieten.
+  const liste = entdoppeltePersonen(vor);
   if (!liste.length) { erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;opacity:.6">${escapeHtml(t('vb_keine_treffer'))}</div>`; return; }
   // Namen NICHT durchs onclick-Attribut schleusen (Quote-Injection) -> Lookup über id.
   paElternTreffer = {};
@@ -12783,6 +13117,12 @@ async function speichereNeuePerson() {
   const aktiv   = aktuelleDaten.persons[aktivId];
   if (!aktiv || !aktiv._uuid) { fehlerEl.textContent = t('pa_kein_kontext'); fehlerEl.style.display = 'block'; return; }
 
+  // Beziehung zur aktiven Person ist PFLICHT — der generische "＋ Person hinzufügen"-Button
+  // startet ohne Vorauswahl, damit nicht unbemerkt ein "Kind" angelegt wird (Fehler am Feld).
+  const typ = document.getElementById('pa-beziehungstyp').value;   // kind | elternteil | partner | geschwister
+  if (!['kind','elternteil','partner','geschwister'].includes(typ))
+    return feldFehler('pa-beziehungstyp', t('pa_bez_pflicht'));
+
   const v  = id => document.getElementById(id).value.trim();
   const vd = id => datumWert(document.getElementById(id));   // Datumsfelder -> ISO/Freitext
   const vorname  = v('pa-vorname');
@@ -12793,7 +13133,6 @@ async function speichereNeuePerson() {
   // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt (Hinweis steht am Feld)
   if (!pruefeEmailFeld(document.getElementById('pa-email'), false)) return feldFokus('pa-email');
 
-  const typ        = document.getElementById('pa-beziehungstyp').value;   // kind | elternteil | partner
   const verstorben = document.getElementById('pa-status').value === 'verstorben';
 
   const altText = button.textContent;
@@ -13563,6 +13902,12 @@ function zentriereBaumAnsicht() {
 }
 
 function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
+  // GRAPH-RENDERER (Phase-2 Option C): vollwertiges, graph-basiertes Rendering hinter
+  // Feature-Flag. Behebt das Single-Root-Anzeigeproblem (eingeheiratete Personen, beide
+  // Elternzweige, Voll-/Halbgeschwister, mehrere Ehen, verbund-verknüpfte Familien werden
+  // nicht mehr unterdrückt). Bei AUS = bisheriger Single-Root-Renderer (paralleler Vergleich).
+  if (graphRendererAn()) return zeichneGraph(rootPersonId, tiefeUnten, tiefeOben, opts);
+
   baumG.selectAll('*').remove();
 
   const wurzel = baueBaumDaten(rootPersonId, tiefeUnten, tiefeOben, opts);
@@ -14112,6 +14457,553 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
   }
 
   return baueKnoten(wurzelId, tiefeNachOben + tiefeNachUnten, false, false);
+}
+
+// ============================================================
+// GRAPH-RENDERER (Phase 2, Option C "Hybrid") — ab v12.6
+// ------------------------------------------------------------
+// Echtes graph-basiertes Rendering statt Single-Root-d3.tree. Jede Person ist ein
+// Knoten (kanonisch über identitaet_id entdoppelt); Kanten = Eltern→Kind + Partner↔Partner.
+// Generationen werden per Längster-Pfad-Relaxation vergeben (Vorfahren UND Nachkommen, beide
+// Elternzweige, mehrere Ehen). Horizontale Anordnung per Barycenter-Kreuzungsminimierung +
+// Median-Ausrichtung + Paar-Gruppierung. KEIN Knoten fällt heraus, nur weil ihm eine Kante zur
+// Auto-Wurzel fehlt: die Vollansicht zeigt die GANZE zusammenhängende Komponente; Bäume bleiben
+// als Berechtigungs-/Einstiegsgrenze erhalten (RLS unverändert, rein render-seitige Zusammen-
+// führung des Verbunds). Reuse: zeichneKnotenBox, Zoom/Fit, _ans*-Helfer, verwandtschaftsSet.
+// Feature-Flag RENDERER_GRAPH (localStorage 'vidovic_renderer_graph') — Default unten.
+// ============================================================
+// HART DEAKTIVIERT (ab v12.7, Nutzerwunsch): Der Graph-Renderer stellte den Baum falsch dar
+// und ist abgeschaltet. graphRendererAn() liefert IMMER false → es wird ausschließlich der
+// klassische Single-Root-Renderer (zeichneBaum) verwendet; der UI-Schalter ist entfernt und
+// der Graph-Fokus-Button blendet sich aus. Der Graph-Code bleibt vorerst als ruhender,
+// unerreichbarer Code stehen (vollständiges Löschen ist ein optionaler Folgeschritt).
+const RENDERER_GRAPH_DEFAULT = false;
+function graphRendererAn() {
+  return false;
+}
+function setGraphRenderer(an) {
+  try { localStorage.setItem('vidovic_renderer_graph', an ? '1' : '0'); } catch (e) {}
+}
+
+// Graph-Layout-Konstanten (kompatibel zur Karten-Geometrie: Box 152×76)
+const RG_CARD_HW = 76;     // halbe Kartenbreite
+const RG_ROWH    = 185;    // vertikaler Generationsabstand
+const RG_GAP_PAAR = 168;   // Mitte-zu-Mitte für ein Ehepaar (≈ 152 + kleiner Spalt)
+const RG_GAP_GESCH = 212;  // Mitte-zu-Mitte für nicht-verpartnerte Nachbarn in einer Reihe
+
+// 1) Graph-Modell aus aktuelleDaten (Knoten kanonisch, Unions je Elternpaar) ----------
+function baueGraphModell() {
+  const canonOf = (id) => {
+    const p = aktuelleDaten.persons[id];
+    return (p && p._ident) ? ('grp:' + p._ident) : id;
+  };
+  const nodes = new Map();   // canon -> { canon, rep, person, exts:[], trees:Set }
+  function ensure(id) {
+    const c = canonOf(id);
+    const p = aktuelleDaten.persons[id];
+    if (!p) return null;
+    let n = nodes.get(c);
+    if (!n) { n = { canon: c, rep: id, person: p, exts: [], trees: new Set() }; nodes.set(c, n); }
+    n.exts.push(id);
+    if (p._tree) n.trees.add(p._tree);
+    // Anzeige bevorzugt die Karte des AKTUELL geöffneten Baums (konsistente Heimat-Optik)
+    if (p._tree === aktuellerStammbaumId) { n.rep = id; n.person = p; }
+    return n;
+  }
+  Object.keys(aktuelleDaten.persons).forEach(ensure);
+
+  // Unions je Elternpaar (Schlüssel = sortierte kanonische Eltern). Familien sind in
+  // ladeBaumAusSupabase bereits nach Eltern-Set zusammengeführt; hier zusätzlich über
+  // Zwillinge kanonisch entdoppelt -> dieselbe reale Ehe = EINE Union.
+  const unionMap = new Map();
+  Object.values(aktuelleDaten.families).forEach(fam => {
+    const par = [];
+    if (fam.husband) par.push(fam.husband);
+    if (fam.wife) par.push(fam.wife);
+    const pc = [...new Set(par.map(canonOf).filter(c => nodes.has(c)))];
+    const key = pc.length ? pc.slice().sort().join('&') : ('solo:' + fam.id);
+    let u = unionMap.get(key);
+    if (!u) { u = { key, parents: new Set(pc), children: new Set() }; unionMap.set(key, u); }
+    (fam.children || []).forEach(cid => { const cc = canonOf(cid); if (nodes.has(cc) && !u.parents.has(cc)) u.children.add(cc); });
+  });
+  const unions = [...unionMap.values()];
+
+  // Relationsindizes (canon -> Set canon)
+  const parents = new Map(), children = new Map(), partners = new Map();
+  nodes.forEach((_, c) => { parents.set(c, new Set()); children.set(c, new Set()); partners.set(c, new Set()); });
+  unions.forEach(u => {
+    const ps = [...u.parents], cs = [...u.children];
+    for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { partners.get(ps[i]).add(ps[j]); partners.get(ps[j]).add(ps[i]); }
+    ps.forEach(p => cs.forEach(c => { children.get(p).add(c); parents.get(c).add(p); }));
+  });
+
+  return { nodes, unions, parents, children, partners, canonOf };
+}
+
+// 2) Sichtbarkeits-Set bestimmen (kanonische Knoten) -----------------------------------
+function graphKomponente(model, startCanons) {
+  const seen = new Set(), stack = [...startCanons];
+  while (stack.length) {
+    const x = stack.pop(); if (seen.has(x)) continue; seen.add(x);
+    [...(model.parents.get(x) || []), ...(model.children.get(x) || []), ...(model.partners.get(x) || [])]
+      .forEach(y => { if (!seen.has(y)) stack.push(y); });
+  }
+  return seen;
+}
+function graphRadius(model, start, runter, hoch) {
+  const vis = new Set([start]);
+  let frontier = [start];
+  for (let d = 0; d < hoch; d++) {
+    const nf = [];
+    frontier.forEach(c => (model.parents.get(c) || []).forEach(p => { if (!vis.has(p)) { vis.add(p); nf.push(p); } }));
+    frontier = nf;
+  }
+  frontier = [start];
+  for (let d = 0; d < runter; d++) {
+    const nf = [];
+    frontier.forEach(c => (model.children.get(c) || []).forEach(k => { if (!vis.has(k)) { vis.add(k); nf.push(k); } }));
+    frontier = nf;
+  }
+  // Partner aller Sichtbaren + Geschwister (Kinder eingeschlossener Eltern) -> Halbgeschwister
+  [...vis].forEach(c => (model.partners.get(c) || []).forEach(p => vis.add(p)));
+  [...vis].forEach(c => (model.parents.get(c) || []).forEach(par => (model.children.get(par) || []).forEach(s => vis.add(s))));
+  return vis;
+}
+function graphNachkommen(model, start, runter) {
+  const vis = new Set([start]);
+  let frontier = [start];
+  const max = (!runter || runter < 0) ? 99 : runter;
+  for (let d = 0; d < max; d++) {
+    const nf = [];
+    frontier.forEach(c => (model.children.get(c) || []).forEach(k => { if (!vis.has(k)) { vis.add(k); nf.push(k); } }));
+    if (!nf.length) break;
+    frontier = nf;
+  }
+  [...vis].forEach(c => (model.partners.get(c) || []).forEach(p => vis.add(p)));
+  return vis;
+}
+function graphSichtbar(model, fokusCanon, tiefeUnten, tiefeOben, opts) {
+  if (opts.erlaubt) {
+    const set = new Set();
+    opts.erlaubt.forEach(ext => { const c = model.canonOf(ext); if (model.nodes.has(c)) set.add(c); });
+    if (set.size) return set;
+  }
+  if (opts.nurNachkommen) return graphNachkommen(model, fokusCanon, tiefeUnten);
+  if (tiefeOben === 0 && tiefeUnten >= 12) return graphKomponente(model, [fokusCanon]);  // Vollansicht = ganze Komponente
+  return graphRadius(model, fokusCanon, tiefeUnten, tiefeOben);
+}
+
+// 3) Generationen-Ränge (Längster-Pfad-Relaxation; Partner gleichgezogen) --------------
+function graphRaenge(model, visible) {
+  const rank = new Map();
+  visible.forEach(c => rank.set(c, 0));
+  const cap = visible.size + 4;
+  for (let iter = 0; iter < cap; iter++) {
+    let changed = false;
+    model.unions.forEach(u => {
+      const ps = [...u.parents].filter(c => visible.has(c));
+      if (!ps.length) return;
+      const cs = [...u.children].filter(c => visible.has(c));
+      const pr = Math.max(...ps.map(c => rank.get(c)));
+      ps.forEach(c => { if (rank.get(c) < pr) { rank.set(c, pr); changed = true; } });   // Partner gleichziehen
+      cs.forEach(c => { if (rank.get(c) < pr + 1) { rank.set(c, pr + 1); changed = true; } });
+    });
+    if (!changed) break;
+  }
+  return rank;
+}
+
+// 4) Horizontale Anordnung (Barycenter-Kreuzungsminimierung + Median-Ausrichtung) -------
+function graphLayout(model, visible, rank) {
+  const layers = new Map();
+  visible.forEach(c => { const r = rank.get(c); if (!layers.has(r)) layers.set(r, []); layers.get(r).push(c); });
+  const rs = [...layers.keys()].sort((a, b) => a - b);
+
+  const parentsOf = new Map(), childrenOf = new Map(), partnersOf = new Map();
+  visible.forEach(c => {
+    parentsOf.set(c, [...(model.parents.get(c) || [])].filter(x => visible.has(x)));
+    childrenOf.set(c, [...(model.children.get(c) || [])].filter(x => visible.has(x)));
+    partnersOf.set(c, new Set([...(model.partners.get(c) || [])].filter(x => visible.has(x) && rank.get(x) === rank.get(c))));
+  });
+
+  // Stabile Startreihenfolge: je Reihe nach (Eltern-Index, Name)
+  const pos = new Map();
+  const reindex = () => rs.forEach(r => layers.get(r).forEach((c, i) => pos.set(c, i)));
+  rs.forEach(r => layers.get(r).sort((a, b) => {
+    const na = (model.nodes.get(a).person.name || ''), nb = (model.nodes.get(b).person.name || '');
+    return na.localeCompare(nb);
+  }));
+  reindex();
+
+  const bary = (c, nbMap) => { const ns = nbMap.get(c) || []; if (!ns.length) return pos.get(c); let s = 0; ns.forEach(n => s += pos.get(n)); return s / ns.length; };
+  for (let sweep = 0; sweep < 8; sweep++) {
+    const down = sweep % 2 === 0;
+    (down ? rs : rs.slice().reverse()).forEach(r => {
+      const nbMap = down ? parentsOf : childrenOf;
+      const arr = layers.get(r);
+      const b = new Map(arr.map(c => [c, bary(c, nbMap)]));
+      arr.sort((x, y) => b.get(x) - b.get(y));
+      reindex();
+    });
+  }
+
+  // Paare in jeder Reihe nebeneinander gruppieren (Reihenfolge sonst beibehalten)
+  rs.forEach(r => {
+    const arr = layers.get(r), placed = new Set(), out = [];
+    arr.forEach(c => {
+      if (placed.has(c)) return;
+      out.push(c); placed.add(c);
+      partnersOf.get(c).forEach(pt => { if (!placed.has(pt) && arr.includes(pt)) { out.push(pt); placed.add(pt); } });
+    });
+    layers.set(r, out);
+  });
+  reindex();
+
+  // X initial sequentiell mit variablem Abstand (Paare enger)
+  const X = new Map(), Y = new Map();
+  const gapFn = (a, b) => partnersOf.get(a).has(b) ? RG_GAP_PAAR : RG_GAP_GESCH;
+  const spreize = (arr) => { for (let i = 1; i < arr.length; i++) { const need = X.get(arr[i - 1]) + gapFn(arr[i - 1], arr[i]); if (!X.has(arr[i]) || X.get(arr[i]) < need) X.set(arr[i], need); } };
+  rs.forEach(r => { const arr = layers.get(r); X.set(arr[0], 0); spreize(arr); arr.forEach(c => Y.set(c, -r * RG_ROWH)); });
+
+  // Median-Ausrichtung: Kinder unter Eltern-Mittel / Eltern über Kinder-Mittel, je mit Überlapp-Auflösung
+  const mittel = (ids) => { let s = 0; ids.forEach(i => s += X.get(i)); return s / ids.length; };
+  for (let pass = 0; pass < 10; pass++) {
+    rs.forEach(r => {                                  // top->down: Kinder zentrieren
+      layers.get(r).forEach(c => { const ps = parentsOf.get(c); if (ps.length) X.set(c, mittel(ps)); });
+      spreize(layers.get(r));
+    });
+    rs.slice().reverse().forEach(r => {                // bottom->up: Eltern über Kinder zentrieren
+      layers.get(r).forEach(c => { const cs = childrenOf.get(c); if (cs.length) X.set(c, mittel(cs)); });
+      spreize(layers.get(r));
+    });
+  }
+
+  return { X, Y };
+}
+
+// 5) Zeichnen ---------------------------------------------------------------------------
+function zeichneGraphKanten(model, visible, X, Y) {
+  const HH = 38;   // halbe Kartenhöhe
+  model.unions.forEach(u => {
+    const ps = [...u.parents].filter(c => visible.has(c) && X.has(c)).sort((a, b) => X.get(a) - X.get(b));
+    const cs = [...u.children].filter(c => visible.has(c) && X.has(c));
+    // Ehe-Linie(n) zwischen benachbarten Partnern derselben Reihe
+    for (let i = 0; i < ps.length - 1; i++) {
+      if (Y.get(ps[i]) !== Y.get(ps[i + 1])) continue;
+      baumG.append('line').attr('class', 'ehe-linie')
+        .attr('x1', X.get(ps[i]) + RG_CARD_HW).attr('y1', Y.get(ps[i]))
+        .attr('x2', X.get(ps[i + 1]) - RG_CARD_HW).attr('y2', Y.get(ps[i + 1]));
+    }
+    if (!cs.length || !ps.length) return;
+    // Abstiegspunkt = Mitte des Elternpaars; T-Verbindung zu den Kindern (orthogonal)
+    const midX = ps.reduce((s, c) => s + X.get(c), 0) / ps.length;
+    const parentY = Math.max(...ps.map(c => Y.get(c)));   // gleiche Reihe -> identisch
+    const parentTop = parentY - HH;
+    const childBottom = Math.min(...cs.map(c => Y.get(c))) + HH;
+    const midY = (parentTop + childBottom) / 2;
+    const xs = cs.map(c => X.get(c));
+    baumG.append('line').attr('class', 'verbindung')
+      .attr('x1', midX).attr('y1', parentTop).attr('x2', midX).attr('y2', midY);
+    baumG.append('line').attr('class', 'verbindung')
+      .attr('x1', Math.min(midX, ...xs)).attr('y1', midY).attr('x2', Math.max(midX, ...xs)).attr('y2', midY);
+    cs.forEach(c => baumG.append('line').attr('class', 'verbindung')
+      .attr('x1', X.get(c)).attr('y1', midY).attr('x2', X.get(c)).attr('y2', Y.get(c) + HH));
+  });
+}
+
+function zeichneGraph(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
+  baumG.selectAll('*').remove();
+  if (!aktuelleDaten.persons[rootPersonId]) return;
+
+  const model = baueGraphModell();
+  const fokusExt = opts.fokusId || rootPersonId;
+  const fokusCanon = model.canonOf(fokusExt);
+  if (!model.nodes.has(fokusCanon)) return;
+
+  const visible = graphSichtbar(model, fokusCanon, tiefeUnten, tiefeOben, opts);
+  if (!visible.size) return;
+  const rank = graphRaenge(model, visible);
+  const { X, Y } = graphLayout(model, visible, rank);
+
+  aktualisiereKopf(rootPersonId);
+
+  // Kanten zuerst (liegen unter den Karten)
+  zeichneGraphKanten(model, visible, X, Y);
+
+  // Knoten: je kanonische Person eine Box (reuse zeichneKnotenBox an x=0 in eigener Gruppe)
+  visible.forEach(c => {
+    if (!X.has(c)) return;
+    const n = model.nodes.get(c);
+    const istFokus = (c === fokusCanon);
+    const g = baumG.append('g')
+      .attr('class', 'knoten-gruppe' + (istFokus ? ' fokus' : ''))
+      .attr('transform', `translate(${X.get(c)},${Y.get(c)})`);
+    zeichneKnotenBox(g, n.person, 0, istFokus, BLUTLINIE_IDS.has(n.rep));
+  });
+
+  // ── Auto-Fit (identisch zur Single-Root-Variante) ──────────────────────────────
+  const containerB = document.getElementById('baum-container').getBoundingClientRect();
+  const breite = containerB.width, hoehe = containerB.height;
+  const allX = [], allY = [];
+  visible.forEach(c => { if (X.has(c)) { allX.push(X.get(c)); allY.push(Y.get(c)); } });
+  if (!allX.length) return;
+  const tXMin = Math.min(...allX) - 170, tXMax = Math.max(...allX) + 170;
+  const tYMin = Math.min(...allY) - 42,  tYMax = Math.max(...allY) + 42;
+  const tW = tXMax - tXMin, tH = tYMax - tYMin;
+  const pad = 0.03;
+  const fitW = breite * (1 - 2 * pad), fitT = hoehe * pad, fitH = hoehe * (1 - 2 * pad);
+  const skala = Math.min(fitW / tW, fitH / tH, 2.5);
+  const cx = (tXMin + tXMax) / 2;
+  const tx = breite / 2 - cx * skala;
+  const ty = fitT + (fitH - tH * skala) / 2 - tYMin * skala;
+  zoom.scaleExtent([skala * 0.9, 4.0]);
+  baumPanGrenze = [[tXMin, tYMin], [tXMax, tYMax]];
+  fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
+  baumSvg.call(zoom.transform, fitTransform);
+  baumG.selectAll('.daten-text').style('display', skala < 0.3 ? 'none' : null);
+
+  aktualisiereBaumInfo();
+}
+
+// „Diese Person fokussieren" (Graph-Renderer): angeklickte Person wird Zentrum, großzügige
+// Nachbarschaft (4 Generationen hoch/runter) inkl. beider Elternzweige. „Zurück" über
+// zentriereBaumAnsicht / zeigVollenBaum.
+function graphFokusAufPerson(personId) {
+  if (!graphRendererAn() || !aktuelleDaten.persons[personId]) return;
+  schliesseModal();
+  const p = aktuelleDaten.persons[personId];
+  if (p && p._tree && p._tree !== aktuellerStammbaumId) {
+    aktuellerStammbaumId = p._tree;
+    const sel = document.getElementById('tree-select'); if (sel) sel.value = p._tree;
+  }
+  fokusPersonId = personId;
+  ansichtModus = null;
+  document.getElementById('suche').value = '';
+  wechselAnsicht('baum');
+  zeichneGraph(personId, 4, 4, { fokusId: personId });
+  aktualisiereBaumHinweis();
+}
+
+// ============================================================
+// VERWANDTSCHAFTS-ANSICHT (MyHeritage-Stil, Eigenbau auf d3) — ab v12.7 (BETA, opt-in)
+// ------------------------------------------------------------
+// Fokus-zentriert: gewählte Person in der Mitte, VORFAHREN als Paar-Pyramide nach OBEN
+// (beide Elternzweige), NACHKOMMEN als Paar-Baum nach UNTEN. Paare sind eine Einheit
+// (nebeneinander + Verbindungsknoten); Kinder hängen am Paar. So wird sichtbar, wie zwei
+// Familien über eine eingeheiratete Person verknüpft sind (z. B. Mara: ihre Geburtsfamilie
+// oben, ihr Ehemann + Kinder unten). Reuse: baueGraphModell (kanonische Knoten über
+// identitaet_id → eine reale Person = EIN Knoten), graphRadius (fokus-zentrierte Auswahl),
+// zeichneKnotenBox (Karten), d3.tree (zwei getrennte Tidy-Layouts, an der Fokusperson
+// zusammengesetzt). Eingesetzt vom Modus „Familienzweig ab Person" (zeigeZweigAbPerson) —
+// nur diese Logik kann baumübergreifend (alle identitaet_id-Bäume) zeichnen.
+const G2_ROWH = 178;   // Generationsabstand
+const G2_PAAR = 162;   // Partner-Versatz (eine Karte + kleiner Spalt)
+const G2_HH = 38, G2_HW = 76;   // halbe Kartenhöhe/-breite
+
+function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
+  baumG.selectAll('*').remove();
+  if (!aktuelleDaten.persons[rootPersonId]) return;
+
+  const model = baueGraphModell();
+
+  // Fokus-Wahl (fokus-zentrierte „MyHeritage"-Navigation): explizit gewählte Person >
+  // eigene Karte im Baum > tiefster Nachkomme der Wurzel. Letzteres sorgt für einen
+  // sinnvollen EINSTIEG: vom Wurzel-Ahn aus gäbe es 0 Vorfahren (→ nur eine Linie); von
+  // einem jungen Nachkommen aus fächern die Vorfahren BEIDE Elternzweige auf — so werden
+  // eingeheiratete Personen samt ihrer Herkunftsfamilie sichtbar (z. B. Mara → Petrović).
+  let focus;
+  if (opts.fokusId && model.nodes.has(model.canonOf(opts.fokusId))) {
+    focus = model.canonOf(opts.fokusId);
+  } else {
+    const meine = (typeof meineKarteImBaum === 'function') ? meineKarteImBaum() : null;
+    if (meine && model.nodes.has(model.canonOf(meine))) {
+      focus = model.canonOf(meine);
+    } else {
+      let cur = model.canonOf(rootPersonId), guard = 0;
+      while (guard++ < 60) {
+        const kids = [...(model.children.get(cur) || [])];
+        if (!kids.length) break;
+        cur = kids[0];   // entlang der ersten Kindlinie bis zu einem Blatt absteigen
+      }
+      focus = cur;
+    }
+  }
+  if (!model.nodes.has(focus)) return;
+
+  // Tiefen: aus opts (z. B. „Familienzweig ab Person" mit naniže/naviše), sonst großzügiger
+  // Default für die fokus-zentrierte Navigation. 99 = praktisch unbegrenzt.
+  const upN = (opts.upN != null) ? opts.upN : 5;
+  const downN = (opts.downN != null) ? opts.downN : 5;
+  const visible = graphRadius(model, focus, downN, upN);
+
+  const personOf  = c => model.nodes.get(c).person;
+  const vis       = c => visible.has(c);
+  const parentsOf = c => [...(model.parents.get(c) || [])].filter(vis);
+  const childrenOf= c => [...(model.children.get(c) || [])].filter(vis);
+  const partnersOf= c => [...(model.partners.get(c) || [])].filter(vis);
+
+  // ── NACHKOMMEN-Hierarchie (Fokus nach unten): Person + Partner(seitlich), Kinder darunter ──
+  const seen = new Set([focus]);
+  function descNode(c, depth) {
+    const partner = partnersOf(c).filter(p => !seen.has(p));
+    partner.forEach(p => seen.add(p));
+    const node = { canon: c, partners: partner, children: [] };
+    if (depth < downN) {
+      childrenOf(c).forEach(k => { if (!seen.has(k)) { seen.add(k); node.children.push(descNode(k, depth + 1)); } });
+    }
+    return node;
+  }
+  const descRoot = descNode(focus, 0);
+
+  // ── VORFAHREN-Hierarchie (Fokus nach oben): Kind -> Eltern (rekursiv) ──
+  const seenA = new Set([focus]);
+  function ancNode(c, depth) {
+    const node = { canon: c, children: [] };
+    if (depth < upN) {
+      parentsOf(c).forEach(p => { if (!seenA.has(p)) { seenA.add(p); node.children.push(ancNode(p, depth + 1)); } });
+    }
+    return node;
+  }
+  const ancRoot = ancNode(focus, 0);
+
+  // ── Tidy-Layout je Richtung (d3.tree); beide an der Fokusperson (0,0) ausgerichtet ──
+  const dh = d3.hierarchy(descRoot, d => d.children);
+  d3.tree().nodeSize([370, G2_ROWH]).separation((a, b) => a.parent === b.parent ? 1.0 : 1.35)(dh);
+  const dShift = -dh.x;
+  dh.each(d => { d.x += dShift; });   // y: 0,178,356… nach unten
+
+  const ah = d3.hierarchy(ancRoot, d => d.children);
+  // nodeSize[0]=162 → die zwei Eltern eines Kindes (gleicher Parent in der Hierarchie) stehen
+  // als Paar ENG (≈ Partner-Versatz); verschiedene Elternpaare großzügig getrennt (separation).
+  d3.tree().nodeSize([162, G2_ROWH]).separation((a, b) => a.parent === b.parent ? 1.0 : 2.2)(ah);
+  const aShift = -ah.x;
+  ah.each(a => { a.x += aShift; a.y = -a.y; });   // y nach oben spiegeln; Wurzel(Fokus) bei 0
+
+  const pts = [];
+  const joint = (x, y) => baumG.append('rect').attr('class', 'paar-knoten')
+    .attr('x', x - 4).attr('y', y - 4).attr('width', 8).attr('height', 8)
+    .attr('transform', `rotate(45 ${x} ${y})`);
+
+  // ── Kanten zuerst (unter den Karten) ──
+  // Nachkommen: Ehe-Linie Person↔Partner + T-Verbindung zu Kindern (Abstieg an der Person)
+  dh.each(d => {
+    const px = d.x, py = d.y;
+    (d.data.partners || []).forEach((pt, i) => {
+      const ox = px + G2_PAAR * (i + 1);
+      baumG.append('line').attr('class', 'ehe-linie')
+        .attr('x1', px + G2_HW).attr('y1', py).attr('x2', ox - G2_HW).attr('y2', py);
+      joint((px + G2_HW + ox - G2_HW) / 2, py);
+    });
+    if (d.children && d.children.length) {
+      const childTop = Math.min(...d.children.map(c => c.y)) - G2_HH;
+      const midY = (py + G2_HH + childTop) / 2;
+      const xs = d.children.map(c => c.x);
+      baumG.append('line').attr('class', 'verbindung').attr('x1', px).attr('y1', py + G2_HH).attr('x2', px).attr('y2', midY);
+      baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(px, ...xs)).attr('y1', midY).attr('x2', Math.max(px, ...xs)).attr('y2', midY);
+      d.children.forEach(c => baumG.append('line').attr('class', 'verbindung').attr('x1', c.x).attr('y1', midY).attr('x2', c.x).attr('y2', c.y - G2_HH));
+    }
+  });
+  // Vorfahren: Elternpaar (a.children) als Paar oben, Abstieg zur Kind-Person a
+  ah.each(a => {
+    if (!a.children || !a.children.length) return;
+    const par = a.children;
+    const py = par[0].y;
+    const xs = par.map(p => p.x).sort((m, n) => m - n);
+    if (par.length >= 2) {
+      baumG.append('line').attr('class', 'ehe-linie').attr('x1', xs[0] + G2_HW).attr('y1', py).attr('x2', xs[xs.length - 1] - G2_HW).attr('y2', py);
+      joint((xs[0] + xs[xs.length - 1]) / 2, py);
+    }
+    const mid = par.reduce((s, p) => s + p.x, 0) / par.length;
+    const parentBottom = py + G2_HH;
+    const childTop = a.y - G2_HH;
+    const midY = (parentBottom + childTop) / 2;
+    baumG.append('line').attr('class', 'verbindung').attr('x1', mid).attr('y1', parentBottom).attr('x2', mid).attr('y2', midY);
+    baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(mid, a.x)).attr('y1', midY).attr('x2', Math.max(mid, a.x)).attr('y2', midY);
+    baumG.append('line').attr('class', 'verbindung').attr('x1', a.x).attr('y1', midY).attr('x2', a.x).attr('y2', childTop);
+  });
+
+  // ── Geschwister der Fokusperson (gleiche Eltern): auf Fokus-Höhe neben dem Fokus zeigen ──
+  const sibs = [];
+  if (ah.children && ah.children.length) {
+    const elternNodes = ah.children;                 // Eltern-Karten der Fokusperson (oben)
+    const gezeichnet = new Set([focus]);
+    dh.each(d => { gezeichnet.add(d.data.canon); (d.data.partners || []).forEach(p => gezeichnet.add(p)); });
+    const sibCanons = [];
+    elternNodes.forEach(pn => childrenOf(pn.data.canon).forEach(k => {
+      if (!gezeichnet.has(k)) { gezeichnet.add(k); sibCanons.push(k); }
+    }));
+    if (sibCanons.length) {
+      // Geschwister außerhalb der Nachkommen-Spanne des Fokus platzieren (kein Karten-Überlapp)
+      let minX = 0, maxX = 0;
+      dh.each(d => { minX = Math.min(minX, d.x); maxX = Math.max(maxX, d.x + G2_PAAR * ((d.data.partners || []).length)); });
+      let lx = minX, rx = maxX;
+      sibCanons.forEach((s, i) => {
+        let x;
+        if (i % 2 === 0) { lx -= 212; x = lx; } else { rx += 212; x = rx; }
+        sibs.push({ canon: s, x, y: 0 });
+      });
+      // Abstieg vom Eltern-Paar zu jedem Geschwister (gleiche Sammelhöhe wie zum Fokus)
+      const pm = elternNodes.reduce((s, c) => s + c.x, 0) / elternNodes.length;
+      const py = elternNodes[0].y;
+      const midY = (py + G2_HH + (0 - G2_HH)) / 2;
+      sibs.forEach(sb => {
+        baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(pm, sb.x)).attr('y1', midY).attr('x2', Math.max(pm, sb.x)).attr('y2', midY);
+        baumG.append('line').attr('class', 'verbindung').attr('x1', sb.x).attr('y1', midY).attr('x2', sb.x).attr('y2', sb.y - G2_HH);
+      });
+    }
+  }
+
+  // ── Karten ──
+  const drawCard = (canon, x, y) => {
+    const g = baumG.append('g').attr('class', 'knoten-gruppe' + (canon === focus ? ' fokus' : ''))
+      .attr('transform', `translate(${x},${y})`);
+    zeichneKnotenBox(g, personOf(canon), 0, canon === focus, BLUTLINIE_IDS.has(model.nodes.get(canon).rep));
+    pts.push({ x, y });
+  };
+  dh.each(d => {
+    drawCard(d.data.canon, d.x, d.y);
+    (d.data.partners || []).forEach((pt, i) => drawCard(pt, d.x + G2_PAAR * (i + 1), d.y));
+  });
+  ah.each(a => { if (a.data.canon !== focus) drawCard(a.data.canon, a.x, a.y); });
+  sibs.forEach(sb => drawCard(sb.canon, sb.x, sb.y));
+
+  aktualisiereKopf(rootPersonId);
+
+  // ── Auto-Fit (wie Single-Root/Graph) ──
+  if (!pts.length) return;
+  const containerB = document.getElementById('baum-container').getBoundingClientRect();
+  const breite = containerB.width, hoehe = containerB.height;
+  const allX = pts.map(p => p.x), allY = pts.map(p => p.y);
+  const tXMin = Math.min(...allX) - 170, tXMax = Math.max(...allX) + 170;
+  const tYMin = Math.min(...allY) - 50,  tYMax = Math.max(...allY) + 50;
+  const tW = tXMax - tXMin, tH = tYMax - tYMin;
+  const pad = 0.03;
+  const fitW = breite * (1 - 2 * pad), fitT = hoehe * pad, fitH = hoehe * (1 - 2 * pad);
+  const skala = Math.min(fitW / tW, fitH / tH, 2.5);
+  const cx = (tXMin + tXMax) / 2;
+  const tx = breite / 2 - cx * skala;
+  const ty = fitT + (fitH - tH * skala) / 2 - tYMin * skala;
+  zoom.scaleExtent([skala * 0.9, 4.0]);
+  baumPanGrenze = [[tXMin, tYMin], [tXMax, tYMax]];
+  fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
+  baumSvg.call(zoom.transform, fitTransform);
+  baumG.selectAll('.daten-text').style('display', skala < 0.3 ? 'none' : null);
+  aktualisiereBaumInfo();
+}
+
+// „Diese Person fokussieren" im Familienzweig-Modus: zentriert den Zweig auf die geklickte
+// Person neu — mit den aktuell gewählten Tiefen (naniže/naviše).
+function graph2FokusAufPerson(personId) {
+  if (!aktuelleDaten.persons[personId]) return;
+  schliesseModal();
+  const p = aktuelleDaten.persons[personId];
+  if (p && p._tree && p._tree !== aktuellerStammbaumId) {
+    aktuellerStammbaumId = p._tree;
+    const sel = document.getElementById('tree-select'); if (sel) sel.value = p._tree;
+  }
+  const sf = document.getElementById('suche'); if (sf) sf.value = '';
+  wechselAnsicht('baum');
+  zeigeZweigAbPerson(personId, ansichtGen, ansichtGenAuf);   // gleicher Modus, gewählte Tiefen
 }
 
 // ============================================================
