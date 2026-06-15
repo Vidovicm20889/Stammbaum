@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="12.8">
+<meta name="app-version" content="12.9">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=12.8">
+<link rel="stylesheet" href="stammbaum.css?v=12.9">
 </head>
 <body>
 
@@ -524,6 +524,31 @@
     <div class="ansicht-aktionen">
       <button type="button" class="login-hinweis-btn sekundaer" onclick="schliesseAnsichtModal()" data-i18n="ansicht_abbrechen"></button>
       <button type="button" class="login-submit" id="ansicht-anwenden-btn" onclick="ansichtAnwenden()" data-i18n="ansicht_anwenden"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Beziehung ändern / umhängen (Admin) -->
+<div class="modal" id="bez-aendern-modal">
+  <div class="modal-inhalt ansicht-box" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseBezAendern()" aria-label="×">×</button>
+    <h2 data-i18n="bezv_titel"></h2>
+    <p class="pdf-sub" id="bez-aendern-info"></p>
+
+    <!-- Schritt 1: Ziel-Rolle wählen -->
+    <div id="bez-aendern-rollen" class="ansicht-opt"></div>
+
+    <!-- Schritt 2 (nur bei Eltern, wenn P bereits 2 Eltern hat): welchen ersetzen? -->
+    <div id="bez-aendern-ersetzen" class="ansicht-unter" style="display:none">
+      <label class="login-label"><span data-i18n="bezv_ersetzen_label"></span>
+        <select id="bez-ersetzt-elternteil" class="login-feld"></select></label>
+    </div>
+
+    <p class="login-fehler" id="bez-aendern-fehler" style="display:none"></p>
+
+    <div class="ansicht-aktionen">
+      <button type="button" class="login-hinweis-btn sekundaer" onclick="schliesseBezAendern()" data-i18n="abbrechen"></button>
+      <button type="button" class="login-submit" id="bez-aendern-btn" onclick="bezAendernAnwenden()" data-i18n="bezv_anwenden"></button>
     </div>
   </div>
 </div>
@@ -2003,7 +2028,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=12.8"></script>
+<script src="i18n.js?v=12.9"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -11149,8 +11174,11 @@ function zeigeDetails(personId) {
   // Verknüpfung (beide Personen bleiben erhalten, nur die Kante wird entfernt).
   // event.stopPropagation() verhindert, dass der Klick aufs ✕ die Detailkarte öffnet.
   const relChip = (v, typ) => {
+    // Admins: ⇄ = Beziehung ändern (umhängen), ✕ = lösen. event.stopPropagation() verhindert,
+    // dass der Klick auf einen Button die Detailkarte der verwandten Person öffnet.
     const x = istAdmin()
-      ? `<button class="rel-del-btn" type="button" title="${escapeHtml(t('rel_loesen_titel'))}" onclick="event.stopPropagation();beziehungLoesen('${typ}','${v.id}')">✕</button>`
+      ? `<button class="rel-move-btn" type="button" title="${escapeHtml(t('bezv_titel'))}" onclick="event.stopPropagation();bezAendernOeffnen('${typ}','${v.id}')">⇄</button>`
+        + `<button class="rel-del-btn" type="button" title="${escapeHtml(t('rel_loesen_titel'))}" onclick="event.stopPropagation();beziehungLoesen('${typ}','${v.id}')">✕</button>`
       : '';
     return `<span class="verwandter${x ? ' mit-x' : ''}" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${x}</span>`;
   };
@@ -13659,6 +13687,156 @@ async function loeschePerson(personId) {
     await reloadBaumBehalteFokus(fallback);
     await zeigeHinweis(t('pa_geloescht'));
   }
+}
+
+// ============================================================
+// BEZIEHUNG ÄNDERN / UMHÄNGEN (Admin) — Karte von einer Rolle in eine andere verschieben,
+// ohne sie zu löschen. Serverseitig atomar + validiert (RPC beziehung_verschieben,
+// supabase_beziehung_verschieben.sql); hier zusätzlich Client-Validierung fürs UI.
+// ============================================================
+let bezAendernCtx = null;   // { pId, vId, aktTyp, ziel }
+
+// --- Relations-Helfer (über aktuelleDaten, identitätsbewusst) ---
+function _bezTwinExt(ext) {
+  const p = aktuelleDaten.persons[ext];
+  if (!p || !p._ident) return [ext];
+  return Object.values(aktuelleDaten.persons).filter(q => q._ident === p._ident).map(q => q.id);
+}
+function _sameIdent(aExt, bExt) {
+  const a = aktuelleDaten.persons[aExt], b = aktuelleDaten.persons[bExt];
+  if (!a || !b) return false;
+  if (a._ident && b._ident) return a._ident === b._ident;
+  return aExt === bExt;
+}
+function _bezElternExt(ext) {   // ext-IDs der Eltern (über alle Zwillinge der Person)
+  const out = new Set();
+  _bezTwinExt(ext).forEach(t => {
+    const p = aktuelleDaten.persons[t];
+    (p && p.families_child || []).forEach(fid => {
+      const f = aktuelleDaten.families[fid]; if (!f) return;
+      [f.husband, f.wife].forEach(e => { if (e) out.add(e); });
+    });
+  });
+  return [...out];
+}
+function _bezVorfahre(aExt, bExt) {   // ist a Vorfahre von b?
+  const ziel = new Set(_bezTwinExt(aExt));
+  const seen = new Set(); const stack = [..._bezElternExt(bExt)];
+  while (stack.length) {
+    const cur = stack.pop(); if (seen.has(cur)) continue; seen.add(cur);
+    if (ziel.has(cur)) return true;
+    _bezElternExt(cur).forEach(e => { if (!seen.has(e)) stack.push(e); });
+  }
+  return false;
+}
+function _bezSibling(pExt, xExt) {    // teilen P und X einen Elternteil?
+  const ep = new Set(); _bezElternExt(pExt).forEach(e => _bezTwinExt(e).forEach(x => ep.add(x)));
+  if (!ep.size) return false;
+  const ex = new Set(); _bezElternExt(xExt).forEach(e => _bezTwinExt(e).forEach(x => ex.add(x)));
+  return [...ex].some(x => ep.has(x));
+}
+function _bezElternListe(pExt) {       // [{ext,uuid,name}] der Eltern (Zwilling-entdoppelt)
+  const seen = new Set(); const out = [];
+  _bezElternExt(pExt).forEach(e => {
+    const p = aktuelleDaten.persons[e]; if (!p) return;
+    const key = p._ident ? 'i:' + p._ident : 'u:' + (p._uuid || e);
+    if (seen.has(key)) return; seen.add(key);
+    if (p._uuid) out.push({ ext: e, uuid: p._uuid, name: p.name || p.given || '?' });
+  });
+  return out;
+}
+
+function schliesseBezAendern() {
+  document.getElementById('bez-aendern-modal').classList.remove('aktiv');
+  bezAendernCtx = null;
+}
+
+// Öffnet den „Beziehung ändern"-Dialog für die verwandte Person vId (aktuelle Rolle aktTyp).
+function bezAendernOeffnen(aktTyp, vId) {
+  if (!istAdmin()) return;
+  const pId = aktuelleModalPersonId;
+  const P = aktuelleDaten.persons[pId], X = aktuelleDaten.persons[vId];
+  if (!P || !X) return;
+  if (_sameIdent(pId, vId)) return;   // dieselbe Person -> kein Ändern
+  bezAendernCtx = { pId, vId, aktTyp, ziel: null };
+  document.getElementById('bez-aendern-info').textContent = t('bezv_info', { name: nm(X.name || X.given || '?') });
+  const fehler = document.getElementById('bez-aendern-fehler'); fehler.style.display = 'none'; fehler.textContent = '';
+  document.getElementById('bez-aendern-ersetzen').style.display = 'none';
+
+  const sibling    = _bezSibling(pId, vId);
+  const xVorfahre  = _bezVorfahre(vId, pId);   // X Vorfahre von P
+  const xNachfahre = _bezVorfahre(pId, vId);   // X Nachfahre von P
+  const rollen = [
+    { typ: 'eltern',      ok: !sibling && !xNachfahre,            grund: sibling ? 'geschwister' : (xNachfahre ? 'zyklus' : '') },
+    { typ: 'geschwister', ok: !xVorfahre && !xNachfahre,          grund: (xVorfahre || xNachfahre) ? 'zyklus' : '' },
+    { typ: 'partner',     ok: !sibling && !xVorfahre && !xNachfahre, grund: sibling ? 'geschwister' : ((xVorfahre || xNachfahre) ? 'partner_inzest' : '') },
+    { typ: 'kind',        ok: !xVorfahre,                          grund: xVorfahre ? 'zyklus' : '' }
+  ];
+  document.getElementById('bez-aendern-rollen').innerHTML = rollen.map(r => {
+    const aktuell = r.typ === aktTyp;
+    const disabled = aktuell || !r.ok;
+    const grundTxt = aktuell ? t('bezv_grund_aktuell') : (!r.ok ? t('bezv_grund_' + r.grund) : '');
+    return `<label class="ansicht-radio${disabled ? ' bez-deaktiviert' : ''}" ${disabled ? '' : `onclick="bezAendernWaehle('${r.typ}')"`}>
+      <input type="radio" name="bez-ziel" value="${r.typ}" ${disabled ? 'disabled' : ''}>
+      <span><b>${escapeHtml(t('bezv_rolle_' + r.typ))}</b>${grundTxt ? `<small>${escapeHtml(grundTxt)}</small>` : ''}</span>
+    </label>`;
+  }).join('');
+  document.getElementById('bez-aendern-modal').classList.add('aktiv');
+}
+
+function bezAendernWaehle(typ) {
+  if (!bezAendernCtx) return;
+  bezAendernCtx.ziel = typ;
+  document.querySelectorAll('#bez-aendern-rollen input[name="bez-ziel"]').forEach(r => { r.checked = (r.value === typ); });
+  document.querySelectorAll('#bez-aendern-rollen .ansicht-radio').forEach(l => {
+    const inp = l.querySelector('input'); l.classList.toggle('aktiv', !!(inp && inp.value === typ));
+  });
+  // Ersetzen-Schritt nur bei Ziel „Eltern", wenn P bereits 2 Eltern hat (≠ X)
+  const wrap = document.getElementById('bez-aendern-ersetzen');
+  if (typ === 'eltern') {
+    const eltern = _bezElternListe(bezAendernCtx.pId).filter(e => !_sameIdent(e.ext, bezAendernCtx.vId));
+    if (eltern.length >= 2) {
+      document.getElementById('bez-ersetzt-elternteil').innerHTML =
+        eltern.map(e => `<option value="${escapeHtml(e.uuid)}">${escapeHtml(nm(e.name))}</option>`).join('');
+      wrap.style.display = '';
+      if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(document.getElementById('bez-aendern-modal'));
+      return;
+    }
+  }
+  wrap.style.display = 'none';
+}
+
+function _bezFehler(msg) {
+  const e = document.getElementById('bez-aendern-fehler'); e.textContent = msg; e.style.display = 'block';
+}
+
+async function bezAendernAnwenden() {
+  if (!bezAendernCtx || !bezAendernCtx.ziel) return _bezFehler(t('bezv_kein_ziel'));
+  const P = aktuelleDaten.persons[bezAendernCtx.pId], X = aktuelleDaten.persons[bezAendernCtx.vId];
+  if (!P || !X || !P._uuid || !X._uuid) return;
+  let ersetzt = null;
+  if (bezAendernCtx.ziel === 'eltern' && document.getElementById('bez-aendern-ersetzen').style.display !== 'none') {
+    ersetzt = document.getElementById('bez-ersetzt-elternteil').value || null;
+  }
+  const btn = document.getElementById('bez-aendern-btn'); const alt = btn.textContent;
+  btn.disabled = true; btn.textContent = t('reg_senden_laeuft');
+  const { data, error } = await sbClient.rpc('beziehung_verschieben', {
+    p_person: P._uuid, p_other: X._uuid, p_neu_typ: bezAendernCtx.ziel, p_ersetzt_elternteil: ersetzt
+  });
+  btn.disabled = false; btn.textContent = alt;
+  if (error) return _bezFehler(t('reg_fehler') + error.message);
+  if (!data || !data.ok) {
+    const known = ['bezv_self','bezv_zyklus','bezv_geschwister_konflikt','bezv_partner_inzest','bezv_zu_viele_eltern','bezv_kein_recht'];
+    return _bezFehler(known.includes(data && data.fehler) ? t(data.fehler) : t('bezv_fehler'));
+  }
+  if (data.sync_kind) {
+    try { await sbClient.rpc('kind_baeume_sync', { p_kind: data.sync_kind }); } catch (e) { console.warn('kind_baeume_sync', e); }
+  }
+  const pId = bezAendernCtx.pId;
+  schliesseBezAendern();
+  await reloadBaumBehalteFokus(pId);
+  if (aktuelleDaten.persons[pId]) { aktuelleModalPersonId = null; zeigeDetails(pId); }
+  await zeigeHinweis(t('bezv_erfolg'));
 }
 
 // EINE Verknüpfung (Kante) zwischen der offenen Person und einer verwandten Person lösen.

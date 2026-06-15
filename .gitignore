@@ -2,3 +2,6 @@
 supabase/.env
 supabase/.temp/
 .env
+
+# Claude Code – lokale Arbeitsdateien (Pläne/Memory/Settings), nicht versionieren
+.claude/

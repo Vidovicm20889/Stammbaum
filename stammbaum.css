@@ -764,6 +764,21 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
   transition: background 0.2s, color 0.2s;
 }
 .modal .rel-del-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
+/* ⇄ = Beziehung ändern/umhängen (neben dem ✕) */
+.modal .rel-move-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; min-width: 22px; margin-left: 8px; padding: 0;
+  border: 1px solid var(--linie); border-radius: 50%;
+  background: var(--paper); color: var(--gold);
+  font-size: 13px; line-height: 1; cursor: pointer; vertical-align: middle;
+  transition: background 0.2s, color 0.2s;
+}
+.modal .rel-move-btn:hover { background: var(--gold); color: var(--paper); border-color: var(--gold); }
+/* Beziehung-ändern-Dialog: ungültige Ziel-Rolle (Grund im Untertext) */
+.ansicht-radio.bez-deaktiviert { opacity: .5; cursor: not-allowed; }
+/* Liegt im DOM vor dem Detail-Modal (#modal, z-index 100) -> muss explizit darüber liegen,
+   aber unter den Hinweis-/Bestätigungs-Overlays (z-index ≥ 4000). */
+#bez-aendern-modal { z-index: 3000; }
 .modal .baum-zeigen {
   margin-top: 25px; background: var(--akzent); color: var(--paper);
   border: none; padding: 12px 24px; cursor: pointer;
