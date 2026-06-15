@@ -648,6 +648,22 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .knoten .name-text  { font-size: 13px; font-weight: bold; }
 .knoten .maiden-text { font-size: 10px; font-weight: normal; font-style: italic; fill: #6a5630; }
 .knoten .daten-text { font-size: 11px; fill: #3a2a10; }
+/* ===== Schnell-Hinzufügen: Plus-Punkte an den Kartenrändern (MyHeritage-Muster) =====
+   Nur für Bearbeiter (per JS gezeichnet). Dezent an JEDER Karte, beim Überfahren der Karte/des
+   Punkts deutlich hervorgehoben. Höhere Spezifität (.knoten …) schlägt die .knoten-text-Regel. */
+.knoten .knoten-plus-kreis {
+  fill: var(--paper); stroke: var(--akzent); stroke-width: 1.6;
+  opacity: 0.5; transition: opacity .12s, fill .12s; pointer-events: all;
+}
+.knoten .knoten-plus-zeichen {
+  font-size: 15px; font-weight: 700; fill: var(--akzent);
+  text-anchor: middle; dominant-baseline: central; opacity: 0.6;
+  transition: opacity .12s, fill .12s;
+}
+.knoten:hover .knoten-plus-kreis  { opacity: 0.95; }
+.knoten:hover .knoten-plus-zeichen { opacity: 1; }
+.knoten-plus:hover .knoten-plus-kreis  { fill: var(--akzent); stroke: var(--gold); }
+.knoten-plus:hover .knoten-plus-zeichen { fill: var(--paper); opacity: 1; }
 /* Übergangs-Badge (Blutlinien-Kappung): Fortsetzung im Ziel-Baum, klickbar (Gold) */
 .uebergang-badge .uebergang-text { font-size: 11px; font-weight: bold; fill: #9c7c3c;
   paint-order: stroke; stroke: rgba(255,248,220,0.85); stroke-width: 3px; }
@@ -688,6 +704,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .modal-schliessen:hover { background: var(--gold-hell); border-color: var(--gold); }
 /* Etwas Platz oben, damit Banner/Überschrift nicht unter den runden X-Button laufen */
 .modal-inhalt > .modal-schliessen + * { margin-top: 6px; }
+
 /* Podešavanje porodice (Familieneinstellungen) */
 .fe-inhalt { max-width: 600px; }
 .fe-readonly-hinweis {
@@ -1415,6 +1432,13 @@ footer {
 .mv-status { font-size: 10px; color: #9b2226; text-transform: uppercase; letter-spacing: 1px; }
 .mv-toggle { background: none; border: 1px solid var(--linie); color: var(--ink); padding: 6px 10px; cursor: pointer; font-size: 12px; }
 .mv-toggle:hover { border-color: var(--akzent); color: var(--akzent); }
+.mv-toggle.aktiv { background: var(--akzent); color: #fff; border-color: var(--akzent); }
+/* Entdecken (verbundübergreifende Suche): Umschalter + Treffer-Avatar */
+.ent-modus-btn { flex: 1; }
+.ent-av { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; background: var(--gold-hell);
+  color: var(--akzent); display: inline-flex; align-items: center; justify-content: center;
+  font-weight: bold; position: relative; overflow: hidden; }
+.ent-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 /* Zugeordnete Namenskarte je Mitglied */
 .mv-karte { display: block; width: 100%; font-size: 12px; margin-top: 2px; color: var(--akzent); }
 .mv-karte-baum { color: #8a7a5a; }

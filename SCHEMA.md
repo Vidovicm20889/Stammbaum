@@ -132,6 +132,23 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     `supabase_realtime`. **VOR Frontend-Deploy ausführen** (neue Tabellen/RPCs). (Voraussetzung: 3
     `supabase_verbund.sql`, 6 `supabase_mitglieder_komplett.sql`, 37 `supabase_profile.sql`)
 
+### 15 — Verbundübergreifende Personensuche + Kontaktanfragen (Discovery, 3 Stufen)
+57. `supabase_auffindbarkeit.sql` — Stufe 1 (ENTDECKEN): `profile.auffindbar_extern` (Opt-in
+    Lebende) + Avatar-Stufe `oeffentlich` + Helfer `_alter_jahre`/`_person_entdeckbar` +
+    `personen_entdecken(p_query)` (verbundübergreifend, NUR 4 Minimalfelder). (Voraussetzung: 3
+    `supabase_verbund.sql`, 37 `supabase_profile.sql`, `merge_norm`, `stammbaeume.einstellungen`)
+58. `supabase_kontakt_anfragen.sql` — Stufe 2+3 (KONTAKT/BAUMZUGRIFF): Tabellen `kontakt_anfragen`/
+    `kontakt_verbindungen`/`baum_freigaben` + Helfer `darf_baum_sehen`/`darf_beziehung_sehen`/
+    `darf_chatten` + RPCs (`kontakt_anfrage_stellen`/`offene_kontakt_anfragen`/
+    `kontakt_anfrage_entscheiden`/`…_zurueckziehen`/`baum_freigabe_widerrufen`/
+    `kontakt_verbindung_entfernen`/`meine_kontakte`). **NACH 57.** (Voraussetzung: 57 + Verbund + benachrichtigungen)
+59. `supabase_baum_freigaben_rls.sql` — Stufe 3 RLS: erweitert die SELECT-Policies auf
+    `personen`/`stammbaeume`/`beziehungen` ADDITIV um `darf_baum_sehen`/`darf_beziehung_sehen`
+    (nur LESEN). **NACH 3 `supabase_verbund.sql` UND 58.**
+60. `supabase_chat_kontakt.sql` — Chat-Ergänzung: `chats.verbund_id` nullable +
+    `direkt_chat_finden_oder_anlegen` verbundübergreifend über `darf_chatten`. **NACH 56
+    `supabase_chat.sql` UND 58.**
+
 ---
 
 ## ⚠️ Möglicherweise überholt — bitte bestätigen

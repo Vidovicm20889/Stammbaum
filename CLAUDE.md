@@ -809,6 +809,45 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   (auch reine Lesemitglieder). i18n `chat_*` in allen 5 Blöcken. **Bewusste v1-Grenze:** rein
   textbasiert (keine Datei-/Bild-Anhänge → Storage-Cleanup-Aufwand), **keine** E-Mail-Benachrichtigung,
   **kein** „schreibt gerade…" — dokumentierte Folge-Erweiterungen.
+- **Verbundübergreifende Personensuche + Kontaktanfragen („Instagram-Prinzip", 3 Stufen, ab v13.1):**
+  Durchbricht die `verbund_id`-Isolation BEWUSST an **genau ZWEI** kontrollierten Stellen —
+  sicherheitskritisch, nicht zurückbauen. DB-Dateien: `supabase_auffindbarkeit.sql`,
+  `supabase_kontakt_anfragen.sql`, `supabase_baum_freigaben_rls.sql`, `supabase_chat_kontakt.sql`
+  (Reihenfolge siehe SCHEMA.md §15). **Stufe 1 ENTDECKEN:** RPC `personen_entdecken(p_query)`
+  (SECURITY DEFINER) liefert verbundübergreifend AUSSCHLIESSLICH **vier Minimalfelder**
+  `{person_id, name, familienname, avatar_url}` — die RLS-SELECT-Policy auf `personen` bleibt
+  UNVERÄNDERT (Bruch ist in der RPC gekapselt). Eignungsregel zentral im Helfer `_person_entdeckbar`
+  (EINZIGE Quelle der Wahrheit, auch von `kontakt_anfrage_stellen` genutzt): nur FREMDER Verbund;
+  **Minderjährige (lebend) NIE**; **Lebende** nur bei Konto-Opt-in `profile.auffindbar_extern=true`
+  UND beweisbarer Volljährigkeit (ISO-`birth_date`, Alter≥18 via `_alter_jahre`; Alter nicht
+  berechenbar ⇒ ausgeschlossen); **Verstorbene** default auffindbar, Admin-Opt-out je Baum
+  (`stammbaeume.einstellungen->>'discovery_verstorbene'='false'`) oder je Karte
+  (`stammbaum_daten->>'nicht_auffindbar'='true'`). **Interpretation (dokumentiert):** der
+  Minderjährigen-Schutz gilt für LEBENDE; jung Verstorbene fallen unter die Verstorbenen-Regel.
+  Avatar nur bei NEUER `profile.avatar_sichtbarkeit`-Stufe **`'oeffentlich'`** (lebende Konten) bzw.
+  Karten-Foto (Verstorbene). Opt-in steuert NUR das Konto selbst (Betreiber-Entscheidung). **Stufe 2
+  KONTAKT:** `kontakt_anfrage_stellen(...,'kontakt')` nur auf entdeckbare Karte MIT Konto
+  (`personen.user_id`); Entscheider ist AUSSCHLIESSLICH der Familien-Admin/Owner/Super-Admin der
+  Zielfamilie (`kann_familie_bearbeiten`) — ein `familien_mitglied` NIE. Genehmigung → Zeile in
+  `kontakt_verbindungen` (sortiertes Paar) → erlaubt verbundübergreifenden 1:1-Chat (Helfer
+  `darf_chatten`; `chats.verbund_id` für solche Chats nullable; Picker via `meine_kontakte`). **Stufe 3
+  BAUMZUGRIFF:** SEPARATE zweite Anfrage `typ='baumzugriff'` (setzt aktive `kontakt_verbindung`
+  voraus; Zielbaum = Baum der entdeckten Person), zweite Admin-Genehmigung → Zeile in `baum_freigaben`.
+  **ZWEITE Bruchstelle:** `supabase_baum_freigaben_rls.sql` erweitert die SELECT-Policies auf
+  `personen`/`stammbaeume` ADDITIV um `darf_baum_sehen(stammbaum_id)` und auf `beziehungen` um
+  `darf_beziehung_sehen(person_a,person_b)` (da `beziehungen` KEIN `stammbaum_id` hat → Kante nur
+  sichtbar, wenn BEIDE Endpunkte sichtbar). NUR LESEN; Schreiben bleibt verbund-/admin-gebunden.
+  Widerruf (`baum_freigaben.status='widerrufen'` via `baum_freigabe_widerrufen`) wirkt SOFORT
+  (`darf_baum_sehen` prüft live). Admin-Benachrichtigung = Polling wie `offene_anfragen()`
+  (`offene_kontakt_anfragen()`, fließt in den Avatar-Obav-Badge, pausiert bei verstecktem Tab, setzt
+  den Inaktiv-Timer NICHT zurück); Antragsteller-Ergebnis = `benachrichtigungen`-Zeile
+  (typ `kontakt_*`/`baumzugriff_*`). Frontend: Entdecken-Overlay `#entdecken-modal` (Umschalter
+  eigener Verbund [`personen_suche`] ↔ andere Familien [`personen_entdecken`]), Opt-in-Schalter +
+  Avatar-Stufe im Privatnost-Overlay. **Alle neuen Helfer SECURITY DEFINER + rekursionsfrei.** i18n
+  `ent_*`/`benachr_kontakt_*`/`benachr_baumzugriff_*`/`prof_sicht_oeffentlich` in allen 5 Blöcken.
+  **v1-Grenze (bewusst):** Baumzugriff gilt für den Baum, in dem die entdeckte Person liegt (keine
+  freie Baum-Wahl, da der Anfragende fremde Bäume nicht aufzählen darf); Kontakte sind nur für
+  Direkt-Chat nutzbar (Gruppen erfordern weiterhin gemeinsamen Verbund).
 
 ## Backend- & Daten-Regeln (Supabase) — IMMER einhalten
 - **Referenzielle Integrität bei Anlegen UND Löschen.** Jede Aktion, die Daten erzeugt oder
