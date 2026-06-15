@@ -149,6 +149,19 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     `direkt_chat_finden_oder_anlegen` verbundübergreifend über `darf_chatten`. **NACH 56
     `supabase_chat.sql` UND 58.**
 
+### 16 — Soziale Schicht (Engagement)
+61. `supabase_reaktionen_kommentare.sql` — Reaktionen & Kommentare (POLYMORPH, verbund-gebunden):
+    Tabellen `reaktionen`/`kommentare` (denormalisierter `verbund_id`, `ziel_typ`/`ziel_id`) +
+    Helfer `ist_in_verbund`/`darf_verbund_moderieren`/`_ziel_verbund` + RPCs (`reaktion_umschalten`/
+    `kommentar_schreiben`/`kommentar_bearbeiten`/`kommentar_loeschen`/`engagement_holen`) +
+    Realtime-Publication. SELECT nur verbund-intern (KEIN baum_freigaben-Pfad). **VOR Frontend-Deploy
+    ausführen** (neue Tabellen/RPCs). (Voraussetzung: 3 `supabase_verbund.sql`, 37 `supabase_profile.sql`,
+    `personen_fotos`/`personen_geschichten`/`events` mit `familie_id`)
+62. `supabase_beitraege.sql` — Familien-Feed/Beiträge: Tabelle `beitraege` (verbund-RLS) + RPCs
+    (`beitrag_erstellen`/`beitrag_bearbeiten`/`beitrag_loeschen`/`feed_holen`/`mein_verbund`) +
+    Erweiterung `_ziel_verbund` um `beitrag` + public-Bucket `beitraege` + Realtime. **NACH 61**
+    (nutzt `ist_in_verbund`/`darf_verbund_moderieren`/`_ziel_verbund`). **VOR Frontend-Deploy ausführen.**
+
 ---
 
 ## ⚠️ Möglicherweise überholt — bitte bestätigen

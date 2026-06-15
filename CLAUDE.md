@@ -855,6 +855,60 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   **v1-Grenze (bewusst):** Baumzugriff gilt für den Baum, in dem die entdeckte Person liegt (keine
   freie Baum-Wahl, da der Anfragende fremde Bäume nicht aufzählen darf); Kontakte sind nur für
   Direkt-Chat nutzbar (Gruppen erfordern weiterhin gemeinsamen Verbund).
+- **Reaktionen & Kommentare — wiederverwendbares, POLYMORPHES Engagement-System (Social-Basis, ab
+  v13.2):** Erstes Primitiv der sozialen Schicht; alle weiteren Social-Features bauen darauf auf.
+  DB-Datei `supabase_reaktionen_kommentare.sql` (idempotent). **Zwei polymorphe Tabellen** mit
+  denormalisiert mitgeführtem `verbund_id` (KEIN polymorpher Join in der Policy → einfache,
+  rekursionsfreie RLS): `reaktionen`(verbund_id, `ziel_typ` CHECK [`foto|geschichte|beitrag|person|
+  event`], `ziel_id`, user_id, `typ` CHECK [`gefaellt|herz|lachen|wow|traurig`], **UNIQUE(ziel_typ,
+  ziel_id,user_id)** = 1 Reaktion je Nutzer je Objekt) und `kommentare`(…, `eltern_kommentar_id`
+  = optionale Threads **auf 1 Ebene** [tiefere Antworten klappen serverseitig auf die Wurzel],
+  `text`, `bearbeitet_am`, `geloescht` bool). **STRIKT VERBUND-GEBUNDEN** (Social-Regel): SELECT nur
+  für `ist_in_verbund(verbund_id)` — **KEIN** `baum_freigaben`-Pfad (Baumzugriff ist read-only-
+  Stammbaum, KEINE Social-Teilnahme → Isolation gewahrt). **Schreiben ausschließlich über
+  SECURITY-DEFINER-RPCs** (kein direktes INSERT/UPDATE/DELETE): `verbund_id` wird serverseitig aus
+  dem Zielobjekt abgeleitet (`_ziel_verbund`, DEFINER, polymorph; `'beitrag'` noch nicht vorhanden
+  → liefert NULL → RPC meldet `ziel_unbekannt`) → nicht fälschbar. RPCs: `reaktion_umschalten`
+  (toggle), `kommentar_schreiben`/`kommentar_bearbeiten` (nur Autor) /`kommentar_loeschen`
+  (soft `geloescht=true`, Autor ODER Moderator), `engagement_holen` (EIN Roundtrip: Reaktions-Zähler
+  + eigene Reaktion + Kommentar-Thread inkl. Anzeigename/Avatar aus profile/auth + `darf_*`-Flags).
+  Moderation (fremde Kommentare löschen) über `darf_verbund_moderieren` (familien_owner/admin im
+  Verbund + super_admin). **Transport = Supabase Realtime** (beide Tabellen in Publication
+  `supabase_realtime`, REPLICA IDENTITY FULL). **Frontend:** EIN wiederverwendbares Widget
+  (`engagementMount(containerId, zielTyp, zielId)` / `engagementUnmount`): Reaktionsleiste (5 Emojis,
+  eigene Reaktion umschaltbar) + Kommentar-Thread (schreiben/antworten[1 Ebene]/bearbeiten/löschen).
+  Eingebunden in **Person-Detail** (`#detail-engagement`, ziel=`person`,`_uuid`; NICHT für
+  Platzhalter), **Event-Detail** (`#event-engagement`,`event`), **Foto-Lightbox**
+  (`#lightbox-engagement`,`foto`, wechselt mit der Navigation), **Geschichte-Detail**
+  (`#gesch-engagement`,`geschichte`, row.id). Lifecycle `startEngagementSync`/`stopEngagementSync`
+  analog Chat (Start nach `ladeBaumDaten`, Stop + `engagementUnmountAlle` in `loescheUser`); der
+  Realtime-Callback setzt den **Inaktivitäts-/Auto-Logout-Timer NICHT** zurück, bei verstecktem Tab
+  aufgeschoben. `wechselSprache` ruft `engagementSpracheUpdate`. i18n `eng_*` in allen 5 Blöcken.
+  **v1-Grenzen (bewusst):** `'beitrag'` ist im CHECK reserviert, aber die Beitrags-Tabelle existiert
+  noch nicht (Folge-Feature); Reaktionen/Kommentare hängen an EINER Karte/Zeile (identitäts-
+  gespiegelte Zwillinge teilen sie NICHT, analog Galerie/Dokumente).
+- **Familien-Feed / Beiträge (Social-Schicht, ab v13.3):** Verbund-gebundene Pinnwand — Mitglieder
+  posten Text (+ optionales Foto + optionale Personen-Markierung); Reaktionen/Kommentare über das
+  bestehende Engagement-System (`ziel_typ='beitrag'`). DB-Datei `supabase_beitraege.sql` (idempotent,
+  **NACH `supabase_reaktionen_kommentare.sql`**, weil sie `_ziel_verbund` um den `beitrag`-Zweig
+  erweitert). Tabelle **`beitraege`**(`verbund_id`, `autor`, `text`, `bild_pfad`/`bild_url`,
+  `ref_person`→personen [SET NULL], `geloescht`). **STRIKT VERBUND-GEBUNDEN:** SELECT nur
+  `ist_in_verbund(verbund_id)` (echte RLS → Realtime); Schreiben ausschließlich über
+  SECURITY-DEFINER-RPCs (`verbund_id` serverseitig aus `mein_verbund()` abgeleitet → nicht fälschbar).
+  RPCs: `beitrag_erstellen` (Text und/oder Bild, Markierung nur wenn Person im EIGENEN Verbund),
+  `beitrag_bearbeiten` (nur Autor, nur Text), `beitrag_loeschen` (soft; Autor ODER Moderator
+  `darf_verbund_moderieren`; gibt `bild_pfad` zurück → Frontend räumt Storage), `feed_holen`
+  (keyset-paginiert über `erstellt_am`, Autor-Anzeige/Avatar + Markierungs-Name + `darf_*`). **Storage:**
+  public-Bucket **`beitraege`**, Pfad `<user_id>/<uuid>`, Schreiben nur eigener Ordner (wie `avatars`);
+  Bilder clientseitig per `galerieKomprimiere` (≤1600 px). **Realtime:** `beitraege` in Publication,
+  Channel `feed-sync` lädt den Feed neu (NUR wenn sichtbar), setzt den Auto-Logout-Timer NICHT zurück.
+  **Frontend:** neuer **Tab „Feed"** (`#tab-feed`, nur eingeloggt) + Sektion `#ansicht-feed`
+  (`wechselAnsicht('feed')`→`zeigeFeed`), Composer (`feedBeitragSenden`) + Liste (`feedRender`); je
+  Beitrag ein Engagement-Widget (`feed-eng-<id>`). Suche im Feed deaktiviert (wie Events).
+  `wechselSprache` ruft `feedSpracheUpdate`; Lifecycle `startFeedSync`/`stopFeedSync` analog Chat.
+  i18n `feed_*`/`tab_feed` in allen 5 Blöcken. **v1-Grenzen (bewusst):** ein Beitrag gehört zu
+  `mein_verbund()` (bei mehreren Verbünden der kleinste — i. d. R. genau einer); Bearbeiten nur Text
+  (Bild nur über Löschen+Neu); Markierung referenziert EINE Personenkarte (keine Zwillings-Spiegelung).
 
 ## Backend- & Daten-Regeln (Supabase) — IMMER einhalten
 - **Referenzielle Integrität bei Anlegen UND Löschen.** Jede Aktion, die Daten erzeugt oder

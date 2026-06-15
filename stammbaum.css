@@ -1474,6 +1474,40 @@ footer {
 .lightbox-engagement { max-width: 640px; width: 100%; margin: 10px auto 0; background: #fff;
   border-radius: 10px; padding: 0 14px 12px; max-height: 38vh; overflow: auto; overscroll-behavior: contain; }
 .lightbox-engagement .eng-wrap { margin-top: 10px; }
+
+/* Familien-Feed */
+.feed-wrap { max-width: 640px; margin: 0 auto; padding: 16px 14px 40px; }
+.feed-titel { color: var(--akzent); margin: 4px 0 14px; }
+.feed-composer { background: rgba(176,141,87,0.06); border: 1px solid var(--linie); border-radius: 12px; padding: 12px; }
+.feed-composer-zeile { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.feed-bild-btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid var(--linie);
+  border-radius: 8px; padding: 8px 12px; font-size: 14px; min-height: 40px; }
+.feed-bild-btn:hover { border-color: var(--akzent); color: var(--akzent); }
+.feed-tag-feld { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #8a7a5a; flex: 1; min-width: 160px; }
+.feed-senden { margin-left: auto; min-height: 40px; }
+.feed-bild-vorschau { position: relative; margin-top: 10px; display: inline-block; }
+.feed-bild-vorschau img { max-width: 100%; max-height: 240px; border-radius: 10px; display: block; }
+.feed-bild-x { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: #fff; border: none;
+  border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 14px; }
+.feed-liste { margin-top: 18px; display: flex; flex-direction: column; gap: 16px; }
+.feed-leer { color: #8a7a5a; text-align: center; padding: 24px 0; }
+.feed-mehr { display: block; margin: 18px auto 0; min-height: 40px; }
+.feed-beitrag { background: var(--papier, #fff); border: 1px solid var(--linie); border-radius: 12px; padding: 14px; }
+.feed-kopf { display: flex; gap: 10px; align-items: flex-start; }
+.feed-kopf-txt { flex: 1; min-width: 0; }
+.feed-autor { font-weight: bold; color: var(--ink); }
+.feed-zeit { font-size: 11px; color: #8a7a5a; }
+.feed-akt { display: flex; gap: 10px; flex-wrap: wrap; }
+.feed-tag { background: none; border: none; color: var(--akzent); cursor: pointer; font-size: 13px; padding: 0; }
+.feed-tag:hover { text-decoration: underline; }
+.feed-text { margin-top: 10px; color: #4a3b28; line-height: 1.5; word-break: break-word; }
+.feed-bild-wrap { margin-top: 10px; }
+.feed-bild { max-width: 100%; border-radius: 10px; display: block; }
+.feed-eng { margin-top: 4px; }
+/* Aktivitäts-Karten im Feed (person_neu/foto_neu/geschichte_neu/event_neu) */
+.feed-akt-icon { font-size: 15px; margin-right: 2px; }
+.feed-akt-text { margin-top: 8px; color: #4a3b28; line-height: 1.45; word-break: break-word; }
+.feed-akt-text[style*="pointer"]:hover { text-decoration: underline; }
 /* Zugeordnete Namenskarte je Mitglied */
 .mv-karte { display: block; width: 100%; font-size: 12px; margin-top: 2px; color: var(--akzent); }
 .mv-karte-baum { color: #8a7a5a; }

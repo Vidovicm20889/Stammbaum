@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="13.2">
+<meta name="app-version" content="13.4">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=13.2">
+<link rel="stylesheet" href="stammbaum.css?v=13.4">
 </head>
 <body>
 
@@ -53,6 +53,7 @@
   <div class="nav-controls">
     <div class="tab-gruppe">
       <button class="tab" data-ansicht="karten" data-i18n="tab_karten"></button>
+      <button class="tab" id="tab-feed" data-ansicht="feed" data-i18n="tab_feed" style="display:none"></button>
       <button class="tab" id="tab-shorts" data-ansicht="shorts" data-i18n="tab_shorts"></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
@@ -215,6 +216,33 @@
 
 <section id="ansicht-karten">
   <div class="personen" id="personen-grid"></div>
+</section>
+
+<!-- FAMILIEN-FEED: verbund-gebundene Pinnwand (Text + optionales Foto + Personen-Markierung).
+     Reaktionen/Kommentare über das Engagement-Widget (ziel_typ='beitrag'). Nur eingeloggt. -->
+<section id="ansicht-feed">
+  <div class="feed-wrap">
+    <h2 class="feed-titel" data-i18n="feed_titel"></h2>
+    <!-- Composer -->
+    <div class="feed-composer" id="feed-composer">
+      <textarea class="eng-textarea" id="feed-text" rows="3" data-i18n-placeholder="feed_ph"></textarea>
+      <div class="feed-composer-zeile">
+        <label class="feed-bild-btn" data-i18n-title="feed_bild">📷 <span data-i18n="feed_bild"></span>
+          <input type="file" id="feed-bild" accept="image/*" style="display:none" onchange="feedBildGewaehlt(event)">
+        </label>
+        <label class="feed-tag-feld"><span data-i18n="feed_markieren"></span>
+          <select id="feed-ref-person" class="filter"></select>
+        </label>
+        <button type="button" class="mv-toggle feed-senden" id="feed-senden" onclick="feedBeitragSenden()" data-i18n="feed_senden"></button>
+      </div>
+      <div class="feed-bild-vorschau" id="feed-bild-vorschau" style="display:none">
+        <img id="feed-bild-img" alt="">
+        <button type="button" class="feed-bild-x" onclick="feedBildEntfernen()" data-i18n-title="feed_bild_entfernen">✕</button>
+      </div>
+    </div>
+    <div class="feed-liste" id="feed-liste"></div>
+    <button type="button" class="mv-toggle feed-mehr" id="feed-mehr" style="display:none" onclick="feedMehr()" data-i18n="feed_mehr"></button>
+  </div>
 </section>
 
 <!-- EREIGNISSE: EIN Bereich, zwei Ansichten (Liste = Verwaltung | Zeitstrahl = rein lesend).
@@ -2074,7 +2102,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=13.2"></script>
+<script src="i18n.js?v=13.4"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2227,6 +2255,9 @@ async function setzeUser(user) {
   // Engagement (Reaktionen/Kommentare): Realtime-Channel für offene Detail-Widgets.
   startEngagementSync();
 
+  // Familien-Feed: Realtime-Channel für neue/aktualisierte Beiträge.
+  startFeedSync();
+
   // Deep-Link aus der Event-Einladungs-Mail (?event=<id>) nach dem Login einlösen.
   verarbeiteEventDeepLink();
 
@@ -2282,6 +2313,8 @@ function loescheUser() {
   stopChat();            // Chat-Realtime + Zustand beenden (ausgeloggt)
   stopEngagementSync();  // Engagement-Realtime beenden (ausgeloggt)
   engagementUnmountAlle();
+  stopFeedSync();        // Feed-Realtime beenden (ausgeloggt)
+  feedCache = [];
   aktualisiereAuthUI();
   resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
 }
@@ -2309,6 +2342,7 @@ function aktualisiereAuthUI() {
     // Upload nur für Admins sichtbar
     if (uploadLabel) uploadLabel.style.display = istAdmin() ? '' : 'none';
     if (shortsTab)   shortsTab.style.display = '';   // Events nur eingeloggt sichtbar
+    { const ft = document.getElementById('tab-feed'); if (ft) ft.style.display = ''; }   // Feed nur eingeloggt
     if (accountBtn)  accountBtn.style.display = 'none';   // eingeloggt: kein "Account anlegen"
     const rolleNorm = normalizeRolle(aktuelleRolle || '');
     const istAdm = istAdmin();
@@ -2362,6 +2396,7 @@ function aktualisiereAuthUI() {
     { const eb = document.getElementById('entdecken-btn'); if (eb) eb.style.display = 'none'; }  // ausgeloggt: kein Entdecken
     if (uploadLabel) uploadLabel.style.display = 'none';
     if (shortsTab)   shortsTab.style.display = 'none';
+    { const ft = document.getElementById('tab-feed'); if (ft) ft.style.display = 'none'; }
     if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
     if (adminBereich) adminBereich.style.display = 'none';
     const profilBereich = document.getElementById('profil-bereich');
@@ -2370,7 +2405,7 @@ function aktualisiereAuthUI() {
     if (navMenu) { navMenu.style.display = 'none'; navMenu.classList.remove('offen'); }
     offeneAnfragenCache = []; renderObavBadges();   // Badges leeren (ausgeloggt)
     // Falls der ausgeloggte User gerade auf der Events-Ansicht war -> zurück auf Baum
-    if (typeof aktuelleAnsicht !== 'undefined' && aktuelleAnsicht === 'shorts') aktuelleAnsicht = 'baum';
+    if (typeof aktuelleAnsicht !== 'undefined' && (aktuelleAnsicht === 'shorts' || aktuelleAnsicht === 'feed')) aktuelleAnsicht = 'baum';
   }
   aktualisiereInhaltSichtbarkeit();
 }
@@ -7415,6 +7450,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('mp-create-modal') && typeof mpCreateSprachUpdate === 'function') mpCreateSprachUpdate();
   if (typeof entdeckenSpracheUpdate === 'function') entdeckenSpracheUpdate();   // Entdecken-Overlay (Discovery)
   if (typeof engagementSpracheUpdate === 'function') engagementSpracheUpdate();   // Reaktionen/Kommentare-Widgets
+  if (typeof feedSpracheUpdate === 'function') feedSpracheUpdate();   // Familien-Feed
   if (offen('obav-modal') && typeof renderObavListe === 'function' && istAdmin()) renderObavListe();   // Kontakt-Anfragen-Karten neu beschriften
   // Merge-Wizard: dynamische Inhalte des sichtbaren Schritts in neuer Sprache neu aufbauen
   if (offen('merge-modal')) {
@@ -8574,7 +8610,7 @@ function aktualisiereKopf(rootId) {
 function aktualisiereSucheZustand(name) {
   const suche = document.getElementById('suche');
   if (!suche) return;
-  if (name === 'shorts') {
+  if (name === 'shorts' || name === 'feed') {
     if (suche.value) suche.value = '';          // leeren → Platzhalter sichtbar
     suche.disabled = true;
     suche.title = t('suche_events_tooltip');
@@ -12562,6 +12598,289 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ============================================================
+// FAMILIEN-FEED / BEITRÄGE (Tabelle beitraege, verbund-gebunden). Composer (Text +
+// optionales Foto + Personen-Markierung) + chronologische Liste; Reaktionen/Kommentare
+// je Beitrag über das Engagement-Widget (ziel_typ='beitrag'). Realtime für neue Beiträge.
+// ============================================================
+const FEED_SEITE = 20;
+let feedCache = [];
+let feedBildBlob = null;          // komprimiertes Foto (Blob) für den neuen Beitrag
+let feedBildPreviewUrl = null;
+let feedAelteste = null;          // erstellt_am des ältesten geladenen Beitrags (Pagination)
+let feedEditId = null;            // Beitrag im Inline-Bearbeiten-Modus
+
+async function zeigeFeed() {
+  if (!aktuellerUser) return;
+  feedRefPersonOptionen();
+  feedEditId = null;
+  await feedLaden(true);
+}
+
+// Personen-Markierungs-Select aus den geladenen Personen (aktueller + verknüpfte Bäume) füllen.
+function feedRefPersonOptionen() {
+  const sel = document.getElementById('feed-ref-person'); if (!sel) return;
+  const opts = [`<option value="">${escapeHtml(t('feed_keine_markierung'))}</option>`];
+  const seen = {};
+  Object.values(aktuelleDaten.persons || {}).forEach(p => {
+    if (!p._uuid || p.platzhalter || seen[p._uuid]) return;
+    seen[p._uuid] = 1;
+    opts.push(`<option value="${escapeHtml(p._uuid)}">${escapeHtml(nm(p.name || ''))}</option>`);
+  });
+  sel.innerHTML = opts.join('');
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(document.getElementById('ansicht-feed'));
+}
+
+async function feedLaden(reset) {
+  const box = document.getElementById('feed-liste'); if (!box) return;
+  if (reset) { feedCache = []; feedAelteste = null; box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`; }
+  try {
+    // Feature 3: vereinter Aktivitäts-Stream (Beiträge + neue Personen/Fotos/Geschichten/Events).
+    // aktivitaeten_holen liefert ein jsonb-Array; beitrag_neu trägt die vollen Beitragsfelder.
+    const { data, error } = await sbClient.rpc('aktivitaeten_holen', { p_limit: FEED_SEITE, p_vor: feedAelteste });
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : (data || []);
+    if (reset) feedCache = rows; else feedCache = feedCache.concat(rows);
+    if (rows.length) feedAelteste = rows[rows.length - 1].erstellt_am;
+    const mehrBtn = document.getElementById('feed-mehr');
+    if (mehrBtn) mehrBtn.style.display = rows.length === FEED_SEITE ? '' : 'none';
+    feedRender();
+  } catch (err) {
+    console.warn('feed_holen:', err);
+    box.innerHTML = `<div class="feed-leer">${escapeHtml((err && err.message) || t('eng_fehler'))}</div>`;
+  }
+}
+function feedMehr() { feedLaden(false); }
+
+function feedRender() {
+  const box = document.getElementById('feed-liste'); if (!box) return;
+  // Stale Feed-Engagement-Mounts entfernen (werden gleich neu gesetzt).
+  engagementMounts = engagementMounts.filter(m => !m.containerId.startsWith('feed-eng-'));
+  if (!feedCache.length) { box.innerHTML = `<div class="feed-leer">${escapeHtml(t('feed_leer'))}</div>`; return; }
+  // beitrag_neu -> volle Beitrags-Karte (Reuse); andere Typen -> Aktivitäts-Karte.
+  box.innerHTML = feedCache.map(a =>
+    a.typ === 'beitrag_neu' ? feedBeitragHtml(feedBeitragAusAkt(a)) : feedAktivitaetHtml(a)
+  ).join('');
+  // Reaktions-/Kommentarleiste (Feature 1) an Beitrag/Foto/Geschichte hängen.
+  feedCache.forEach(a => {
+    if (a.typ === 'beitrag_neu')          engagementMount('feed-eng-' + a.ref_id, 'beitrag', a.ref_id);
+    else if (a.typ === 'foto_neu')        engagementMount('feed-eng-' + a.id, 'foto', a.ref_id);
+    else if (a.typ === 'geschichte_neu')  engagementMount('feed-eng-' + a.id, 'geschichte', a.ref_id);
+  });
+}
+
+// Aktivität -> Beitragsobjekt für feedBeitragHtml (Container/Edit nutzen die Beitrag-UUID = ref_id).
+function feedBeitragAusAkt(a) {
+  return {
+    id: a.ref_id, text: a.text, bild_url: a.bild_url,
+    ref_person: a.person_id, ref_person_name: a.person_name,
+    erstellt_am: a.erstellt_am, bearbeitet_am: a.bearbeitet_am,
+    autor_name: a.akteur_name, autor_avatar: a.akteur_avatar,
+    darf_bearbeiten: a.darf_bearbeiten, darf_loeschen: a.darf_loeschen
+  };
+}
+
+// Karte für Nicht-Beitrags-Aktivitäten (person_neu/foto_neu/geschichte_neu/event_neu/…).
+function feedAktivitaetHtml(a) {
+  const id = escapeHtml(String(a.id));
+  const zeit = a.erstellt_am ? new Date(a.erstellt_am).toLocaleString() : '';
+  const pname = a.person_name ? escapeHtml(nm(a.person_name)) : '—';
+  const titel = a.titel ? escapeHtml(nm(a.titel)) : '';
+  let icon = '✨', txt = '', medien = '', engId = '', klick = '';
+  if (a.typ === 'person_neu') {
+    icon = '👤'; txt = t('akt_person_neu', { name: pname });
+    if (a.person_id) klick = `onclick="feedOeffnePerson('${escapeHtml(String(a.person_id))}')"`;
+  } else if (a.typ === 'foto_neu') {
+    icon = '📷'; txt = t('akt_foto_neu', { name: pname });
+    const url = a.foto_pfad ? sbClient.storage.from('personen-fotos').getPublicUrl(a.foto_pfad).data.publicUrl : '';
+    if (url) medien = `<div class="feed-bild-wrap"><img class="feed-bild" src="${escapeHtml(url)}" alt="" loading="lazy"></div>`;
+    if (a.person_id) klick = `onclick="feedOeffnePerson('${escapeHtml(String(a.person_id))}')"`;
+    engId = 'feed-eng-' + id;
+  } else if (a.typ === 'geschichte_neu') {
+    icon = '📖'; txt = t('akt_geschichte_neu', { name: pname, titel: titel });
+    if (a.person_id) klick = `onclick="feedOeffnePerson('${escapeHtml(String(a.person_id))}')"`;
+    engId = 'feed-eng-' + id;
+  } else if (a.typ === 'event_neu') {
+    icon = '📅'; txt = t('akt_event_neu', { titel: titel });
+    if (a.ref_id) klick = `onclick="feedOeffneEvent('${escapeHtml(String(a.ref_id))}')"`;
+  } else if (a.typ === 'geburtstag') {
+    icon = '🎂'; txt = t('akt_geburtstag', { name: pname });
+    if (a.person_id) klick = `onclick="feedOeffnePerson('${escapeHtml(String(a.person_id))}')"`;
+  } else if (a.typ === 'erinnerung') {
+    icon = '🔔'; txt = t('akt_erinnerung');
+  }
+  return `<div class="feed-beitrag feed-akt-karte" id="feed-b-${id}">
+    <div class="feed-kopf">
+      ${entAvatar(a.akteur_name, a.akteur_avatar)}
+      <div class="feed-kopf-txt">
+        <div class="feed-autor"><span class="feed-akt-icon">${icon}</span> ${escapeHtml(nm(a.akteur_name || ''))}</div>
+        <div class="feed-zeit">${escapeHtml(zeit)}</div>
+      </div>
+    </div>
+    <div class="feed-akt-text"${klick ? ' ' + klick + ' style="cursor:pointer"' : ''}>${txt}</div>
+    ${medien}
+    ${engId ? `<div class="feed-eng" id="${engId}"></div>` : ''}
+  </div>`;
+}
+
+function feedOeffneEvent(id) {
+  if (typeof zeigeEventDetail === 'function') zeigeEventDetail(id);
+}
+
+function feedBeitragHtml(b) {
+  const id = escapeHtml(String(b.id));
+  const zeit = b.erstellt_am ? new Date(b.erstellt_am).toLocaleString() : '';
+  const bearb = b.bearbeitet_am ? ` · ${escapeHtml(t('eng_bearbeitet'))}` : '';
+  const tag = b.ref_person && b.ref_person_name
+    ? `<button type="button" class="feed-tag" onclick="feedOeffnePerson('${escapeHtml(String(b.ref_person))}')">@${escapeHtml(nm(b.ref_person_name))}</button>` : '';
+  const bild = b.bild_url ? `<div class="feed-bild-wrap"><img class="feed-bild" src="${escapeHtml(b.bild_url)}" alt="" loading="lazy"></div>` : '';
+  const akt = [];
+  if (b.darf_bearbeiten) akt.push(`<button type="button" class="eng-link" onclick="feedBearbeitenStart('${id}')">${escapeHtml(t('eng_bearbeiten'))}</button>`);
+  if (b.darf_loeschen)   akt.push(`<button type="button" class="eng-link eng-del" onclick="feedBeitragLoeschen('${id}')">${escapeHtml(t('eng_loeschen'))}</button>`);
+  // Inline-Bearbeiten?
+  let body;
+  if (feedEditId === b.id) {
+    body = `<textarea class="eng-textarea" id="feed-edit-${id}" rows="3">${escapeHtml(b.text || '')}</textarea>
+      <div class="eng-komm-akt">
+        <button type="button" class="eng-link" onclick="feedBearbeitenSpeichern('${id}')">${escapeHtml(t('eng_speichern'))}</button>
+        <button type="button" class="eng-link" onclick="feedBearbeitenAbbrechen()">${escapeHtml(t('eng_abbrechen'))}</button>
+      </div>`;
+  } else {
+    body = `${b.text ? `<div class="feed-text">${escapeHtml(b.text).replace(/\n/g, '<br>')}</div>` : ''}${bild}`;
+  }
+  return `<div class="feed-beitrag" id="feed-b-${id}">
+    <div class="feed-kopf">
+      ${entAvatar(b.autor_name, b.autor_avatar)}
+      <div class="feed-kopf-txt">
+        <div class="feed-autor">${escapeHtml(nm(b.autor_name || ''))} ${tag}</div>
+        <div class="feed-zeit">${escapeHtml(zeit)}${bearb}</div>
+      </div>
+      ${akt.length ? `<div class="feed-akt">${akt.join('')}</div>` : ''}
+    </div>
+    ${body}
+    <div class="feed-eng" id="feed-eng-${id}"></div>
+  </div>`;
+}
+
+function feedOeffnePerson(uuid) {
+  const lokal = Object.values(aktuelleDaten.persons || {}).find(p => String(p._uuid) === String(uuid));
+  if (lokal && typeof zeigeDetails === 'function') zeigeDetails(lokal.id);
+  else if (typeof zeigeHinweis === 'function') zeigeHinweis(t('ent_nicht_geladen'));
+}
+
+// ---- Composer: Bild wählen/entfernen ----
+async function feedBildGewaehlt(ev) {
+  const file = ev.target.files && ev.target.files[0]; if (!file) return;
+  try {
+    feedBildBlob = await galerieKomprimiere(file, 1600, 0.85);
+    if (feedBildPreviewUrl) URL.revokeObjectURL(feedBildPreviewUrl);
+    feedBildPreviewUrl = URL.createObjectURL(feedBildBlob);
+    document.getElementById('feed-bild-img').src = feedBildPreviewUrl;
+    document.getElementById('feed-bild-vorschau').style.display = '';
+  } catch (e) { console.warn('Feed-Bild:', e); await zeigeHinweis(t('eng_fehler')); }
+  ev.target.value = '';
+}
+function feedBildEntfernen() {
+  feedBildBlob = null;
+  if (feedBildPreviewUrl) { URL.revokeObjectURL(feedBildPreviewUrl); feedBildPreviewUrl = null; }
+  document.getElementById('feed-bild-vorschau').style.display = 'none';
+  document.getElementById('feed-bild-img').src = '';
+}
+
+async function feedBeitragSenden() {
+  const ta = document.getElementById('feed-text'); if (!ta) return;
+  const txt = ta.value.trim();
+  if (!txt && !feedBildBlob) return;   // leerer Beitrag
+  const btn = document.getElementById('feed-senden'); if (btn) btn.disabled = true;
+  try {
+    let bildPfad = null, bildUrl = null;
+    if (feedBildBlob) {
+      const uid = aktuellerUser.id;
+      const name = (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.round(Math.random() * 1e9));
+      bildPfad = `${uid}/${name}.webp`;
+      const up = await sbClient.storage.from('beitraege').upload(bildPfad, feedBildBlob, { contentType: feedBildBlob.type || 'image/webp', upsert: false });
+      if (up.error) throw up.error;
+      bildUrl = sbClient.storage.from('beitraege').getPublicUrl(bildPfad).data.publicUrl;
+    }
+    const ref = document.getElementById('feed-ref-person');
+    const refVal = ref && ref.value ? ref.value : null;
+    const { data, error } = await sbClient.rpc('beitrag_erstellen',
+      { p_text: txt || null, p_bild_pfad: bildPfad, p_bild_url: bildUrl, p_ref_person: refVal });
+    if (error) throw error;
+    if (data && data.ok === false) throw new Error(data.grund || 'fehler');
+    // Composer zurücksetzen + Feed neu laden (Realtime zieht es ohnehin nach).
+    ta.value = ''; feedBildEntfernen(); if (ref) ref.value = '';
+    if (ref && ref._ssControl && typeof ssRender === 'function') { /* searchable Select-Anzeige leeren */ }
+    await feedLaden(true);
+  } catch (err) {
+    console.warn('beitrag_erstellen:', err);
+    await zeigeHinweis(t('feed_fehler_' + (err && err.message)) || t('eng_fehler'));
+  } finally { if (btn) btn.disabled = false; }
+}
+
+function feedBearbeitenStart(id) { feedEditId = id; feedRender(); }
+function feedBearbeitenAbbrechen() { feedEditId = null; feedRender(); }
+async function feedBearbeitenSpeichern(id) {
+  const ta = document.getElementById('feed-edit-' + id); if (!ta) return;
+  try {
+    const { error } = await sbClient.rpc('beitrag_bearbeiten', { p_id: id, p_text: ta.value.trim() });
+    if (error) throw error;
+    feedEditId = null;
+    await feedLaden(true);
+  } catch (err) { console.warn('beitrag_bearbeiten:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+
+async function feedBeitragLoeschen(id) {
+  const ok = await zeigeBestaetigung(t('feed_loeschen_frage')); if (!ok) return;
+  try {
+    const { data, error } = await sbClient.rpc('beitrag_loeschen', { p_id: id });
+    if (error) throw error;
+    // Storage-Bild aufräumen (kein CASCADE für Storage).
+    if (data && data.bild_pfad) { try { await sbClient.storage.from('beitraege').remove([data.bild_pfad]); } catch (e) { console.warn('Feed-Bild remove:', e); } }
+    engagementUnmount('feed-eng-' + id);
+    await feedLaden(true);
+  } catch (err) { console.warn('beitrag_loeschen:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+
+// Sprachwechsel: Composer-Select + offene Liste neu aufbauen.
+function feedSpracheUpdate() {
+  if (document.getElementById('ansicht-feed') && document.getElementById('ansicht-feed').style.display !== 'none') {
+    feedRefPersonOptionen();
+    feedRender();
+  }
+}
+
+// ---- Realtime (beitraege) — neue/aktualisierte Beiträge live, OHNE Auto-Logout-Timer ----
+let feedChannel = null;
+let feedReloadTimer = null;
+let feedPending = false;
+function startFeedSync() {
+  stopFeedSync();
+  if (!aktuellerUser) return;
+  try {
+    feedChannel = sbClient.channel('feed-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'beitraege' }, () => feedLiveAnstossen())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'aktivitaeten' }, () => feedLiveAnstossen())
+      .subscribe();
+  } catch (e) { console.warn('Feed-Realtime nicht verfügbar:', e); feedChannel = null; }
+}
+function stopFeedSync() {
+  if (feedReloadTimer) { clearTimeout(feedReloadTimer); feedReloadTimer = null; }
+  feedPending = false;
+  if (feedChannel) { try { sbClient.removeChannel(feedChannel); } catch (e) {} feedChannel = null; }
+}
+function feedLiveAnstossen() {
+  if (!aktuellerUser) return;
+  const sichtbar = document.getElementById('ansicht-feed') && document.getElementById('ansicht-feed').style.display !== 'none';
+  if (!sichtbar) return;   // nur aktualisieren, wenn der Feed offen ist
+  if (document.visibilityState !== 'visible') { feedPending = true; return; }
+  if (feedReloadTimer) clearTimeout(feedReloadTimer);
+  feedReloadTimer = setTimeout(() => feedLaden(true), 500);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && feedPending && aktuellerUser) { feedPending = false; feedLiveAnstossen(); }
+});
+
+// ============================================================
 // MEHRSPRACHIGE LEBENSGESCHICHTEN pro Person (Tabelle personen_geschichten).
 // Erweitert das einfache Biografie-/Notiz-Feld (stammbaum_daten.beschreibung,
 // dessen Verhalten/Sync unverändert bleibt) um strukturierte, mehrsprachige
@@ -14531,6 +14850,7 @@ function wechselAnsicht(name) {
   document.getElementById('ansicht-karten').style.display = name === 'karten' ? 'block' : 'none';
   document.getElementById('ansicht-shorts').style.display = name === 'shorts' ? 'block' : 'none';
   document.getElementById('ansicht-baum').style.display = name === 'baum' ? 'block' : 'none';
+  { const f = document.getElementById('ansicht-feed'); if (f) f.style.display = name === 'feed' ? 'block' : 'none'; }
 
   aktualisiereSucheZustand(name);   // Suchfeld kontextabhängig aktivieren/deaktivieren
 
@@ -14545,6 +14865,8 @@ function wechselAnsicht(name) {
     zeigeKarten();
   } else if (name === 'shorts') {
     zeigeShorts();
+  } else if (name === 'feed') {
+    zeigeFeed();
   }
 }
 
