@@ -515,6 +515,25 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   bleibt als eigenständiges Kurz-Notiz-Feld erhalten (de-Geschichte wird einmalig daraus geseedet, danach
   unabhängig); **kein Realtime** für die Tabelle (lädt frisch beim Öffnen, wie Galerie/Dokumente);
   Touch/Live final auf echtem Gerät zu verifizieren (🔬).
+- **Beziehung ändern / umhängen (Admin, ab v12.9):** Eine FALSCH angelegte Beziehung lässt sich
+  korrigieren, ohne eine Person zu löschen. In der Detailkarte hat jeder Verwandten-Chip neben dem
+  **✕** (lösen) einen **⇄**-Button (`bezAendernOeffnen`) → Dialog **`#bez-aendern-modal`**: wählt die
+  neue Rolle der Person X bezogen auf die offene Person P (**eltern/geschwister/partner/kind**).
+  **Ungültige Ziele werden ausgegraut + mit verständlichem Grund** beschriftet (Client-Vorabprüfung
+  `_bezVorfahre`/`_bezSibling`; verbindlich serverseitig). **Ziel = Eltern & P hat schon 2 Eltern**
+  → Ersetzen-Schritt (welcher Elternteil ersetzt wird). Umsetzung über die **atomare
+  SECURITY-DEFINER-RPC `beziehung_verschieben`** (DB-Datei `supabase_beziehung_verschieben.sql`,
+  **vor Frontend-Deploy ausführen**): Rechteprüfung (`kann_familie_bearbeiten` beider Familien),
+  **identitätsbewusst** (ganze `identitaet_id`-Gruppe, wie `beziehungLoesen`), in EINER Transaktion
+  alle P↔X-Kanten lösen → neue Rollen-Kanten setzen (kein inkonsistenter Zwischenzustand). Liefert
+  `sync_kind` → Frontend ruft `kind_baeume_sync`; Blutlinien-Auto-Rechte über die bestehenden Trigger.
+  **Validierungsregeln (server + client):** Selbst (auch Zwilling), **kein Zyklus** (eltern: X nicht
+  Nachfahre von P; kind: X nicht Vorfahre; geschwister: keins von beidem), **Geschwister können nicht
+  Eltern/Partner voneinander werden**, **Partner-Inzest** (direkte Blutlinie/Geschwister) blockiert,
+  **2‑Eltern-Grenze** (sonst Ersetzen-Dialog). i18n `bezv_*` in allen 5 Blöcken (in i18n.js);
+  Fehlercodes der RPC → i18n-Meldung im Dialog. Dialog liegt z-index-mäßig über dem Detail-Modal und
+  schließt nur per Button (UI-Regel). **Bewusste Grenze:** „Geschwister" ohne vorhandene Eltern legt
+  einen Platzhalter-Elternteil an (lazy-Bereinigung wie sonst).
 
 ## Architektur-Regeln
 - **Keine NEUEN externen Libraries/Dienste ohne ausdrückliche Absprache.**

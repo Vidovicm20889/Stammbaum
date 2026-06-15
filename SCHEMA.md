@@ -64,6 +64,12 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     ALLE Beziehungen (inkl. optionalem Geschwister-Platzhalter) in EINER Transaktion an
     (Audit Vorschlag 2 gegen „lose Inseln"). **VOR Frontend-Deploy ausführen** — `speichereNeuePerson`
     ruft die RPC ab v12.4 auf. (Voraussetzung: 3 `supabase_verbund.sql`.)
+33b. `supabase_beziehung_verschieben.sql` — `beziehung_verschieben(p_person,p_other,p_neu_typ,
+    p_ersetzt_elternteil)`: hängt eine Beziehung von einer Rolle in eine andere um (eltern/kind/
+    partner/geschwister), ATOMAR, identitätsbewusst, mit Validierung (Selbst/Zyklus/Geschwister↔
+    Eltern/Partner-Inzest/2‑Eltern-Grenze) + optionalem Eltern-Ersetzen. Liefert `sync_kind` →
+    Frontend ruft `kind_baeume_sync`. **VOR Frontend-Deploy ausführen** (Detailkarten-⇄-Button ab
+    v12.9). (Voraussetzung: 3 `supabase_verbund.sql`, 33 `supabase_kind_baeume_sync.sql`.)
 34. `supabase_meine_person.sql` — Self-Service Konto↔Karte
 
 ### 6 — Blutlinien-Rechte (auto, additiv)
