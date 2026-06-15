@@ -179,7 +179,9 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Profileinstellungen / Benutzer-Profil (Phase 1, ab v8.9):** Konto-Stammdaten des EINGELOGGTEN
   Nutzers — bewusst getrennt von der „Stammbaum-Person" (`registrierungs_anfragen`/`personen`). Eigene
   Tabelle **`profile`** (1 Zeile je `auth.users`, PK=`user_id`; DB-Datei [supabase_profile.sql]) mit
-  Vorname/Nachname/Telefon/Sprache/Land/Zeitzone/Avatar + `avatar_sichtbarkeit`. **RLS: nur die EIGENE
+  Vorname/Nachname/Telefon/Sprache/Land/Zeitzone/Avatar + `avatar_sichtbarkeit` (Stufen
+  `verbund`/`familie`/`privat`; ab v13.1 zusätzlich `oeffentlich` für die verbundübergreifende
+  Discovery). **RLS: nur die EIGENE
   Zeile** (`auth.uid() = user_id`, rekursionsfrei, Isolation gewahrt) — Cross-User-Avatare laufen NICHT
   über DB-SELECT, sondern über den **Presence-Broadcast** (Feld `avatar` in der Nutzlast, nur wenn
   Sichtbarkeit ≠ `privat`). Erreichbar über das ⚙-Menü (`#profil-bereich`, Button `prof_menu`) — sichtbar
@@ -778,11 +780,15 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   `beziehungen` referenzieren `stammbaum_id`/`familie_id`. Rollen liegen in `mitgliedschaften`
   (user_id + familie_id + rolle). Sichtbarkeit/Verknüpfung über `verbund_id` der Familie.
 - **Chat (1:1 + Gruppen) — Geltungsbereich = VERBUND (ab v12.3):** Die Chat-Funktion ist eine
-  eigene, dauerhafte Domäne. **Ein Chat gehört zu genau EINEM `familien.verbund_id`.** Chat-fähig
+  eigene, dauerhafte Domäne. **Ein Chat gehört zu genau EINEM `familien.verbund_id`** (Ausnahme:
+  verbundübergreifende Kontakt-Chats ab v13.1 → `verbund_id = NULL`, siehe Discovery-Regel unten). Chat-fähig
   (sicht-/auswählbar als Gegenüber) sind ausschließlich Nutzer, die mit dem Aufrufer **mindestens
   einen `verbund_id` teilen** (= „alle verknüpften Stammbäume" desselben Verbunds) — NICHT nur die
   eigene Familie, aber auch NICHT verbundübergreifend (Isolation gegen fremde Verbünde bleibt
-  gewahrt). **AUSNAHME zur Regel „super_admin ist in der GUI unsichtbar" — NUR im Chat (ab v12.5,
+  gewahrt). **AUSNAHME ab v13.1 (verbundübergreifende Kontakt-Chats):** Eine genehmigte
+  `kontakt_verbindungen`-Zeile (3-Stufen-Discovery, siehe Regel unten) erlaubt einen 1:1-Chat
+  zwischen genau zwei Konten OHNE gemeinsamen Verbund — der EINZIGE verbundübergreifende Chat-Pfad;
+  alles andere bleibt strikt verbund-gebunden. **AUSNAHME zur Regel „super_admin ist in der GUI unsichtbar" — NUR im Chat (ab v12.5,
   ausdrücklicher Nutzerwunsch):** Im Chat nimmt `super_admin` **wie ein normaler Verbund-Nutzer**
   teil — er erscheint in `verbund_nutzer()` (für andere sicht-/anschreibbar) und kann selbst Chats
   starten, **scoped auf seinen eigenen Verbund** (kein verbundübergreifender Sonderzugriff, Isolation
@@ -803,7 +809,8 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   NICHT** zurück (eingehende Nachrichten zählen nicht als Aktivität — nur eigenes Tippen/Senden), bei
   verstecktem Tab Update aufschieben und bei `visibilitychange` nachholen. **RPCs** (SECURITY DEFINER,
   geben nur erlaubte Daten zurück): `verbund_nutzer()`, `direkt_chat_finden_oder_anlegen(p_user2)`
-  (eindeutiger 1:1-Chat, Unique über sortiertes User-Paar + verbund_id), `gruppen_chat_anlegen(p_name,
+  (eindeutiger 1:1-Chat, Unique über sortiertes User-Paar + verbund_id; bei verbundübergreifenden
+  Kontakt-Chats Dedupe-Key OHNE Verbund `kontakt|a|b` + `verbund_id = NULL`, v13.1), `gruppen_chat_anlegen(p_name,
   p_user_ids[])`, `chat_nachricht_senden(p_chat,p_text)`, `chat_gelesen`, `chat_teilnehmer_entfernen`,
   `chat_gruppen_admin_setzen`. Erreichbar über das Avatar-/⚙-Menü für **ALLE eingeloggten Nutzer**
   (auch reine Lesemitglieder). i18n `chat_*` in allen 5 Blöcken. **Bewusste v1-Grenze:** rein
@@ -904,11 +911,15 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   - **`i18n.js`** — `TEXTE` + `RECHTSTEXTE` als globale `const`, **vor** dem Haupt-Script geladen.
     i18n-Texte werden jetzt hier gepflegt (weiterhin alle 5 Sprachen). **Schlüssel-Parität prüfen:**
     `node i18n_lint.js` (meldet je Sprache fehlende Keys; idealerweise vor jedem Commit).
-  - **`pdf_export.js`** — der komplette PDF-/Druck-Export (`pdf*`-Funktionen + `PDF_*`-Konstanten),
-    **vor** dem Haupt-Script geladen; ruft Haupt-Globals (`t`, `d3`, `aktuelleWurzel`, …) erst zur
-    Laufzeit auf. `jsPDF`/`svg2pdf` weiterhin aus dem `<head>` (CDN).
-  - **Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an `stammbaum.css`, `i18n.js`
-    UND `pdf_export.js` auf dieselbe Version ziehen** — sonst liefert GitHub Pages die ausgelagerte
+  - **`pdf_export.js`** — **STAND AKTUELL: NICHT ausgelagert.** Der PDF-/Druck-Export liegt derzeit
+    **INLINE** im Haupt-Script von `stammbaum.html` (`function oeffnePdfExport` etc.); es gibt KEINE
+    Datei `pdf_export.js` und KEINE `<script src="pdf_export.js">`-Einbindung. Die folgende
+    Beschreibung gilt nur, FALLS der Export erneut ausgelagert wird: kompletter PDF-/Druck-Export
+    (`pdf*`-Funktionen + `PDF_*`-Konstanten), **vor** dem Haupt-Script geladen; ruft Haupt-Globals
+    (`t`, `d3`, `aktuelleWurzel`, …) erst zur Laufzeit auf. `jsPDF`/`svg2pdf` weiterhin aus dem `<head>` (CDN).
+  - **Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an `stammbaum.css` UND `i18n.js`
+    auf dieselbe Version ziehen** (sowie `pdf_export.js`, FALLS wieder ausgelagert — derzeit inline,
+    s. o.) — sonst liefert GitHub Pages die ausgelagerte
     Datei veraltet aus (`hardReload`/`?v=timestamp` bricht nur den HTML-Cache, nicht die Sub-Ressourcen).
   - Reihenfolge: die ausgelagerten `<script>` (i18n.js, pdf_export.js) müssen **vor** dem
     Haupt-Inline-`<script>` stehen (globale `const`/Funktionen). Der `init();`-Bootstrap bleibt am
@@ -969,3 +980,38 @@ Nach JEDER Änderung:
   Beim Self-Service-Anlegen werden `land`/`stadt`/`gemeinde` in `familien` gespeichert, damit das
   strikte Matching künftiger Anfragen greift.
 - Offen/Ausblick: Abo-Modell (Stripe); weitere Admin-Funktionen (Familieneinstellungen).
+
+# Stammbaum → Familien-Netzwerk: Social-Feature-Prompts
+
+Idee: eine **soziale Schicht** über dem bestehenden Stammbaum – die App wird vom Daten-Archiv zum
+lebendigen Familien-Netzwerk (MyHeritage trifft Instagram/Facebook). Jeder Block ist ein
+eigenständiger Prompt zum Kopieren in Claude Code. Reihenfolge = empfohlene Bearbeitung
+(Engagement-Primitive zuerst, dann das, was darauf aufbaut).
+
+---
+
+## Gilt für ALLE Prompts (Claude Code automatisch beachten)
+
+- **Architektur:** Single-File-Stack (stammbaum.html/.css/i18n.js; PDF-Export derzeit inline in
+  stammbaum.html), Supabase
+  (Postgres + Auth + Storage + Edge Functions + RLS). Mandanten: `familien` → `stammbaeume` →
+  `personen`, Föderation über `verbund_id`. Rollen in `mitgliedschaften`
+  (super_admin/familien_owner/familien_admin/familien_mitglied). Konto↔Person über `_userId`.
+- **Vor jedem Feature ZUERST** den vorhandenen ähnlichen Code inspizieren und dessen Muster
+  übernehmen: `benachrichtigungen`, `registrierungs_anfragen`, Event-System (`event_*`),
+  Media-Upload/Storage-Policies, Presence/Realtime (`startRealtimeSync`), `verbund_nutzer()`,
+  die rekursionsfreien SECURITY-DEFINER-RLS-Helfer.
+- **DATENSCHUTZ/KINDERSCHUTZ (hart, für jedes Social-Feature):** Alle sozialen Inhalte (Feed,
+  Beiträge, Kommentare, Reaktionen, Markierungen, Fragen, Aufnahmen) sind STRIKT verbund-gebunden –
+  niemals verbundübergreifend sichtbar, außer es existiert eine ausdrückliche Freigabe aus dem
+  Kontakt-/Baumzugriff-Feature. **Soziale Inhalte** über lebende Personen und Minderjährige werden NIE
+  außerhalb des Verbunds exponiert — **einzige Ausnahme:** die vier Discovery-Minimalfelder
+  (`personen_entdecken`) einer ausdrücklich opt-in-freigegebenen, **volljährigen** lebenden Person
+  bzw. eine freigegebene Kontakt-/Baumzugriff-Verbindung (v13.1). Minderjährige bleiben IMMER
+  ausgeschlossen. Reaktionen/Kommentare erben die Lese-Grenze ihres Zielobjekts.
+- **CLAUDE.md durchgängig:** keine neue Library ohne Freigabe; idempotente `.sql` im Repo (Supabase
+  SQL-Editor), Edge Functions übers Dashboard; RLS rekursionsfrei (SECURITY DEFINER); Modal nur per
+  Button, kleine Panels via pointerdown; i18n alle neuen Texte in ALLEN 5 Sprachen (DE/SR/HR/BA/EN)
+  + `node i18n_lint.js`; mobile-first (≥16px, Touch, overscroll); Live-Reload behält Fokus und
+  setzt den Auto-Logout-Timer NICHT zurück; Deploy = app-version + `?v=` an i18n.js/CSS; Push/Commit
+  nur auf Anweisung. Jeden Loop mit Selbsteinschätzung ✅/⚠️/❌ + nächstem Schritt abschließen.

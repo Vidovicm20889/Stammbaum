@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="13.1">
+<meta name="app-version" content="13.2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=13.1">
+<link rel="stylesheet" href="stammbaum.css?v=13.2">
 </head>
 <body>
 
@@ -792,6 +792,13 @@
     <label class="login-label" style="max-width:240px"><span data-i18n="anl_pref_vorlauf"></span>
       <input type="number" id="anl-pref-vorlauf" class="login-feld" min="0" max="30" step="1" inputmode="numeric" value="3">
     </label>
+
+    <!-- E-Mail bei ungelesener Aktivität (Chat + Benachrichtigungen, 12h ungelesen). Opt-out. -->
+    <div class="reg-gruppe-titel" data-i18n="ungel_pref_titel" style="margin-top:14px"></div>
+    <p class="prof-hint" data-i18n="ungel_pref_hint"></p>
+    <label class="pdf-check"><input type="checkbox" id="anl-pref-chat"><span data-i18n="ungel_pref_chat"></span></label>
+    <label class="pdf-check"><input type="checkbox" id="anl-pref-benachr"><span data-i18n="ungel_pref_benachr"></span></label>
+
     <button class="account-btn" type="button" id="anl-pref-save" data-i18n="anl_pref_speichern" onclick="speichereAnlassEinstellungen()"></button>
     <div id="anl-pref-erfolg" class="reg-erfolg" style="display:none"></div>
   </div>
@@ -2037,6 +2044,8 @@
   <div class="lightbox-inner">
     <img class="lightbox-img" id="lightbox-img" alt="">
     <div class="lightbox-cap" id="lightbox-cap"></div>
+    <!-- Reaktionen & Kommentare zum aktuellen Foto (verbund-gebunden) -->
+    <div id="lightbox-engagement" class="lightbox-engagement"></div>
   </div>
   <div class="lightbox-zaehler" id="lightbox-zaehler"></div>
 </div>
@@ -2065,7 +2074,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=13.1"></script>
+<script src="i18n.js?v=13.2"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2215,6 +2224,9 @@ async function setzeUser(user) {
   // Chat (1:1 + Gruppen, verbundweit): Nutzerliste/Chats laden + Realtime-Channel.
   startChat();
 
+  // Engagement (Reaktionen/Kommentare): Realtime-Channel für offene Detail-Widgets.
+  startEngagementSync();
+
   // Deep-Link aus der Event-Einladungs-Mail (?event=<id>) nach dem Login einlösen.
   verarbeiteEventDeepLink();
 
@@ -2268,6 +2280,8 @@ function loescheUser() {
   stopBenachrSync();     // Live-Benachrichtigungen beenden (ausgeloggt)
   stopPresence();        // Live-Indikator beenden (ausgeloggt)
   stopChat();            // Chat-Realtime + Zustand beenden (ausgeloggt)
+  stopEngagementSync();  // Engagement-Realtime beenden (ausgeloggt)
+  engagementUnmountAlle();
   aktualisiereAuthUI();
   resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
 }
@@ -7400,6 +7414,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('mp-pick-modal')   && typeof renderMpPick === 'function') renderMpPick();
   if (offen('mp-create-modal') && typeof mpCreateSprachUpdate === 'function') mpCreateSprachUpdate();
   if (typeof entdeckenSpracheUpdate === 'function') entdeckenSpracheUpdate();   // Entdecken-Overlay (Discovery)
+  if (typeof engagementSpracheUpdate === 'function') engagementSpracheUpdate();   // Reaktionen/Kommentare-Widgets
   if (offen('obav-modal') && typeof renderObavListe === 'function' && istAdmin()) renderObavListe();   // Kontakt-Anfragen-Karten neu beschriften
   // Merge-Wizard: dynamische Inhalte des sichtbaren Schritts in neuer Sprache neu aufbauen
   if (offen('merge-modal')) {
@@ -10543,18 +10558,33 @@ async function ladeAnlassEinstellungen() {
   const gedEl = document.getElementById('anl-pref-ged');
   if (!gebEl || !gedEl || !sbClient || !aktuellerUser) return;
   const vorEl = document.getElementById('anl-pref-vorlauf');
-  // Default: beides an + 3 Tage Vorlauf (entspricht DB-Default), bis Zeilen geladen sind.
+  const chatEl = document.getElementById('anl-pref-chat');
+  const benEl  = document.getElementById('anl-pref-benachr');
+  // Default: alles an + 3 Tage Vorlauf (entspricht DB-Default), bis Zeilen geladen sind.
   gebEl.checked = true; gedEl.checked = true; if (vorEl) vorEl.value = '3';
+  if (chatEl) chatEl.checked = true; if (benEl) benEl.checked = true;
   try {
-    const { data, error } = await sbClient
+    let { data, error } = await sbClient
       .from('benachrichtigungs_einstellungen')
-      .select('email_geburtstage, email_gedenktage, vorlauf_tage')
+      .select('email_geburtstage, email_gedenktage, vorlauf_tage, email_ungelesene_nachrichten, email_ungelesene_benachrichtigungen')
       .eq('user_id', aktuellerUser.id);
-    if (error) { console.warn('Erinnerungs-Einstellungen laden:', error); return; }
+    // Fallback, falls die Ungelesen-Spalten (supabase_ungelesen_erinnerung.sql) noch nicht
+    // eingespielt sind: ohne sie laden, damit Geburtstags-/Gedenktags-Einstellungen weiter greifen.
+    if (error) {
+      const basis = await sbClient.from('benachrichtigungs_einstellungen')
+        .select('email_geburtstage, email_gedenktage, vorlauf_tage').eq('user_id', aktuellerUser.id);
+      if (basis.error) { console.warn('Erinnerungs-Einstellungen laden:', basis.error); return; }
+      data = basis.data;
+    }
     if (data && data.length) {
       // „An", wenn IRGENDEINE Familien-Zeile aktiviert ist (global-tolerant).
       gebEl.checked = data.some(r => r.email_geburtstage);
       gedEl.checked = data.some(r => r.email_gedenktage);
+      // Ungelesen-Spalten nur übernehmen, wenn vorhanden (Fallback ohne Spalten -> Default „an").
+      if (chatEl && data.some(r => 'email_ungelesene_nachrichten' in r))
+        chatEl.checked = data.some(r => r.email_ungelesene_nachrichten);
+      if (benEl && data.some(r => 'email_ungelesene_benachrichtigungen' in r))
+        benEl.checked = data.some(r => r.email_ungelesene_benachrichtigungen);
       // Vorlauf: kleinster gesetzter Wert (frühestmögliche Erinnerung gewinnt).
       if (vorEl) { const vs = data.map(r => r.vorlauf_tage).filter(v => v != null);
         if (vs.length) vorEl.value = String(Math.min(...vs)); }
@@ -10575,9 +10605,13 @@ async function speichereAnlassEinstellungen() {
   if (!Number.isFinite(vorlauf)) vorlauf = 3;
   vorlauf = Math.max(0, Math.min(30, vorlauf));   // auf 0..30 begrenzen (DB-CHECK)
   if (vorEl) vorEl.value = String(vorlauf);
+  const chatEl = document.getElementById('anl-pref-chat');
+  const benEl  = document.getElementById('anl-pref-benachr');
   const rows = familien.map(fid => ({
     familie_id: fid, user_id: aktuellerUser.id,
-    email_geburtstage: gebEl.checked, email_gedenktage: gedEl.checked, vorlauf_tage: vorlauf
+    email_geburtstage: gebEl.checked, email_gedenktage: gedEl.checked, vorlauf_tage: vorlauf,
+    email_ungelesene_nachrichten:       chatEl ? chatEl.checked : true,
+    email_ungelesene_benachrichtigungen: benEl ? benEl.checked  : true
   }));
   const alt = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
   const { error } = await sbClient
@@ -10687,8 +10721,11 @@ async function zeigeEventDetail(eventId) {
     ${istAdmin() ? `<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="baum-zeigen" style="margin-top:0" onclick="schliesseModal(); zeigeEventBearbeiten('${eventId}')">${t('event_edit')}</button>
     </div>` : ''}
+    <!-- Reaktionen & Kommentare (verbund-gebunden) -->
+    <div id="event-engagement"></div>
   `;
   document.getElementById('modal').classList.add('aktiv');
+  engagementMount('event-engagement', 'event', eventId);
 }
 
 // ============================================================
@@ -11496,6 +11533,9 @@ function zeigeDetails(personId) {
     <!-- Dokumente & Quellen (read-only) — per JS asynchron nach dem Öffnen befüllt -->
     <div id="detail-dokumente"></div>
 
+    <!-- Reaktionen & Kommentare (verbund-gebunden) — per JS nach dem Öffnen befüllt -->
+    <div id="detail-engagement"></div>
+
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
     ${graphRendererAn() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graphFokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
     ${ansichtModus === 'zweig' ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graph2FokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
@@ -11514,12 +11554,16 @@ function zeigeDetails(personId) {
   galerieDetailRender(p);   // Foto-Galerie (read-only) asynchron nachladen
   dokDetailRender(p);       // Dokumente & Quellen (read-only) asynchron nachladen
   geschDetailRender(p);     // Lebensgeschichte (read-only, lokalisiert) asynchron nachladen
+  // Reaktionen/Kommentare nur für echte (nicht Platzhalter-)Personen mit DB-UUID.
+  if (p._uuid && !p.platzhalter) engagementMount('detail-engagement', 'person', p._uuid);
+  else { engagementUnmount('detail-engagement'); const ce = document.getElementById('detail-engagement'); if (ce) ce.innerHTML = ''; }
 }
 
 function schliesseModal() {
   document.getElementById('modal').classList.remove('aktiv');
   modalVerlauf = [];
   aktuelleModalPersonId = null;
+  engagementUnmount('detail-engagement'); engagementUnmount('event-engagement'); engagementUnmount('gesch-engagement');
   detailWatchId = null; detailWatchSig = null;   // P3: Beobachtung beenden
   const ban = document.getElementById('sync-hinweis-detail'); if (ban) ban.remove();
   const lockBan = document.getElementById('lock-hinweis-detail'); if (lockBan) lockBan.remove();   // P4
@@ -12264,13 +12308,15 @@ function lightboxRender() {
   document.querySelector('#foto-lightbox .lb-prev').style.display = mehr ? '' : 'none';
   document.querySelector('#foto-lightbox .lb-next').style.display = mehr ? '' : 'none';
   document.getElementById('lightbox-zaehler').textContent = mehr ? `${lightboxIdx + 1} / ${galerieFotos.length}` : '';
+  // Reaktionen/Kommentare zum aktuell gezeigten Foto (wechselt mit der Navigation).
+  if (f.id) engagementMount('lightbox-engagement', 'foto', f.id);
 }
 function lightboxNav(d) {
   if (!galerieFotos.length) return;
   lightboxIdx = (lightboxIdx + d + galerieFotos.length) % galerieFotos.length;
   lightboxRender();
 }
-function schliesseLightbox() { document.getElementById('foto-lightbox').classList.remove('aktiv'); }
+function schliesseLightbox() { document.getElementById('foto-lightbox').classList.remove('aktiv'); engagementUnmount('lightbox-engagement'); }
 
 // Sprachwechsel: offene Galerie-Grids (Editor/Detail) mit neuen t()-Labels neu rendern.
 function galerieSpracheUpdate() {
@@ -12290,6 +12336,229 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') schliesseLightbox();
   else if (e.key === 'ArrowLeft') lightboxNav(-1);
   else if (e.key === 'ArrowRight') lightboxNav(1);
+});
+
+// ============================================================
+// ENGAGEMENT — wiederverwendbare Reaktionsleiste + Kommentar-Thread (polymorph).
+// Wird in Person-/Event-/Foto-/Geschichte-Detail eingebunden (ziel_typ + ziel_id).
+// STRIKT verbund-gebunden (Server-RLS); Schreiben über SECURITY-DEFINER-RPCs.
+// Live: ein Realtime-Channel (reaktionen/kommentare) lädt offene Widgets neu, OHNE
+// den Inaktivitäts-/Auto-Logout-Timer zu berühren.
+// ============================================================
+const ENG_REAKTIONEN = [
+  { typ: 'gefaellt', emoji: '👍' },
+  { typ: 'herz',     emoji: '❤️' },
+  { typ: 'lachen',   emoji: '😂' },
+  { typ: 'wow',      emoji: '😮' },
+  { typ: 'traurig',  emoji: '😢' }
+];
+let engagementMounts = [];   // [{ containerId, zielTyp, zielId, data, editId, replyTo }]
+
+function engagementEintrag(containerId) { return engagementMounts.find(m => m.containerId === containerId); }
+
+// Widget an einen Container hängen (ersetzt eine evtl. bestehende Registrierung).
+function engagementMount(containerId, zielTyp, zielId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!aktuellerUser || !zielId) { el.innerHTML = ''; return; }
+  let e = engagementEintrag(containerId);
+  if (!e) { e = { containerId, zielTyp, zielId, data: null, editId: null, replyTo: null }; engagementMounts.push(e); }
+  else { e.zielTyp = zielTyp; e.zielId = zielId; e.editId = null; e.replyTo = null; }
+  el.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`;
+  engagementLaden(containerId);
+}
+
+// Registrierungen leeren (beim Schließen von Modal/Lightbox aufrufen).
+function engagementUnmount(containerId) { engagementMounts = engagementMounts.filter(m => m.containerId !== containerId); }
+function engagementUnmountAlle() { engagementMounts = []; }
+
+async function engagementLaden(containerId) {
+  const e = engagementEintrag(containerId); if (!e) return;
+  try {
+    const { data, error } = await sbClient.rpc('engagement_holen', { p_typ: e.zielTyp, p_ziel: e.zielId });
+    if (error) throw error;
+    if (!data || data.ok === false) { const el = document.getElementById(containerId); if (el) el.innerHTML = ''; engagementUnmount(containerId); return; }
+    e.data = data;
+    engagementRender(containerId);
+  } catch (err) {
+    console.warn('engagement_holen:', err);
+    const el = document.getElementById(containerId); if (el) el.innerHTML = '';
+  }
+}
+
+function engagementRender(containerId) {
+  const e = engagementEintrag(containerId); if (!e || !e.data) return;
+  const el = document.getElementById(containerId); if (!el) return;
+  const d = e.data;
+  const cid = escapeHtml(containerId);
+
+  // Reaktionsleiste
+  const reactBar = ENG_REAKTIONEN.map(r => {
+    const anz = (d.reaktionen && d.reaktionen[r.typ]) || 0;
+    const aktiv = d.meine_reaktion === r.typ ? ' aktiv' : '';
+    return `<button type="button" class="eng-react-btn${aktiv}" title="${escapeHtml(t('eng_r_' + r.typ))}"
+              onclick="engagementReagieren('${cid}','${r.typ}')">${r.emoji}${anz ? `<span class="eng-react-anz">${anz}</span>` : ''}</button>`;
+  }).join('');
+
+  // Kommentare als 1-Ebene-Thread
+  const komm = d.kommentare || [];
+  const kinder = {};
+  komm.filter(k => k.eltern).forEach(k => { (kinder[k.eltern] = kinder[k.eltern] || []).push(k); });
+  const top = komm.filter(k => !k.eltern);
+  const kommHtml = top.length
+    ? top.map(k => engagementKommHtml(k, containerId) + (kinder[k.id] || []).map(c => engagementKommHtml(c, containerId, true)).join('')).join('')
+    : `<div class="eng-komm-leer">${escapeHtml(t('eng_keine_komm'))}</div>`;
+
+  // Eingabe (ggf. Antwort-Modus)
+  let replyBanner = '';
+  if (e.replyTo) {
+    const ziel = komm.find(k => k.id === e.replyTo);
+    replyBanner = `<div class="eng-reply-banner">${escapeHtml(t('eng_antwort_an', { name: ziel ? nm(ziel.name || '') : '' }))}
+      <button type="button" class="eng-reply-x" onclick="engagementReplyAbbrechen('${cid}')">✕</button></div>`;
+  }
+  const eingabe = `
+    <div class="eng-eingabe">
+      ${replyBanner}
+      <textarea class="eng-textarea" id="eng-ta-${cid}" rows="2" placeholder="${escapeHtml(t('eng_komm_ph'))}"></textarea>
+      <button type="button" class="mv-toggle eng-senden" onclick="engagementKommentarSenden('${cid}')">${escapeHtml(t('eng_senden'))}</button>
+    </div>`;
+
+  el.innerHTML = `
+    <div class="eng-wrap">
+      <div class="eng-react">${reactBar}</div>
+      <div class="eng-komm-titel">${escapeHtml(t('eng_komm_titel'))}</div>
+      <div class="eng-komm-liste">${kommHtml}</div>
+      ${eingabe}
+    </div>`;
+}
+
+function engagementKommHtml(k, containerId, istReply) {
+  const e = engagementEintrag(containerId);
+  const cid = escapeHtml(containerId);
+  const zeit = k.erstellt_am ? new Date(k.erstellt_am).toLocaleString() : '';
+  const bearb = k.bearbeitet_am ? ` · ${escapeHtml(t('eng_bearbeitet'))}` : '';
+  if (k.geloescht) {
+    return `<div class="eng-komm${istReply ? ' reply' : ''}"><span class="bi-body"><div class="eng-komm-text geloescht">${escapeHtml(t('eng_geloescht'))}</div></span></div>`;
+  }
+  // Bearbeiten-Modus
+  if (e && e.editId === k.id) {
+    return `<div class="eng-komm${istReply ? ' reply' : ''}">
+      ${entAvatar(k.name, k.avatar)}
+      <span class="bi-body">
+        <div class="eng-komm-head"><span class="eng-komm-name">${escapeHtml(nm(k.name || ''))}</span></div>
+        <textarea class="eng-textarea" id="eng-edit-${escapeHtml(String(k.id))}" rows="2">${escapeHtml(k.text || '')}</textarea>
+        <div class="eng-komm-akt">
+          <button type="button" class="eng-link" onclick="engagementBearbeitenSpeichern('${cid}','${escapeHtml(String(k.id))}')">${escapeHtml(t('eng_speichern'))}</button>
+          <button type="button" class="eng-link" onclick="engagementBearbeitenAbbrechen('${cid}')">${escapeHtml(t('eng_abbrechen'))}</button>
+        </div>
+      </span></div>`;
+  }
+  const akt = [];
+  if (!istReply) akt.push(`<button type="button" class="eng-link" onclick="engagementAntwort('${cid}','${escapeHtml(String(k.id))}')">${escapeHtml(t('eng_antworten'))}</button>`);
+  if (k.darf_bearbeiten) akt.push(`<button type="button" class="eng-link" onclick="engagementBearbeitenStart('${cid}','${escapeHtml(String(k.id))}')">${escapeHtml(t('eng_bearbeiten'))}</button>`);
+  if (k.darf_loeschen) akt.push(`<button type="button" class="eng-link eng-del" onclick="engagementLoeschen('${cid}','${escapeHtml(String(k.id))}')">${escapeHtml(t('eng_loeschen'))}</button>`);
+  const textHtml = escapeHtml(k.text || '').replace(/\n/g, '<br>');
+  return `<div class="eng-komm${istReply ? ' reply' : ''}">
+    ${entAvatar(k.name, k.avatar)}
+    <span class="bi-body">
+      <div class="eng-komm-head"><span class="eng-komm-name">${escapeHtml(nm(k.name || ''))}</span><span class="eng-komm-zeit">${escapeHtml(zeit)}${bearb}</span></div>
+      <div class="eng-komm-text">${textHtml}</div>
+      <div class="eng-komm-akt">${akt.join('')}</div>
+    </span></div>`;
+}
+
+async function engagementReagieren(containerId, typ) {
+  const e = engagementEintrag(containerId); if (!e) return;
+  // optimistisch: sofort umschalten, dann Server + frisch laden
+  try {
+    const { error } = await sbClient.rpc('reaktion_umschalten', { p_typ: e.zielTyp, p_ziel: e.zielId, p_reaktion: typ });
+    if (error) throw error;
+    engagementLaden(containerId);
+  } catch (err) { console.warn('reaktion_umschalten:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+
+function engagementAntwort(containerId, elternId) {
+  const e = engagementEintrag(containerId); if (!e) return;
+  e.replyTo = elternId; e.editId = null;
+  engagementRender(containerId);
+  const ta = document.getElementById('eng-ta-' + containerId); if (ta) { try { ta.focus(); } catch (x) {} }
+}
+function engagementReplyAbbrechen(containerId) { const e = engagementEintrag(containerId); if (e) { e.replyTo = null; engagementRender(containerId); } }
+
+async function engagementKommentarSenden(containerId) {
+  const e = engagementEintrag(containerId); if (!e) return;
+  const ta = document.getElementById('eng-ta-' + containerId); if (!ta) return;
+  const txt = ta.value.trim(); if (!txt) return;
+  ta.disabled = true;
+  try {
+    const { error } = await sbClient.rpc('kommentar_schreiben',
+      { p_typ: e.zielTyp, p_ziel: e.zielId, p_text: txt, p_eltern: e.replyTo || null });
+    if (error) throw error;
+    e.replyTo = null;
+    engagementLaden(containerId);
+  } catch (err) { console.warn('kommentar_schreiben:', err); ta.disabled = false; await zeigeHinweis(t('eng_fehler')); }
+}
+
+function engagementBearbeitenStart(containerId, id) { const e = engagementEintrag(containerId); if (e) { e.editId = id; e.replyTo = null; engagementRender(containerId); } }
+function engagementBearbeitenAbbrechen(containerId) { const e = engagementEintrag(containerId); if (e) { e.editId = null; engagementRender(containerId); } }
+
+async function engagementBearbeitenSpeichern(containerId, id) {
+  const ta = document.getElementById('eng-edit-' + id); if (!ta) return;
+  const txt = ta.value.trim(); if (!txt) return;
+  try {
+    const { error } = await sbClient.rpc('kommentar_bearbeiten', { p_id: id, p_text: txt });
+    if (error) throw error;
+    const e = engagementEintrag(containerId); if (e) e.editId = null;
+    engagementLaden(containerId);
+  } catch (err) { console.warn('kommentar_bearbeiten:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+
+async function engagementLoeschen(containerId, id) {
+  const ok = await zeigeBestaetigung(t('eng_loeschen_frage')); if (!ok) return;
+  try {
+    const { error } = await sbClient.rpc('kommentar_loeschen', { p_id: id });
+    if (error) throw error;
+    engagementLaden(containerId);
+  } catch (err) { console.warn('kommentar_loeschen:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+
+// Sprachwechsel: offene Widgets neu beschriften (Daten bleiben, nur Re-Render).
+function engagementSpracheUpdate() {
+  engagementMounts.forEach(e => { if (document.getElementById(e.containerId)) engagementRender(e.containerId); });
+}
+
+// ---- Realtime (reaktionen/kommentare) — debounced Reload aller offenen Widgets ----
+let engagementChannel = null;
+let engagementReloadTimer = null;
+let engagementPending = false;
+
+function startEngagementSync() {
+  stopEngagementSync();
+  if (!aktuellerUser) return;
+  try {
+    const handler = () => engagementLiveAnstossen();
+    engagementChannel = sbClient.channel('engagement-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reaktionen' }, handler)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kommentare' }, handler)
+      .subscribe();
+  } catch (e) { console.warn('Engagement-Realtime nicht verfügbar:', e); engagementChannel = null; }
+}
+function stopEngagementSync() {
+  if (engagementReloadTimer) { clearTimeout(engagementReloadTimer); engagementReloadTimer = null; }
+  engagementPending = false;
+  if (engagementChannel) { try { sbClient.removeChannel(engagementChannel); } catch (e) {} engagementChannel = null; }
+}
+// WICHTIG: KEIN Zurücksetzen des Inaktivitäts-Timers (analog Live-Sync/Chat).
+function engagementLiveAnstossen() {
+  if (!aktuellerUser) return;
+  if (document.visibilityState !== 'visible') { engagementPending = true; return; }
+  if (engagementReloadTimer) clearTimeout(engagementReloadTimer);
+  engagementReloadTimer = setTimeout(() => {
+    engagementMounts.forEach(e => { if (document.getElementById(e.containerId)) engagementLaden(e.containerId); });
+  }, 400);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && engagementPending && aktuellerUser) { engagementPending = false; engagementLiveAnstossen(); }
 });
 
 // ============================================================
@@ -12535,7 +12804,10 @@ async function geschDetailRender(p) {
       ${fb}
       ${row.titel ? `<div class="gesch-detail-titel">${escapeHtml(row.titel)}</div>` : ''}
       <div class="markdown-body gesch-detail-text">${geschMarkdownHtml(row.text)}</div>
+      <div id="gesch-engagement"></div>
     </div>`;
+  // Reaktionen/Kommentare an die angezeigte Geschichte (eigene ID).
+  if (row.id) engagementMount('gesch-engagement', 'geschichte', row.id);
 }
 
 // Sprachwechsel: offene Editor-Tabs/Vorschau + offene Detail-Anzeige neu aufbauen.
