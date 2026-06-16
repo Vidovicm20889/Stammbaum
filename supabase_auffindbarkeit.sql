@@ -20,7 +20,8 @@
 --   2) sie NICHT (lebend-)minderjährig ist (HARTES Tor),
 --   3) UND ( VERSTORBEN  und Baum nicht opt-out und Karte nicht einzeln ausgeblendet )
 --      ODER ( LEBEND und BEWEISBAR volljährig (ISO-Geburtsdatum, Alter>=18)
---             und Konto-Opt-in profile.auffindbar_extern=true auf der via user_id verknüpften Karte ).
+--             und via user_id ein Konto verknüpft und NICHT versteckt
+--             (profile.auffindbar_extern <> false; Default TRUE = Opt-out, v13.9) ).
 --   - Lebend + Alter NICHT berechenbar (Datum fehlt/Freitext) -> AUSGESCHLOSSEN (Volljährigkeit
 --     nicht beweisbar). Dokumentierte Folge: erwachsene Lebende ohne ISO-Geburtsdatum sind erst
 --     auffindbar, wenn ein Datum gepflegt ist.
@@ -31,7 +32,9 @@
 --     als Karten-Foto bei verstorbenen Karten (Teil der Verstorbenen-Freigabe).
 --
 -- STEUERUNG:
---   - LEBENDE: profile.auffindbar_extern (Default false = striktes Opt-in; nur das Konto selbst).
+--   - LEBENDE: profile.auffindbar_extern (Default TRUE = Opt-out; nur das Konto selbst steuert es.
+--     Wer NICHT gefunden werden will, deaktiviert den Schalter im Privatsphäre-Overlay).
+--     Minderjährige bleiben trotz Opt-out IMMER ausgeschlossen (Alters-Tor unten).
 --   - VERSTORBENE: Default auffindbar; Admin-Opt-out je Baum
 --     (stammbaeume.einstellungen->>'discovery_verstorbene' = 'false') ODER je Karte
 --     (stammbaum_daten->>'nicht_auffindbar' = 'true').
@@ -46,9 +49,15 @@
 -- 1) SCHEMA-ERWEITERUNGEN
 -- =====================================================
 
--- 1a) Konto-Opt-in für lebende Personen (nur das Konto selbst steuert es). Default false.
+-- 1a) Auffindbarkeit lebender Personen (nur das Konto selbst steuert es).
+--     OPT-OUT (ab v13.9, Betreiber-Entscheidung): Default TRUE = standardmäßig auffindbar;
+--     wer NICHT gefunden werden will, setzt auffindbar_extern = false (Privatsphäre-Overlay).
+--     Der Minderjährigen-/Alters-Schutz in _person_entdeckbar bleibt davon UNBERÜHRT (hartes Tor).
 ALTER TABLE public.profile
-  ADD COLUMN IF NOT EXISTS auffindbar_extern boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS auffindbar_extern boolean NOT NULL DEFAULT true;
+-- Falls die Spalte aus der Opt-in-Ära schon existiert: Default aktiv auf true ziehen
+-- (betrifft nur KÜNFTIGE Zeilen; Bestands-Backfill = sql_archiv/backfill_auffindbar_optout.sql, EINMALIG).
+ALTER TABLE public.profile ALTER COLUMN auffindbar_extern SET DEFAULT true;
 
 -- 1b) Neue Avatar-Sichtbarkeits-Stufe 'oeffentlich' (für die verbundübergreifende Discovery).
 --     Die alte CHECK-Constraint (verbund/familie/privat) wird ersetzt.
@@ -106,11 +115,13 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
                  OR coalesce(btrim(pe.stammbaum_daten->>'death_date'),'') <> '' )
             THEN coalesce(s.einstellungen->>'discovery_verstorbene','true') <> 'false'
                  AND coalesce(pe.stammbaum_daten->>'nicht_auffindbar','') <> 'true'
-          -- LEBEND -> nur BEWEISBAR volljährig (ISO-Datum, Alter>=18) UND Konto-Opt-in.
-          --          Alter nicht berechenbar -> -1 -> ausgeschlossen (Minderjährigen-Schutz).
+          -- LEBEND -> nur BEWEISBAR volljährig (ISO-Datum, Alter>=18) UND Konto vorhanden.
+          --          Alter nicht berechenbar -> -1 -> ausgeschlossen (Minderjährigen-Schutz, HART).
+          --          OPT-OUT: standardmäßig auffindbar; nur explizites auffindbar_extern=false versteckt.
+          --          coalesce(...,true): fehlende profile-Zeile = auffindbar (Default-on auch ohne Profil).
           ELSE coalesce(public._alter_jahre(nullif(btrim(pe.stammbaum_daten->>'birth_date'),'')), -1) >= 18
                AND pe.user_id IS NOT NULL
-               AND coalesce(pr.auffindbar_extern, false) = true
+               AND coalesce(pr.auffindbar_extern, true) = true
         END
       )
   );

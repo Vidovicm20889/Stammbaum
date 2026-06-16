@@ -853,14 +853,22 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   `{person_id, name, familienname, avatar_url}` — die RLS-SELECT-Policy auf `personen` bleibt
   UNVERÄNDERT (Bruch ist in der RPC gekapselt). Eignungsregel zentral im Helfer `_person_entdeckbar`
   (EINZIGE Quelle der Wahrheit, auch von `kontakt_anfrage_stellen` genutzt): nur FREMDER Verbund;
-  **Minderjährige (lebend) NIE**; **Lebende** nur bei Konto-Opt-in `profile.auffindbar_extern=true`
-  UND beweisbarer Volljährigkeit (ISO-`birth_date`, Alter≥18 via `_alter_jahre`; Alter nicht
-  berechenbar ⇒ ausgeschlossen); **Verstorbene** default auffindbar, Admin-Opt-out je Baum
-  (`stammbaeume.einstellungen->>'discovery_verstorbene'='false'`) oder je Karte
-  (`stammbaum_daten->>'nicht_auffindbar'='true'`). **Interpretation (dokumentiert):** der
+  **Minderjährige (lebend) NIE** (HARTES Tor, nicht verhandelbar); **Lebende** sind seit **v13.9
+  per OPT-OUT standardmäßig auffindbar** — Bedingung: via `user_id` ein Konto verknüpft, NICHT
+  versteckt (`profile.auffindbar_extern <> false`, DB-Default `true`) UND beweisbare Volljährigkeit
+  (ISO-`birth_date`, Alter≥18 via `_alter_jahre`; Alter nicht berechenbar ⇒ ausgeschlossen =
+  Minderjährigen-Sicherheitsnetz). Wer NICHT gefunden werden will, deaktiviert den Schalter im
+  Privatsphäre-Overlay (`auffindbar_extern=false`); `_person_entdeckbar` nutzt
+  `coalesce(auffindbar_extern, true)` (fehlende profile-Zeile = auffindbar). **Verstorbene** default
+  auffindbar, Admin-Opt-out je Baum (`stammbaeume.einstellungen->>'discovery_verstorbene'='false'`)
+  oder je Karte (`stammbaum_daten->>'nicht_auffindbar'='true'`). **Interpretation (dokumentiert):** der
   Minderjährigen-Schutz gilt für LEBENDE; jung Verstorbene fallen unter die Verstorbenen-Regel.
   Avatar nur bei NEUER `profile.avatar_sichtbarkeit`-Stufe **`'oeffentlich'`** (lebende Konten) bzw.
-  Karten-Foto (Verstorbene). Opt-in steuert NUR das Konto selbst (Betreiber-Entscheidung). **Stufe 2
+  Karten-Foto (Verstorbene) — die Auffindbarkeit (Name) ist Opt-out, das **Profilbild** bleibt
+  bewusst Opt-in (`oeffentlich`). Steuerung NUR durch das Konto selbst (Betreiber-Entscheidung).
+  **Migration v13.9:** Spalten-Default `true` (idempotent in `supabase_auffindbarkeit.sql`) +
+  einmaliger Bestands-Backfill `sql_archiv/backfill_auffindbar_optout.sql` (NICHT erneut ausführen,
+  sobald Nutzer sich aktiv verstecken). Konto-Anlage zeigt Hinweis `reg_auffindbar_hinweis`. **Stufe 2
   KONTAKT:** `kontakt_anfrage_stellen(...,'kontakt')` nur auf entdeckbare Karte MIT Konto
   (`personen.user_id`); Entscheider ist AUSSCHLIESSLICH der Familien-Admin/Owner/Super-Admin der
   Zielfamilie (`kann_familie_bearbeiten`) — ein `familien_mitglied` NIE. Genehmigung → Zeile in

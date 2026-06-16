@@ -186,6 +186,23 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     `darf_aufnordner_bearbeiten`, erstes Pfad-Segment = `stammbaum_id`). Aufnahme im Browser
     (MediaRecorder) oder Datei-Upload. PREMIUM-/LIMIT-KANDIDAT (Egress). (Voraussetzung: `personen`
     + Verbund-Helfer) **VOR Frontend-Deploy ausführen.**
+67. `supabase_gedenkseiten.sql` — Gedenkseiten + Kondolenz-/Erinnerungsbuch für Verstorbene:
+    Tabelle `gedenk_eintraege` (typ `kondolenz`/`kerze`, text + optionales Foto, verbund-RLS via
+    `ist_in_verbund`) + RPCs (`gedenk_eintrag_schreiben`/`_bearbeiten`/`_loeschen`,
+    `gedenk_kerze_umschalten`, `gedenkseite_holen`) + public-Bucket `gedenkseiten` (Pfad
+    `<user_id>/<uuid>`, wie `beitraege`). Schreiben nur über SECURITY-DEFINER-RPCs; Moderation via
+    `darf_verbund_moderieren`. KEIN Realtime (lädt frisch beim Öffnen). **NACH 61** (nutzt
+    `ist_in_verbund`/`darf_verbund_moderieren`/`_ziel_verbund`). (Voraussetzung: `personen`,
+    `profile`, Verbund-Helfer, Engagement-Datei 61.)
+68. `supabase_beitrags_statistik.sql` — Sanfte Gamification: Tabelle `beitrags_statistik`
+    (`(verbund_id,user_id)`-PK, Zähler personen/fotos/geschichten, verbund-RLS via `ist_in_verbund`)
+    + AFTER-INSERT-Trigger an `personen`/`personen_fotos`/`personen_geschichten` (nur bei
+    `auth.uid()`, Platzhalter/Spiegelkarten/Backfill ausgeklammert; Geschichte-Spiegel via
+    `pg_trigger_depth()`) + RPC `beitrags_statistik_holen` (eigene Summen + alphabetische, NICHT
+    gerankte Beitragenden-Liste). KEIN Realtime. **NACH 61/62** (nutzt `ist_in_verbund`/
+    `mein_verbund`). Abzeichen werden NICHT gespeichert (Frontend leitet sie aus den Zählern ab).
+    (Voraussetzung: `personen`/`personen_fotos`/`personen_geschichten`, `familien`, `profile`,
+    Verbund-Helfer aus 61/62.)
 
 ---
 

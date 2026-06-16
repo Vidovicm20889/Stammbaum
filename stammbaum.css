@@ -210,6 +210,7 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   min-width: 240px; background: var(--paper);
   border: 1px solid var(--linie); box-shadow: 0 8px 22px rgba(44,36,24,0.2);
   padding: 14px; display: none; flex-direction: column; gap: 12px;
+  max-height: calc(100vh - 90px); overflow-y: auto; overscroll-behavior: contain;
 }
 .nav-menu.offen .nav-menu-panel { display: flex; }
 .nav-menu-panel .sprach-dropdown,
@@ -1506,6 +1507,84 @@ footer {
   border-radius: 10px; padding: 0 14px 12px; max-height: 38vh; overflow: auto; overscroll-behavior: contain; }
 .lightbox-engagement .eng-wrap { margin-top: 10px; }
 
+/* ============================================================
+   GEDENKSEITE + Kondolenz-/Erinnerungsbuch — würdevoll, ruhig, reduziert.
+   Liegt über dem Detail-Modal; eigene gedämpfte Tonalität (kein bunter Akzent).
+   ============================================================ */
+.gedenk-modal { z-index: 2000; }
+.gedenk-inhalt { max-width: 640px; }
+.gedenk-laden { color: #8a7a5a; font-size: 14px; padding: 18px 0; text-align: center; }
+
+/* Kopf */
+.gedenk-kopf { text-align: center; padding: 6px 0 18px; border-bottom: 1px solid var(--linie); margin-bottom: 6px; }
+.gedenk-avatar { position: relative; width: 110px; height: 110px; border-radius: 50%; margin: 0 auto 12px;
+  background: rgba(176,141,87,0.12); border: 1px solid var(--gold); overflow: hidden;
+  display: flex; align-items: center; justify-content: center; }
+.gedenk-avatar-bild { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gedenk-avatar-init { font-family: 'Playfair Display', Georgia, serif; font-size: 38px; color: var(--gold); }
+.gedenk-name { font-family: 'Playfair Display', Georgia, serif; color: var(--ink); margin: 0 0 6px; font-size: 24px; }
+.gedenk-lebensdaten { color: #6b5a3e; letter-spacing: 1px; font-size: 15px; }
+.gedenk-ort { color: #6b5a3e; font-size: 13px; margin-top: 4px; }
+.gedenk-ort strong { color: var(--akzent); font-weight: 600; }
+
+/* Kerze (dezente Geste statt bunter Reaktionen) */
+.gedenk-kerze-block { text-align: center; padding: 16px 0; }
+.gedenk-kerze-zahl { color: #6b5a3e; font-size: 14px; margin-bottom: 10px; letter-spacing: .5px; }
+.gedenk-kerze-btn { background: none; border: 1px solid var(--gold); color: #6b5a3e; border-radius: 24px;
+  padding: 10px 20px; font-family: inherit; font-size: 15px; cursor: pointer; min-height: 44px;
+  transition: background .2s, border-color .2s; }
+.gedenk-kerze-btn:hover { border-color: var(--akzent); }
+.gedenk-kerze-btn.an { background: var(--gold-hell); border-color: var(--gold); color: var(--akzent); }
+.gedenk-kerze-namen { margin-top: 10px; color: #8a7a5a; font-size: 12px; line-height: 1.6; }
+
+/* Lebensgeschichte */
+.gedenk-geschichte { padding: 14px 0; border-top: 1px solid var(--linie); }
+.gedenk-geschichte h3 { color: var(--akzent); font-size: 15px; letter-spacing: 2px; margin: 0 0 10px; }
+
+/* Erinnerungsbuch */
+.gedenk-buch { padding: 14px 0 4px; border-top: 1px solid var(--linie); }
+.gedenk-buch h3 { color: var(--akzent); font-size: 15px; letter-spacing: 2px; margin: 0 0 12px; }
+.gedenk-buch-leer { color: #8a7a5a; font-size: 13px; font-style: italic; padding: 4px 0 12px; }
+.gedenk-buch-liste { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+.gedenk-eintrag { display: flex; gap: 12px; align-items: flex-start; }
+.gedenk-e-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  background: rgba(176,141,87,0.12); border: 1px solid var(--linie); }
+.gedenk-e-avatar-init { display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif; color: var(--gold); font-size: 16px; }
+.gedenk-e-body { flex: 1; min-width: 0; }
+.gedenk-e-kopf { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.gedenk-e-name { font-weight: bold; color: var(--ink); }
+.gedenk-e-zeit { font-size: 11px; color: #8a7a5a; }
+.gedenk-e-text { color: #4a3b28; margin-top: 3px; line-height: 1.55; word-break: break-word; white-space: normal; }
+.gedenk-e-foto { display: block; margin-top: 8px; max-width: 100%; max-height: 280px; border-radius: 8px;
+  border: 1px solid var(--linie); }
+.gedenk-e-akt { margin-top: 5px; display: flex; gap: 14px; flex-wrap: wrap; }
+.gedenk-link { background: none; border: none; color: var(--akzent); cursor: pointer; font-size: 12px; padding: 4px 0; }
+.gedenk-link:hover { text-decoration: underline; }
+.gedenk-link.gedenk-del { color: #a33; }
+
+/* Eingabe */
+.gedenk-eingabe { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--linie); padding-top: 14px; }
+.gedenk-textarea { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 16px;
+  padding: 10px 12px; border: 1px solid var(--linie); border-radius: 8px; resize: vertical; min-height: 56px; }
+.gedenk-eingabe-akt { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.gedenk-foto-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: 1px solid var(--linie);
+  border-radius: 8px; padding: 8px 12px; font-size: 14px; min-height: 40px; color: #6b5a3e; }
+.gedenk-foto-label:hover { border-color: var(--akzent); color: var(--akzent); }
+.gedenk-senden-btn { margin-left: auto; min-height: 44px; background: var(--akzent); color: #fff; border: none;
+  border-radius: 8px; padding: 10px 22px; font-family: inherit; font-size: 15px; cursor: pointer; }
+.gedenk-senden-btn:disabled { opacity: .6; cursor: default; }
+.gedenk-foto-vorschau { position: relative; display: inline-block; }
+.gedenk-foto-vorschau img { max-width: 160px; max-height: 160px; border-radius: 8px; border: 1px solid var(--linie); display: block; }
+.gedenk-foto-x { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%;
+  background: #a33; color: #fff; border: none; cursor: pointer; font-size: 16px; line-height: 1; }
+.gedenk-fehler { color: #a33; font-size: 13px; }
+.gedenk-oeffnen-btn { background: var(--gold-hell) !important; border: 1px solid var(--gold) !important; color: var(--akzent) !important; }
+@media (max-width: 480px) {
+  .gedenk-senden-btn { margin-left: 0; width: 100%; }
+  .gedenk-eingabe-akt { gap: 8px; }
+}
+
 /* Familien-Feed */
 .feed-wrap { max-width: 640px; margin: 0 auto; padding: 16px 14px 40px; }
 .feed-titel { color: var(--akzent); margin: 4px 0 14px; }
@@ -2220,6 +2299,69 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
   .event-karte { height: 60vh; }
   .geo-edit-map { height: 200px; }
 }
+
+/* ============================================================
+   Vervollständigungs-Anzeige & sanfte Gamification (Feature A)
+   ============================================================ */
+/* Vollständigkeits-Ring + Hinweise in der Personen-Detailkarte */
+.vollst-box { display: flex; align-items: center; gap: 14px; margin: 8px 0 14px;
+  padding: 10px 12px; background: var(--bg-soft); border: 1px solid var(--linie); border-radius: 10px; }
+.vollst-ring { position: relative; width: 54px; height: 54px; border-radius: 50%; flex: 0 0 auto;
+  background: conic-gradient(var(--gold) calc(var(--p,0) * 1%), var(--paper-soft) 0);
+  display: flex; align-items: center; justify-content: center; }
+.vollst-ring::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: var(--paper); }
+.vollst-ring-text { position: relative; font-size: 13px; font-weight: bold; color: var(--akzent); }
+.vollst-info { flex: 1; min-width: 0; }
+.vollst-komplett { color: #3f7d4f; font-size: 13.5px; font-weight: bold; }
+.vollst-fehlt-intro { font-size: 12.5px; color: #8a7c63; margin-bottom: 5px; }
+.vollst-fehlt { display: flex; flex-wrap: wrap; gap: 6px; }
+.vollst-fehlt-chip { font-size: 12px; background: var(--paper); border: 1px solid var(--linie);
+  color: var(--akzent); border-radius: 12px; padding: 3px 9px; }
+
+/* Aggregat-Sektion im Obavještenja-Modal (Dokumentationsgrad + größte Lücken) */
+.vollst-baum-prozent { font-size: 14px; color: var(--ink); margin: 4px 0 8px; }
+.vollst-baum-prozent strong { color: var(--akzent); font-size: 18px; }
+.vollst-baum-bar { height: 10px; border-radius: 6px; background: var(--paper-soft);
+  border: 1px solid var(--linie); overflow: hidden; margin-bottom: 5px; }
+.vollst-baum-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-hell)); }
+.vollst-baum-basis { font-size: 12px; color: #8a7c63; margin-bottom: 10px; }
+.vollst-luecken-titel { font-size: 13px; font-weight: bold; color: var(--gold); margin: 8px 0 6px; }
+.vollst-luecken-liste { display: flex; flex-direction: column; gap: 6px; }
+.vollst-luecken-item { text-align: left; width: 100%; background: var(--paper); border: 1px solid var(--linie);
+  border-radius: 8px; padding: 8px 10px; cursor: pointer; font-family: inherit; color: var(--ink);
+  display: flex; align-items: center; gap: 10px; }
+.vollst-luecken-item:hover { border-color: var(--gold); background: var(--bg-soft); }
+.vollst-luecken-name { font-weight: bold; font-size: 13.5px; color: var(--akzent); }
+.vollst-luecken-fehlt { font-size: 12px; color: #8a7c63; }
+.vollst-luecken-mini { margin-left: auto; font-size: 12px; font-weight: bold; color: var(--gold); flex: 0 0 auto; }
+.vollst-luecken-keine { font-size: 13px; color: #3f7d4f; }
+
+/* Gamification im Profil-Overlay (Beiträge, Abzeichen, Beitragende) */
+.gam-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 14px; }
+.gam-stat { background: var(--bg-soft); border: 1px solid var(--linie); border-radius: 10px; padding: 10px 6px; text-align: center; }
+.gam-stat-zahl { font-size: 24px; font-weight: bold; color: var(--akzent); line-height: 1; }
+.gam-stat-label { font-size: 11.5px; color: #8a7c63; margin-top: 5px; line-height: 1.3; }
+.gam-abz-titel { font-size: 13px; font-weight: bold; color: var(--gold); margin: 6px 0 8px; }
+.gam-badges { display: flex; flex-wrap: wrap; gap: 10px; }
+.gam-badge { display: flex; align-items: center; gap: 8px; background: var(--paper); border: 1px solid var(--gold);
+  border-radius: 10px; padding: 7px 11px; max-width: 100%; }
+.gam-badge.locked { border-color: var(--linie); opacity: 0.5; filter: grayscale(1); }
+.gam-badge-icon { font-size: 20px; flex: 0 0 auto; }
+.gam-badge-txt { min-width: 0; }
+.gam-badge-t { font-size: 13px; font-weight: bold; color: var(--akzent); }
+.gam-badge-d { font-size: 11.5px; color: #8a7c63; }
+.gam-keine { font-size: 13px; color: #8a7c63; }
+.gam-bei-titel { font-size: 13px; font-weight: bold; color: var(--gold); margin: 14px 0 8px; }
+.gam-bei-liste { display: flex; flex-direction: column; gap: 8px; }
+.gam-bei-item { display: flex; align-items: center; gap: 10px; }
+.gam-bei-av { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto; overflow: hidden; position: relative;
+  background: linear-gradient(135deg, var(--gold), var(--akzent)); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+.gam-bei-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gam-bei-name { font-size: 13.5px; color: var(--ink); }
+.gam-bei-name .gam-ich { color: var(--gold); font-style: italic; }
+.gam-bei-badges { margin-left: auto; display: flex; gap: 4px; flex: 0 0 auto; }
+.gam-bei-badges span { font-size: 15px; }
 
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks

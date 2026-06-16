@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="13.8">
+<meta name="app-version" content="13.9">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=13.8">
+<link rel="stylesheet" href="stammbaum.css?v=13.9">
 </head>
 <body>
 
@@ -686,7 +686,7 @@
         <span class="feld-hinweis" data-i18n="reg_baum_name_hint"></span></label>
       <label class="login-label pflicht"><span data-i18n="reg_land"></span>
         <select id="reg-land" class="login-feld land-select" onchange="pruefeBaumMatchDebounced()"></select></label>
-      <label class="login-label pflicht"><span data-i18n="reg_stadt"></span>
+      <label class="login-label"><span data-i18n="reg_stadt"></span>
         <input type="text" id="reg-stadt" class="login-feld" oninput="pruefeBaumMatchDebounced()"></label>
       <label class="login-label pflicht"><span data-i18n="reg_gemeinde"></span>
         <input type="text" id="reg-gemeinde" class="login-feld" oninput="pruefeBaumMatchDebounced()"></label>
@@ -757,6 +757,8 @@
       </label>
     </div>
 
+    <p class="reg-match-info" id="reg-auffindbar-hinweis" data-i18n="reg_auffindbar_hinweis"
+       style="margin-top:14px;font-size:13px;color:#999"></p>
     <div id="reg-fehler" class="login-fehler"></div>
     <button class="login-submit" id="reg-submit" data-i18n="reg_absenden" onclick="sendeRegistrierAnfrage()"></button>
     <div id="reg-erfolg" class="reg-erfolg" style="display:none"></div>
@@ -805,6 +807,11 @@
     <!-- Meine Person im Stammbaum (Konto <-> Personenkarte) -->
     <div class="reg-gruppe-titel" data-i18n="mp_titel"></div>
     <div id="mp-bereich" class="mp-bereich"></div>
+
+    <!-- Meine Beiträge / sanfte Gamification (Abzeichen + Beitragende, KEINE Rangliste) -->
+    <div class="reg-gruppe-titel" data-i18n="gam_titel" style="margin-top:14px"></div>
+    <p class="prof-hint" data-i18n="gam_hint"></p>
+    <div id="gam-bereich"></div>
 
     <!-- Benachrichtigungen (Obavještenja) wurden zentralisiert: Zugriff ausschließlich
          über das Avatar-Menü (oeffneObavZentral). Daher hier KEINE eigene Sektion mehr. -->
@@ -878,6 +885,11 @@
     <p class="prof-hint" data-i18n="ungel_pref_hint"></p>
     <label class="pdf-check"><input type="checkbox" id="anl-pref-chat"><span data-i18n="ungel_pref_chat"></span></label>
     <label class="pdf-check"><input type="checkbox" id="anl-pref-benachr"><span data-i18n="ungel_pref_benachr"></span></label>
+
+    <!-- Wöchentlicher Familien-Digest (ruhige Wochenzusammenfassung per E-Mail). Opt-out. -->
+    <div class="reg-gruppe-titel" data-i18n="digest_pref_titel" style="margin-top:14px"></div>
+    <p class="prof-hint" data-i18n="digest_pref_hint"></p>
+    <label class="pdf-check"><input type="checkbox" id="anl-pref-digest"><span data-i18n="digest_pref_an"></span></label>
 
     <button class="account-btn" type="button" id="anl-pref-save" data-i18n="anl_pref_speichern" onclick="speichereAnlassEinstellungen()"></button>
     <div id="anl-pref-erfolg" class="reg-erfolg" style="display:none"></div>
@@ -1468,7 +1480,7 @@
           <input type="text" id="fe-region" class="login-feld"></label>
         <label class="login-label pflicht"><span data-i18n="fe_opstina"></span>
           <input type="text" id="fe-gemeinde" class="login-feld"></label>
-        <label class="login-label pflicht"><span data-i18n="fe_grad"></span>
+        <label class="login-label"><span data-i18n="fe_grad"></span>
           <input type="text" id="fe-stadt" class="login-feld"></label>
       </div>
 
@@ -1705,6 +1717,11 @@
     <div id="obav-anlaesse-wrap" style="display:none">
       <div class="obav-section-titel" data-i18n="anl_titel" style="margin-top:22px"></div>
       <div id="obav-anlaesse-liste" class="benachr-liste" style="margin-top:8px"></div>
+    </div>
+    <!-- Dokumentationsgrad des aktiven Baums + größte Lücken (rein lesend) — nur Bearbeiter -->
+    <div id="obav-vollst-wrap" style="display:none">
+      <div class="obav-section-titel" data-i18n="vollst_baum_titel" style="margin-top:22px"></div>
+      <div id="obav-vollst-inhalt" style="margin-top:8px"></div>
     </div>
     <!-- Admin: Zugriffsanfragen genehmigen/ablehnen — nur Admins/Owner/Super-Admin -->
     <div id="obav-anfragen-wrap" style="display:none">
@@ -2148,6 +2165,15 @@
   </div>
 </div>
 
+<!-- Gedenkseite für verstorbene Personen + Kondolenz-/Erinnerungsbuch (würdevoll, ruhig).
+     Schließt NUR per Button (CLAUDE.md). Liegt über dem Detail-Modal (#modal, z-index 100). -->
+<div class="modal gedenk-modal" id="gedenk-modal">
+  <div class="modal-inhalt gedenk-inhalt" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseGedenkseite()">×</button>
+    <div id="gedenk-inhalt-text"></div>
+  </div>
+</div>
+
 <!-- Update-Banner: eine neue Version ist verfügbar (Cache-/Deploy-Erkennung) -->
 <div id="update-banner" style="display:none">
   <span data-i18n="update_text"></span>
@@ -2216,7 +2242,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=13.8"></script>
+<script src="i18n.js?v=13.9"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2430,6 +2456,7 @@ function loescheUser() {
   engagementUnmountAlle();
   stopFeedSync();        // Feed-Realtime beenden (ausgeloggt)
   feedCache = [];
+  if (typeof schliesseGedenkseite === 'function' && document.getElementById('gedenk-modal')) schliesseGedenkseite();  // Gedenkseite schließen (ausgeloggt)
   aktualisiereAuthUI();
   resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
 }
@@ -4072,6 +4099,7 @@ async function oeffneProfil() {
   renderProfilKopf();
   setProfilAvatarVorschau(meinAvatarUrl());
   renderMeinePersonBereich();   // "Meine Person im Stammbaum" (lädt Status bei Bedarf)
+  ladeGamification();           // Meine Beiträge / Abzeichen / Beitragende (verbund) laden
   ladeAnlassEinstellungen();    // Erinnerungs-Schalter (Geburtstage/Gedenktage) laden
 
   document.getElementById('profil-modal').classList.add('aktiv');
@@ -4631,7 +4659,9 @@ function oeffnePrivatnost() {
   const sel = document.getElementById('prof-avatar-sicht');
   if (sel) sel.value = (meinProfil && meinProfil.avatar_sichtbarkeit) || 'verbund';
   const auf = document.getElementById('prof-auffindbar');
-  if (auf) auf.checked = !!(meinProfil && meinProfil.auffindbar_extern);
+  // Opt-out (v13.9): standardmäßig auffindbar -> Haken AN, außer das Konto hat sich aktiv versteckt
+  // (auffindbar_extern === false). Fehlendes Profil/Feld = auffindbar (analog DB coalesce(...,true)).
+  if (auf) auf.checked = !(meinProfil && meinProfil.auffindbar_extern === false);
   const erfolg = document.getElementById('privatnost-erfolg'); if (erfolg) erfolg.style.display = 'none';
   document.getElementById('privatnost-modal').classList.add('aktiv');
   macheAlleSelectsSuchbar(document.getElementById('privatnost-modal'));
@@ -5223,6 +5253,11 @@ function renderObavZentral() {
   const hatAnl = (typeof anlaesseCache !== 'undefined') && anlaesseCache.length > 0;
   if (anlWrap) anlWrap.style.display = hatAnl ? '' : 'none';
   if (hatAnl) renderAnlaesseListe(document.getElementById('obav-anlaesse-liste'));
+  // Dokumentationsgrad + größte Lücken des aktiven Baums — nur für Bearbeiter, rein lesend.
+  const vWrap = document.getElementById('obav-vollst-wrap');
+  const vDaten = istAdmin() ? baumVollstaendigkeitDaten() : null;
+  if (vWrap) vWrap.style.display = vDaten ? '' : 'none';
+  if (vDaten) renderVollstBaum(document.getElementById('obav-vollst-inhalt'));
   const wrap = document.getElementById('obav-anfragen-wrap');
   const admin = istAdmin();
   if (wrap) wrap.style.display = admin ? '' : 'none';
@@ -6111,7 +6146,6 @@ async function speichereFamilieEinstellungen() {
   if (!name)     return feldFehler('fe-name', t('feld_pflicht'));
   if (!istGueltigerBaumName(name)) return feldFehler('fe-name', t('name_nur_buchstaben'));
   if (!land)     return feldFehler('fe-land', t('feld_pflicht'));
-  if (!stadt)    return feldFehler('fe-stadt', t('feld_pflicht'));
   if (!gemeinde) return feldFehler('fe-gemeinde', t('feld_pflicht'));
   // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt
   const kontaktEmail = document.getElementById('fe-kontakt-email');
@@ -6893,8 +6927,9 @@ async function pruefeBaumMatch() {
   const v = id => document.getElementById(id).value.trim();
   const name = v('reg-baum-name'), land = v('reg-land'),
         stadt = v('reg-stadt'), gemeinde = v('reg-gemeinde');
-  // Erst prüfen, wenn ALLE vier Pflichtfelder gefüllt sind
-  if (!name || !land || !stadt || !gemeinde) { aktualisiereRegMatchUI(null); return null; }
+  // Erst prüfen, wenn die drei Pflichtfelder gefüllt sind (Grad/selo ist optional
+  // und seit v13.9 NICHT mehr Teil des Abgleichs -> siehe familie_finden_exakt).
+  if (!name || !land || !gemeinde) { aktualisiereRegMatchUI(null); return null; }
 
   // Orte werden lateinisch gespeichert -> kyrillische Eingaben vor dem Vergleich
   // nach Latein wandeln (Land kommt bereits kanonisch aus dem Dropdown).
@@ -6990,12 +7025,11 @@ async function sendeRegistrierAnfrage() {
   const vald = id => datumWert(document.getElementById(id));   // Datumsfelder -> ISO/Freitext
 
   feldFehlerReset('registrier-modal');
-  // Pflichtfelder: E-Mail + die vier Baum-Felder (Naziv/Država/Grad/Opština) — Fehler am Feld
+  // Pflichtfelder: E-Mail + Naziv/Država/Opština (Grad/selo ist optional) — Fehler am Feld
   const email = val('reg-email');
   if (!email)                return feldFehler('reg-email', t('feld_pflicht'));
   if (!val('reg-baum-name')) return feldFehler('reg-baum-name', t('feld_pflicht'));
   if (!val('reg-land'))      return feldFehler('reg-land', t('feld_pflicht'));
-  if (!val('reg-stadt'))     return feldFehler('reg-stadt', t('feld_pflicht'));
   if (!val('reg-gemeinde'))  return feldFehler('reg-gemeinde', t('feld_pflicht'));
   // E-Mail-Format (Pflicht-E-Mail) + optionale Kontakt-E-Mail prüfen
   if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('reg-email'), true); return feldFokus('reg-email'); }
@@ -7552,6 +7586,7 @@ function wechselSprache(lang, speichern = true) {
     fuelleProfilZeitzone(document.getElementById('prof-zeitzone').value);
     renderProfilKopf();
     if (typeof renderMeinePersonBereich === 'function') renderMeinePersonBereich();   // "Meine Person" (nm/Texte)
+    if (typeof gamSpracheUpdate === 'function') gamSpracheUpdate();   // Gamification-Sektion (Abzeichen/Beitragende) neu beschriften
   }
   // Privatnost-Overlay: Such-Dropdown (Sichtbarkeit) in neuer Sprache neu aufbauen
   if (offen('privatnost-modal') && typeof macheAlleSelectsSuchbar === 'function') {
@@ -7589,6 +7624,7 @@ function wechselSprache(lang, speichern = true) {
   if (typeof integSpracheUpdate === 'function') integSpracheUpdate();
   // Foto-Galerie: offene Grids (Editor/Detail) neu rendern (dynamische t()-Labels)
   if (typeof galerieSpracheUpdate === 'function') galerieSpracheUpdate();
+  if (typeof gedenkSpracheUpdate === 'function') gedenkSpracheUpdate();   // Gedenkseite neu beschriften
   if (typeof geschSpracheUpdate === 'function') geschSpracheUpdate();
   // Dokumente & Quellen: offene Listen (Editor/Detail) in neuer Sprache neu rendern
   if (typeof dokSpracheUpdate === 'function') dokSpracheUpdate();
@@ -10834,9 +10870,11 @@ async function ladeAnlassEinstellungen() {
   const vorEl = document.getElementById('anl-pref-vorlauf');
   const chatEl = document.getElementById('anl-pref-chat');
   const benEl  = document.getElementById('anl-pref-benachr');
+  const digestEl = document.getElementById('anl-pref-digest');
   // Default: alles an + 3 Tage Vorlauf (entspricht DB-Default), bis Zeilen geladen sind.
   gebEl.checked = true; gedEl.checked = true; if (vorEl) vorEl.value = '3';
   if (chatEl) chatEl.checked = true; if (benEl) benEl.checked = true;
+  if (digestEl) digestEl.checked = true;
   try {
     let { data, error } = await sbClient
       .from('benachrichtigungs_einstellungen')
@@ -10864,6 +10902,17 @@ async function ladeAnlassEinstellungen() {
         if (vs.length) vorEl.value = String(Math.min(...vs)); }
     }
   } catch (e) { console.warn('Erinnerungs-Einstellungen:', e); }
+  // Wochen-Digest unabhängig + tolerant laden (Spalte aus supabase_woechentlicher_digest.sql;
+  // separater Read, damit ein fehlendes Feld die anderen Einstellungen nicht beeinträchtigt).
+  // „An", solange KEINE Familienzeile explizit auf false steht (Default = an).
+  if (digestEl) {
+    try {
+      const dg = await sbClient.from('benachrichtigungs_einstellungen')
+        .select('email_woechentlicher_digest').eq('user_id', aktuellerUser.id);
+      if (!dg.error && dg.data && dg.data.length)
+        digestEl.checked = !dg.data.some(r => r.email_woechentlicher_digest === false);
+    } catch (e) { /* Spalte (noch) nicht vorhanden -> Default „an" */ }
+  }
 }
 
 async function speichereAnlassEinstellungen() {
@@ -11680,6 +11729,172 @@ function escapeHtml(s) {
 // ============================================================
 // DETAIL-FENSTER
 // ============================================================
+// ============================================================
+// VERVOLLSTÄNDIGUNG & SANFTE GAMIFICATION (Feature A)
+// Rein lesend, KEINE Pflichtfelder. Transparente, dokumentierte Gewichtung:
+// 5 gleichgewichtete Kriterien (je 20 %) -> Score 0/20/40/60/80/100 %.
+// Die Kriterien spiegeln „sinnvoll dokumentiert" wider, keine Pseudo-Genauigkeit.
+// ============================================================
+const VOLLST_KRITERIEN = [
+  { key: 'foto',         label: 'vollst_k_foto',         hat: p => !!(p.foto || p.avatar || p.bild) },
+  { key: 'geburtsdatum', label: 'vollst_k_geburtsdatum', hat: p => !!(p.birth_date && String(p.birth_date).trim()) },
+  { key: 'geburtsort',   label: 'vollst_k_geburtsort',   hat: p => !!(p.birth_place && String(p.birth_place).trim()) },
+  { key: 'eltern',       label: 'vollst_k_eltern',       hat: p => personHatElternteil(p) },
+  { key: 'biografie',    label: 'vollst_k_biografie',    hat: p => !!((p.beschreibung || '').trim()) }
+];
+
+// Hat die Person mindestens einen ECHTEN (nicht Platzhalter-)Elternteil? Identitätsbewusst
+// (über alle Zwillingskarten), damit der Score über Bäume hinweg konsistent ist.
+function personHatElternteil(p) {
+  if (!p || !aktuelleDaten || !aktuelleDaten.persons) return false;
+  const twins = p._ident
+    ? Object.values(aktuelleDaten.persons).filter(q => q._ident === p._ident)
+    : [p];
+  for (const tw of twins) {
+    for (const famId of (tw.families_child || [])) {
+      const fam = aktuelleDaten.families[famId]; if (!fam) continue;
+      for (const pid of [fam.husband, fam.wife]) {
+        const e = pid && aktuelleDaten.persons[pid];
+        if (e && !e.platzhalter) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Vollständigkeit einer Person -> { prozent, erfuellt, gesamt, fehlend:[kriterium] }
+function vollstaendigkeit(p) {
+  const fehlend = [], erfuellt = [];
+  VOLLST_KRITERIEN.forEach(k => { (k.hat(p) ? erfuellt : fehlend).push(k); });
+  return {
+    prozent: Math.round(erfuellt.length / VOLLST_KRITERIEN.length * 100),
+    erfuellt: erfuellt.length, gesamt: VOLLST_KRITERIEN.length, fehlend
+  };
+}
+
+// Dezenter Fortschrittsring (conic-gradient, gold). prozent = 0..100.
+function vollstRingHtml(prozent) {
+  return `<div class="vollst-ring" style="--p:${prozent}" role="img" aria-label="${escapeHtml(t('vollst_titel'))}: ${prozent}%"><span class="vollst-ring-text">${prozent}%</span></div>`;
+}
+
+// Box für die Detailkarte: Ring + (bei Bearbeitern) Lücken-Hinweis. Ring für ALLE sichtbar,
+// die handlungsrelevanten „fehlt noch"-Chips nur für Bearbeiter. Platzhalter ohne Score.
+function vollstBoxHtml(p) {
+  if (!p || p.platzhalter) return '';
+  const v = vollstaendigkeit(p);
+  let info;
+  if (v.fehlend.length === 0) {
+    info = `<div class="vollst-komplett">✓ ${escapeHtml(t('vollst_komplett'))}</div>`;
+  } else if (istAdmin()) {
+    const chips = v.fehlend.map(k => `<span class="vollst-fehlt-chip">${escapeHtml(t(k.label))}</span>`).join('');
+    info = `<div class="vollst-fehlt-intro">${escapeHtml(t('vollst_fehlt_intro'))}</div><div class="vollst-fehlt">${chips}</div>`;
+  } else {
+    info = `<div class="vollst-fehlt-intro">${escapeHtml(t('vollst_titel'))}</div>`;
+  }
+  return `<div class="vollst-box">${vollstRingHtml(v.prozent)}<div class="vollst-info">${info}</div></div>`;
+}
+
+// Aggregat über den AKTIVEN Baum (Platzhalter ausgenommen): Durchschnitts-Score + größte Lücken.
+function baumVollstaendigkeitDaten() {
+  if (!aktuellerStammbaumId || !aktuelleDaten || !aktuelleDaten.persons) return null;
+  const liste = Object.values(aktuelleDaten.persons)
+    .filter(p => p._tree === aktuellerStammbaumId && !p.platzhalter);
+  if (!liste.length) return null;
+  let summe = 0; const bewertet = [];
+  liste.forEach(p => { const v = vollstaendigkeit(p); summe += v.prozent; bewertet.push({ p, v }); });
+  const luecken = bewertet.filter(b => b.v.fehlend.length > 0)
+    .sort((a, b) => a.v.prozent - b.v.prozent || (nm(a.p.name) || '').localeCompare(nm(b.p.name) || ''))
+    .slice(0, 8);
+  return { prozent: Math.round(summe / liste.length), anzahl: liste.length, luecken };
+}
+
+// Sektion „Dokumentationsgrad + größte Lücken" im Obavještenja-Modal (nur Bearbeiter).
+function renderVollstBaum(box) {
+  if (!box) return;
+  const d = baumVollstaendigkeitDaten();
+  if (!d) { box.innerHTML = ''; return; }
+  const basis = t(d.anzahl === 1 ? 'vollst_baum_basis_1' : 'vollst_baum_basis_n', { n: d.anzahl });
+  let html = `<div class="vollst-baum-prozent">${t('vollst_baum_prozent', { p: `<strong>${d.prozent}</strong>` })}</div>`;
+  html += `<div class="vollst-baum-bar"><span style="width:${d.prozent}%"></span></div>`;
+  html += `<div class="vollst-baum-basis">${escapeHtml(basis)}</div>`;
+  html += `<div class="vollst-luecken-titel">${escapeHtml(t('vollst_luecken_titel'))}</div>`;
+  if (!d.luecken.length) {
+    html += `<div class="vollst-luecken-keine">${escapeHtml(t('vollst_luecken_keine'))}</div>`;
+  } else {
+    html += `<div class="vollst-luecken-liste">` + d.luecken.map(b => {
+      const fehlt = b.v.fehlend.map(k => t(k.label)).join(', ');
+      return `<button type="button" class="vollst-luecken-item" onclick="vollstOeffnePerson('${b.p.id}')">
+        <span><span class="vollst-luecken-name">${escapeHtml(nm(b.p.name || '?'))}</span><br>
+        <span class="vollst-luecken-fehlt">${escapeHtml(t('vollst_luecken_fehlt', { liste: fehlt }))}</span></span>
+        <span class="vollst-luecken-mini">${b.v.prozent}%</span></button>`;
+    }).join('') + `</div>`;
+  }
+  box.innerHTML = html;
+}
+function vollstOeffnePerson(id) { schliesseObavModal(); zeigeDetails(id); }
+
+// ---- Gamification: eigene Beiträge + Abzeichen + Beitragende (verbund, KEINE Rangliste) ----
+let gamCache = null;
+const GAM_ABZEICHEN = [
+  { key: 'starter',     icon: '🌱', t: 'gam_b_starter_t',     d: 'gam_b_starter_d',     ok: m => ((m.personen_angelegt || 0) + (m.fotos_hinzugefuegt || 0) + (m.geschichten_geschrieben || 0)) >= 1 },
+  { key: 'personen',    icon: '🌳', t: 'gam_b_personen_t',    d: 'gam_b_personen_d',    ok: m => (m.personen_angelegt || 0) >= 10 },
+  { key: 'fotos',       icon: '📷', t: 'gam_b_fotos_t',       d: 'gam_b_fotos_d',       ok: m => (m.fotos_hinzugefuegt || 0) >= 10 },
+  { key: 'geschichten', icon: '📖', t: 'gam_b_geschichten_t', d: 'gam_b_geschichten_d', ok: m => (m.geschichten_geschrieben || 0) >= 1 }
+];
+function gamErreichteAbzeichen(m) { return GAM_ABZEICHEN.filter(a => a.ok(m || {})); }
+
+async function ladeGamification() {
+  const box = document.getElementById('gam-bereich'); if (!box) return;
+  box.innerHTML = `<div class="gam-keine">${escapeHtml(t('gam_laden'))}</div>`;
+  try {
+    const { data, error } = await sbClient.rpc('beitrags_statistik_holen');
+    if (error || !data || !data.ok) { gamCache = null; box.innerHTML = ''; return; }
+    gamCache = data;
+  } catch (e) { gamCache = null; box.innerHTML = ''; return; }
+  renderGamification();
+}
+function renderGamification() {
+  const box = document.getElementById('gam-bereich'); if (!box) return;
+  if (!gamCache) { box.innerHTML = ''; return; }
+  const m = gamCache.meine || { personen_angelegt: 0, fotos_hinzugefuegt: 0, geschichten_geschrieben: 0 };
+  let html = `<div class="gam-stats">
+    <div class="gam-stat"><div class="gam-stat-zahl">${m.personen_angelegt || 0}</div><div class="gam-stat-label">${escapeHtml(t('gam_stat_personen'))}</div></div>
+    <div class="gam-stat"><div class="gam-stat-zahl">${m.fotos_hinzugefuegt || 0}</div><div class="gam-stat-label">${escapeHtml(t('gam_stat_fotos'))}</div></div>
+    <div class="gam-stat"><div class="gam-stat-zahl">${m.geschichten_geschrieben || 0}</div><div class="gam-stat-label">${escapeHtml(t('gam_stat_geschichten'))}</div></div>
+  </div>`;
+  html += `<div class="gam-abz-titel">${escapeHtml(t('gam_abzeichen'))}</div>`;
+  if (!gamErreichteAbzeichen(m).length) {
+    html += `<div class="gam-keine">${escapeHtml(t('gam_keine_abzeichen'))}</div>`;
+  } else {
+    html += `<div class="gam-badges">` + GAM_ABZEICHEN.map(a => {
+      const ok = a.ok(m);
+      return `<div class="gam-badge${ok ? '' : ' locked'}"><span class="gam-badge-icon">${a.icon}</span>
+        <span class="gam-badge-txt"><span class="gam-badge-t">${escapeHtml(t(a.t))}</span><br>
+        <span class="gam-badge-d">${escapeHtml(t(a.d))}</span></span></div>`;
+    }).join('') + `</div>`;
+  }
+  const bei = gamCache.beitragende || [];
+  html += `<div class="gam-bei-titel">${escapeHtml(t('gam_beitragende'))}</div>`;
+  if (!bei.length) {
+    html += `<div class="gam-keine">${escapeHtml(t('gam_beitragende_keine'))}</div>`;
+  } else {
+    html += `<div class="gam-bei-liste">` + bei.map(u => {
+      const name = nm(u.name || '?');
+      const init = escapeHtml((name.trim()[0] || '?').toUpperCase());
+      const av = u.avatar ? `<img src="${escapeHtml(u.avatar)}" alt="" onerror="this.remove()">${init}` : init;
+      const badges = gamErreichteAbzeichen(u).map(a => `<span title="${escapeHtml(t(a.t))}">${a.icon}</span>`).join('');
+      const ichTag = u.ich ? ` <span class="gam-ich">${escapeHtml(t('presence_sie'))}</span>` : '';
+      return `<div class="gam-bei-item"><span class="gam-bei-av">${av}</span>
+        <span class="gam-bei-name">${escapeHtml(name)}${ichTag}</span>
+        <span class="gam-bei-badges">${badges}</span></div>`;
+    }).join('') + `</div>`;
+  }
+  box.innerHTML = html;
+}
+function gamSpracheUpdate() {
+  if (document.getElementById('profil-modal')?.classList.contains('aktiv') && gamCache) renderGamification();
+}
+
 function zeigeDetails(personId) {
   if (document.getElementById('modal').classList.contains('aktiv') && aktuelleModalPersonId) {
     modalVerlauf.push(aktuelleModalPersonId);
@@ -11775,6 +11990,8 @@ function zeigeDetails(personId) {
     <p class="sub-name">${escapeHtml(nm(p.surname || ''))}</p>
     ${p.ehename ? `<div class="info-zeile"><strong>${t('pe_ehename')}:</strong> ${escapeHtml(nm(p.ehename))}</div>` : ''}
 
+    ${vollstBoxHtml(p)}
+
     ${p.birth_date ? `<div class="info-zeile"><strong>${t('geboren')}</strong> ${escapeHtml(formatDatumLang(p.birth_date))}</div>` : ''}
     ${p.birth_place ? `<div class="info-zeile"><strong>${t('geburtsort')}</strong> ${escapeHtml(uebersetzeOrt(p.birth_place))}</div>` : ''}
     ${p.deceased || p.death_date ? `<div class="info-zeile"><strong>${t('verstorben')}</strong> ${escapeHtml(formatDatumLang(p.death_date) || t('ja'))}</div>` : ''}
@@ -11816,6 +12033,8 @@ function zeigeDetails(personId) {
     <!-- Reaktionen & Kommentare (verbund-gebunden) — per JS nach dem Öffnen befüllt -->
     <div id="detail-engagement"></div>
 
+    ${((p.deceased || p.death_date) && p._uuid && !p.platzhalter)
+      ? `<button class="baum-zeigen gedenk-oeffnen-btn" onclick="oeffneGedenkseite('${p.id}')">🕯 ${t('gedenk_oeffnen')}</button>` : ''}
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
     ${graphRendererAn() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graphFokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
     ${ansichtModus === 'zweig' ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graph2FokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
@@ -12953,6 +13172,311 @@ function engagementLiveAnstossen() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && engagementPending && aktuellerUser) { engagementPending = false; engagementLiveAnstossen(); }
 });
+
+// ============================================================
+// GEDENKSEITEN für verstorbene Personen + Kondolenz-/Erinnerungsbuch (Tabelle
+// gedenk_eintraege, verbund-gebunden). Würdevolle, ruhige Ansicht: Lebensdaten +
+// Hauptfoto + (falls vorhanden) Lebensgeschichte + Kerze-anzünden (dezente Geste
+// statt bunter Emojis) + chronologisches Erinnerungsbuch. Bewusst KEIN Realtime
+// (lädt frisch beim Öffnen, wie Galerie/Dokumente/Geschichten). Schreiben über
+// SECURITY-DEFINER-RPCs; Lese-Grenze = Verbund (Server-RLS). Foto optional je Eintrag
+// (public Bucket 'gedenkseiten', Pfad <user_id>/<uuid> — wie beitraege).
+// ============================================================
+const GEDENK_BUCKET = 'gedenkseiten';
+let gedenkPersonExt = null;     // ext-ID der Person im Modell
+let gedenkPersonUuid = null;    // DB-UUID (Ziel der RPCs)
+let gedenkData = null;          // letztes gedenkseite_holen-Ergebnis
+let gedenkGeschichte = null;    // { row, fallback } der lokalisierten Lebensgeschichte
+let gedenkEditId = null;        // gerade bearbeiteter Eintrag
+let gedenkFotoBlob = null;      // ausgewähltes (komprimiertes) Foto vor dem Senden
+let gedenkFotoVorschau = '';    // ObjectURL der Vorschau
+
+function gedenkFotoUrl(pfad) {
+  if (!pfad) return '';
+  return sbClient.storage.from(GEDENK_BUCKET).getPublicUrl(pfad).data.publicUrl;
+}
+
+// Initialen als Avatar-Fallback (wie Namenskarten)
+function gedenkInitialen(name) {
+  const teile = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (!teile.length) return '·';
+  return (teile[0][0] + (teile.length > 1 ? teile[teile.length - 1][0] : '')).toUpperCase();
+}
+
+async function oeffneGedenkseite(personId) {
+  const p = aktuelleDaten && aktuelleDaten.persons && aktuelleDaten.persons[personId];
+  if (!p || !p._uuid || p.platzhalter) return;
+  gedenkPersonExt = personId;
+  gedenkPersonUuid = p._uuid;
+  gedenkData = null; gedenkGeschichte = null; gedenkEditId = null;
+  gedenkFotoLeeren();
+  document.getElementById('gedenk-inhalt-text').innerHTML =
+    `<div class="gedenk-laden">${escapeHtml(t('gedenk_laden'))}</div>`;
+  document.getElementById('gedenk-modal').classList.add('aktiv');
+  await ladeGedenkseite();
+}
+
+function schliesseGedenkseite() {
+  document.getElementById('gedenk-modal').classList.remove('aktiv');
+  gedenkFotoLeeren();
+  gedenkPersonExt = null; gedenkPersonUuid = null; gedenkData = null; gedenkGeschichte = null; gedenkEditId = null;
+}
+
+async function ladeGedenkseite() {
+  if (!gedenkPersonUuid) return;
+  try {
+    // Gedenkseiten-Daten + lokalisierte Lebensgeschichte parallel laden.
+    const [res, gRows] = await Promise.all([
+      sbClient.rpc('gedenkseite_holen', { p_person: gedenkPersonUuid }),
+      (typeof ladePersonGeschichten === 'function') ? ladePersonGeschichten(gedenkPersonUuid) : Promise.resolve([])
+    ]);
+    if (gedenkPersonUuid == null) return;  // inzwischen geschlossen
+    const { data, error } = res;
+    if (error) throw error;
+    if (!data || data.ok === false) {
+      document.getElementById('gedenk-inhalt-text').innerHTML =
+        `<div class="gedenk-laden">${escapeHtml(t('gedenk_kein_zugriff'))}</div>`;
+      return;
+    }
+    gedenkData = data;
+    gedenkGeschichte = (typeof geschWaehleAnzeige === 'function') ? geschWaehleAnzeige(gRows || []) : { row: null, fallback: false };
+    gedenkRender();
+  } catch (err) {
+    console.warn('gedenkseite_holen:', err);
+    document.getElementById('gedenk-inhalt-text').innerHTML =
+      `<div class="gedenk-laden">${escapeHtml(t('gedenk_fehler'))}</div>`;
+  }
+}
+
+function gedenkRender() {
+  const host = document.getElementById('gedenk-inhalt-text');
+  if (!host || !gedenkData) return;
+  const p = aktuelleDaten && aktuelleDaten.persons && aktuelleDaten.persons[gedenkPersonExt];
+  if (!p) { host.innerHTML = ''; return; }
+  const d = gedenkData;
+
+  // --- Kopf: Hauptfoto / Initialen + Name + Lebensdaten -----------------------
+  const name = nm(p.given || '') + (p.surname ? ' ' + nm(p.surname) : '');
+  const avatar = p.foto
+    ? `<img class="gedenk-avatar-bild" src="${escapeHtml(p.foto)}" alt="" onerror="this.remove()">`
+    : '';
+  const lebens = [];
+  if (p.birth_date) lebens.push('★ ' + (formatDatumLang(p.birth_date) || '?'));
+  if (p.deceased || p.death_date) lebens.push('† ' + (formatDatumLang(p.death_date) || '?'));
+  const orte = [];
+  if (p.birth_place) orte.push(`<div class="gedenk-ort"><strong>${escapeHtml(t('geburtsort'))}</strong> ${escapeHtml(uebersetzeOrt(p.birth_place))}</div>`);
+  if (p.death_place) orte.push(`<div class="gedenk-ort"><strong>${escapeHtml(t('sterbeort'))}</strong> ${escapeHtml(uebersetzeOrt(p.death_place))}</div>`);
+
+  // --- Lebensgeschichte (falls vorhanden) -------------------------------------
+  let geschHtml = '';
+  if (gedenkGeschichte && gedenkGeschichte.row) {
+    const g = gedenkGeschichte.row;
+    const fb = gedenkGeschichte.fallback
+      ? `<div class="gesch-fallback-hinweis">${escapeHtml(t('gesch_fallback', { sprache: g.sprache.toUpperCase() }))}</div>` : '';
+    geschHtml = `<div class="gedenk-geschichte">
+        <h3>${escapeHtml(t('gedenk_lebensgeschichte'))}</h3>
+        ${fb}
+        ${g.titel ? `<div class="gesch-detail-titel">${escapeHtml(g.titel)}</div>` : ''}
+        <div class="markdown-body gesch-detail-text">${(typeof geschMarkdownHtml === 'function') ? geschMarkdownHtml(g.text) : escapeHtml(g.text || '')}</div>
+      </div>`;
+  } else if (p.beschreibung) {
+    geschHtml = `<div class="gedenk-geschichte"><h3>${escapeHtml(t('gedenk_lebensgeschichte'))}</h3>
+        <div class="gesch-detail-text">${escapeHtml(p.beschreibung).replace(/\n/g, '<br>')}</div></div>`;
+  }
+
+  // --- Kerze (dezente Geste) --------------------------------------------------
+  const kerzenNamen = (d.kerzen || []).map(x => escapeHtml(nm(x))).join(' · ');
+  const kerzeBtn = `<button type="button" class="gedenk-kerze-btn${d.meine_kerze ? ' an' : ''}"
+      onclick="gedenkKerzeUmschalten()">🕯 ${escapeHtml(d.meine_kerze ? t('gedenk_kerze_aus') : t('gedenk_kerze_an'))}</button>`;
+  const kerzeBlock = `<div class="gedenk-kerze-block">
+      <div class="gedenk-kerze-zahl">🕯 ${escapeHtml(t('gedenk_kerzen_anzahl', { n: d.kerzen_anzahl || 0 }))}</div>
+      ${kerzeBtn}
+      ${kerzenNamen ? `<div class="gedenk-kerze-namen">${kerzenNamen}</div>` : ''}
+    </div>`;
+
+  // --- Erinnerungsbuch: Einträge ---------------------------------------------
+  const eintraege = (d.eintraege || []).filter(e => !e.geloescht);
+  const buchHtml = eintraege.length
+    ? eintraege.map(gedenkEintragHtml).join('')
+    : `<div class="gedenk-buch-leer">${escapeHtml(t('gedenk_buch_leer'))}</div>`;
+
+  // --- Eingabe (Text + optionales Foto) --------------------------------------
+  const fotoVorschau = gedenkFotoVorschau
+    ? `<div class="gedenk-foto-vorschau"><img src="${escapeHtml(gedenkFotoVorschau)}" alt="">
+         <button type="button" class="gedenk-foto-x" title="${escapeHtml(t('gedenk_foto_entfernen'))}" onclick="gedenkFotoLeerenUndRender()">×</button></div>`
+    : '';
+  const eingabe = `<div class="gedenk-eingabe">
+      <textarea class="gedenk-textarea" id="gedenk-ta" rows="3" maxlength="2000" placeholder="${escapeHtml(t('gedenk_eingabe_ph'))}"></textarea>
+      ${fotoVorschau}
+      <div class="gedenk-eingabe-akt">
+        <label class="gedenk-foto-label" for="gedenk-foto-input">🖼 ${escapeHtml(t('gedenk_foto_waehlen'))}</label>
+        <input type="file" id="gedenk-foto-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="gedenkFotoWahl(this)">
+        <button type="button" class="gedenk-senden-btn" id="gedenk-senden-btn" onclick="gedenkEintragSenden()">${escapeHtml(t('gedenk_senden'))}</button>
+      </div>
+      <div class="gedenk-fehler" id="gedenk-fehler" style="display:none"></div>
+    </div>`;
+
+  host.innerHTML = `
+    <div class="gedenk-kopf">
+      <div class="gedenk-avatar">${avatar}<span class="gedenk-avatar-init">${escapeHtml(gedenkInitialen(name))}</span></div>
+      <h2 class="gedenk-name">${escapeHtml(name)}</h2>
+      ${lebens.length ? `<div class="gedenk-lebensdaten">${escapeHtml(lebens.join('   '))}</div>` : ''}
+      ${orte.join('')}
+    </div>
+    ${kerzeBlock}
+    ${geschHtml}
+    <div class="gedenk-buch">
+      <h3>${escapeHtml(t('gedenk_buch_titel'))}</h3>
+      <div class="gedenk-buch-liste">${buchHtml}</div>
+      ${eingabe}
+    </div>`;
+}
+
+function gedenkEintragHtml(e) {
+  const zeit = e.erstellt_am ? new Date(e.erstellt_am).toLocaleDateString() : '';
+  const bearb = e.bearbeitet_am ? ` · ${escapeHtml(t('eng_bearbeitet'))}` : '';
+  const avatar = e.avatar
+    ? `<img class="gedenk-e-avatar" src="${escapeHtml(e.avatar)}" alt="" onerror="this.remove()">`
+    : `<span class="gedenk-e-avatar gedenk-e-avatar-init">${escapeHtml(gedenkInitialen(nm(e.name || '')))}</span>`;
+  // Bearbeiten-Modus
+  if (gedenkEditId === e.id) {
+    return `<div class="gedenk-eintrag">${avatar}
+      <div class="gedenk-e-body">
+        <div class="gedenk-e-kopf"><span class="gedenk-e-name">${escapeHtml(nm(e.name || ''))}</span></div>
+        <textarea class="gedenk-textarea" id="gedenk-edit-${escapeHtml(String(e.id))}" rows="3" maxlength="2000">${escapeHtml(e.text || '')}</textarea>
+        <div class="gedenk-e-akt">
+          <button type="button" class="gedenk-link" onclick="gedenkBearbeitenSpeichern('${escapeHtml(String(e.id))}')">${escapeHtml(t('gedenk_speichern'))}</button>
+          <button type="button" class="gedenk-link" onclick="gedenkBearbeitenAbbrechen()">${escapeHtml(t('gedenk_abbrechen'))}</button>
+        </div>
+      </div></div>`;
+  }
+  const akt = [];
+  if (e.darf_bearbeiten) akt.push(`<button type="button" class="gedenk-link" onclick="gedenkBearbeitenStart('${escapeHtml(String(e.id))}')">${escapeHtml(t('gedenk_bearbeiten'))}</button>`);
+  if (e.darf_loeschen)  akt.push(`<button type="button" class="gedenk-link gedenk-del" onclick="gedenkEintragLoeschen('${escapeHtml(String(e.id))}')">${escapeHtml(t('gedenk_loeschen'))}</button>`);
+  const textHtml = e.text ? escapeHtml(e.text).replace(/\n/g, '<br>') : '';
+  const foto = e.storage_pfad
+    ? `<img class="gedenk-e-foto" src="${escapeHtml(gedenkFotoUrl(e.storage_pfad))}" alt="" onerror="this.remove()">` : '';
+  return `<div class="gedenk-eintrag">${avatar}
+    <div class="gedenk-e-body">
+      <div class="gedenk-e-kopf"><span class="gedenk-e-name">${escapeHtml(nm(e.name || ''))}</span><span class="gedenk-e-zeit">${escapeHtml(zeit)}${bearb}</span></div>
+      ${textHtml ? `<div class="gedenk-e-text">${textHtml}</div>` : ''}
+      ${foto}
+      ${akt.length ? `<div class="gedenk-e-akt">${akt.join('')}</div>` : ''}
+    </div></div>`;
+}
+
+function gedenkFehler(msg) {
+  const el = document.getElementById('gedenk-fehler');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function gedenkFotoLeeren() {
+  if (gedenkFotoVorschau) { try { URL.revokeObjectURL(gedenkFotoVorschau); } catch (e) {} }
+  gedenkFotoBlob = null; gedenkFotoVorschau = '';
+}
+function gedenkFotoLeerenUndRender() { gedenkFotoLeeren(); gedenkRender(); }
+
+async function gedenkFotoWahl(input) {
+  const file = (input.files || [])[0];
+  input.value = '';
+  if (!file) return;
+  const erlaubt = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!erlaubt.includes(file.type)) { gedenkFehler(t('gal_typ_fehler')); return; }
+  if (file.size > 15 * 1024 * 1024) { gedenkFehler(t('gal_gross_fehler')); return; }
+  try {
+    const blob = await galerieKomprimiere(file);
+    gedenkFotoLeeren();
+    gedenkFotoBlob = blob;
+    gedenkFotoVorschau = URL.createObjectURL(blob);
+    gedenkRender();
+  } catch (e) { gedenkFehler(t('gal_upload_fehler') + (e.message || e)); }
+}
+
+async function gedenkEintragSenden() {
+  if (!gedenkPersonUuid) return;
+  const ta = document.getElementById('gedenk-ta');
+  const txt = ta ? ta.value.trim() : '';
+  if (!txt && !gedenkFotoBlob) { gedenkFehler(t('gedenk_leer')); return; }
+  const btn = document.getElementById('gedenk-senden-btn');
+  const alt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  let pfad = null;
+  try {
+    if (gedenkFotoBlob) {
+      const uid = aktuellerUser && aktuellerUser.id;
+      if (!uid) throw new Error('kein_user');
+      const ext = gedenkFotoBlob.type === 'image/jpeg' ? 'jpg' : 'webp';
+      const uuid = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2));
+      pfad = `${uid}/${uuid}.${ext}`;
+      const up = await sbClient.storage.from(GEDENK_BUCKET).upload(pfad, gedenkFotoBlob, { cacheControl: '3600', contentType: gedenkFotoBlob.type, upsert: false });
+      if (up.error) throw up.error;
+    }
+    const { data, error } = await sbClient.rpc('gedenk_eintrag_schreiben',
+      { p_person: gedenkPersonUuid, p_text: txt || null, p_storage_pfad: pfad });
+    if (error || !data || !data.ok) {
+      if (pfad) { try { await sbClient.storage.from(GEDENK_BUCKET).remove([pfad]); } catch (e) {} }
+      throw (error || new Error('fehler'));
+    }
+    gedenkFotoLeeren();
+    await ladeGedenkseite();
+  } catch (err) {
+    console.warn('gedenk_eintrag_schreiben:', err);
+    gedenkFehler(t('gedenk_fehler'));
+    if (btn) { btn.disabled = false; btn.textContent = alt || t('gedenk_senden'); }
+  }
+}
+
+async function gedenkKerzeUmschalten() {
+  if (!gedenkPersonUuid) return;
+  try {
+    const { error } = await sbClient.rpc('gedenk_kerze_umschalten', { p_person: gedenkPersonUuid });
+    if (error) throw error;
+    await ladeGedenkseite();
+  } catch (err) { console.warn('gedenk_kerze_umschalten:', err); await zeigeHinweis(t('gedenk_fehler')); }
+}
+
+function gedenkBearbeitenStart(id) { gedenkEditId = id; gedenkRender(); }
+function gedenkBearbeitenAbbrechen() { gedenkEditId = null; gedenkRender(); }
+
+async function gedenkBearbeitenSpeichern(id) {
+  const ta = document.getElementById('gedenk-edit-' + id); if (!ta) return;
+  const txt = ta.value.trim(); if (!txt) return;
+  try {
+    const { error } = await sbClient.rpc('gedenk_eintrag_bearbeiten', { p_id: id, p_text: txt });
+    if (error) throw error;
+    gedenkEditId = null;
+    await ladeGedenkseite();
+  } catch (err) { console.warn('gedenk_eintrag_bearbeiten:', err); await zeigeHinweis(t('gedenk_fehler')); }
+}
+
+async function gedenkEintragLoeschen(id) {
+  const ok = await zeigeBestaetigung(t('gedenk_loeschen_frage')); if (!ok) return;
+  try {
+    const { data, error } = await sbClient.rpc('gedenk_eintrag_loeschen', { p_id: id });
+    if (error) throw error;
+    // Evtl. Foto aus dem Storage räumen (RPC liefert den Pfad zurück).
+    const pfad = data && data.storage_pfad;
+    if (pfad) { try { await sbClient.storage.from(GEDENK_BUCKET).remove([pfad]); } catch (e) {} }
+    await ladeGedenkseite();
+  } catch (err) { console.warn('gedenk_eintrag_loeschen:', err); await zeigeHinweis(t('gedenk_fehler')); }
+}
+
+// Storage-Dateien aller Gedenk-Einträge der gegebenen Personen entfernen (keine Waisen
+// beim Personen-Löschen; die DB-Zeilen verschwinden per ON DELETE CASCADE).
+async function gedenkLoescheFuerPersonen(uuids) {
+  if (!uuids || !uuids.length) return;
+  try {
+    const { data } = await sbClient.from('gedenk_eintraege').select('storage_pfad').in('person_id', uuids);
+    const pfade = (data || []).map(r => r.storage_pfad).filter(Boolean);
+    if (pfade.length) await sbClient.storage.from(GEDENK_BUCKET).remove(pfade);
+  } catch (e) { console.warn('Gedenk-Cleanup (Person löschen):', e); }
+}
+
+// Sprachwechsel: offene Gedenkseite mit neuen t()-Labels neu rendern (Daten bleiben).
+function gedenkSpracheUpdate() {
+  const modal = document.getElementById('gedenk-modal');
+  if (modal && modal.classList.contains('aktiv') && gedenkData) gedenkRender();
+}
 
 // ============================================================
 // FAMILIEN-FEED / BEITRÄGE (Tabelle beitraege, verbund-gebunden). Composer (Text +
@@ -15353,6 +15877,7 @@ async function loeschePerson(personId) {
   await galerieLoescheFuerPersonen(alleUuids);
   await dokLoescheFuerPersonen(alleUuids);   // Dokument-Storage-Dateien (DB-Zeilen per CASCADE)
   await aufnLoescheFuerPersonen(alleUuids);  // Aufnahme-Storage-Dateien (DB-Zeilen per CASCADE)
+  await gedenkLoescheFuerPersonen(alleUuids); // Gedenkseiten-Foto-Storage (DB-Zeilen per CASCADE)
 
   // 1) Alle Beziehungen ALLER betroffenen Karten entfernen (keine verwaisten Kanten)
   let relErr = (await sbClient.from('beziehungen').delete().in('person_a', alleUuids)).error;
