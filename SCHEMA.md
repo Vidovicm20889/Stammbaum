@@ -203,6 +203,17 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     `mein_verbund`). Abzeichen werden NICHT gespeichert (Frontend leitet sie aus den Zählern ab).
     (Voraussetzung: `personen`/`personen_fotos`/`personen_geschichten`, `familien`, `profile`,
     Verbund-Helfer aus 61/62.)
+69. `supabase_woechentlicher_digest.sql` — Wöchentlicher Familien-Digest (E-Mail): Opt-out-Spalte
+    `email_woechentlicher_digest` an `benachrichtigungs_einstellungen` + Protokoll-Tabelle
+    `digest_versand` (`(user_id,verbund_id,woche_start)`-UNIQUE gegen Doppelversand, RLS nur
+    service_role) + RPCs `digest_woche_sammeln` (je Empfänger+Verbund Zähler der letzten 7 Tage
+    aus `aktivitaeten` + anstehende Geburtstage/Gedenktage + offene Fragen; nur „etwas Neues",
+    opted-in, noch nicht versorgt) und `digest_markiere_gesendet`. Versand über Edge Function
+    `woechentlicher-digest` (Resend) + pg_cron/pg_net-Snippet (separat aktivieren). Datensparsam
+    (nur Zähler + Anlass-Namen, keine Inhalte). **NACH 50a/63/65**. (Voraussetzung:
+    `benachrichtigungs_einstellungen`, `aktivitaeten`, `familien_fragen`, `profile`, Verbund-Helfer.)
+    **VOR Frontend-Deploy ausführen** (Profil-Toggle liest/schreibt die neue Spalte; Frontend ist
+    aber tolerant, falls die Spalte fehlt).
 
 ---
 

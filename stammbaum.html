@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="13.9">
+<meta name="app-version" content="14.0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=13.9">
+<link rel="stylesheet" href="stammbaum.css?v=14.0">
 </head>
 <body>
 
@@ -2242,7 +2242,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=13.9"></script>
+<script src="i18n.js?v=14.0"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -10930,16 +10930,28 @@ async function speichereAnlassEinstellungen() {
   if (vorEl) vorEl.value = String(vorlauf);
   const chatEl = document.getElementById('anl-pref-chat');
   const benEl  = document.getElementById('anl-pref-benachr');
-  const rows = familien.map(fid => ({
-    familie_id: fid, user_id: aktuellerUser.id,
-    email_geburtstage: gebEl.checked, email_gedenktage: gedEl.checked, vorlauf_tage: vorlauf,
-    email_ungelesene_nachrichten:       chatEl ? chatEl.checked : true,
-    email_ungelesene_benachrichtigungen: benEl ? benEl.checked  : true
-  }));
+  const digestEl = document.getElementById('anl-pref-digest');
+  const baut = (mitDigest) => familien.map(fid => {
+    const r = {
+      familie_id: fid, user_id: aktuellerUser.id,
+      email_geburtstage: gebEl.checked, email_gedenktage: gedEl.checked, vorlauf_tage: vorlauf,
+      email_ungelesene_nachrichten:       chatEl ? chatEl.checked : true,
+      email_ungelesene_benachrichtigungen: benEl ? benEl.checked  : true
+    };
+    if (mitDigest && digestEl) r.email_woechentlicher_digest = digestEl.checked;
+    return r;
+  });
   const alt = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
-  const { error } = await sbClient
+  let { error } = await sbClient
     .from('benachrichtigungs_einstellungen')
-    .upsert(rows, { onConflict: 'familie_id,user_id' });
+    .upsert(baut(true), { onConflict: 'familie_id,user_id' });
+  // Fallback: fehlt die Digest-Spalte (supabase_woechentlicher_digest.sql noch nicht eingespielt),
+  // ohne sie speichern, damit die übrigen Einstellungen trotzdem greifen.
+  if (error && digestEl) {
+    const retry = await sbClient.from('benachrichtigungs_einstellungen')
+      .upsert(baut(false), { onConflict: 'familie_id,user_id' });
+    error = retry.error;
+  }
   if (btn) { btn.disabled = false; btn.textContent = alt || t('anl_pref_speichern'); }
   if (error) { console.warn('Erinnerungs-Einstellungen speichern:', error);
     if (erfolg) { erfolg.textContent = t('reg_fehler') + error.message; erfolg.style.display = 'block'; } return; }

@@ -62,6 +62,7 @@ RETURNS TABLE(
   geburtstage jsonb, gedenktage jsonb, offene_fragen int, neue_fragen int
 )
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+#variable_conflict use_column
 DECLARE v_woche date := coalesce(p_woche_start, (date_trunc('week', current_date))::date);
 BEGIN
   RETURN QUERY
@@ -138,7 +139,7 @@ BEGIN
         WHERE dv.user_id = m.user_id AND dv.verbund_id = f.verbund_id AND dv.woche_start = v_woche
       )
   )
-  SELECT e.user_id, e.verbund_id, e.email, e.nm, e.spr, v_woche,
+  SELECT e.user_id, e.verbund_id, e.email::text, e.nm, e.spr, v_woche,
     coalesce(akt.c_beitraege,0)::int, coalesce(akt.c_fotos,0)::int, coalesce(akt.c_personen,0)::int,
     coalesce(akt.c_geschichten,0)::int, coalesce(akt.c_events,0)::int,
     coalesce(geb.namen, '[]'::jsonb), coalesce(ged.namen, '[]'::jsonb),
