@@ -163,36 +163,13 @@ END $$;
 GRANT EXECUTE ON FUNCTION public.beitrag_loeschen(uuid) TO authenticated;
 
 
--- 4d) Feed holen (neueste zuerst, keyset-paginierbar über p_vor). Liefert Autor-Anzeigename/
---     Avatar (aus profile/auth), Markierungs-Name + Bearbeitungs-/Löschrechte. Reaktionen/
---     Kommentare lädt das Frontend je Beitrag über das Engagement-Widget (ziel_typ='beitrag').
-CREATE OR REPLACE FUNCTION public.feed_holen(p_limit int DEFAULT 20, p_vor timestamptz DEFAULT NULL)
-RETURNS TABLE(
-  id uuid, autor uuid, text text, bild_url text, ref_person uuid, ref_person_name text,
-  erstellt_am timestamptz, bearbeitet_am timestamptz,
-  autor_name text, autor_avatar text, darf_bearbeiten boolean, darf_loeschen boolean)
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT
-    b.id, b.autor, b.text, b.bild_url, b.ref_person,
-    (SELECT trim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')) FROM public.personen pe WHERE pe.id = b.ref_person) AS ref_person_name,
-    b.erstellt_am, b.bearbeitet_am,
-    COALESCE(NULLIF(btrim(concat_ws(' ', pr.vorname, pr.nachname)), ''),
-             initcap(replace(replace(replace(split_part(u.email,'@',1),'.',' '),'_',' '),'-',' ')),
-             u.email) AS autor_name,
-    CASE WHEN COALESCE(pr.avatar_sichtbarkeit,'verbund') <> 'privat'
-         THEN COALESCE(pr.avatar_thumb_url, pr.avatar_url) END AS autor_avatar,
-    (b.autor = auth.uid()) AS darf_bearbeiten,
-    (b.autor = auth.uid() OR public.darf_verbund_moderieren(b.verbund_id)) AS darf_loeschen
-  FROM public.beitraege b
-  LEFT JOIN auth.users u    ON u.id = b.autor
-  LEFT JOIN public.profile pr ON pr.user_id = b.autor
-  WHERE b.geloescht = false
-    AND public.ist_in_verbund(b.verbund_id)
-    AND (p_vor IS NULL OR b.erstellt_am < p_vor)
-  ORDER BY b.erstellt_am DESC
-  LIMIT greatest(1, least(coalesce(p_limit, 20), 50));
-$$;
-GRANT EXECUTE ON FUNCTION public.feed_holen(int, timestamptz) TO authenticated;
+-- 4d) (ERSETZT) Das frühere einfache feed_holen (nur Beiträge) ist durch den ALLGEMEINEN
+--     Aktivitäten-Stream ersetzt: supabase_aktivitaeten.sql -> aktivitaeten_holen(p_limit, p_vor)
+--     liefert ALLE Feed-Typen (beitrag_neu/foto_neu/geschichte_neu/event_neu/person_neu); der
+--     beitrag_neu-Eintrag trägt die vollen Beitragsfelder, die das Frontend für die Beitragskarte
+--     braucht. Das Frontend (feedLaden) ruft NUR noch aktivitaeten_holen auf. Die alte Funktion
+--     wird daher entfernt, damit sie nicht versehentlich weiterverwendet wird.
+DROP FUNCTION IF EXISTS public.feed_holen(int, timestamptz);
 
 
 -- =====================================================
@@ -237,4 +214,4 @@ END $$;
 ALTER TABLE public.beitraege REPLICA IDENTITY FULL;
 
 NOTIFY pgrst, 'reload schema';
-SELECT 'supabase_beitraege.sql ausgeführt — beitraege (verbund-RLS) + RPCs + _ziel_verbund(beitrag) + Bucket + Realtime' AS status;
+SELECT 'supabase_beitraege.sql ausgeführt — beitraege (verbund-RLS) + RPCs + _ziel_verbund(beitrag) + Bucket + Realtime; feed_holen entfernt (-> aktivitaeten_holen)' AS status;

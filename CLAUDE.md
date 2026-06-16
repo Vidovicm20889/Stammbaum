@@ -490,6 +490,34 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Dokumente hängen an EINER Karte (`person_id`) — identitäts-gespiegelte Zwillinge zeigen sie nicht; keine
   Reihenfolge-per-Drag (chronologisch über `sortierung`/`erstellt_am`); iOS-PDF-Inline-Rendering im iframe
   ist geräteabhängig (Download als Fallback) — 🔬 auf echtem Gerät zu verifizieren.
+- **Sprach-/Video-Zeitzeugen pro Person (Erinnerungen & Stimmen, ab v13.5):** Stimmen/Erinnerungen
+  der Älteren ans Familienarchiv binden — eine Aufnahme (Audio ODER Video) hängt an EINER Karte
+  (`person_id`), analog Foto-Galerie/Dokumente. DB-Datei `supabase_person_aufnahmen.sql` (idempotent):
+  Tabelle **`person_aufnahmen`** (`typ` CHECK [`audio|video`], `titel`, `transkript`, `dauer_sek`,
+  `erstellt_von`, `sortierung`), **RLS verbund-basiert EXAKT wie `personen`** (SELECT `sieht_familie`,
+  Schreiben `kann_familie_bearbeiten`). **Storage — wie Dokumente, NICHT wie Fotos:** eigener Bucket
+  **`person-aufnahmen` ist NICHT public** (Aufnahmen lebender Personen sind sensibel → bleiben
+  STRIKT verbund-intern) → Zugriff über **signierte URLs** (`createSignedUrl(s)`, 1 h); Pfadschema
+  **`{stammbaum_id}/{person_id}/{uuid}.{ext}`**; Storage-RLS über das erste Pfad-Segment mit zwei
+  Helfern `darf_aufnordner_sehen` (`sieht_familie`) / `darf_aufnordner_bearbeiten`
+  (`kann_familie_bearbeiten`). **ABWEICHUNG vom Feature-Prompt (dokumentiert):** der Prompt nannte
+  `verbund_id`; wir folgen dem etablierten Medien-RLS-Muster (`familie_id`+`stammbaum_id`,
+  verbund-bewusst via `sieht_familie`) statt einer dritten Sichtbarkeits-Logik. **Frontend
+  (`stammbaum.html`):** Aufnahme im Browser über die **MediaRecorder-API** (KEINE neue Library —
+  Audio `getUserMedia({audio})`, Video `{audio,video}` mit Live-Vorschau, Timer; mime webm, iOS mp4)
+  ODER **Datei-Upload** (`accept="audio/*,video/*"`); danach Vorschau-Player + Titel + optionales
+  Transkript → Speichern. Verwaltung im **Personen-Editor** (`#pe-aufn-*`, nur Bearbeiter über
+  `istAdmin`/RLS); **Abspielen direkt in der Detailkarte** (`#detail-aufnahmen`, alle Nutzer mit
+  Lesezugriff, `<audio>`/`<video controls>` inline). Ohne MediaRecorder/getUserMedia bleibt nur der
+  Upload (Aufnahme-Steuerung ausgeblendet + Hinweis). **Cleanup:** `loeschePerson` ruft
+  `aufnLoescheFuerPersonen` (Storage-Dateien; DB-Zeilen per CASCADE). Sprachwechsel:
+  `aufnSpracheUpdate`. i18n `aufn_*` in allen 5 Blöcken (in i18n.js). **PREMIUM-/LIMIT-KANDIDAT**
+  (media-/egress-intensiv, Supabase-Egress!): v1 begrenzt clientseitig **50 MB** je Aufnahme; ein
+  hartes Server-Quota folgt mit der späteren `abo_status`-Kopplung. **v1-Grenzen (bewusst):**
+  Aufnahmen hängen an EINER Karte (identitäts-gespiegelte Zwillinge teilen sie NICHT, wie
+  Galerie/Dokumente); **kein** Realtime (lädt frisch beim Öffnen); Reaktions-/Kommentarleiste
+  bewusst NICHT angebunden (Engagement-`ziel_typ` kennt `aufnahme` nicht — optionale Folge-
+  Erweiterung); Mikrofon/Kamera + iOS-Recording final nur auf echtem Gerät verifizierbar (🔬).
 - **Mehrsprachige Lebensgeschichten pro Person (ab v12.3):** Erweitert das einfache Biografie-/Notiz-Feld
   (`stammbaum_daten.beschreibung`, **dessen Verhalten + Sync unverändert bleiben** — `ident_sync` über
   Zwillinge, `profil_person_sync` ↔ `profile.biografie`) **additiv** um strukturierte, mehrsprachige
@@ -897,8 +925,9 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   SECURITY-DEFINER-RPCs (`verbund_id` serverseitig aus `mein_verbund()` abgeleitet → nicht fälschbar).
   RPCs: `beitrag_erstellen` (Text und/oder Bild, Markierung nur wenn Person im EIGENEN Verbund),
   `beitrag_bearbeiten` (nur Autor, nur Text), `beitrag_loeschen` (soft; Autor ODER Moderator
-  `darf_verbund_moderieren`; gibt `bild_pfad` zurück → Frontend räumt Storage), `feed_holen`
-  (keyset-paginiert über `erstellt_am`, Autor-Anzeige/Avatar + Markierungs-Name + `darf_*`). **Storage:**
+  `darf_verbund_moderieren`; gibt `bild_pfad` zurück → Frontend räumt Storage). **Lesen:** der Feed
+  liest NICHT mehr über ein eigenes `feed_holen` (entfernt), sondern über den allgemeinen
+  Aktivitäten-Stream `aktivitaeten_holen` (siehe nächste Regel). **Storage:**
   public-Bucket **`beitraege`**, Pfad `<user_id>/<uuid>`, Schreiben nur eigener Ordner (wie `avatars`);
   Bilder clientseitig per `galerieKomprimiere` (≤1600 px). **Realtime:** `beitraege` in Publication,
   Channel `feed-sync` lädt den Feed neu (NUR wenn sichtbar), setzt den Auto-Logout-Timer NICHT zurück.
@@ -909,6 +938,66 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   i18n `feed_*`/`tab_feed` in allen 5 Blöcken. **v1-Grenzen (bewusst):** ein Beitrag gehört zu
   `mein_verbund()` (bei mehreren Verbünden der kleinste — i. d. R. genau einer); Bearbeiten nur Text
   (Bild nur über Löschen+Neu); Markierung referenziert EINE Personenkarte (keine Zwillings-Spiegelung).
+- **Familien-Feed → vereinter Aktivitäten-Stream (Social-Schicht, ab v13.4):** Erweitert den Feed-Tab
+  von „nur Beiträge" zu EINEM chronologischen Stream „Was ist neu in der Familie". DB-Datei
+  `supabase_aktivitaeten.sql` (**NACH `supabase_reaktionen_kommentare.sql` + `supabase_beitraege.sql`**):
+  Tabelle **`aktivitaeten`**(`verbund_id`, `typ` ∈ {`person_neu`,`foto_neu`,`geschichte_neu`,`event_neu`,
+  `beitrag_neu`,`geburtstag`,`erinnerung`}, `ref_id`, `akteur_id`, `erstellt_am`; `UNIQUE(typ,ref_id)` =
+  idempotent). Befüllung per **DB-Trigger** an `personen`/`personen_fotos`/`personen_geschichten` (nur
+  veröffentlicht)/`events`/`beitraege` — **NUR wenn `auth.uid()` gesetzt** (echte Nutzer-Aktion →
+  Bulk/Import via `service_role` erzeugt KEINEN Feed-Spam; Platzhalter + `identitaet_id`-Spiegelkarten
+  übersprungen). SELECT verbund-RLS; Realtime in Publication. RPC **`aktivitaeten_holen`** (alle Typen;
+  Akteur-Name/Avatar; bei `beitrag_neu` die VOLLEN Beitragsfelder → Frontend reused die Beitrags-Karte;
+  gelöschte Zielobjekte ausgeblendet; Cursor über `erstellt_am`). **Frontend:** `feedLaden` ruft jetzt
+  `aktivitaeten_holen` (das frühere `feed_holen` wurde aus `supabase_beitraege.sql` ENTFERNT/DROP);
+  `feedRender` zeichnet `beitrag_neu` als volle Beitrags-Karte (`feedBeitragAusAkt` + `feedBeitragHtml`),
+  andere Typen als `feedAktivitaetHtml` (Icon + Klick → Person/Event); Reaktions-/Kommentarleiste an
+  Beitrag/Foto/Geschichte (`engagementMount('feed-eng-…', …)`). Realtime-Channel `feed-sync` hört jetzt
+  auf `beitraege` UND `aktivitaeten` (kein Auto-Logout-Reset, bei verstecktem Tab aufgeschoben). i18n
+  `akt_*` in allen 5 Blöcken. **v1-Grenzen (bewusst):** nur eigener Verbund; `geburtstag`/`erinnerung`
+  sind als Typ vorgesehen, werden aber NICHT auto-erzeugt; kein Backfill (Feed füllt sich vorwärts);
+  `geschichte_neu` nur beim Veröffentlichen-bei-Anlage.
+- **Foto-Tagging — Personen in Fotos markieren (Social-Schicht, ab v13.5):** Markiert Personenkarten in
+  Galerie-Fotos (`personen_fotos`); markierte Fotos erscheinen auf der Personenkarte der markierten
+  Person. DB-Datei `supabase_foto_personen.sql` (**NACH `supabase_personen_fotos.sql` +
+  `supabase_reaktionen_kommentare.sql`**): Tabelle **`foto_personen`**(`verbund_id`, `foto_id`→
+  personen_fotos CASCADE, `person_id`→personen CASCADE, `x`/`y` optional, `markiert_von`;
+  `UNIQUE(foto_id,person_id)`), verbund-RLS (SELECT `ist_in_verbund`). RPCs: `foto_person_markieren`
+  (nur Foto-Bearbeiter `kann_familie_bearbeiten`; **markierte Person muss im SELBEN Verbund** liegen →
+  KEINE verbundübergreifende Exposition Minderjähriger), `foto_person_entfernen` (Bearbeiter ODER wer
+  markiert hat), `foto_tags_holen` (Foto → Chips + `darf_markieren`), `person_markierte_fotos` (Person →
+  Fotos + Galerie-Besitzer). **Frontend:** in der **Foto-Lightbox** `#lightbox-tags` (Chips → Klick
+  öffnet Personenkarte; Bearbeiter sehen „＋ markieren" via searchable Select der Verbund-Personen + ✕
+  zum Entfernen), auf der **Detailkarte** `#detail-markiert` („Markiert in Fotos", Thumbnail-Grid →
+  Besitzer-Karte). `fotoTagsRender`/`markierteFotosRender` an `lightboxRender`/`zeigeDetails` gehängt.
+  i18n `ft_*` in allen 5 Blöcken. **v1-Grenzen (bewusst):** KEINE Markierungs-Position im Bild
+  (`x`/`y` nullbar, ungenutzt — nur Chips); nur Galerie-Fotos (nicht Beitrags-Bilder); markierte Person
+  muss zum Anklicken im geladenen Modell vorhanden sein.
+- **Familien-Fragen „Wer ist das?" / Crowdsourcing (Social, ab v13.6):** Verbund-gebundene Fragen,
+  die Antworten = Kommentare aus dem Engagement-System (`ziel_typ='frage'`) nutzen → Mitmachen
+  produziert echte Stammbaum-Daten. DB-Datei `supabase_familien_fragen.sql` (idempotent, **NACH
+  `supabase_reaktionen_kommentare.sql` UND `supabase_beitraege.sql`**). Schaltet zuerst `'frage'` im
+  `ziel_typ`-CHECK von `reaktionen`/`kommentare` frei (DROP+ADD CONSTRAINT) und erweitert
+  `_ziel_verbund` um den `frage`-Zweig. Tabelle **`familien_fragen`**(`verbund_id`, `steller_id`,
+  `frage`, `foto_pfad`/`foto_url`, `person_id`→personen [Bezugsperson], `status` [`offen|geloest`],
+  `geloest_person`→personen, `geloest_von`, `geloescht`). **STRIKT VERBUND-GEBUNDEN** (SELECT nur
+  `ist_in_verbund`); Schreiben über SECURITY-DEFINER-RPCs: `frage_stellen` (Text Pflicht, optional
+  Foto/Bezugsperson), `frage_loesen` (**nur Bearbeiter** `darf_verbund_moderieren`; hält die
+  identifizierte Person in `geloest_person`), `frage_wieder_oeffnen`, `frage_loeschen` (Steller ODER
+  Moderator, soft, gibt `foto_pfad` für Storage-Cleanup), `fragen_holen` (verbund-intern, optional
+  nur offene, Antwort-Anzahl + `darf_*`). **Frontend:** der Feed-Tab hat einen segmented control
+  **Wand | Fragen** (`feedModus`, `feedSetModus`); Fragen-Composer (Text + Foto via
+  `galerieKomprimiere`, Bucket `beitraege` wiederverwendet + Bezugsperson) + Liste; je Frage ein
+  Engagement-Widget (`frage-eng-<id>`, `ziel_typ='frage'`) für Antworten/Reaktionen. **Lösen-Dialog**
+  `#frage-loesen-modal` (nur Bearbeiter): identifizierte Person wählen → `frage_loesen`, ODER
+  „Personenkarte bearbeiten" (`zeigePersonBearbeiten`) zum manuellen Eintragen fehlender Daten.
+  Realtime via `feed-sync` (Tabelle `familien_fragen` ergänzt), setzt den Auto-Logout-Timer NICHT
+  zurück. i18n `frage_*`/`feed_modus_*` in allen 5 Blöcken. **ABGRENZUNG v1 (Datenqualität):**
+  Übernahme von Antworten in echte Daten NUR durch Bearbeiter-Rollen, kein Auto-Write (Mensch
+  bestätigt). **Bewusste v1-Grenzen:** Foto = hochgeladenes Bild auf der Frage (kein
+  `personen_fotos`-FK), Foto-Frage hält beim Lösen `geloest_person` — die Verdrahtung zum separaten
+  **Foto-Tagging (`ft_*`)** als echtes Galerie-Tag ist eine mögliche Folge-Erweiterung; Lösen ist
+  frage-bezogen (kein „diese eine Antwort"-Klick auf einen einzelnen Kommentar).
 
 ## Backend- & Daten-Regeln (Supabase) — IMMER einhalten
 - **Referenzielle Integrität bei Anlegen UND Löschen.** Jede Aktion, die Daten erzeugt oder

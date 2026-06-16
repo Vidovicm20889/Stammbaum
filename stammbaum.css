@@ -399,6 +399,37 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 .anlaesse-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
 .anlaesse-btn:active { transform: scale(0.94); }
+/* „An diesem Tag"-Widget – gestapelt unter dem Anlässe-Button (oben rechts). Gleiche Optik. */
+.erinn-btn {
+  position: absolute; right: 15px; top: 71px; z-index: 6;
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,250,240,0.96); color: var(--akzent);
+  border: 1px solid var(--linie); border-radius: 50%; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(44,36,24,0.18); transition: all 0.2s;
+}
+.erinn-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
+.erinn-btn:active { transform: scale(0.94); }
+/* „An diesem Tag"-Sektion oben im Feed: horizontaler Karten-Track. */
+.feed-erinn { margin: 0 0 16px; }
+.feed-erinn-titel { font-size: 15px; color: var(--akzent); margin: 0 0 8px; letter-spacing: .3px; }
+.feed-erinn-track {
+  display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 2px 0 6px;
+}
+.erinn-karte {
+  flex: 0 0 auto; width: 130px; min-height: 96px; text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; gap: 3px;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--linie); border-left: 3px solid var(--gold); border-radius: 10px;
+  padding: 10px 12px; font-family: inherit; transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.erinn-karte:hover { border-color: var(--akzent); box-shadow: 0 2px 8px rgba(44,36,24,0.16); }
+.erinn-karte:active { transform: scale(0.98); }
+.erinn-karte-ic { font-size: 22px; line-height: 1; }
+.erinn-karte-jahre { font-size: 13px; font-weight: 700; color: var(--akzent); }
+.erinn-karte-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.erinn-karte-kat { font-size: 12px; color: var(--text-dim); }
+.erinn-item { cursor: pointer; }
 .anlaesse-badge {
   position: absolute; top: -4px; right: -4px; min-width: 19px; height: 19px;
   padding: 0 5px; box-sizing: border-box; border-radius: 10px;
@@ -1504,6 +1535,16 @@ footer {
 .feed-bild-wrap { margin-top: 10px; }
 .feed-bild { max-width: 100%; border-radius: 10px; display: block; }
 .feed-eng { margin-top: 4px; }
+/* Familien-Fragen ("Wer ist das?") */
+.feed-filter-offen { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: #5e4b35; cursor: pointer; }
+.feed-filter-offen input { width: 18px; height: 18px; }
+.frage-karte.geloest { opacity: 0.92; }
+.frage-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; vertical-align: middle; }
+.frage-badge.offen { background: var(--gold-hell); color: var(--akzent); border: 1px solid var(--gold); }
+.frage-badge.geloest { background: #e6f4ea; color: #2e7d4f; border: 1px solid #9bd3ad; }
+.frage-text { margin-top: 10px; color: #4a3b28; line-height: 1.5; word-break: break-word; font-size: 15px; }
+.frage-bezug { margin-top: 8px; font-size: 13px; color: #8a7a5a; }
+.frage-loesung { margin-top: 8px; font-size: 13px; color: #2e7d4f; font-weight: bold; }
 /* Aktivitäts-Karten im Feed (person_neu/foto_neu/geschichte_neu/event_neu) */
 .feed-akt-icon { font-size: 15px; margin-right: 2px; }
 .feed-akt-text { margin-top: 8px; color: #4a3b28; line-height: 1.45; word-break: break-word; }
@@ -1667,6 +1708,17 @@ footer {
 }
 .lightbox-cap { color: #f3ead6; font-size: 14px; margin-top: 12px; line-height: 1.4; }
 .lightbox-cap .lb-datum { display: block; color: #c9b894; font-size: 12px; margin-top: 3px; }
+/* Foto-Tagging: markierte Personen in der Lightbox */
+.lightbox-tags { max-width: 640px; width: 100%; margin: 8px auto 0; }
+.foto-tags-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.foto-tags-label { color: #c9b894; font-size: 12px; }
+.foto-tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 14px;
+  background: rgba(255,248,220,0.14); color: #f3ead6; font-size: 13px; cursor: pointer; }
+.foto-tag-chip:hover { background: rgba(255,248,220,0.26); }
+.foto-tag-x { background: none; border: none; color: #e6cfa0; cursor: pointer; font-size: 12px; padding: 0 0 0 2px; line-height: 1; }
+.foto-tag-add { background: rgba(255,248,220,0.10); border: 1px dashed rgba(255,248,220,0.4); color: #f3ead6;
+  border-radius: 14px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.foto-tag-add:hover { background: rgba(255,248,220,0.2); }
 .lightbox-schliessen {
   position: absolute; top: 12px; right: 12px; width: 44px; height: 44px;
   display: flex; align-items: center; justify-content: center;
@@ -1745,6 +1797,67 @@ footer {
 @media (max-width: 480px) {
   .dok-frame { height: 70vh; }
   .dok-act { width: 42px; height: 42px; }   /* Touch-Target */
+}
+
+/* ============================================================
+   SPRACH-/VIDEO-ZEITZEUGEN (Erinnerungen & Stimmen) — aufn_*
+   Helles Papier-Schema wie der Rest der Modals; Player direkt in der Liste.
+   ============================================================ */
+.aufn-premium-hinweis {
+  font-size: 12px; color: #8a7c63; font-style: italic;
+  margin: 2px 0 8px; line-height: 1.4;
+}
+.aufn-liste { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 4px; }
+.aufn-item {
+  border: 1px solid var(--linie); border-radius: 6px;
+  background: var(--paper-soft); padding: 9px 10px;
+}
+.aufn-item-kopf { display: flex; align-items: flex-start; gap: 10px; }
+.aufn-icon { font-size: 20px; line-height: 1.2; flex: 0 0 auto; }
+.aufn-meta { flex: 1 1 auto; min-width: 0; }
+.aufn-item-titel { font-weight: 600; color: var(--ink); word-break: break-word; }
+.aufn-sub { font-size: 12px; color: #8a7c63; margin-top: 1px; }
+.aufn-player { display: block; width: 100%; margin-top: 8px; }
+audio.aufn-player { height: 40px; }
+video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
+.aufn-transkript { margin-top: 8px; font-size: 13px; }
+.aufn-transkript summary { cursor: pointer; color: var(--akzent); font-size: 12px; }
+.aufn-transkript-text {
+  margin-top: 6px; color: var(--ink); line-height: 1.45;
+  white-space: pre-wrap; word-break: break-word;
+}
+/* Aufnahme-Steuerung im Editor */
+.aufn-rec { margin: 6px 0 2px; }
+.aufn-modus { display: inline-flex; gap: 0; margin-bottom: 10px; border: 1px solid var(--linie); border-radius: 999px; overflow: hidden; }
+.aufn-modus-btn {
+  background: var(--paper); color: var(--ink); border: none;
+  padding: 8px 16px; min-height: 40px; font-family: inherit; font-size: 13px;
+  cursor: pointer; transition: all .2s;
+}
+.aufn-modus-btn:hover:not(.aktiv) { background: var(--gold-hell); }
+.aufn-modus-btn.aktiv { background: var(--akzent); color: var(--paper); }
+.aufn-vorschau-video { width: 100%; max-height: 300px; border-radius: 6px; background: #000; margin-bottom: 10px; }
+.aufn-rec-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.aufn-rec-btn {
+  background: var(--paper); border: 1px solid var(--gold); border-radius: 6px;
+  color: var(--ink); padding: 9px 16px; min-height: 42px; font-family: inherit;
+  font-size: 14px; cursor: pointer;
+}
+.aufn-rec-btn:hover { background: var(--gold-hell); }
+.aufn-rec-btn.aufn-rec-aktiv { background: #fdeaea; border-color: #e3b7b7; color: #b33; }
+.aufn-rec-timer { font-variant-numeric: tabular-nums; font-size: 15px; color: #b33; font-weight: 600; }
+.aufn-oder { font-size: 12px; color: #8a7c63; }
+.aufn-datei-label { cursor: pointer; }
+.aufn-rec-hinweis { font-size: 12px; color: #8a7c63; font-style: italic; margin-top: 6px; }
+.aufn-pending {
+  margin-top: 12px; padding: 10px; border: 1px dashed var(--gold);
+  border-radius: 6px; background: var(--paper);
+}
+.aufn-pending-player { margin-bottom: 8px; }
+.aufn-pending-akt { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+@media (max-width: 480px) {
+  .aufn-modus-btn { padding: 9px 18px; }
+  video.aufn-player, .aufn-vorschau-video { max-height: 240px; }
 }
 
 /* ============================================================

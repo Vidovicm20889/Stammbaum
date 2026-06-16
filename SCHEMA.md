@@ -158,9 +158,34 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     ausführen** (neue Tabellen/RPCs). (Voraussetzung: 3 `supabase_verbund.sql`, 37 `supabase_profile.sql`,
     `personen_fotos`/`personen_geschichten`/`events` mit `familie_id`)
 62. `supabase_beitraege.sql` — Familien-Feed/Beiträge: Tabelle `beitraege` (verbund-RLS) + RPCs
-    (`beitrag_erstellen`/`beitrag_bearbeiten`/`beitrag_loeschen`/`feed_holen`/`mein_verbund`) +
+    (`beitrag_erstellen`/`beitrag_bearbeiten`/`beitrag_loeschen`/`mein_verbund`) +
     Erweiterung `_ziel_verbund` um `beitrag` + public-Bucket `beitraege` + Realtime. **NACH 61**
     (nutzt `ist_in_verbund`/`darf_verbund_moderieren`/`_ziel_verbund`). **VOR Frontend-Deploy ausführen.**
+    **Hinweis:** das frühere einfache `feed_holen` ist ENTFERNT (DROP) — der Feed liest über den
+    allgemeinen Aktivitäten-Stream `aktivitaeten_holen` (Nr. 63).
+63. `supabase_aktivitaeten.sql` — Familien-Feed/Aktivitäten-Stream: Tabelle `aktivitaeten`
+    (verbund-RLS, `UNIQUE(typ,ref_id)`) + **Trigger** an `personen`/`personen_fotos`/
+    `personen_geschichten`/`events`/`beitraege` (nur bei `auth.uid()` = echte Nutzer-Aktion →
+    KEIN Import-Spam; Platzhalter + `identitaet_id`-Spiegelkarten übersprungen) + RPC
+    `aktivitaeten_holen` (alle Typen, `beitrag_neu` trägt volle Beitragsfelder) + Realtime.
+    **NACH 61 + 62.** (Voraussetzung: 61, 62, `personen_fotos`/`personen_geschichten`/`events`)
+64. `supabase_foto_personen.sql` — Foto-Tagging: Tabelle `foto_personen` (verbund-RLS,
+    `UNIQUE(foto_id,person_id)`) + RPCs `foto_person_markieren`/`foto_person_entfernen`/
+    `foto_tags_holen`/`person_markierte_fotos` + Helfer `_foto_familie`. Markieren nur
+    Foto-Bearbeiter; markierte Person muss im selben Verbund liegen (rein verbund-intern →
+    keine verbundübergreifende Exposition). **NACH 54 `supabase_personen_fotos.sql` + 61.**
+65. `supabase_familien_fragen.sql` — Familien-Fragen „Wer ist das?" (Crowdsourcing): schaltet
+    `'frage'` im `ziel_typ`-CHECK von `reaktionen`/`kommentare` frei + erweitert `_ziel_verbund`;
+    Tabelle `familien_fragen` (verbund-RLS) + RPCs (`frage_stellen`/`frage_loesen`/
+    `frage_wieder_oeffnen`/`frage_loeschen`/`fragen_holen`) + Realtime. Antworten = Kommentare
+    (`ziel_typ='frage'`). **NACH 61 + 62.** **VOR Frontend-Deploy ausführen.**
+66. `supabase_person_aufnahmen.sql` — Sprach-/Video-Zeitzeugen pro Person: Tabelle
+    `person_aufnahmen` (typ `audio`/`video`, titel/transkript/dauer_sek, verbund-RLS EXAKT wie
+    `personen`/Dokumente) + **privater** Bucket `person-aufnahmen` (signierte URLs — Aufnahmen
+    lebender Personen bleiben verbund-intern) + Storage-Policies (`darf_aufnordner_sehen`/
+    `darf_aufnordner_bearbeiten`, erstes Pfad-Segment = `stammbaum_id`). Aufnahme im Browser
+    (MediaRecorder) oder Datei-Upload. PREMIUM-/LIMIT-KANDIDAT (Egress). (Voraussetzung: `personen`
+    + Verbund-Helfer) **VOR Frontend-Deploy ausführen.**
 
 ---
 

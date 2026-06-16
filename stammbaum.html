@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="13.4">
+<meta name="app-version" content="13.6">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=13.4">
+<link rel="stylesheet" href="stammbaum.css?v=13.6">
 </head>
 <body>
 
@@ -223,25 +223,63 @@
 <section id="ansicht-feed">
   <div class="feed-wrap">
     <h2 class="feed-titel" data-i18n="feed_titel"></h2>
-    <!-- Composer -->
-    <div class="feed-composer" id="feed-composer">
-      <textarea class="eng-textarea" id="feed-text" rows="3" data-i18n-placeholder="feed_ph"></textarea>
-      <div class="feed-composer-zeile">
-        <label class="feed-bild-btn" data-i18n-title="feed_bild">📷 <span data-i18n="feed_bild"></span>
-          <input type="file" id="feed-bild" accept="image/*" style="display:none" onchange="feedBildGewaehlt(event)">
-        </label>
-        <label class="feed-tag-feld"><span data-i18n="feed_markieren"></span>
-          <select id="feed-ref-person" class="filter"></select>
-        </label>
-        <button type="button" class="mv-toggle feed-senden" id="feed-senden" onclick="feedBeitragSenden()" data-i18n="feed_senden"></button>
-      </div>
-      <div class="feed-bild-vorschau" id="feed-bild-vorschau" style="display:none">
-        <img id="feed-bild-img" alt="">
-        <button type="button" class="feed-bild-x" onclick="feedBildEntfernen()" data-i18n-title="feed_bild_entfernen">✕</button>
-      </div>
+    <!-- Umschalter: Wand (Beiträge) | Fragen (Crowdsourcing) -->
+    <div class="ev-modus" id="feed-modus" role="tablist">
+      <button type="button" class="ev-modus-btn aktiv" id="feed-modus-wand" role="tab"
+              data-i18n="feed_modus_wand" onclick="feedSetModus('wand')"></button>
+      <button type="button" class="ev-modus-btn" id="feed-modus-fragen" role="tab"
+              data-i18n="feed_modus_fragen" onclick="feedSetModus('fragen')"></button>
     </div>
-    <div class="feed-liste" id="feed-liste"></div>
-    <button type="button" class="mv-toggle feed-mehr" id="feed-mehr" style="display:none" onclick="feedMehr()" data-i18n="feed_mehr"></button>
+
+    <!-- Modus A: Wand (Beiträge) -->
+    <div id="feed-wand">
+      <div class="feed-composer" id="feed-composer">
+        <textarea class="eng-textarea" id="feed-text" rows="3" data-i18n-placeholder="feed_ph"></textarea>
+        <div class="feed-composer-zeile">
+          <label class="feed-bild-btn" data-i18n-title="feed_bild">📷 <span data-i18n="feed_bild"></span>
+            <input type="file" id="feed-bild" accept="image/*" style="display:none" onchange="feedBildGewaehlt(event)">
+          </label>
+          <label class="feed-tag-feld"><span data-i18n="feed_markieren"></span>
+            <select id="feed-ref-person" class="filter"></select>
+          </label>
+          <button type="button" class="mv-toggle feed-senden" id="feed-senden" onclick="feedBeitragSenden()" data-i18n="feed_senden"></button>
+        </div>
+        <div class="feed-bild-vorschau" id="feed-bild-vorschau" style="display:none">
+          <img id="feed-bild-img" alt="">
+          <button type="button" class="feed-bild-x" onclick="feedBildEntfernen()" data-i18n-title="feed_bild_entfernen">✕</button>
+        </div>
+      </div>
+      <!-- „An diesem Tag" — Familien-Erinnerungen (oben im Feed; nur wenn es heute welche gibt) -->
+      <div class="feed-erinn" id="feed-erinnerungen" style="display:none">
+        <h3 class="feed-erinn-titel" data-i18n="erinn_titel"></h3>
+        <div class="feed-erinn-track" id="feed-erinn-track"></div>
+      </div>
+      <div class="feed-liste" id="feed-liste"></div>
+      <button type="button" class="mv-toggle feed-mehr" id="feed-mehr" style="display:none" onclick="feedMehr()" data-i18n="feed_mehr"></button>
+    </div>
+
+    <!-- Modus B: Fragen („Wer ist das?" / fehlende Daten erfragen) -->
+    <div id="feed-fragen" style="display:none">
+      <div class="feed-composer" id="frage-composer">
+        <textarea class="eng-textarea" id="frage-text" rows="3" data-i18n-placeholder="frage_ph"></textarea>
+        <div class="feed-composer-zeile">
+          <label class="feed-bild-btn" data-i18n-title="frage_bild">📷 <span data-i18n="frage_bild"></span>
+            <input type="file" id="frage-bild" accept="image/*" style="display:none" onchange="frageBildGewaehlt(event)">
+          </label>
+          <label class="feed-tag-feld"><span data-i18n="frage_bezug"></span>
+            <select id="frage-ref-person" class="filter"></select>
+          </label>
+          <button type="button" class="mv-toggle feed-senden" id="frage-senden" onclick="frageStellen()" data-i18n="frage_senden"></button>
+        </div>
+        <div class="feed-bild-vorschau" id="frage-bild-vorschau" style="display:none">
+          <img id="frage-bild-img" alt="">
+          <button type="button" class="feed-bild-x" onclick="frageBildEntfernen()" data-i18n-title="feed_bild_entfernen">✕</button>
+        </div>
+        <label class="feed-filter-offen"><input type="checkbox" id="frage-nur-offen" onchange="fragenLaden(true)"> <span data-i18n="frage_nur_offen"></span></label>
+      </div>
+      <div class="feed-liste" id="fragen-liste"></div>
+      <button type="button" class="mv-toggle feed-mehr" id="fragen-mehr" style="display:none" onclick="fragenMehr()" data-i18n="feed_mehr"></button>
+    </div>
   </div>
 </section>
 
@@ -346,6 +384,20 @@
         <line x1="15" y1="13" x2="15" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
       <span class="anlaesse-badge" id="anlaesse-badge">0</span>
+    </button>
+    <!-- „An diesem Tag" — Familien-Erinnerungen (nur sichtbar, wenn es heute welche gibt). -->
+    <button type="button" id="erinn-btn" class="erinn-btn" style="display:none"
+            onclick="oeffneErinnModal()" data-i18n-title="erinn_btn"
+            data-i18n-aria="erinn_btn" aria-label="An diesem Tag">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/>
+        <line x1="4" y1="9" x2="20" y2="9" stroke="currentColor" stroke-width="1.7"/>
+        <line x1="8" y1="3" x2="8" y2="6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        <line x1="16" y1="3" x2="16" y2="6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M12 12.4c.9-1.1 2.8-.6 2.8.9 0 1.2-1.6 2.2-2.8 3-1.2-.8-2.8-1.8-2.8-3 0-1.5 1.9-2 2.8-.9z"
+              fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="anlaesse-badge" id="erinn-badge">0</span>
     </button>
     <button type="button" id="ansicht-erweitern-btn" class="ansicht-erweitern-btn"
             onclick="oeffneAnsichtModal()" data-i18n-title="ansicht_btn"
@@ -1136,6 +1188,38 @@
       <button type="button" class="gal-upload-btn" id="pe-dok-btn" onclick="dokUpload()" data-i18n="dok_hochladen"></button>
     </div>
 
+    <!-- Sprach-/Video-Zeitzeugen (Erinnerungen & Stimmen) — nur Bearbeiter; per JS (aufnEditOeffnen) befüllt -->
+    <div class="reg-gruppe-titel" data-i18n="aufn_titel"></div>
+    <div class="aufn-premium-hinweis" data-i18n="aufn_premium_hinweis"></div>
+    <div id="pe-aufn-liste" class="aufn-liste"></div>
+    <div class="aufn-rec" id="pe-aufn-rec">
+      <div class="aufn-modus" id="aufn-modus">
+        <button type="button" class="aufn-modus-btn aktiv" data-modus="audio" onclick="aufnSetModus('audio')" data-i18n="aufn_modus_audio"></button>
+        <button type="button" class="aufn-modus-btn" data-modus="video" onclick="aufnSetModus('video')" data-i18n="aufn_modus_video"></button>
+      </div>
+      <video id="aufn-vorschau-video" class="aufn-vorschau-video" playsinline muted style="display:none"></video>
+      <div class="aufn-rec-zeile">
+        <button type="button" id="aufn-rec-btn" class="aufn-rec-btn" onclick="aufnRecToggle()" data-i18n="aufn_rec_start"></button>
+        <span id="aufn-rec-timer" class="aufn-rec-timer" style="display:none">0:00</span>
+        <span class="aufn-oder" data-i18n="aufn_oder"></span>
+        <label class="gal-upload-btn aufn-datei-label" data-i18n="aufn_datei">
+          <input type="file" id="pe-aufn-input" accept="audio/*,video/*" style="display:none" onchange="aufnDateiGewaehlt(this)"></label>
+      </div>
+      <div id="aufn-rec-hinweis" class="aufn-rec-hinweis" style="display:none" data-i18n="aufn_nicht_unterstuetzt"></div>
+      <!-- Vorschau + Metadaten der noch nicht gespeicherten Aufnahme -->
+      <div id="aufn-pending" class="aufn-pending" style="display:none">
+        <div id="aufn-pending-player" class="aufn-pending-player"></div>
+        <label class="login-label"><span data-i18n="aufn_feld_titel"></span>
+          <input type="text" id="aufn-titel" class="login-feld" maxlength="200"></label>
+        <label class="login-label"><span data-i18n="aufn_feld_transkript"></span>
+          <textarea id="aufn-transkript" class="login-feld" rows="3" data-i18n-placeholder="aufn_transkript_ph"></textarea></label>
+        <div class="aufn-pending-akt">
+          <button type="button" class="gal-upload-btn" id="aufn-save-btn" onclick="aufnSpeichern()" data-i18n="aufn_speichern"></button>
+          <button type="button" class="gesch-del-btn" onclick="aufnVerwerfen()" data-i18n="aufn_verwerfen"></button>
+        </div>
+      </div>
+    </div>
+
     <div id="pe-fehler" class="login-fehler"></div>
     <button class="login-submit" id="pe-submit" data-i18n="event_save" onclick="speicherePerson()"></button>
     <div id="pe-erfolg" class="reg-erfolg" style="display:none"></div>
@@ -1650,6 +1734,24 @@
   </div>
 </div>
 
+<!-- Familien-Frage lösen (nur Bearbeiter): identifizierte Person wählen / Karte bearbeiten -->
+<div class="modal" id="frage-loesen-modal" style="z-index:214">
+  <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseFrageLoesen()">×</button>
+    <h2 data-i18n="frage_loesen_titel"></h2>
+    <p class="sub-name" id="frage-loesen-text"></p>
+    <label class="login-label reg-feld-voll"><span data-i18n="frage_identifiziert"></span>
+      <select id="frage-loesen-person" class="login-feld"></select>
+    </label>
+    <button type="button" class="account-btn" id="frage-loesen-karte" style="display:none;margin-top:8px"
+            onclick="frageLoesenKarte()" data-i18n="frage_karte_bearbeiten"></button>
+    <div class="fe-actions" style="margin-top:14px">
+      <button type="button" class="login-submit" onclick="frageLoesenBestaetigen()" data-i18n="frage_als_geloest"></button>
+      <button type="button" class="login-submit fe-abbrechen" onclick="schliesseFrageLoesen()" data-i18n="chat_abbrechen"></button>
+    </div>
+  </div>
+</div>
+
 <!-- CHAT (1:1 + Gruppen, verbundweit) — schließt NUR per Button (CLAUDE.md) -->
 <div class="modal" id="chat-modal" style="z-index:215">
   <div class="modal-inhalt chat-box" onclick="event.stopPropagation()">
@@ -1709,6 +1811,16 @@
     <h2 data-i18n="anl_titel"></h2>
     <p class="mv-legende" data-i18n="anl_sub" style="margin-top:-6px"></p>
     <div id="anlaesse-liste" class="benachr-liste" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- „An diesem Tag" — Familien-Erinnerungen -->
+<div class="modal" id="erinn-modal" style="z-index:210">
+  <div class="modal-inhalt" style="max-width:520px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseErinnModal()">×</button>
+    <h2 data-i18n="erinn_titel"></h2>
+    <p class="mv-legende" data-i18n="erinn_sub" style="margin-top:-6px"></p>
+    <div id="erinn-liste" class="benachr-liste" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -2072,6 +2184,8 @@
   <div class="lightbox-inner">
     <img class="lightbox-img" id="lightbox-img" alt="">
     <div class="lightbox-cap" id="lightbox-cap"></div>
+    <!-- Foto-Tagging: markierte Personen (Chips) + Markieren-Steuerung (nur Bearbeiter) -->
+    <div id="lightbox-tags" class="lightbox-tags"></div>
     <!-- Reaktionen & Kommentare zum aktuellen Foto (verbund-gebunden) -->
     <div id="lightbox-engagement" class="lightbox-engagement"></div>
   </div>
@@ -2102,7 +2216,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=13.4"></script>
+<script src="i18n.js?v=13.6"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2304,6 +2418,7 @@ function loescheUser() {
   aktualisiereBenachrBadge();
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget verbergen (ausgeloggt)
   if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste verbergen (ausgeloggt)
+  erinnCache = null; if (typeof aktualisiereErinnAnzeige === 'function') aktualisiereErinnAnzeige();   // „An diesem Tag" zurücksetzen/verbergen (ausgeloggt)
   profilAvatarPending = undefined;
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
   stopObavPolling();     // Live-Updates beenden (ausgeloggt)
@@ -7430,6 +7545,7 @@ function wechselSprache(lang, speichern = true) {
   if (typeof chatSpracheUpdate === 'function') chatSpracheUpdate();   // offene Chat-Oberflächen (Liste/Konversation/Picker/Info) neu rendern
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget/-Modal in neuer Sprache neu beschriften
   if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Chips (Namen/SR-Transliteration) neu beschriften
+  if (typeof aktualisiereErinnAnzeige === 'function') aktualisiereErinnAnzeige();   // „An diesem Tag"-Karten/-Liste in neuer Sprache neu rendern
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
     fuelleProfilSprache(document.getElementById('prof-sprache').value);
@@ -7451,6 +7567,7 @@ function wechselSprache(lang, speichern = true) {
   if (typeof entdeckenSpracheUpdate === 'function') entdeckenSpracheUpdate();   // Entdecken-Overlay (Discovery)
   if (typeof engagementSpracheUpdate === 'function') engagementSpracheUpdate();   // Reaktionen/Kommentare-Widgets
   if (typeof feedSpracheUpdate === 'function') feedSpracheUpdate();   // Familien-Feed
+  if (typeof fragenSpracheUpdate === 'function') fragenSpracheUpdate();   // Familien-Fragen (offener Lösen-Dialog)
   if (offen('obav-modal') && typeof renderObavListe === 'function' && istAdmin()) renderObavListe();   // Kontakt-Anfragen-Karten neu beschriften
   // Merge-Wizard: dynamische Inhalte des sichtbaren Schritts in neuer Sprache neu aufbauen
   if (offen('merge-modal')) {
@@ -7475,6 +7592,8 @@ function wechselSprache(lang, speichern = true) {
   if (typeof geschSpracheUpdate === 'function') geschSpracheUpdate();
   // Dokumente & Quellen: offene Listen (Editor/Detail) in neuer Sprache neu rendern
   if (typeof dokSpracheUpdate === 'function') dokSpracheUpdate();
+  // Sprach-/Video-Zeitzeugen: offene Listen (Editor/Detail) in neuer Sprache neu rendern
+  if (typeof aufnSpracheUpdate === 'function') aufnSpracheUpdate();
   // ALLE Länder-Dropdowns (zentrale Komponente) in neuer Sprache neu befüllen — Auswahl bleibt.
   if (typeof fuelleLandSelects === 'function') fuelleLandSelects(document);
   if (document.getElementById('registrier-modal')?.classList.contains('aktiv')) {
@@ -7825,6 +7944,7 @@ function waehleStammbaum(treeId) {
   startPresence(treeId);   // Live-Indikator an den jetzt offenen Baum koppeln (P2)
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Geburtstags-/Gedenktag-Widget für den jetzt offenen Baum
   if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste für den jetzt offenen Baum
+  if (typeof ladeErinnerungen === 'function') ladeErinnerungen();   // „An diesem Tag"-Widget (verbund-intern; nutzt Cache)
   // Ereignis-Ansicht (Liste/Zeitstrahl) zeigt Baum-bezogene Daten -> beim Baumwechsel neu laden,
   // da waehleStammbaum sonst nur die (versteckte) Baum-Ansicht neu zeichnet.
   if (aktuelleAnsicht === 'shorts') zeigeShorts();
@@ -10577,6 +10697,124 @@ function oeffneAnlaesseModal() {
 }
 function schliesseAnlaesseModal() { document.getElementById('anlaesse-modal').classList.remove('aktiv'); }
 
+// ============================================================
+// „AN DIESEM TAG" — FAMILIEN-ERINNERUNGEN (Facebook-Memories-Prinzip)
+// Aus VORHANDENEN Daten über die RPC erinnerungen_heute (verbund-intern). Zwei Oberflächen,
+// eine Render-/Lade-Logik: Dashboard-Widget (#erinn-btn -> #erinn-modal) + Sektion oben im
+// Feed (#feed-erinnerungen). Rein lesend -> setzt den Inaktivitäts-Timer NICHT zurück.
+// ============================================================
+let erinnCache = null;   // null = noch nicht geladen; [] = geladen, leer
+
+// Pluralisierung „Jahr/Jahre" je Sprache: DE/EN = 1 vs. Mehrzahl; SR/HR/BA = slawische
+// 3-Form-Regel (1 / 2–4 / sonst, mit Teen-Ausnahme 11–14). Einheit kommt aus i18n.
+function erinnVorJahren(n) {
+  const lang = aktuelleSprache;
+  let form;
+  if (lang === 'de' || lang === 'en') {
+    form = (n === 1) ? 'erinn_jahr_eins' : 'erinn_jahr_viele';
+  } else {
+    const d = n % 10, dd = n % 100;
+    if (d === 1 && dd !== 11) form = 'erinn_jahr_eins';
+    else if (d >= 2 && d <= 4 && (dd < 12 || dd > 14)) form = 'erinn_jahr_wenige';
+    else form = 'erinn_jahr_viele';
+  }
+  return t('erinn_vor', { n, unit: t(form) });
+}
+
+async function ladeErinnerungen(force) {
+  if (!aktuellerUser) { erinnCache = []; aktualisiereErinnAnzeige(); return; }
+  if (erinnCache !== null && !force) { aktualisiereErinnAnzeige(); return; }
+  try {
+    const { data, error } = await sbClient.rpc('erinnerungen_heute', { p_verbund: null });
+    if (error) throw error;
+    erinnCache = (data && data.ok && Array.isArray(data.items)) ? data.items : [];
+  } catch (e) { console.warn('erinnerungen_heute:', e); erinnCache = []; }
+  aktualisiereErinnAnzeige();
+}
+
+// Symbol + Label je Kategorie (i18n; Geburtstag/Gedenktag reuse die Anlass-Keys).
+function erinnMeta(kat) {
+  switch (kat) {
+    case 'geburtstag': return { ic: '🎂', lbl: t('anl_geburtstag') };
+    case 'gedenktag':  return { ic: '🕯️', lbl: t('anl_gedenktag') };
+    case 'hochzeit':   return { ic: '💍', lbl: t('erinn_hochzeit') };
+    case 'foto':       return { ic: '📷', lbl: t('erinn_foto') };
+    case 'beitrag':    return { ic: '📝', lbl: t('erinn_beitrag') };
+    default:           return { ic: '✨', lbl: '' };
+  }
+}
+
+// Eine Erinnerung als Listeneintrag (Modal) — nutzt das bestehende .benachr-item-Muster.
+function erinnItemHtml(it, i) {
+  const m = erinnMeta(it.kategorie);
+  const jahre = Number(it.jahre) > 0 ? erinnVorJahren(Number(it.jahre)) : '';
+  const sub = [m.lbl, jahre].filter(Boolean).join(' · ');
+  const titel = it.titel ? ` – ${escapeHtml(it.titel)}` : '';
+  return `<div class="benachr-item anl-item erinn-item" onclick="erinnOeffne(${i})">
+      <span class="anl-icon">${m.ic}</span>
+      <div class="benachr-text"><strong>${escapeHtml(nm(it.name || '?'))}</strong>${titel}
+        <div class="benachr-zeit">${escapeHtml(sub)}</div></div>
+    </div>`;
+}
+
+function renderErinnListe(box) {
+  if (!box) return;
+  const items = erinnCache || [];
+  box.innerHTML = items.length
+    ? items.map((it, i) => erinnItemHtml(it, i)).join('')
+    : `<div class="benachr-leer">${escapeHtml(t('erinn_leer'))}</div>`;
+}
+
+// Kompakte Karte für die Feed-Sektion (horizontaler Track).
+function erinnFeedKarteHtml(it, i) {
+  const m = erinnMeta(it.kategorie);
+  const jahre = Number(it.jahre) > 0 ? erinnVorJahren(Number(it.jahre)) : '';
+  return `<button type="button" class="erinn-karte" onclick="erinnOeffne(${i})" title="${escapeHtml(nm(it.name || ''))}">
+      <span class="erinn-karte-ic">${m.ic}</span>
+      <span class="erinn-karte-jahre">${escapeHtml(jahre)}</span>
+      <span class="erinn-karte-name">${escapeHtml(nm(it.name || '?'))}</span>
+      <span class="erinn-karte-kat">${escapeHtml(m.lbl)}</span>
+    </button>`;
+}
+
+// Zentral: Widget-Button, offenes Modal und Feed-Sektion auf den aktuellen Cache bringen.
+function aktualisiereErinnAnzeige() {
+  const items = erinnCache || [];
+  const n = items.length;
+  const btn = document.getElementById('erinn-btn');
+  const badge = document.getElementById('erinn-badge');
+  if (badge) badge.textContent = n > 99 ? '99+' : String(n);
+  if (btn) btn.style.display = (aktuellerUser && n > 0) ? '' : 'none';
+  if (document.getElementById('erinn-modal')?.classList.contains('aktiv'))
+    renderErinnListe(document.getElementById('erinn-liste'));
+  // Feed-Sektion
+  const wrap = document.getElementById('feed-erinnerungen');
+  const track = document.getElementById('feed-erinn-track');
+  if (wrap) wrap.style.display = n > 0 ? '' : 'none';
+  if (track) track.innerHTML = items.map((it, i) => erinnFeedKarteHtml(it, i)).join('');
+}
+
+function oeffneErinnModal() {
+  renderErinnListe(document.getElementById('erinn-liste'));
+  document.getElementById('erinn-modal').classList.add('aktiv');
+}
+function schliesseErinnModal() { document.getElementById('erinn-modal').classList.remove('aktiv'); }
+
+// Klick auf eine Erinnerung -> Person / Event / Beitrag öffnen (offene Modals vorher schließen).
+function erinnOeffne(i) {
+  const it = (erinnCache || [])[i];
+  if (!it) return;
+  if (it.ref_typ === 'person' && it.ref_ext) {
+    schliesseErinnModal();
+    if (aktuelleDaten.persons[it.ref_ext] && typeof zeigeDetails === 'function') zeigeDetails(it.ref_ext);
+  } else if (it.ref_typ === 'event' && it.ref_id && typeof zeigeEventDetail === 'function') {
+    schliesseErinnModal(); zeigeEventDetail(it.ref_id);
+  } else if (it.ref_typ === 'beitrag') {
+    schliesseErinnModal();
+    if (typeof wechselAnsicht === 'function') wechselAnsicht('feed');   // Beitrag liegt im Feed
+  }
+}
+
 // Klick auf einen Anlass -> Personenkarte öffnen (offene Modals vorher schließen).
 function anlaesseOeffne(el) {
   const pid = el.dataset.person; if (!pid) return;
@@ -11566,8 +11804,14 @@ function zeigeDetails(personId) {
     <!-- Foto-Galerie (read-only) — per JS asynchron nach dem Öffnen befüllt -->
     <div id="detail-galerie"></div>
 
+    <!-- Fotos, in denen diese Person markiert ist (Foto-Tagging) — async nachgeladen -->
+    <div id="detail-markiert"></div>
+
     <!-- Dokumente & Quellen (read-only) — per JS asynchron nach dem Öffnen befüllt -->
     <div id="detail-dokumente"></div>
+
+    <!-- Sprach-/Video-Zeitzeugen (read-only) — per JS asynchron nach dem Öffnen befüllt -->
+    <div id="detail-aufnahmen"></div>
 
     <!-- Reaktionen & Kommentare (verbund-gebunden) — per JS nach dem Öffnen befüllt -->
     <div id="detail-engagement"></div>
@@ -11588,7 +11832,9 @@ function zeigeDetails(personId) {
   detailWatchId = personId; detailWatchSig = personSignatur(personId);
   pruefeLockBanner();   // P4: ggf. „wird gerade von X bearbeitet" anzeigen
   galerieDetailRender(p);   // Foto-Galerie (read-only) asynchron nachladen
+  markierteFotosRender(p);  // Fotos, in denen die Person markiert ist (Foto-Tagging)
   dokDetailRender(p);       // Dokumente & Quellen (read-only) asynchron nachladen
+  aufnDetailRender(p);      // Sprach-/Video-Zeitzeugen (read-only) asynchron nachladen
   geschDetailRender(p);     // Lebensgeschichte (read-only, lokalisiert) asynchron nachladen
   // Reaktionen/Kommentare nur für echte (nicht Platzhalter-)Personen mit DB-UUID.
   if (p._uuid && !p.platzhalter) engagementMount('detail-engagement', 'person', p._uuid);
@@ -12023,6 +12269,7 @@ async function zeigePersonBearbeiten(personId) {
   presenceTrack(personId);   // P4: Bearbeitungssperre für diese Person setzen
   galerieEditOeffnen(p);     // Foto-Galerie (Verwaltung) laden + rendern (async)
   dokEditOeffnen(p);         // Dokumente & Quellen (Verwaltung) laden + rendern (async)
+  aufnEditOeffnen(p);        // Sprach-/Video-Zeitzeugen (Verwaltung) laden + rendern (async)
   geschEditOeffnen(p);       // Mehrsprachige Lebensgeschichten (Verwaltung) laden (async)
 }
 
@@ -12043,6 +12290,7 @@ function schliessePersonEdit() {
   editWatchId = null; editWatchSig = null;   // P3: Beobachtung beenden
   const ban = document.getElementById('sync-hinweis-edit'); if (ban) ban.remove();
   if (meinLockPerson) presenceTrack(null);   // P4: Bearbeitungssperre freigeben
+  if (typeof aufnVerwerfen === 'function') aufnVerwerfen();   // Mikrofon/Kamera-Stream + Vorschau freigeben (Datenschutz)
 }
 
 // ============================================================
@@ -12346,6 +12594,8 @@ function lightboxRender() {
   document.getElementById('lightbox-zaehler').textContent = mehr ? `${lightboxIdx + 1} / ${galerieFotos.length}` : '';
   // Reaktionen/Kommentare zum aktuell gezeigten Foto (wechselt mit der Navigation).
   if (f.id) engagementMount('lightbox-engagement', 'foto', f.id);
+  // Foto-Tagging: markierte Personen laden/zeigen (Feature 4).
+  fotoTagsRender(f.id);
 }
 function lightboxNav(d) {
   if (!galerieFotos.length) return;
@@ -12353,6 +12603,113 @@ function lightboxNav(d) {
   lightboxRender();
 }
 function schliesseLightbox() { document.getElementById('foto-lightbox').classList.remove('aktiv'); engagementUnmount('lightbox-engagement'); }
+
+// ============================================================
+// FOTO-TAGGING (Feature 4): Personen in einem Foto markieren (Tabelle foto_personen).
+// Lightbox zeigt markierte Personen als Chips; Bearbeiter können markieren/entfernen.
+// Auf der Personenkarte zeigt #detail-markiert alle Fotos, in denen die Person markiert ist.
+// ============================================================
+let fotoTagState = { fotoId: null, darf: false, tags: [] };
+
+async function fotoTagsRender(fotoId) {
+  const host = document.getElementById('lightbox-tags'); if (!host) return;
+  host.innerHTML = '';
+  fotoTagState = { fotoId, darf: false, tags: [] };
+  if (!fotoId) return;
+  try {
+    const { data, error } = await sbClient.rpc('foto_tags_holen', { p_foto: fotoId });
+    if (error || !data || data.ok === false) return;
+    // Inzwischen weitergeblättert? -> verwerfen
+    const akt = galerieFotos[lightboxIdx];
+    if (!akt || akt.id !== fotoId) return;
+    fotoTagState = { fotoId, darf: !!data.darf_markieren, tags: data.tags || [] };
+    fotoTagsPaint();
+  } catch (e) { console.warn('foto_tags_holen:', e); }
+}
+
+function fotoTagsPaint() {
+  const host = document.getElementById('lightbox-tags'); if (!host) return;
+  const chips = fotoTagState.tags.map(tg => {
+    const name = escapeHtml(nm(tg.name || '?'));
+    const ext  = tg.person_ext ? escapeHtml(String(tg.person_ext)) : '';
+    const x = fotoTagState.darf
+      ? `<button type="button" class="foto-tag-x" title="${escapeHtml(t('ft_entfernen'))}" onclick="event.stopPropagation();fotoTagEntfernen('${escapeHtml(String(tg.person_id))}')">✕</button>` : '';
+    return `<span class="foto-tag-chip" onclick="fotoTagOeffne('${ext}')">@${name}${x}</span>`;
+  }).join('');
+  const add = fotoTagState.darf
+    ? `<button type="button" class="foto-tag-add" onclick="fotoTagMarkierenStart()">＋ ${escapeHtml(t('ft_markieren'))}</button>
+       <span id="foto-tag-pick" style="display:none"><select id="foto-tag-sel" class="filter" onchange="fotoTagSetzen()"></select></span>`
+    : '';
+  host.innerHTML = (fotoTagState.tags.length || fotoTagState.darf)
+    ? `<div class="foto-tags-zeile"><span class="foto-tags-label">${escapeHtml(t('ft_titel'))}:</span> ${chips} ${add}</div>` : '';
+}
+
+function fotoTagOeffne(ext) {
+  if (!ext) return;
+  if (aktuelleDaten.persons && aktuelleDaten.persons[ext]) { schliesseLightbox(); zeigeDetails(ext); }
+  else if (typeof zeigeHinweis === 'function') zeigeHinweis(t('ent_nicht_geladen'));
+}
+
+function fotoTagMarkierenStart() {
+  const wrap = document.getElementById('foto-tag-pick'), sel = document.getElementById('foto-tag-sel');
+  if (!wrap || !sel) return;
+  const schon = new Set(fotoTagState.tags.map(tg => String(tg.person_id)));
+  const opts = [`<option value="">${escapeHtml(t('ft_person_waehlen'))}</option>`];
+  const seen = {};
+  Object.values(aktuelleDaten.persons || {}).forEach(p => {
+    if (!p._uuid || p.platzhalter || seen[p._uuid] || schon.has(String(p._uuid))) return;
+    seen[p._uuid] = 1;
+    opts.push(`<option value="${escapeHtml(p._uuid)}">${escapeHtml(nm(p.name || ''))}</option>`);
+  });
+  sel.innerHTML = opts.join('');
+  wrap.style.display = '';
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(document.getElementById('lightbox-tags'));
+}
+
+async function fotoTagSetzen() {
+  const sel = document.getElementById('foto-tag-sel'); if (!sel) return;
+  const personUuid = sel.value; if (!personUuid) return;
+  const fotoId = fotoTagState.fotoId;
+  try {
+    const { data, error } = await sbClient.rpc('foto_person_markieren', { p_foto: fotoId, p_person: personUuid, p_x: null, p_y: null });
+    if (error) throw error;
+    if (data && data.ok === false) throw new Error(data.grund || 'fehler');
+    await fotoTagsRender(fotoId);
+  } catch (err) { console.warn('foto_person_markieren:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+
+async function fotoTagEntfernen(personUuid) {
+  const fotoId = fotoTagState.fotoId;
+  try {
+    const { error } = await sbClient.rpc('foto_person_entfernen', { p_foto: fotoId, p_person: personUuid });
+    if (error) throw error;
+    await fotoTagsRender(fotoId);
+  } catch (err) { console.warn('foto_person_entfernen:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+
+// Detailkarte: alle Fotos, in denen diese Person markiert ist.
+async function markierteFotosRender(p) {
+  const host = document.getElementById('detail-markiert'); if (!host || !p || !p._uuid) return;
+  host.innerHTML = '';
+  try {
+    const { data, error } = await sbClient.rpc('person_markierte_fotos', { p_person: p._uuid });
+    if (error) throw error;
+    const fotos = Array.isArray(data) ? data : (data || []);
+    if (aktuelleModalPersonId !== p.id) return;   // Modal inzwischen gewechselt
+    if (!fotos.length) return;
+    const grid = fotos.map(f => {
+      const url = f.storage_pfad ? sbClient.storage.from('personen-fotos').getPublicUrl(f.storage_pfad).data.publicUrl : '';
+      const ext = f.besitzer_ext ? escapeHtml(String(f.besitzer_ext)) : '';
+      return `<div class="gal-karte"><img class="gal-thumb" src="${escapeHtml(url)}" alt="" title="${escapeHtml(nm(f.besitzer_name || ''))}" onclick="markiertFotoOeffne('${ext}')" onerror="this.style.visibility='hidden'"></div>`;
+    }).join('');
+    host.innerHTML = `<div class="beziehungen"><h3>${escapeHtml(t('ft_markiert_titel'))}</h3><div class="galerie-grid">${grid}</div></div>`;
+  } catch (err) { console.warn('person_markierte_fotos:', err); }
+}
+function markiertFotoOeffne(ext) {
+  if (!ext) return;
+  if (aktuelleDaten.persons && aktuelleDaten.persons[ext]) zeigeDetails(ext);
+  else if (typeof zeigeHinweis === 'function') zeigeHinweis(t('ent_nicht_geladen'));
+}
 
 // Sprachwechsel: offene Galerie-Grids (Editor/Detail) mit neuen t()-Labels neu rendern.
 function galerieSpracheUpdate() {
@@ -12608,18 +12965,36 @@ let feedBildBlob = null;          // komprimiertes Foto (Blob) für den neuen Be
 let feedBildPreviewUrl = null;
 let feedAelteste = null;          // erstellt_am des ältesten geladenen Beitrags (Pagination)
 let feedEditId = null;            // Beitrag im Inline-Bearbeiten-Modus
+let feedModus = 'wand';           // 'wand' (Beiträge) | 'fragen' (Crowdsourcing)
 
 async function zeigeFeed() {
   if (!aktuellerUser) return;
-  feedRefPersonOptionen();
   feedEditId = null;
-  await feedLaden(true);
+  if (typeof ladeErinnerungen === 'function') ladeErinnerungen();   // „An diesem Tag"-Sektion oben im Feed (nutzt Cache)
+  feedApplyModusUI();
+  if (feedModus === 'fragen') { frageRefPersonOptionen(); await fragenLaden(true); }
+  else { feedRefPersonOptionen(); await feedLaden(true); }
 }
 
-// Personen-Markierungs-Select aus den geladenen Personen (aktueller + verknüpfte Bäume) füllen.
-function feedRefPersonOptionen() {
-  const sel = document.getElementById('feed-ref-person'); if (!sel) return;
-  const opts = [`<option value="">${escapeHtml(t('feed_keine_markierung'))}</option>`];
+function feedSetModus(m) {
+  feedModus = (m === 'fragen') ? 'fragen' : 'wand';
+  feedApplyModusUI();
+  if (feedModus === 'fragen') { frageRefPersonOptionen(); fragenLaden(true); }
+  else { feedRefPersonOptionen(); feedLaden(true); }
+}
+function feedApplyModusUI() {
+  const w = document.getElementById('feed-modus-wand'), f = document.getElementById('feed-modus-fragen');
+  if (w) w.classList.toggle('aktiv', feedModus === 'wand');
+  if (f) f.classList.toggle('aktiv', feedModus === 'fragen');
+  const dw = document.getElementById('feed-wand'), df = document.getElementById('feed-fragen');
+  if (dw) dw.style.display = feedModus === 'wand' ? '' : 'none';
+  if (df) df.style.display = feedModus === 'fragen' ? '' : 'none';
+}
+
+// Personen-Select aus den geladenen Personen (aktueller + verknüpfte Bäume) füllen (wiederverwendbar).
+function feedPersonOptionen(selId, leerLabel) {
+  const sel = document.getElementById(selId); if (!sel) return;
+  const opts = [`<option value="">${escapeHtml(leerLabel)}</option>`];
   const seen = {};
   Object.values(aktuelleDaten.persons || {}).forEach(p => {
     if (!p._uuid || p.platzhalter || seen[p._uuid]) return;
@@ -12629,6 +13004,8 @@ function feedRefPersonOptionen() {
   sel.innerHTML = opts.join('');
   if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(document.getElementById('ansicht-feed'));
 }
+function feedRefPersonOptionen()  { feedPersonOptionen('feed-ref-person',  t('feed_keine_markierung')); }
+function frageRefPersonOptionen() { feedPersonOptionen('frage-ref-person', t('feed_keine_markierung')); }
 
 async function feedLaden(reset) {
   const box = document.getElementById('feed-liste'); if (!box) return;
@@ -12841,13 +13218,133 @@ async function feedBeitragLoeschen(id) {
   } catch (err) { console.warn('beitrag_loeschen:', err); await zeigeHinweis(t('eng_fehler')); }
 }
 
-// Sprachwechsel: Composer-Select + offene Liste neu aufbauen.
+// Sprachwechsel: Composer-Select + offene Liste neu aufbauen (je nach Modus).
 function feedSpracheUpdate() {
-  if (document.getElementById('ansicht-feed') && document.getElementById('ansicht-feed').style.display !== 'none') {
-    feedRefPersonOptionen();
-    feedRender();
-  }
+  const sec = document.getElementById('ansicht-feed');
+  if (!sec || sec.style.display === 'none') return;
+  feedApplyModusUI();
+  if (feedModus === 'fragen') { frageRefPersonOptionen(); fragenRender(); }
+  else { feedRefPersonOptionen(); feedRender(); }
 }
+
+// ===== FAMILIEN-FRAGEN ("Wer ist das?") — Crowdsourcing; Antworten = Kommentare (ziel_typ='frage') =====
+let fragenCache = [], fragenAelteste = null, frageBildBlob = null, frageBildPreviewUrl = null, frageLoesenId = null;
+async function fragenLaden(reset) {
+  const box = document.getElementById('fragen-liste'); if (!box) return;
+  const nurOffen = !!document.getElementById('frage-nur-offen')?.checked;
+  if (reset) { fragenCache = []; fragenAelteste = null; box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`; }
+  try {
+    const { data, error } = await sbClient.rpc('fragen_holen', { p_nur_offen: nurOffen, p_limit: FEED_SEITE, p_vor: fragenAelteste });
+    if (error) throw error;
+    const rows = data || [];
+    fragenCache = reset ? rows : fragenCache.concat(rows);
+    if (rows.length) fragenAelteste = rows[rows.length - 1].erstellt_am;
+    const mb = document.getElementById('fragen-mehr'); if (mb) mb.style.display = rows.length === FEED_SEITE ? '' : 'none';
+    fragenRender();
+  } catch (err) { console.warn('fragen_holen:', err); box.innerHTML = `<div class="feed-leer">${escapeHtml((err && err.message) || t('eng_fehler'))}</div>`; }
+}
+function fragenMehr() { fragenLaden(false); }
+function fragenRender() {
+  const box = document.getElementById('fragen-liste'); if (!box) return;
+  engagementMounts = engagementMounts.filter(m => !m.containerId.startsWith('frage-eng-'));
+  if (!fragenCache.length) { box.innerHTML = `<div class="feed-leer">${escapeHtml(t('frage_leer'))}</div>`; return; }
+  box.innerHTML = fragenCache.map(frageHtml).join('');
+  fragenCache.forEach(fr => engagementMount('frage-eng-' + fr.id, 'frage', fr.id));
+}
+function frageHtml(fr) {
+  const id = escapeHtml(String(fr.id));
+  const zeit = fr.erstellt_am ? new Date(fr.erstellt_am).toLocaleString() : '';
+  const geloest = fr.status === 'geloest';
+  const badge = `<span class="frage-badge ${geloest ? 'geloest' : 'offen'}">${escapeHtml(t(geloest ? 'frage_status_geloest' : 'frage_status_offen'))}</span>`;
+  const bild = fr.foto_url ? `<div class="feed-bild-wrap"><img class="feed-bild" src="${escapeHtml(fr.foto_url)}" alt="" loading="lazy"></div>` : '';
+  const bezug = fr.person_id && fr.person_name ? `<div class="frage-bezug">${escapeHtml(t('frage_bezug'))}: <button type="button" class="feed-tag" onclick="feedOeffnePerson('${escapeHtml(String(fr.person_id))}')">@${escapeHtml(nm(fr.person_name))}</button></div>` : '';
+  const loesung = geloest && fr.geloest_person && fr.geloest_person_name ? `<div class="frage-loesung">✓ ${escapeHtml(t('frage_identifiziert_als'))}: <button type="button" class="feed-tag" onclick="feedOeffnePerson('${escapeHtml(String(fr.geloest_person))}')">@${escapeHtml(nm(fr.geloest_person_name))}</button></div>` : '';
+  const akt = [];
+  if (fr.darf_loesen && !geloest) akt.push(`<button type="button" class="eng-link" onclick="frageLoesenOeffnen('${id}')">${escapeHtml(t('frage_loesen_btn'))}</button>`);
+  if (fr.darf_loesen && geloest)  akt.push(`<button type="button" class="eng-link" onclick="frageWiederOeffnen('${id}')">${escapeHtml(t('frage_wieder_oeffnen'))}</button>`);
+  if (fr.darf_loeschen)           akt.push(`<button type="button" class="eng-link eng-del" onclick="frageLoeschen('${id}')">${escapeHtml(t('eng_loeschen'))}</button>`);
+  return `<div class="feed-beitrag frage-karte${geloest ? ' geloest' : ''}" id="frage-k-${id}"><div class="feed-kopf">${entAvatar(fr.steller_name, fr.steller_avatar)}<div class="feed-kopf-txt"><div class="feed-autor">${escapeHtml(nm(fr.steller_name || ''))} ${badge}</div><div class="feed-zeit">${escapeHtml(zeit)}</div></div>${akt.length ? `<div class="feed-akt">${akt.join('')}</div>` : ''}</div><div class="frage-text">❓ ${escapeHtml(fr.frage || '').replace(/\n/g, '<br>')}</div>${bezug}${bild}${loesung}<div class="feed-eng" id="frage-eng-${id}"></div></div>`;
+}
+async function frageBildGewaehlt(ev) {
+  const file = ev.target.files && ev.target.files[0]; if (!file) return;
+  try {
+    frageBildBlob = await galerieKomprimiere(file, 1600, 0.85);
+    if (frageBildPreviewUrl) URL.revokeObjectURL(frageBildPreviewUrl);
+    frageBildPreviewUrl = URL.createObjectURL(frageBildBlob);
+    document.getElementById('frage-bild-img').src = frageBildPreviewUrl;
+    document.getElementById('frage-bild-vorschau').style.display = '';
+  } catch (e) { console.warn('Frage-Bild:', e); await zeigeHinweis(t('eng_fehler')); }
+  ev.target.value = '';
+}
+function frageBildEntfernen() {
+  frageBildBlob = null;
+  if (frageBildPreviewUrl) { URL.revokeObjectURL(frageBildPreviewUrl); frageBildPreviewUrl = null; }
+  document.getElementById('frage-bild-vorschau').style.display = 'none';
+  document.getElementById('frage-bild-img').src = '';
+}
+async function frageStellen() {
+  const ta = document.getElementById('frage-text'); if (!ta) return;
+  const txt = ta.value.trim();
+  if (!txt) { await zeigeHinweis(t('frage_fehler_leer')); return; }
+  const btn = document.getElementById('frage-senden'); if (btn) btn.disabled = true;
+  try {
+    let bildPfad = null, bildUrl = null;
+    if (frageBildBlob) {
+      const name = (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.round(Math.random() * 1e9));
+      bildPfad = `${aktuellerUser.id}/${name}.webp`;
+      const up = await sbClient.storage.from('beitraege').upload(bildPfad, frageBildBlob, { contentType: frageBildBlob.type || 'image/webp', upsert: false });
+      if (up.error) throw up.error;
+      bildUrl = sbClient.storage.from('beitraege').getPublicUrl(bildPfad).data.publicUrl;
+    }
+    const ref = document.getElementById('frage-ref-person');
+    const { data, error } = await sbClient.rpc('frage_stellen', { p_frage: txt, p_foto_pfad: bildPfad, p_foto_url: bildUrl, p_person_id: (ref && ref.value) ? ref.value : null });
+    if (error) throw error;
+    if (data && data.ok === false) throw new Error(data.grund || 'fehler');
+    ta.value = ''; frageBildEntfernen(); if (ref) ref.value = '';
+    await fragenLaden(true);
+  } catch (err) { console.warn('frage_stellen:', err); await zeigeHinweis(t('feed_fehler_' + (err && err.message)) || t('eng_fehler')); }
+  finally { if (btn) btn.disabled = false; }
+}
+async function frageLoeschen(id) {
+  const ok = await zeigeBestaetigung(t('frage_loeschen_frage')); if (!ok) return;
+  try {
+    const { data, error } = await sbClient.rpc('frage_loeschen', { p_id: id });
+    if (error) throw error;
+    if (data && data.foto_pfad) { try { await sbClient.storage.from('beitraege').remove([data.foto_pfad]); } catch (e) {} }
+    engagementUnmount('frage-eng-' + id); await fragenLaden(true);
+  } catch (err) { console.warn('frage_loeschen:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+async function frageWiederOeffnen(id) {
+  try { const { error } = await sbClient.rpc('frage_wieder_oeffnen', { p_id: id }); if (error) throw error; await fragenLaden(true); }
+  catch (err) { console.warn('frage_wieder_oeffnen:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+function frageLoesenOeffnen(id) {
+  const fr = fragenCache.find(x => String(x.id) === String(id)); if (!fr) return;
+  frageLoesenId = id;
+  document.getElementById('frage-loesen-text').textContent = fr.frage || '';
+  const sel = document.getElementById('frage-loesen-person');
+  const opts = [`<option value="">${escapeHtml(t('frage_keine_person'))}</option>`]; const seen = {};
+  Object.values(aktuelleDaten.persons || {}).forEach(p => { if (!p._uuid || p.platzhalter || seen[p._uuid]) return; seen[p._uuid] = 1; opts.push(`<option value="${escapeHtml(p._uuid)}">${escapeHtml(nm(p.name || ''))}</option>`); });
+  sel.innerHTML = opts.join(''); if (fr.person_id) sel.value = fr.person_id;
+  const kb = document.getElementById('frage-loesen-karte'); if (kb) kb.style.display = '';
+  document.getElementById('frage-loesen-modal').classList.add('aktiv');
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(document.getElementById('frage-loesen-modal'));
+}
+function schliesseFrageLoesen() { document.getElementById('frage-loesen-modal').classList.remove('aktiv'); frageLoesenId = null; }
+function frageLoesenKarte() {
+  const sel = document.getElementById('frage-loesen-person'); const uuid = sel && sel.value ? sel.value : null;
+  if (!uuid) { zeigeHinweis(t('frage_keine_person')); return; }
+  const lokal = Object.values(aktuelleDaten.persons || {}).find(p => String(p._uuid) === String(uuid));
+  if (lokal && typeof zeigePersonBearbeiten === 'function') { schliesseFrageLoesen(); zeigePersonBearbeiten(lokal.id); }
+  else zeigeHinweis(t('ent_nicht_geladen'));
+}
+async function frageLoesenBestaetigen() {
+  if (!frageLoesenId) return;
+  const sel = document.getElementById('frage-loesen-person');
+  try { const { error } = await sbClient.rpc('frage_loesen', { p_id: frageLoesenId, p_geloest_person: (sel && sel.value) ? sel.value : null }); if (error) throw error; schliesseFrageLoesen(); await fragenLaden(true); }
+  catch (err) { console.warn('frage_loesen:', err); await zeigeHinweis(t('eng_fehler')); }
+}
+function fragenSpracheUpdate() { if (document.getElementById('frage-loesen-modal')?.classList.contains('aktiv') && frageLoesenId) frageLoesenOeffnen(frageLoesenId); }
 
 // ---- Realtime (beitraege) — neue/aktualisierte Beiträge live, OHNE Auto-Logout-Timer ----
 let feedChannel = null;
@@ -12860,6 +13357,7 @@ function startFeedSync() {
     feedChannel = sbClient.channel('feed-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'beitraege' }, () => feedLiveAnstossen())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'aktivitaeten' }, () => feedLiveAnstossen())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'familien_fragen' }, () => feedLiveAnstossen())
       .subscribe();
   } catch (e) { console.warn('Feed-Realtime nicht verfügbar:', e); feedChannel = null; }
 }
@@ -12874,7 +13372,7 @@ function feedLiveAnstossen() {
   if (!sichtbar) return;   // nur aktualisieren, wenn der Feed offen ist
   if (document.visibilityState !== 'visible') { feedPending = true; return; }
   if (feedReloadTimer) clearTimeout(feedReloadTimer);
-  feedReloadTimer = setTimeout(() => feedLaden(true), 500);
+  feedReloadTimer = setTimeout(() => { if (feedModus === 'fragen') fragenLaden(true); else feedLaden(true); }, 500);
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && feedPending && aktuellerUser) { feedPending = false; feedLiveAnstossen(); }
@@ -13368,6 +13866,336 @@ document.addEventListener('keydown', (e) => {
   const v = document.getElementById('dok-viewer');
   if (v && v.classList.contains('aktiv') && e.key === 'Escape') schliesseDokViewer();
 });
+
+// ============================================================
+// SPRACH-/VIDEO-ZEITZEUGEN pro Person (Erinnerungen & Stimmen) — Aufnahme im
+// Browser (MediaRecorder, KEINE neue Library) oder Datei-Upload; Audio ODER Video,
+// optionaler Titel + Transkript. Privater Bucket -> Zugriff über signierte URLs
+// (Aufnahmen lebender Personen bleiben verbund-intern). Read-only in der Detailkarte
+// (#detail-aufnahmen, alle Nutzer mit Lesezugriff, Abspielen direkt auf der Karte),
+// Verwaltung im Editor (#pe-aufn-*, nur Bearbeiter — istAdmin/RLS).
+// PREMIUM-/LIMIT-KANDIDAT (media-/egress-intensiv): v1 begrenzt clientseitig 50 MB;
+// hartes Server-Quota folgt mit der abo_status-Kopplung.
+// ============================================================
+const AUFN_BUCKET = 'person-aufnahmen';
+const AUFN_SIGNED_SEK = 3600;     // signierte URL 1 h gültig
+const AUFN_MAX_MB = 50;           // clientseitiges Limit je Aufnahme (Egress-Schonung)
+let aufnListe = [];               // aktuell geladene Aufnahmen (gemeinsam Editor & Detail)
+let aufnCtx   = null;             // { personUuid, stammbaumId, familieId, editierbar }
+let aufnRecModus = 'audio';       // 'audio' | 'video'
+let aufnRecorder = null, aufnChunks = [], aufnStream = null;
+let aufnTimerId = null, aufnStartTs = 0;
+let aufnPending = null;           // { blob, typ, dauer, url, ext } — noch nicht gespeichert
+
+function aufnRecMoeglich() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+}
+function aufnTypIcon(typ) { return typ === 'video' ? '🎬' : '🎙️'; }
+function aufnDauerLabel(sek) {
+  sek = Math.max(0, Math.round(sek || 0));
+  return Math.floor(sek / 60) + ':' + String(sek % 60).padStart(2, '0');
+}
+// Dateiendung aus dem MIME-Typ (Browser-Aufnahmen sind i. d. R. webm; iOS liefert mp4).
+function aufnExt(mime) {
+  mime = (mime || '').toLowerCase();
+  if (mime.indexOf('mp4') >= 0)  return 'mp4';
+  if (mime.indexOf('ogg') >= 0)  return 'ogg';
+  if (mime.indexOf('mpeg') >= 0) return 'mp3';
+  if (mime.indexOf('wav') >= 0)  return 'wav';
+  if (mime.indexOf('quicktime') >= 0 || mime.indexOf('mov') >= 0) return 'mov';
+  return 'webm';
+}
+function aufnFehler(msg) {
+  const el = document.getElementById('pe-fehler');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+// Länge (Sekunden) best-effort aus den Metadaten eines Blobs lesen.
+function aufnMedienDauer(blob, istVideo) {
+  return new Promise((res) => {
+    let url; try { url = URL.createObjectURL(blob); } catch (e) { return res(0); }
+    const el = document.createElement(istVideo ? 'video' : 'audio');
+    el.preload = 'metadata';
+    const fertig = (d) => { try { URL.revokeObjectURL(url); } catch (e) {} res(d); };
+    el.onloadedmetadata = () => fertig(isFinite(el.duration) && el.duration > 0 ? Math.round(el.duration) : 0);
+    el.onerror = () => fertig(0);
+    el.src = url;
+  });
+}
+
+// Signierte URL eines Aufnahme-Pfades (privater Bucket -> kein public URL).
+async function aufnSignedUrl(pfad) {
+  if (!pfad) return '';
+  const { data, error } = await sbClient.storage.from(AUFN_BUCKET).createSignedUrl(pfad, AUFN_SIGNED_SEK);
+  if (error) { console.warn('Aufnahme signierte URL:', error); return ''; }
+  return data.signedUrl;
+}
+
+// Aufnahmen einer Person laden (sortiert) + signierte URLs (gebündelt) anhängen.
+async function ladePersonAufnahmen(personUuid) {
+  if (!personUuid) return [];
+  const { data, error } = await sbClient.from('person_aufnahmen')
+    .select('id, person_id, storage_pfad, typ, titel, transkript, dauer_sek, sortierung, erstellt_am')
+    .eq('person_id', personUuid)
+    .order('sortierung', { ascending: true })
+    .order('erstellt_am', { ascending: true });
+  if (error) { console.warn('Aufnahmen laden:', error); return []; }
+  const rows = data || [];
+  const pfade = rows.map(r => r.storage_pfad).filter(Boolean);
+  const urlMap = {};
+  if (pfade.length) {
+    const { data: signed } = await sbClient.storage.from(AUFN_BUCKET).createSignedUrls(pfade, AUFN_SIGNED_SEK);
+    (signed || []).forEach(s => { if (s && s.path && s.signedUrl) urlMap[s.path] = s.signedUrl; });
+  }
+  return rows.map(r => ({ ...r, _url: urlMap[r.storage_pfad] || '' }));
+}
+
+// Eine Aufnahme-Zeile (Player + Meta + optional Transkript/Löschen).
+function aufnItemHtml(a, editierbar) {
+  const typKey = (a.typ === 'video') ? 'aufn_video' : 'aufn_audio';
+  const dauer = a.dauer_sek ? aufnDauerLabel(a.dauer_sek) : '';
+  const datum = a.erstellt_am ? formatDatumLang(String(a.erstellt_am).slice(0, 10)) : '';
+  const player = a.typ === 'video'
+    ? `<video class="aufn-player" controls playsinline preload="metadata" src="${escapeHtml(a._url || '')}"></video>`
+    : `<audio class="aufn-player" controls preload="metadata" src="${escapeHtml(a._url || '')}"></audio>`;
+  return `<div class="aufn-item" data-id="${a.id}">
+    <div class="aufn-item-kopf">
+      <span class="aufn-icon" aria-hidden="true">${aufnTypIcon(a.typ)}</span>
+      <div class="aufn-meta">
+        <div class="aufn-item-titel">${escapeHtml(a.titel || t(typKey))}</div>
+        <div class="aufn-sub">${escapeHtml([t(typKey), dauer, datum].filter(Boolean).join(' · '))}</div>
+      </div>
+      ${editierbar ? `<button type="button" class="dok-act dok-del" title="${escapeHtml(t('aufn_loeschen'))}" aria-label="${escapeHtml(t('aufn_loeschen'))}" onclick="aufnLoeschen('${a.id}')">🗑</button>` : ''}
+    </div>
+    ${player}
+    ${a.transkript ? `<details class="aufn-transkript"><summary>${escapeHtml(t('aufn_transkript_zeigen'))}</summary><div class="aufn-transkript-text">${escapeHtml(a.transkript)}</div></details>` : ''}
+  </div>`;
+}
+
+// --- Verwaltung im Editor ---------------------------------------------------
+async function aufnEditOeffnen(p) {
+  const liste = document.getElementById('pe-aufn-liste');
+  if (!liste || !p || !p._uuid) return;
+  const tree = p._tree || aktuellerStammbaumId || null;
+  aufnCtx = { personUuid: p._uuid, personExt: p.id, stammbaumId: tree,
+              familieId: stammbaumZuFamilie[tree] || null, editierbar: true };
+  aufnVerwerfen();           // ggf. offene Aufnahme/Stream der vorigen Person beenden
+  aufnSetModus('audio');
+  // Browser ohne MediaRecorder/getUserMedia: Aufnahme-Steuerung ausblenden, Upload bleibt.
+  const rec = aufnRecMoeglich();
+  const recBtn = document.getElementById('aufn-rec-btn');
+  const modus  = document.getElementById('aufn-modus');
+  const hinweis = document.getElementById('aufn-rec-hinweis');
+  if (recBtn)  recBtn.style.display  = rec ? '' : 'none';
+  if (modus)   modus.style.display   = rec ? '' : 'none';
+  if (hinweis) hinweis.style.display = rec ? 'none' : 'block';
+  liste.innerHTML = `<div class="galerie-laden">${escapeHtml(t('aufn_laden'))}</div>`;
+  aufnListe = await ladePersonAufnahmen(p._uuid);
+  aufnEditRender();
+}
+
+function aufnEditRender() {
+  const liste = document.getElementById('pe-aufn-liste');
+  if (!liste) return;
+  liste.innerHTML = aufnListe.length
+    ? aufnListe.map(a => aufnItemHtml(a, true)).join('')
+    : `<div class="galerie-leer">${escapeHtml(t('aufn_leer'))}</div>`;
+}
+
+// Aufnahme-Modus umschalten (Audio/Video). Bei laufender Aufnahme gesperrt.
+function aufnSetModus(m) {
+  if (aufnRecorder && aufnRecorder.state === 'recording') return;
+  aufnRecModus = (m === 'video') ? 'video' : 'audio';
+  document.querySelectorAll('#aufn-modus .aufn-modus-btn').forEach(b =>
+    b.classList.toggle('aktiv', b.getAttribute('data-modus') === aufnRecModus));
+}
+
+// Timer-Anzeige während der Aufnahme.
+function aufnTimerLauf(an) {
+  const el = document.getElementById('aufn-rec-timer');
+  if (aufnTimerId) { clearInterval(aufnTimerId); aufnTimerId = null; }
+  if (!an) { if (el) el.style.display = 'none'; return; }
+  if (el) { el.style.display = 'inline-block'; el.textContent = '0:00'; }
+  aufnTimerId = setInterval(() => {
+    if (el) el.textContent = aufnDauerLabel((Date.now() - aufnStartTs) / 1000);
+  }, 500);
+}
+
+// Aufnahme starten/stoppen (MediaRecorder).
+async function aufnRecToggle() {
+  if (aufnRecorder && aufnRecorder.state === 'recording') { aufnRecorder.stop(); return; }
+  if (!aufnRecMoeglich()) { aufnFehler(t('aufn_nicht_unterstuetzt')); return; }
+  aufnVerwerfenNurMedia();    // evtl. vorige (nicht gespeicherte) Aufnahme verwerfen
+  const istVideo = aufnRecModus === 'video';
+  try {
+    aufnStream = await navigator.mediaDevices.getUserMedia(
+      istVideo ? { audio: true, video: { facingMode: 'user' } } : { audio: true });
+  } catch (e) { aufnFehler(t('aufn_kein_zugriff')); return; }
+  const vid = document.getElementById('aufn-vorschau-video');
+  if (istVideo && vid) { vid.srcObject = aufnStream; vid.style.display = 'block'; vid.play().catch(() => {}); }
+  aufnChunks = [];
+  let mime = istVideo ? 'video/webm' : 'audio/webm';
+  if (!(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(mime))) mime = '';
+  try { aufnRecorder = mime ? new MediaRecorder(aufnStream, { mimeType: mime }) : new MediaRecorder(aufnStream); }
+  catch (e) { try { aufnRecorder = new MediaRecorder(aufnStream); } catch (e2) { aufnFehler(t('aufn_nicht_unterstuetzt')); aufnStreamStop(); return; } }
+  aufnRecorder.ondataavailable = (e) => { if (e.data && e.data.size) aufnChunks.push(e.data); };
+  aufnRecorder.onstop = () => aufnRecGestoppt(istVideo);
+  aufnStartTs = Date.now();
+  aufnRecorder.start();
+  aufnTimerLauf(true);
+  const btn = document.getElementById('aufn-rec-btn');
+  if (btn) { btn.textContent = t('aufn_rec_stop'); btn.classList.add('aufn-rec-aktiv'); }
+}
+
+function aufnStreamStop() {
+  const vid = document.getElementById('aufn-vorschau-video');
+  if (vid) { vid.srcObject = null; vid.style.display = 'none'; }
+  if (aufnStream) { try { aufnStream.getTracks().forEach(tr => tr.stop()); } catch (e) {} aufnStream = null; }
+}
+
+async function aufnRecGestoppt(istVideo) {
+  aufnTimerLauf(false);
+  const dauer = Math.max(1, Math.round((Date.now() - aufnStartTs) / 1000));
+  const btn = document.getElementById('aufn-rec-btn');
+  if (btn) { btn.textContent = t('aufn_rec_start'); btn.classList.remove('aufn-rec-aktiv'); }
+  const mime = (aufnRecorder && aufnRecorder.mimeType) || (istVideo ? 'video/webm' : 'audio/webm');
+  aufnStreamStop();
+  const blob = new Blob(aufnChunks, { type: mime });
+  aufnRecorder = null; aufnChunks = [];
+  if (!blob.size) return;
+  if (blob.size > AUFN_MAX_MB * 1024 * 1024) { aufnFehler(t('aufn_gross_fehler')); return; }
+  aufnPendingSetzen(blob, istVideo ? 'video' : 'audio', dauer, aufnExt(mime));
+}
+
+// Datei-Upload-Pfad (Audio/Video vom Gerät).
+async function aufnDateiGewaehlt(input) {
+  const file = input && input.files && input.files[0];
+  if (input) input.value = '';
+  if (!file) return;
+  const istVideo = file.type.startsWith('video');
+  const istAudio = file.type.startsWith('audio');
+  if (!istVideo && !istAudio) { aufnFehler(t('aufn_typ_fehler')); return; }
+  if (file.size > AUFN_MAX_MB * 1024 * 1024) { aufnFehler(t('aufn_gross_fehler')); return; }
+  aufnVerwerfenNurMedia();
+  const dauer = await aufnMedienDauer(file, istVideo);
+  const ext = aufnExt(file.type) || (file.name.split('.').pop() || 'webm').toLowerCase();
+  aufnPendingSetzen(file, istVideo ? 'video' : 'audio', dauer, ext);
+}
+
+// Noch nicht gespeicherte Aufnahme als Vorschau zeigen + Metadatenfelder freigeben.
+function aufnPendingSetzen(blob, typ, dauer, ext) {
+  if (aufnPending && aufnPending.url) { try { URL.revokeObjectURL(aufnPending.url); } catch (e) {} }
+  const url = URL.createObjectURL(blob);
+  aufnPending = { blob, typ, dauer, url, ext };
+  const player = document.getElementById('aufn-pending-player');
+  if (player) player.innerHTML = typ === 'video'
+    ? `<video class="aufn-player" controls playsinline src="${url}"></video>`
+    : `<audio class="aufn-player" controls src="${url}"></audio>`;
+  const wrap = document.getElementById('aufn-pending'); if (wrap) wrap.style.display = 'block';
+  const fehlerEl = document.getElementById('pe-fehler'); if (fehlerEl) fehlerEl.style.display = 'none';
+}
+
+async function aufnSpeichern() {
+  if (!aufnCtx || !aufnCtx.editierbar || !aufnPending) return;
+  if (!aufnCtx.stammbaumId || !aufnCtx.familieId) { aufnFehler(t('reg_fehler') + 'kein Baum/Familie'); return; }
+  const titel      = (document.getElementById('aufn-titel').value || '').trim();
+  const transkript = (document.getElementById('aufn-transkript').value || '').trim();
+  const btn = document.getElementById('aufn-save-btn'); const altTxt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  try {
+    const uuid = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2));
+    const pfad = `${aufnCtx.stammbaumId}/${aufnCtx.personUuid}/${uuid}.${aufnPending.ext}`;
+    const up = await sbClient.storage.from(AUFN_BUCKET).upload(pfad, aufnPending.blob,
+      { cacheControl: '3600', contentType: aufnPending.blob.type || 'application/octet-stream', upsert: false });
+    if (up.error) { aufnFehler(t('aufn_upload_fehler') + up.error.message); return; }
+    const sort = aufnListe.reduce((m, a) => Math.max(m, a.sortierung || 0), 0) + 10;
+    const { data: row, error: insErr } = await sbClient.from('person_aufnahmen').insert({
+      person_id: aufnCtx.personUuid, familie_id: aufnCtx.familieId, stammbaum_id: aufnCtx.stammbaumId,
+      storage_pfad: pfad, typ: aufnPending.typ, titel: titel || null, transkript: transkript || null,
+      dauer_sek: aufnPending.dauer || 0, sortierung: sort,
+      erstellt_von: (aktuellerUser && aktuellerUser.id) || null
+    }).select('id, person_id, storage_pfad, typ, titel, transkript, dauer_sek, sortierung, erstellt_am').single();
+    if (insErr) {
+      try { await sbClient.storage.from(AUFN_BUCKET).remove([pfad]); } catch (e) {}
+      aufnFehler(t('aufn_upload_fehler') + insErr.message); return;
+    }
+    aufnListe.push({ ...row, _url: await aufnSignedUrl(pfad) });
+    aufnVerwerfen();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = altTxt || t('aufn_speichern'); }
+  }
+  aufnEditRender();
+}
+
+// Nur die noch nicht gespeicherte Vorschau/Medien verwerfen (Stream/Recorder stoppen,
+// Blob-URL freigeben).
+function aufnVerwerfenNurMedia() {
+  try { if (aufnRecorder && aufnRecorder.state === 'recording') aufnRecorder.stop(); } catch (e) {}
+  aufnTimerLauf(false);
+  aufnStreamStop();
+  aufnRecorder = null; aufnChunks = [];
+  if (aufnPending && aufnPending.url) { try { URL.revokeObjectURL(aufnPending.url); } catch (e) {} }
+  aufnPending = null;
+  const btn = document.getElementById('aufn-rec-btn');
+  if (btn) { btn.textContent = t('aufn_rec_start'); btn.classList.remove('aufn-rec-aktiv'); }
+}
+
+// Vorschau komplett verwerfen + Panel/Felder zurücksetzen.
+function aufnVerwerfen() {
+  aufnVerwerfenNurMedia();
+  const player = document.getElementById('aufn-pending-player'); if (player) player.innerHTML = '';
+  const wrap = document.getElementById('aufn-pending'); if (wrap) wrap.style.display = 'none';
+  const ti = document.getElementById('aufn-titel'); if (ti) ti.value = '';
+  const tr = document.getElementById('aufn-transkript'); if (tr) tr.value = '';
+}
+
+async function aufnLoeschen(id) {
+  if (!aufnCtx || !aufnCtx.editierbar) return;
+  const a = aufnListe.find(x => x.id === id); if (!a) return;
+  if (!await zeigeBestaetigung(t('aufn_loeschen_frage'), { gefahr: true })) return;
+  const { error } = await sbClient.from('person_aufnahmen').delete().eq('id', id);
+  if (error) { aufnFehler(t('reg_fehler') + error.message); return; }
+  try { await sbClient.storage.from(AUFN_BUCKET).remove([a.storage_pfad]); } catch (e) { console.warn('Aufnahme-Storage löschen:', e); }
+  aufnListe = aufnListe.filter(x => x.id !== id);
+  aufnEditRender();
+}
+
+// --- Read-only-Liste in der Detailkarte (alle Nutzer mit Lesezugriff) ------
+async function aufnDetailRender(p) {
+  const host = document.getElementById('detail-aufnahmen');
+  if (!host || !p || !p._uuid) return;
+  aufnCtx = { personUuid: p._uuid, personExt: p.id, stammbaumId: p._tree || null,
+              familieId: stammbaumZuFamilie[p._tree] || null, editierbar: false };
+  aufnListe = await ladePersonAufnahmen(p._uuid);
+  if (aktuelleModalPersonId !== p.id) return;   // Modal inzwischen gewechselt -> nicht überschreiben
+  if (!aufnListe.length) { host.innerHTML = ''; return; }
+  host.innerHTML = `
+    <div class="beziehungen"><h3>${escapeHtml(t('aufn_titel'))}</h3>
+      <div class="aufn-liste">${aufnListe.map(a => aufnItemHtml(a, false)).join('')}</div>
+    </div>`;
+}
+
+// Storage-Dateien aller Aufnahmen der gegebenen Personen entfernen (keine Waisen
+// beim Personen-Löschen; die DB-Zeilen verschwinden per ON DELETE CASCADE).
+async function aufnLoescheFuerPersonen(uuids) {
+  if (!uuids || !uuids.length) return;
+  try {
+    const { data } = await sbClient.from('person_aufnahmen').select('storage_pfad').in('person_id', uuids);
+    const pfade = (data || []).map(r => r.storage_pfad).filter(Boolean);
+    if (pfade.length) await sbClient.storage.from(AUFN_BUCKET).remove(pfade);
+  } catch (e) { console.warn('Aufnahme-Cleanup (Person löschen):', e); }
+}
+
+// Sprachwechsel: offene Aufnahme-Listen (Editor/Detail) mit neuen t()-Labels neu rendern.
+function aufnSpracheUpdate() {
+  const edit = document.getElementById('person-edit-modal');
+  if (edit && edit.classList.contains('aktiv') && aufnCtx && aufnCtx.editierbar) aufnEditRender();
+  const host  = document.getElementById('detail-aufnahmen');
+  const modal = document.getElementById('modal');
+  if (modal && modal.classList.contains('aktiv') && host && host.innerHTML.trim()) {
+    const p = aktuelleDaten && aktuelleDaten.persons && aktuelleDaten.persons[aktuelleModalPersonId];
+    if (p) aufnDetailRender(p);
+  }
+}
 
 // Pflichtprüfung Namen (ab v11): Vorname + Nachname IMMER Pflicht; bei Frauen zusätzlich der
 // Mädchenname (ehename) — nötig für die korrekte Blutlinien-Erkennung im Renderer (istBlutName).
@@ -14516,6 +15344,7 @@ async function loeschePerson(personId) {
   //    Personen-Delete, solange die personen_fotos-Zeilen noch existieren.
   await galerieLoescheFuerPersonen(alleUuids);
   await dokLoescheFuerPersonen(alleUuids);   // Dokument-Storage-Dateien (DB-Zeilen per CASCADE)
+  await aufnLoescheFuerPersonen(alleUuids);  // Aufnahme-Storage-Dateien (DB-Zeilen per CASCADE)
 
   // 1) Alle Beziehungen ALLER betroffenen Karten entfernen (keine verwaisten Kanten)
   let relErr = (await sbClient.from('beziehungen').delete().in('person_a', alleUuids)).error;
