@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="13.6">
+<meta name="app-version" content="13.7">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -45,7 +45,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin="anonymous"></script>
-<link rel="stylesheet" href="stammbaum.css?v=13.6">
+<link rel="stylesheet" href="stammbaum.css?v=13.7">
 </head>
 <body>
 
@@ -2216,7 +2216,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=13.6"></script>
+<script src="i18n.js?v=13.7"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -4704,7 +4704,7 @@ async function entdeckenSuche() {
     }
   } catch (e) {
     console.warn('entdecken:', e);
-    box.innerHTML = `<div class="benachr-empty">${escapeHtml((e && e.message) || t('reg_fehler'))}</div>`;
+    box.innerHTML = `<div class="benachr-empty">${escapeHtml(socialFehler(e))}</div>`;
   }
 }
 
@@ -4777,7 +4777,7 @@ async function entdeckenAnfrage(personId, typ) {
     }
   } catch (e) {
     console.warn('kontakt_anfrage_stellen:', e);
-    await zeigeHinweis((e && e.message) || t('reg_fehler'));
+    await zeigeHinweis(socialFehler(e));
   }
 }
 
@@ -12960,6 +12960,14 @@ document.addEventListener('visibilitychange', () => {
 // je Beitrag über das Engagement-Widget (ziel_typ='beitrag'). Realtime für neue Beiträge.
 // ============================================================
 const FEED_SEITE = 20;
+// Backend-/PostgREST-Fehler in eine LOKALISIERTE Meldung übersetzen (nie die rohe englische
+// Zeile zeigen). Kurze snake_case-Codes (z. B. 'kein_verbund') -> t('fehler_<code>'); alles
+// andere (lange PostgREST-Sätze) -> generische Meldung t('eng_fehler'). In allen 5 Sprachen.
+function socialFehler(err) {
+  const c = (err && err.message) ? String(err.message).trim() : '';
+  if (/^[a-z_]+$/.test(c)) { const k = 'fehler_' + c, tx = t(k); if (tx && tx !== k) return tx; }
+  return t('eng_fehler');
+}
 let feedCache = [];
 let feedBildBlob = null;          // komprimiertes Foto (Blob) für den neuen Beitrag
 let feedBildPreviewUrl = null;
@@ -13023,7 +13031,7 @@ async function feedLaden(reset) {
     feedRender();
   } catch (err) {
     console.warn('feed_holen:', err);
-    box.innerHTML = `<div class="feed-leer">${escapeHtml((err && err.message) || t('eng_fehler'))}</div>`;
+    box.innerHTML = `<div class="feed-leer">${escapeHtml(socialFehler(err))}</div>`;
   }
 }
 function feedMehr() { feedLaden(false); }
@@ -13190,7 +13198,7 @@ async function feedBeitragSenden() {
     await feedLaden(true);
   } catch (err) {
     console.warn('beitrag_erstellen:', err);
-    await zeigeHinweis(t('feed_fehler_' + (err && err.message)) || t('eng_fehler'));
+    await zeigeHinweis(socialFehler(err));
   } finally { if (btn) btn.disabled = false; }
 }
 
@@ -13241,7 +13249,7 @@ async function fragenLaden(reset) {
     if (rows.length) fragenAelteste = rows[rows.length - 1].erstellt_am;
     const mb = document.getElementById('fragen-mehr'); if (mb) mb.style.display = rows.length === FEED_SEITE ? '' : 'none';
     fragenRender();
-  } catch (err) { console.warn('fragen_holen:', err); box.innerHTML = `<div class="feed-leer">${escapeHtml((err && err.message) || t('eng_fehler'))}</div>`; }
+  } catch (err) { console.warn('fragen_holen:', err); box.innerHTML = `<div class="feed-leer">${escapeHtml(socialFehler(err))}</div>`; }
 }
 function fragenMehr() { fragenLaden(false); }
 function fragenRender() {
@@ -13302,7 +13310,7 @@ async function frageStellen() {
     if (data && data.ok === false) throw new Error(data.grund || 'fehler');
     ta.value = ''; frageBildEntfernen(); if (ref) ref.value = '';
     await fragenLaden(true);
-  } catch (err) { console.warn('frage_stellen:', err); await zeigeHinweis(t('feed_fehler_' + (err && err.message)) || t('eng_fehler')); }
+  } catch (err) { console.warn('frage_stellen:', err); await zeigeHinweis(socialFehler(err)); }
   finally { if (btn) btn.disabled = false; }
 }
 async function frageLoeschen(id) {
