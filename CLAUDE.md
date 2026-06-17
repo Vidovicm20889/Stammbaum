@@ -1062,15 +1062,16 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   - **`i18n.js`** — `TEXTE` + `RECHTSTEXTE` als globale `const`, **vor** dem Haupt-Script geladen.
     i18n-Texte werden jetzt hier gepflegt (weiterhin alle 5 Sprachen). **Schlüssel-Parität prüfen:**
     `node i18n_lint.js` (meldet je Sprache fehlende Keys; idealerweise vor jedem Commit).
-  - **`pdf_export.js`** — **STAND AKTUELL: NICHT ausgelagert.** Der PDF-/Druck-Export liegt derzeit
-    **INLINE** im Haupt-Script von `stammbaum.html` (`function oeffnePdfExport` etc.); es gibt KEINE
-    Datei `pdf_export.js` und KEINE `<script src="pdf_export.js">`-Einbindung. Die folgende
-    Beschreibung gilt nur, FALLS der Export erneut ausgelagert wird: kompletter PDF-/Druck-Export
-    (`pdf*`-Funktionen + `PDF_*`-Konstanten), **vor** dem Haupt-Script geladen; ruft Haupt-Globals
-    (`t`, `d3`, `aktuelleWurzel`, …) erst zur Laufzeit auf. `jsPDF`/`svg2pdf` weiterhin aus dem `<head>` (CDN).
-  - **Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an `stammbaum.css` UND `i18n.js`
-    auf dieselbe Version ziehen** (sowie `pdf_export.js`, FALLS wieder ausgelagert — derzeit inline,
-    s. o.) — sonst liefert GitHub Pages die ausgelagerte
+  - **`pdf_export.js`** — **AUSGELAGERT ab v14.3.** Kompletter Stammbaum-PDF-/Druck-Export
+    (`pdf*`-Funktionen + `PDF_*`-Konstanten) als eigene Datei, eingebunden mit
+    `<script src="pdf_export.js?v=X.Y">` **vor** dem Haupt-Inline-`<script>` (definiert globale
+    `pdf*`/`PDF_*`; der **Kosten-/Troskovi-PDF** im Haupt-Script nutzt `pdfEl`/`pdfSvgZuCanvas`/
+    `pdfDownloadBlob`/`PDF_SVG_NS` daraus). Ruft Haupt-Globals (`t`, `d3`, `aktuelleWurzel`, …) erst
+    zur Laufzeit auf. **`jsPDF`/`svg2pdf` werden LAZY** über `ladePdfLib()` geladen (ab v14.2 nicht
+    mehr eager im `<head>`); `pdf_export.js` selbst lädt eager (klein, ~30 KB), da der Kosten-PDF
+    dessen Helfer jederzeit braucht.
+  - **Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an `stammbaum.css`, `i18n.js`
+    UND `pdf_export.js`** auf dieselbe Version ziehen — sonst liefert GitHub Pages die ausgelagerte
     Datei veraltet aus (`hardReload`/`?v=timestamp` bricht nur den HTML-Cache, nicht die Sub-Ressourcen).
   - Reihenfolge: die ausgelagerten `<script>` (i18n.js, pdf_export.js) müssen **vor** dem
     Haupt-Inline-`<script>` stehen (globale `const`/Funktionen). Der `init();`-Bootstrap bleibt am
