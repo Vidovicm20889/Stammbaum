@@ -4,6 +4,9 @@
   --ink: #2c2418; --akzent: #722f37; --akzent-hell: #9e4050;
   --gold: #9c7c3c; --gold-hell: #b8943f;
   --linie: #c4a882; --male: #3d6080; --female: #8b3d5a;
+  /* Gedämpfter Sekundärtext — war früher nirgends definiert (Fallback = geerbte Farbe).
+     Bewusst dunkler als die alten #8a7a5a/#8a7c63 für besseren Kontrast (WCAG AA) auf Papier. */
+  --text-dim: #6b5c44;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -2411,6 +2414,17 @@ video.lightbox-img { max-width: 96vw; max-height: 78vh; }
 @media (max-width: 480px) {
   .album-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
 }
+
+/* Wiederverwendbarer Lade-Spinner (gold, passend zum Theme). Inline neben Text nutzbar
+   (<span class="spinner"></span>) oder als Block. Reduziert „nacktes …" als einziges Lade-Feedback. */
+.spinner { display: inline-block; width: 18px; height: 18px; vertical-align: -3px;
+  border: 2px solid var(--linie); border-top-color: var(--gold); border-radius: 50%;
+  animation: spin 0.7s linear infinite; }
+.spinner.gross { width: 32px; height: 32px; border-width: 3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.6s; } }
+.lade-zeile { display: flex; align-items: center; justify-content: center; gap: 10px;
+  color: var(--text-dim); font-size: 15px; padding: 18px; }
 
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks
