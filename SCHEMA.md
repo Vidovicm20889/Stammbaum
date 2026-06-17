@@ -214,6 +214,23 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     `benachrichtigungs_einstellungen`, `aktivitaeten`, `familien_fragen`, `profile`, Verbund-Helfer.)
     **VOR Frontend-Deploy ausführen** (Profil-Toggle liest/schreibt die neue Spalte; Frontend ist
     aber tolerant, falls die Spalte fehlt).
+70. `supabase_event_album.sql` — Gemeinsame Event-Alben: Tabelle `event_album_fotos` (verbund-RLS via
+    `ist_in_verbund`; an EVENT gehängt, `ON DELETE CASCADE`) + **privater** Bucket `event-album`
+    (signierte URLs, Pfad `{stammbaum_id}/{event_id}/{uuid}`) + Storage-Policies (`darf_albumordner_
+    sehen`/`darf_albumordner_bearbeiten` über erstes Pfad-Segment; DELETE auch für `owner`=Uploader)
+    + RPCs `event_album_holen`/`event_album_foto_anlegen`/`event_album_foto_loeschen`/
+    `event_album_uebersicht`. Schaltet zusätzlich `ziel_typ='album_foto'` frei (Engagement-CHECKs +
+    `_ziel_verbund`). Ansehen/Hochladen = wer das Event sehen darf (`darf_event_sehen`), Löschen =
+    Uploader oder `kann_familie_bearbeiten`. KEIN Realtime (lädt frisch beim Öffnen). Storage-Cleanup
+    beim Event-/Baum-Löschen im Frontend (`loescheAlbumMedien` + `verwaiste_event_medien`-Queue).
+    **NACH 42 (events), event_eingeladene (darf_event_sehen), 61 (Engagement), 65 (familien_fragen =
+    letzte `_ziel_verbund`-Fassung).** (Voraussetzung: `events`, `darf_event_sehen`, Verbund-Helfer,
+    Engagement-Datei 61, `familien_fragen` 65.)
+    **v14.x-Erweiterung (im selben File, idempotent):** Der alte Event-„Medien"-Abschnitt entfällt;
+    bestehende Medien aus dem `events`-Bucket werden PER REFERENZ ins Album übernommen — Spalten
+    `bucket`/`mime`/`quelle` (+ partieller UNIQUE `(event_id,quelle)`) + RPC
+    `event_album_legacy_uebernehmen` (legt Album-Zeilen an, die auf die vorhandenen `events`-Dateien
+    zeigen; kein Byte-Kopieren/Löschen → kein Datenverlust). Album hält jetzt Bild/Video/PDF.
 
 ---
 
