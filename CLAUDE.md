@@ -1070,9 +1070,14 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
     zur Laufzeit auf. **`jsPDF`/`svg2pdf` werden LAZY** über `ladePdfLib()` geladen (ab v14.2 nicht
     mehr eager im `<head>`); `pdf_export.js` selbst lädt eager (klein, ~30 KB), da der Kosten-PDF
     dessen Helfer jederzeit braucht.
-  - **Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an `stammbaum.css`, `i18n.js`
-    UND `pdf_export.js`** auf dieselbe Version ziehen — sonst liefert GitHub Pages die ausgelagerte
-    Datei veraltet aus (`hardReload`/`?v=timestamp` bricht nur den HTML-Cache, nicht die Sub-Ressourcen).
+  - **`chat.js`** — **AUSGELAGERT ab v14.4.** 1:1-/Gruppen-Chat (alle `chat*`-Funktionen + -State),
+    `<script src="chat.js?v=X.Y">` **vor** dem Haupt-Script. `startChat()`/`stopChat()` werden im
+    Login-/Logout-Flow gerufen, `chatSpracheUpdate()` aus `wechselSprache` (typeof-Guard); ruft
+    Haupt-Globals (`sbClient`, `aktuellerUser`, `t`, `nm`, …) erst zur Laufzeit auf.
+  - **Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an ALLEN ausgelagerten Dateien
+    (`stammbaum.css`, `i18n.js`, `pdf_export.js`, `chat.js`)** auf dieselbe Version ziehen — sonst
+    liefert GitHub Pages die ausgelagerte Datei veraltet aus (`hardReload`/`?v=timestamp` bricht nur
+    den HTML-Cache, nicht die Sub-Ressourcen).
   - Reihenfolge: die ausgelagerten `<script>` (i18n.js, pdf_export.js) müssen **vor** dem
     Haupt-Inline-`<script>` stehen (globale `const`/Funktionen). Der `init();`-Bootstrap bleibt am
     Ende des Haupt-Scripts. `split_i18n.js`/`split_css.js`/`split_pdf.js` waren Einmal-Auslagerungs-
