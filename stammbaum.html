@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.4">
+<meta name="app-version" content="14.5">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.4">
+<link rel="stylesheet" href="stammbaum.css?v=14.5">
 </head>
 <body>
 
@@ -2248,12 +2248,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.4"></script>
+<script src="i18n.js?v=14.5"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.4"></script>
-<script src="chat.js?v=14.4"></script>
+<script src="pdf_export.js?v=14.5"></script>
+<script src="chat.js?v=14.5"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -3407,12 +3407,13 @@ let realtimeChannel = null;
 let realtimeReloadTimer = null;
 let realtimeReloadLaeuft = false;
 let realtimePendingReload = false;
+let rtInkrTimer = null;   // Delta-Merge: debounced leichter Re-Render (kein DB-Reload)
 
 function startRealtimeSync() {
   stopRealtimeSync();
   if (!aktuellerUser) return;
   try {
-    const handler = () => realtimeReloadAnstossen();
+    const handler = (payload) => realtimeAenderung(payload);
     realtimeChannel = sbClient
       .channel('stammbaum-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'personen' },    handler)
@@ -3427,6 +3428,7 @@ function startRealtimeSync() {
 
 function stopRealtimeSync() {
   if (realtimeReloadTimer) { clearTimeout(realtimeReloadTimer); realtimeReloadTimer = null; }
+  if (rtInkrTimer) { clearTimeout(rtInkrTimer); rtInkrTimer = null; }
   realtimePendingReload = false;
   if (realtimeChannel) {
     try { sbClient.removeChannel(realtimeChannel); } catch (e) {}
@@ -3438,9 +3440,74 @@ function stopRealtimeSync() {
 // einer Aktion = ein Reload). Bei verstecktem Tab aufschieben (visibilitychange holt nach).
 function realtimeReloadAnstossen() {
   if (!aktuellerUser) return;
+  if (rtInkrTimer) { clearTimeout(rtInkrTimer); rtInkrTimer = null; }   // Vollreload ersetzt anstehenden inkrementellen Render
   if (document.visibilityState !== 'visible') { realtimePendingReload = true; return; }
   if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
   realtimeReloadTimer = setTimeout(realtimeReloadAusfuehren, 700);
+}
+
+// ---- Delta-Merge (P1, ab v14.x): EINDEUTIG harmlose Live-Events ohne DB-Vollreload ----
+// Nur ein reines FELD-Update EINER bereits geladenen Person (Baum/Identität/Konto UNVERÄNDERT)
+// wird in-place gepatcht + leicht neu gerendert. Bei jedem Zweifel -> bestehender Vollreload
+// (realtimeReloadAnstossen). Worst case = heutiges Verhalten, keine Regression. Setzt — wie der
+// Vollreload — den Inaktivitäts-/Auto-Logout-Timer NICHT zurück.
+function realtimeAenderung(payload) {
+  if (!aktuellerUser) return;
+  try {
+    if (payload && payload.table === 'personen' && payload.eventType === 'UPDATE'
+        && realtimePatchPerson(payload.new)) {
+      // erfolgreich inkrementell gepatcht -> nur leicht neu rendern (debounced), KEIN DB-Reload.
+      if (document.visibilityState !== 'visible') { realtimePendingReload = true; return; }
+      if (rtInkrTimer) clearTimeout(rtInkrTimer);
+      rtInkrTimer = setTimeout(realtimeInkrementellRender, 250);
+      return;
+    }
+  } catch (e) { /* bei jedem Fehler unten den sicheren Vollreload */ }
+  realtimeReloadAnstossen();
+}
+
+// Patcht eine geladene Person aus der Realtime-Nutzlast (payload.new) — exakt nach dem Mapping
+// aus ladeBaumAusSupabase. Liefert false (=> Vollreload), sobald irgendetwas Strukturelles
+// (Baum/Identität/Konto) abweicht, die Person nicht geladen ist oder die Nutzlast unklar ist.
+function realtimePatchPerson(neu) {
+  if (!neu || !aktuelleDaten || !aktuelleDaten.persons) return false;
+  const sd = neu.stammbaum_daten;
+  if (sd != null && typeof sd !== 'object') return false;   // jsonb nicht als Objekt -> Vollreload
+  const daten = sd || {};
+  const ext = neu.externe_id || daten.id;
+  if (!ext) return false;
+  const p = aktuelleDaten.persons[ext];
+  if (!p || p._uuid !== neu.id) return false;               // nicht geladen / anderes Objekt -> Vollreload
+  // STRUKTURELL geändert? (Baum-Move / Identitäts-Verknüpfung / Konto-Verknüpfung) -> Vollreload,
+  // weil das Render-Brücken/Zwillinge/Blutlinien-Rechte/„meine Karte" betrifft.
+  if ((p._tree   || null) !== (neu.stammbaum_id  || null)) return false;
+  if ((p._ident  || null) !== (neu.identitaet_id || null)) return false;
+  if ((p._userId || null) !== (neu.user_id       || null)) return false;
+  // Reines Feld-Update: Datenfelder ersetzen; Beziehungen/Identität übernehmen; Position neu.
+  aktuelleDaten.persons[ext] = {
+    ...daten, id: ext,
+    families_spouse: p.families_spouse, families_child: p.families_child,
+    _uuid: p._uuid, _tree: p._tree, _ident: p._ident,
+    _hatKonto: !!neu.user_id, _userId: neu.user_id || null,
+    _pos: (neu.pos_x != null && neu.pos_y != null) ? { x: neu.pos_x, y: neu.pos_y } : null,
+    _updated: neu.updated_at || null
+  };
+  return true;
+}
+
+// Leichter Re-Render nach einem in-place Patch (kein DB-Reload, keine Baum-Neuauswahl):
+// rendert die AKTUELLE Ansicht neu + zieht offene Overlays/Profil/Statistik nach.
+function realtimeInkrementellRender() {
+  rtInkrTimer = null;
+  if (!aktuellerUser) return;
+  try {
+    if (aktuelleAnsicht === 'karten') { if (typeof zeigeKarten === 'function') zeigeKarten(); }
+    else if (aktuelleAnsicht !== 'shorts') { if (typeof zeichneBaumNeu === 'function') zeichneBaumNeu(); }
+    if (typeof aktualisiereStats === 'function') aktualisiereStats();
+    if (typeof pruefeOverlayAktualitaet === 'function') pruefeOverlayAktualitaet();   // P3: offene Personen-Overlays
+    if (typeof aktualisiereProfilLeise === 'function') aktualisiereProfilLeise();      // eigenes Profil/Badge
+    if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();            // Anlässe (Geb./Gedenktag) ggf. neu
+  } catch (e) { console.warn('Inkrementeller Live-Render fehlgeschlagen, lade voll:', e); realtimeReloadAnstossen(); }
 }
 
 async function realtimeReloadAusfuehren() {
