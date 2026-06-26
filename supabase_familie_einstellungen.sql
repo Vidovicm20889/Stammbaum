@@ -139,7 +139,8 @@ BEGIN
   END IF;
 
   -- Pflichtfelder: Naziv stabla, Država (Herkunftsland), Grad (Stadt), Opština (Gemeinde)
-  IF v_name = '' OR v_land = '' OR v_stadt = '' OR v_gem = '' THEN
+  -- Stadt/Dorf (v_stadt) ist OPTIONAL -> NICHT Teil der Pflichtprüfung (nur Name/Land/Gemeinde).
+  IF v_name = '' OR v_land = '' OR v_gem = '' THEN
     RAISE EXCEPTION 'fe_pflicht';
   END IF;
 

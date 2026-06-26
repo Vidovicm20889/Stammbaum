@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.6">
+<meta name="app-version" content="14.7">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.6">
+<link rel="stylesheet" href="stammbaum.css?v=14.7">
 </head>
 <body>
 
@@ -2282,7 +2282,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.6"></script>
+<script src="i18n.js?v=14.7"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
@@ -2679,9 +2679,11 @@ function aktualisiereAuthUI() {
     if (gpBtn) gpBtn.style.display = istSuperAdmin() ? '' : 'none';
     const berBtn = document.getElementById('menu-bereinigung-btn');
     if (berBtn) berBtn.style.display = istSuperAdmin() ? '' : 'none';
-    // Datensicherung: super_admin ODER familien_owner (Erstellen/Download); Restore intern nur super_admin.
+    // Datensicherung: NUR super_admin. Bewusste Abweichung vom Prompt (der auch familien_owner
+    // nannte): ein Voll-DB-Snapshot enthält ALLE Familien/Verbünde -> Owner-Zugriff bräche die
+    // Familien-Isolation (CLAUDE.md). Bucket-RLS + beide Edge Functions erzwingen ebenfalls super_admin.
     const backupBtn = document.getElementById('menu-backup-btn');
-    if (backupBtn) backupBtn.style.display = (istSuperAdmin() || normalizeRolle(aktuelleRolle || '') === 'familien_owner') ? '' : 'none';
+    if (backupBtn) backupBtn.style.display = istSuperAdmin() ? '' : 'none';
     if (istAdm) {
       // Deep-Link aus der Benachrichtigungs-Mail (?obav=1): nach dem Laden der
       // offenen Anfragen die Obavještenja-Liste automatisch öffnen (einmalig).
@@ -7013,7 +7015,7 @@ let aktuelleAnsicht = 'baum';
 let ansichtModus    = null;
 let ansichtFokusId  = null;          // Person, um die der Ausschnitt zentriert ist
 let ansichtGen      = 0;             // 'zweig': Generationen nach unten (0 = unbegrenzt, Default)
-let ansichtGenAuf   = 0;             // 'zweig': Generationen nach oben (0 = unbegrenzt, Default)
+let ansichtGenAuf   = 2;             // 'zweig': Generationen nach oben (0 = unbegrenzt; Default 2 = nahe Vorfahren)
 let ansichtKat      = null;          // 'erweitert': gewählte Verwandtschafts-Kategorien
 // Multi-Tree (B2): aktuell gewählter Stammbaum + Liste {id: name}
 let aktuellerStammbaumId = null;
@@ -8743,21 +8745,24 @@ function _renderWurzelImSet(focusId, S) {
   return cur;
 }
 
-// Standardansicht: eigene Person + Eltern + (Voll-/Halb-)Geschwister + Kinder + Partner.
-// Rückgabe false, wenn keine eigene Karte im Baum -> Aufrufer macht Fallback.
+// Standardansicht (personalisiert): eigene Person + BEIDE Elternzweige (väterliche UND
+// mütterliche Eltern + Großeltern, 2 Gen. aufwärts) + Geschwister + eigene Kinder (1 Gen.
+// abwärts) + Partner. Rückgabe false, wenn keine eigene Karte im Baum -> Aufrufer macht Fallback.
+//
+// Bewusst über den BIDIREKTIONALEN Fokus-Renderer (zeichneGraph2) statt des früheren
+// Single-Root-Renderers (zeichneBaum): Single-Root konnte nur EINE aufsteigende Linie zeigen,
+// daher fehlte die mütterliche Großeltern-Seite komplett. zeichneGraph2 fächert BEIDE Eltern-
+// zweige auf und bleibt vertikal von oben (Vorfahren) nach unten (Nachkommen).
 function zeigeStandardAnsicht(behalteZoom) {
   const meId = meineKarteImBaum();
   if (!meId) return false;
-  const S = verwandtschaftsSet(meId, {
-    eltern: true, partner: true, geschwister: true, kinder: true,
-    geschwister_familie: true   // Geschwister inkl. Ehepartner + Kinder (Neffen/Nichten)
-  });
   ansichtModus = 'standard';
   ansichtFokusId = meId;
   ansichtKat = null;
   fokusPersonId = null;
-  const root = _renderWurzelImSet(meId, S);
-  zeichneBaum(root, 12, 0, { erlaubt: S, fokusId: meId });
+  // upN=2 -> Eltern + Großeltern (beide Seiten); downN=1 -> eigene Kinder. Geschwister zeichnet
+  // zeichneGraph2 auf Fokus-Höhe automatisch mit. (positional 1,2 wird ignoriert -> opts zählt)
+  zeichneGraph2(meId, 1, 2, { fokusId: meId, upN: 2, downN: 1 });
   aktualisiereBaumHinweis();   // Generationen-Hinweis je nach Modus ein-/ausblenden
   return true;
 }
@@ -8856,27 +8861,43 @@ function ansichtPersonLabel(p) {
   return nm(p.name || p.id) + j + baum;
 }
 
+// Großer Familienkreis = fester Umfang um die eigene Karte (Preset 2).
+const ANSICHT_KREIS_KAT = { grosseltern: true, urgrosseltern: true, cousins: true, nachkommen: true };
+
+// Erweiterte Optionen auf-/zuklappen (enthalten den „Familienzweig ab Person"-Sucher).
+function ansichtErwOeffnen(auf) {
+  const box = document.getElementById('ansicht-erw');
+  const tog = document.getElementById('ansicht-erw-toggle');
+  if (!box || !tog) return;
+  box.classList.toggle('offen', !!auf);
+  tog.setAttribute('aria-expanded', auf ? 'true' : 'false');
+  const pf = tog.querySelector('.ansicht-erw-pfeil'); if (pf) pf.textContent = auf ? '▾' : '▸';
+}
+function ansichtErwToggle() {
+  ansichtErwOeffnen(!document.getElementById('ansicht-erw').classList.contains('offen'));
+}
+
 function oeffneAnsichtModal() {
   ansichtPickSel = null;
   const hatKarte = !!meineKarteImBaum();
-  const radioErwInput = document.querySelector('#ansicht-radio-erweitert input');
-  if (radioErwInput) radioErwInput.disabled = !hatKarte;
-  document.getElementById('ansicht-radio-erweitert').style.opacity = hatKarte ? '' : '0.5';
+  // Presets, die die eigene Karte voraussetzen, deaktivieren/ausgrauen (ohne Karte nur „Ganzer Stammbaum").
+  ['standard', 'kreis'].forEach(v => {
+    const inp = document.querySelector('#ansicht-radio-' + v + ' input');
+    if (inp) inp.disabled = !hatKarte;
+    const r = document.getElementById('ansicht-radio-' + v);
+    if (r) r.style.opacity = hatKarte ? '' : '0.5';
+  });
   document.getElementById('ansicht-keine-karte').style.display = hatKarte ? 'none' : '';
 
-  // Vorauswahl des Radios: aktiver Modus, sonst sinnvoller Default.
-  let vorwahl = ['erweitert', 'zweig', 'voll'].includes(ansichtModus) ? ansichtModus
-              : (hatKarte ? 'erweitert' : 'voll');
-  if (vorwahl === 'erweitert' && !hatKarte) vorwahl = 'voll';
+  // Aktiven internen Modus auf den passenden Radio-Wert abbilden, sonst sinnvoller Default.
+  const modusZuRadio = { standard: 'standard', erweitert: 'kreis', zweig: 'zweig', voll: 'voll' };
+  let vorwahl = modusZuRadio[ansichtModus] || (hatKarte ? 'standard' : 'voll');
+  if ((vorwahl === 'standard' || vorwahl === 'kreis') && !hatKarte) vorwahl = 'voll';
   document.querySelectorAll('input[name="ansicht-modus"]').forEach(r => { r.checked = (r.value === vorwahl); });
 
-  document.getElementById('ans-kat-grosseltern').checked   = !!(ansichtKat && ansichtKat.grosseltern);
-  document.getElementById('ans-kat-urgrosseltern').checked = !!(ansichtKat && ansichtKat.urgrosseltern);
-  document.getElementById('ans-kat-cousins').checked       = !!(ansichtKat && ansichtKat.cousins);
-  document.getElementById('ans-kat-nachkommen').checked    = !!(ansichtKat && ansichtKat.nachkommen);
-  // Generationen-Selects auf die gespeicherten Werte (Default unbegrenzt = '0')
+  // Generationen-Selects auf die gespeicherten Werte (unten Default unbegrenzt = '0', oben Default '2')
   const genEl = document.getElementById('ansicht-gen'); if (genEl) genEl.value = String(ansichtGen || 0);
-  const genAufEl = document.getElementById('ansicht-gen-auf'); if (genAufEl) genAufEl.value = String(ansichtGenAuf || 0);
+  const genAufEl = document.getElementById('ansicht-gen-auf'); if (genAufEl) genAufEl.value = String(ansichtGenAuf);
   // Zuletzt gewählte Zweig-Person vorbelegen (Feld gefüllt, Trefferliste zu)
   const sf = document.getElementById('ansicht-suche');
   if (ansichtModus === 'zweig' && ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) {
@@ -8884,6 +8905,8 @@ function oeffneAnsichtModal() {
     if (sf) sf.value = nm(aktuelleDaten.persons[ansichtFokusId].name || ansichtFokusId);
   } else if (sf) { sf.value = ''; }
   document.getElementById('ansicht-pick-list').innerHTML = '';
+  // Erweiterte Optionen nur aufklappen, wenn der Zweig-Modus aktiv ist.
+  ansichtErwOeffnen(vorwahl === 'zweig');
   ansichtModusWahl();
 
   const m = document.getElementById('ansicht-modal');
@@ -8902,12 +8925,13 @@ function schliesseAnsichtModal() {
 
 function ansichtModusWahl() {
   const val = (document.querySelector('input[name="ansicht-modus"]:checked') || {}).value;
-  document.getElementById('ansicht-unter-erweitert').classList.toggle('offen', val === 'erweitert');
   document.getElementById('ansicht-unter-zweig').classList.toggle('offen', val === 'zweig');
-  ['erweitert', 'zweig', 'voll'].forEach(v => {
+  ['standard', 'kreis', 'voll', 'zweig'].forEach(v => {
     const r = document.getElementById('ansicht-radio-' + v);
     if (r) r.classList.toggle('aktiv', v === val);
   });
+  // Wird der Zweig-Modus (in den erweiterten Optionen) gewählt, den Bereich aufklappen.
+  if (val === 'zweig') ansichtErwOeffnen(true);
 }
 
 function ansichtPickSuche() {
@@ -8970,14 +8994,18 @@ function ansichtAnwenden() {
     return;
   }
 
-  // erweitert
-  const kat = {
-    grosseltern:   document.getElementById('ans-kat-grosseltern').checked,
-    urgrosseltern: document.getElementById('ans-kat-urgrosseltern').checked,
-    cousins:       document.getElementById('ans-kat-cousins').checked,
-    nachkommen:    document.getElementById('ans-kat-nachkommen').checked
-  };
-  if (!zeigeErweitertAnsicht(kat)) {
+  if (val === 'kreis') {
+    // Preset „Großer Familienkreis": fester Umfang (Großeltern, Urgroßeltern, Cousins, Enkel).
+    if (!zeigeErweitertAnsicht(Object.assign({}, ANSICHT_KREIS_KAT))) {
+      document.getElementById('ansicht-keine-karte').style.display = '';
+      return;
+    }
+    schliesseAnsichtModal();
+    return;
+  }
+
+  // standard (Preset „Meine Familie", inkl. Großeltern)
+  if (!zeigeStandardAnsicht()) {
     document.getElementById('ansicht-keine-karte').style.display = '';
     return;
   }

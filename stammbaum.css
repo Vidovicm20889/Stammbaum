@@ -213,7 +213,13 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   min-width: 240px; background: var(--paper);
   border: 1px solid var(--linie); box-shadow: 0 8px 22px rgba(44,36,24,0.2);
   padding: 14px; display: none; flex-direction: column; gap: 12px;
-  max-height: calc(100vh - 90px); overflow-y: auto; overscroll-behavior: contain;
+  /* Mobil: 100vh zählt die Fläche HINTER der Browser-Leiste mit -> untere Buttons landen
+     hinter der Leiste und sind nicht erreichbar. 100dvh = tatsächlich sichtbare Höhe.
+     vh bleibt als Fallback für alte Browser; dvh-Zeile gewinnt, wo unterstützt. */
+  max-height: calc(100vh - 90px);
+  max-height: calc(100dvh - 90px);
+  overflow-y: auto; overscroll-behavior: contain;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));   /* letzter Button frei von Notch/Home-Leiste */
 }
 .nav-menu.offen .nav-menu-panel { display: flex; }
 .nav-menu-panel .sprach-dropdown,
@@ -465,6 +471,14 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .ansicht-pick-item:last-child { border-bottom: none; }
 .ansicht-pick-item.gewaehlt { background: rgba(156,124,60,0.14); }
 .ansicht-pick-item small { color: #8a7a5a; }
+/* „Erweiterte Optionen"-Expander (enthält den Familienzweig-Sucher) */
+.ansicht-erw-toggle { display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: none; color: var(--akzent); font: inherit; font-size: 16px;
+  cursor: pointer; padding: 12px 2px; min-height: 44px; text-align: left; }
+.ansicht-erw-toggle:hover { text-decoration: underline; }
+.ansicht-erw-pfeil { display: inline-block; width: 1em; flex: 0 0 auto; }
+.ansicht-erw { display: none; margin-top: 2px; }
+.ansicht-erw.offen { display: block; }
 .ansicht-aktionen { margin-top: 14px; display: flex; gap: 10px; }
 /* Beide Buttons gleich groß (gleiche Breite/Höhe, kein vertikaler Versatz) */
 .ansicht-aktionen .login-submit,
@@ -2218,6 +2232,35 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
 }
 
 /* Baum-Integrität (read-only Diagnose-Overlay) */
+/* Datensicherung (Backup/Restore) */
+.bk-warnung { font-size: 13px; color: #6b5a3e; background: var(--paper); border: 1px solid var(--linie);
+  border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+.bk-warnung.bk-danger { color: #a33; border-color: #d98; background: #fbf2f0; }
+.bk-danger-titel { color: #a33 !important; }
+.bk-status { margin-top: 10px; font-size: 13px; color: #2f5d2f; background: #eef6ee;
+  border: 1px solid #5a8f5a; border-radius: 8px; padding: 8px 10px; }
+.bk-status.bk-status-fehler { color: #a33; background: #fbf2f0; border-color: #d98; }
+.bk-liste { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; max-height: 30vh; overflow: auto;
+  overscroll-behavior: contain; }
+.bk-leer { color: #8a7a5a; font-size: 13px; font-style: italic; padding: 4px 0; }
+.bk-zeile { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  border: 1px solid var(--linie); border-radius: 8px; padding: 8px 10px; }
+.bk-zeile-info { display: flex; flex-direction: column; gap: 2px; }
+.bk-datum { color: var(--ink); font-size: 14px; }
+.bk-groesse { color: #8a7a5a; font-size: 12px; }
+.bk-zeile-akt { display: flex; gap: 8px; }
+.bk-mini { background: none; border: 1px solid var(--linie); border-radius: 6px; padding: 6px 12px;
+  font-family: inherit; font-size: 13px; cursor: pointer; min-height: 36px; color: var(--ink); }
+.bk-mini:hover { border-color: var(--akzent); color: var(--akzent); }
+.bk-mini.bk-mini-danger { color: #a33; border-color: #d98; }
+.bk-bericht { margin-top: 10px; }
+.bk-bericht-meta { font-size: 12px; color: #8a7a5a; margin-bottom: 6px; }
+.bk-tabelle { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bk-tabelle th, .bk-tabelle td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--linie); }
+.bk-tabelle th.bk-num, .bk-tabelle td.bk-num { text-align: right; }
+.bk-tabelle tr.bk-r-diff td { color: #a33; font-weight: 600; }
+#bk-restore-token { max-width: 280px; margin: 6px 0; }
+
 .integ-ergebnis { margin-top: 12px; }
 .integ-hinweis { padding: 10px 12px; border-radius: 8px; background: var(--paper); color: var(--ink);
   border: 1px solid var(--linie); font-size: 14px; }

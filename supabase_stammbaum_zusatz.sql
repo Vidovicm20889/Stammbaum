@@ -164,7 +164,8 @@ BEGIN
     RAISE EXCEPTION 'fe_keine_berechtigung';
   END IF;
 
-  IF v_name = '' OR v_land = '' OR v_stadt = '' OR v_gem = '' THEN
+  -- Stadt/Dorf (v_stadt) ist OPTIONAL -> NICHT Teil der Pflichtprüfung (nur Name/Land/Gemeinde).
+  IF v_name = '' OR v_land = '' OR v_gem = '' THEN
     RAISE EXCEPTION 'fe_pflicht';
   END IF;
 

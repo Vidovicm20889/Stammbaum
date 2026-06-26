@@ -231,6 +231,21 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     `bucket`/`mime`/`quelle` (+ partieller UNIQUE `(event_id,quelle)`) + RPC
     `event_album_legacy_uebernehmen` (legt Album-Zeilen an, die auf die vorhandenen `events`-Dateien
     zeigen; kein Byte-Kopieren/Löschen → kein Datenverlust). Album hält jetzt Bild/Video/PDF.
+71. `supabase_backup.sql` — Backup/Wiederherstellung (Free-Tier hat keine Auto-Backups): **privater**
+    Bucket `backups` (RLS: SELECT nur `super_admin`; Schreiben nur via service_role) + Restore-RPCs
+    `backup_restore_reihenfolge` (kanonische FK-Reihenfolge) / `backup_restore_bericht` (Dry-Run:
+    Snapshot- vs. aktuelle Zeilen, schreibt nichts) / `backup_restore_ausfuehren` (transaktionaler
+    Wipe+Insert in FK-Reihenfolge, `session_replication_role='replica'`, Token `RESTORE-AUSFUEHREN`).
+    Beide RPCs nur `service_role` (super_admin-Prüfung leistet die Edge Function via JWT). Export +
+    Restore über Edge Functions **`backup-export`** (täglich pg_cron ODER manuell durch super_admin/
+    owner; logischer JSON-Snapshot ALLER App-Tabellen + Medien-MANIFEST in den Bucket, Aufbewahrung 14,
+    Rotation) und **`backup-restore`** (nur super_admin, zweistufig Dry-Run→Bestätigung). Admin-UI im
+    ⚙-Menü (`#backup-modal`): „Backup jetzt erstellen & herunterladen", Snapshot-Liste mit Offsite-
+    Download (signierte URL), Restore mit Bericht + getippter Bestätigung. **Ehrliche Grenze:**
+    In-Projekt-Snapshot schützt vor Fehllöschung/Migrationsfehler, NICHT vor Projektverlust → Offsite-
+    Download ist der Rettungsanker; `auth.users` ist NICHT im Export (Restore in fremdes/leeres Projekt
+    scheitert an user_id-FKs). pg_cron + Function-Secrets (`CRON_SECRET`, optional `BACKUP_BEHALTEN`)
+    separat aktivieren. (Voraussetzung: `ist_super_admin` aus 1, alle App-Tabellen.)
 
 ---
 
