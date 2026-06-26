@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.7">
+<meta name="app-version" content="14.8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.7">
+<link rel="stylesheet" href="stammbaum.css?v=14.8">
 </head>
 <body>
 
@@ -2282,7 +2282,7 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.7"></script>
+<script src="i18n.js?v=14.8"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
@@ -3008,8 +3008,9 @@ async function ukSuche() {
     box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta">${escapeHtml(t('uk_min_zeichen'))}</span></div>`; return;
   }
   box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta">…</span></div>`;
+  // Kyrillisch -> Latein, sonst kein Treffer (Daten lateinisch, merge_norm transliteriert nicht).
   const { data, error } = await sbClient.rpc('karten_suche_admin', {
-    p_vorname: vor || null, p_nachname: nach || null, p_geburt: geb || null, p_limit: 30, p_offset: 0
+    p_vorname: srCyr2Lat(vor) || null, p_nachname: srCyr2Lat(nach) || null, p_geburt: geb || null, p_limit: 30, p_offset: 0
   });
   if (!ukState) return;
   if (error) { box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta" style="color:#b33">${escapeHtml(error.message)}</span></div>`; return; }
@@ -3188,9 +3189,11 @@ async function maKarteSuche() {
   if (q.length < 2) { box.innerHTML = ''; return; }
   box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta">…</span></div>`;
   // personen_suche/karten_suche_admin AND-en Vor-/Nachname -> je eine Präfix-Suche und mergen.
+  // Kyrillisch -> Latein, sonst kein Treffer (Daten lateinisch, merge_norm transliteriert nicht).
+  const qL = srCyr2Lat(q);
   const [r1, r2] = await Promise.all([
-    sbClient.rpc('karten_suche_admin', { p_vorname: q, p_nachname: null, p_geburt: null, p_limit: 15, p_offset: 0 }),
-    sbClient.rpc('karten_suche_admin', { p_vorname: null, p_nachname: q, p_geburt: null, p_limit: 15, p_offset: 0 })
+    sbClient.rpc('karten_suche_admin', { p_vorname: qL, p_nachname: null, p_geburt: null, p_limit: 15, p_offset: 0 }),
+    sbClient.rpc('karten_suche_admin', { p_vorname: null, p_nachname: qL, p_geburt: null, p_limit: 15, p_offset: 0 })
   ]);
   if (r1.error || r2.error) {
     box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta" style="color:#b33">${escapeHtml((r1.error || r2.error).message)}</span></div>`; return;
@@ -4421,9 +4424,11 @@ async function entdeckenSuche() {
       entdeckenRenderExtern(data || []);
     } else {
       // eigener Verbund: zwei Präfix-Suchen (Vor-/Nachname) mergen — wie die bestehende Suche.
+      // Kyrillisch -> Latein, sonst kein Treffer (Daten lateinisch, merge_norm transliteriert nicht).
+      const qL = srCyr2Lat(q);
       const [r1, r2] = await Promise.all([
-        sbClient.rpc('personen_suche', { p_vorname: q, p_limit: 30 }),
-        sbClient.rpc('personen_suche', { p_nachname: q, p_limit: 30 })
+        sbClient.rpc('personen_suche', { p_vorname: qL, p_limit: 30 }),
+        sbClient.rpc('personen_suche', { p_nachname: qL, p_limit: 30 })
       ]);
       const seen = {}, merged = [];
       [...(r1.data || []), ...(r2.data || [])].forEach(p => { if (!seen[p.id]) { seen[p.id] = 1; merged.push(p); } });
@@ -8027,7 +8032,8 @@ function dpGueltig(j, m, t) {
 function parseDatumZuIso(text) {
   const s = (text || '').trim(); if (!s) return null; let m;
   if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))  return dpGueltig(+m[1], +m[2], +m[3]);
-  if ((m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/))) return dpGueltig(+m[3], +m[2], +m[1]);  // TT.MM.JJJJ
+  // TT.MM.JJJJ — toleriert serbisch/kroatischen End-Punkt („08.07.1992.") + Leerzeichen nach den Punkten („8. 7. 1992.")
+  if ((m = s.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})\.?$/))) return dpGueltig(+m[3], +m[2], +m[1]);
   if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return dpGueltig(+m[3], +m[1], +m[2]);  // MM/DD/YYYY
   return null;
 }
@@ -15133,8 +15139,10 @@ async function vbSuche() {
     box.innerHTML = `<p class="mv-legende">${t('vb_min_zeichen')}</p>`; return;
   }
   box.innerHTML = `<p class="mv-legende">…</p>`;
+  // Kyrillische Eingabe -> Latein (Daten sind lateinisch gespeichert; merge_norm faltet nur
+  // lateinische Diakritika, transliteriert KEIN Kyrillisch) -> sonst findet die Suche nichts.
   const { data, error } = await sbClient.rpc('personen_suche', {
-    p_vorname: vor || null, p_nachname: nach || null, p_geburt: geb || null, p_limit: 30, p_offset: 0
+    p_vorname: srCyr2Lat(vor) || null, p_nachname: srCyr2Lat(nach) || null, p_geburt: geb || null, p_limit: 30, p_offset: 0
   });
   if (!vbKontext) return;   // Modal zwischenzeitlich geschlossen
   if (error) { box.innerHTML = `<p class="login-fehler" style="display:block">${escapeHtml(t('reg_fehler') + error.message)}</p>`; return; }
@@ -15351,9 +15359,11 @@ async function paElternSuche(rolle) {
   if (q.length < 2) { erg.innerHTML = ''; return; }
   erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;opacity:.6">…</div>`;
   // personen_suche AND-et Vor-/Nachname -> für eine Box je eine Präfix-Suche und mergen.
+  // Kyrillisch -> Latein, sonst kein Treffer (Daten lateinisch, merge_norm transliteriert nicht).
+  const qL = srCyr2Lat(q);
   const [r1, r2] = await Promise.all([
-    sbClient.rpc('personen_suche', { p_vorname: q, p_nachname: null, p_geburt: null, p_limit: 15, p_offset: 0 }),
-    sbClient.rpc('personen_suche', { p_vorname: null, p_nachname: q, p_geburt: null, p_limit: 15, p_offset: 0 })
+    sbClient.rpc('personen_suche', { p_vorname: qL, p_nachname: null, p_geburt: null, p_limit: 15, p_offset: 0 }),
+    sbClient.rpc('personen_suche', { p_vorname: null, p_nachname: qL, p_geburt: null, p_limit: 15, p_offset: 0 })
   ]);
   if (r1.error || r2.error) {
     erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;color:#b33">${escapeHtml((r1.error || r2.error).message)}</div>`; return;
