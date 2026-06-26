@@ -2426,6 +2426,13 @@ video.lightbox-img { max-width: 96vw; max-height: 78vh; }
 .lade-zeile { display: flex; align-items: center; justify-content: center; gap: 10px;
   color: var(--text-dim); font-size: 15px; padding: 18px; }
 
+/* A11y (ab v14.6): sichtbarer Tastatur-Fokus für nicht-semantische Klick-Elemente
+   (role="button"). Nur bei Tastatur-Navigation (:focus-visible), nicht bei Maus-Klick. */
+[role="button"]:focus-visible,
+.person:focus-visible, .album-thumb:focus-visible, .verwandter:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px;
+}
+
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks
    platziert, damit diese Regel (gleiche Spezifität) die früheren .login-feld/

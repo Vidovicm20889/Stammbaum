@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.5">
+<meta name="app-version" content="14.6">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.5">
+<link rel="stylesheet" href="stammbaum.css?v=14.6">
 </head>
 <body>
 
@@ -132,6 +132,7 @@
           <button class="account-btn" type="button" id="menu-gp-btn" data-i18n="gp_verknuepfen_titel" onclick="zeigeGleichePersonModal()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-bereinigung-btn" data-i18n="ber_titel" onclick="zeigeBereinigungModal()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-integ-btn" data-i18n="integ_menu" onclick="oeffneIntegritaet()"></button>
+          <button class="account-btn" type="button" id="menu-backup-btn" data-i18n="bk_menu" onclick="oeffneBackup()" style="display:none"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
         </div>
 
@@ -544,22 +545,32 @@
     <p class="pdf-sub" id="ansicht-keine-karte" style="display:none;color:var(--akzent)" data-i18n="ansicht_keine_karte"></p>
 
     <div class="ansicht-opt">
-      <!-- Option 3: Erweiterte Ansicht um die eigene Person -->
-      <label class="ansicht-radio" id="ansicht-radio-erweitert">
-        <input type="radio" name="ansicht-modus" value="erweitert" onchange="ansichtModusWahl()">
-        <span><b data-i18n="ansicht_opt_erweitert"></b><small data-i18n="ansicht_opt_erweitert_sub"></small></span>
+      <!-- Preset 1: Meine Familie (Standardansicht inkl. Großeltern) -->
+      <label class="ansicht-radio" id="ansicht-radio-standard">
+        <input type="radio" name="ansicht-modus" value="standard" onchange="ansichtModusWahl()">
+        <span><b data-i18n="ansicht_preset_standard"></b><small data-i18n="ansicht_preset_standard_sub"></small></span>
       </label>
-      <div class="ansicht-unter" id="ansicht-unter-erweitert">
-        <div class="ansicht-kat">
-          <label><input type="checkbox" id="ans-kat-grosseltern"> <span data-i18n="ansicht_kat_grosseltern"></span></label>
-          <label><input type="checkbox" id="ans-kat-urgrosseltern"> <span data-i18n="ansicht_kat_urgrosseltern"></span></label>
-          <label><input type="checkbox" id="ans-kat-cousins"> <span data-i18n="ansicht_kat_cousins"></span></label>
-          <label><input type="checkbox" id="ans-kat-nachkommen"> <span data-i18n="ansicht_kat_nachkommen"></span></label>
-        </div>
-        <p class="pdf-sub" data-i18n="ansicht_basis_hinweis" style="margin-top:8px"></p>
-      </div>
 
-      <!-- Option 2: Familienzweig ab bestimmter Person -->
+      <!-- Preset 2: Großer Familienkreis -->
+      <label class="ansicht-radio" id="ansicht-radio-kreis">
+        <input type="radio" name="ansicht-modus" value="kreis" onchange="ansichtModusWahl()">
+        <span><b data-i18n="ansicht_preset_kreis"></b><small data-i18n="ansicht_preset_kreis_sub"></small></span>
+      </label>
+
+      <!-- Preset 3: Gesamten Stammbaum -->
+      <label class="ansicht-radio" id="ansicht-radio-voll">
+        <input type="radio" name="ansicht-modus" value="voll" onchange="ansichtModusWahl()">
+        <span><b data-i18n="ansicht_opt_voll"></b><small data-i18n="ansicht_opt_voll_sub"></small></span>
+      </label>
+    </div>
+
+    <!-- Erweiterte Optionen (eingeklappt) -> Power-User: Familienzweig ab beliebiger Person -->
+    <button type="button" class="ansicht-erw-toggle" id="ansicht-erw-toggle"
+            onclick="ansichtErwToggle()" aria-expanded="false">
+      <span class="ansicht-erw-pfeil" aria-hidden="true">▸</span>
+      <span data-i18n="ansicht_erw_optionen"></span>
+    </button>
+    <div class="ansicht-erw" id="ansicht-erw">
       <label class="ansicht-radio" id="ansicht-radio-zweig">
         <input type="radio" name="ansicht-modus" value="zweig" onchange="ansichtModusWahl()">
         <span><b data-i18n="ansicht_opt_zweig"></b><small data-i18n="ansicht_opt_zweig_sub"></small></span>
@@ -580,19 +591,13 @@
         <label class="login-label" style="margin-top:8px"><span data-i18n="ansicht_gen_auf"></span>
           <select id="ansicht-gen-auf" class="login-feld">
             <option value="1" data-i18n="ansicht_gen_1"></option>
-            <option value="2" data-i18n="ansicht_gen_2"></option>
+            <option value="2" selected data-i18n="ansicht_gen_2"></option>
             <option value="3" data-i18n="ansicht_gen_3"></option>
             <option value="5" data-i18n="ansicht_gen_5"></option>
-            <option value="0" selected data-i18n="ansicht_gen_unbegrenzt"></option>
+            <option value="0" data-i18n="ansicht_gen_unbegrenzt"></option>
           </select>
         </label>
       </div>
-
-      <!-- Option 1: Gesamten Stammbaum -->
-      <label class="ansicht-radio" id="ansicht-radio-voll">
-        <input type="radio" name="ansicht-modus" value="voll" onchange="ansichtModusWahl()">
-        <span><b data-i18n="ansicht_opt_voll"></b><small data-i18n="ansicht_opt_voll_sub"></small></span>
-      </label>
     </div>
 
     <div class="ansicht-aktionen">
@@ -2248,12 +2253,41 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.5"></script>
+<!-- Datensicherung (Backup/Restore) — super_admin/owner. Schließt nur per Button (UI-Regel). -->
+<div class="modal" id="backup-modal" style="z-index:220">
+  <div class="modal-inhalt" style="max-width:620px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseBackup()">×</button>
+    <h2 data-i18n="bk_titel"></h2>
+    <p class="bk-warnung" data-i18n="bk_offsite_hinweis" style="margin-top:0"></p>
+
+    <div class="reg-gruppe-titel" data-i18n="bk_jetzt_titel"></div>
+    <button class="login-submit" id="bk-jetzt-btn" data-i18n="bk_jetzt_btn" onclick="backupJetzt()"></button>
+    <div id="bk-jetzt-status" class="bk-status" style="display:none"></div>
+
+    <div class="reg-gruppe-titel" data-i18n="bk_liste_titel" style="margin-top:18px"></div>
+    <div id="bk-liste" class="bk-liste"></div>
+
+    <div id="bk-restore-bereich" style="display:none">
+      <div class="reg-gruppe-titel bk-danger-titel" data-i18n="bk_restore_titel" style="margin-top:18px"></div>
+      <p class="bk-warnung bk-danger" data-i18n="bk_restore_warnung"></p>
+      <div id="bk-restore-auswahl" class="bk-status" style="display:none"></div>
+      <div id="bk-restore-bericht" class="bk-bericht"></div>
+      <div id="bk-restore-confirm" style="display:none">
+        <label class="login-label" data-i18n="bk_restore_tippe"></label>
+        <input type="text" id="bk-restore-token" class="login-feld" autocomplete="off" placeholder="RESTORE-AUSFUEHREN">
+        <button class="login-submit admin-danger" id="bk-restore-go" data-i18n="bk_restore_go" onclick="restoreAusfuehren()"></button>
+      </div>
+      <div id="bk-restore-status" class="bk-status" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script src="i18n.js?v=14.6"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.5"></script>
-<script src="chat.js?v=14.5"></script>
+<script src="pdf_export.js?v=14.6"></script>
+<script src="chat.js?v=14.6"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2340,6 +2374,17 @@ async function ladeLeafletLib() {
     const m = obersteModal(); if (!m) return;
     const btn = m.querySelector('.modal-schliessen');
     if (btn) { e.preventDefault(); btn.click(); }
+  });
+  // A11y (ab v14.6): nicht-semantische Klick-Elemente mit role="button" per Tastatur aktivieren
+  // (Enter/Space). Native <button>/<a>/Inputs bleiben unberührt (haben das von Haus aus).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    const el = e.target;
+    if (!el || el.getAttribute('role') !== 'button') return;
+    const tag = el.tagName;
+    if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    e.preventDefault();   // Space-Scroll/Doppelaktion verhindern
+    el.click();
   });
   function modalFokus(m) {
     // Hat die Öffnen-Logik bereits ein Element IM Modal fokussiert (z. B. Login-Feld), nicht stören.
@@ -2634,6 +2679,9 @@ function aktualisiereAuthUI() {
     if (gpBtn) gpBtn.style.display = istSuperAdmin() ? '' : 'none';
     const berBtn = document.getElementById('menu-bereinigung-btn');
     if (berBtn) berBtn.style.display = istSuperAdmin() ? '' : 'none';
+    // Datensicherung: super_admin ODER familien_owner (Erstellen/Download); Restore intern nur super_admin.
+    const backupBtn = document.getElementById('menu-backup-btn');
+    if (backupBtn) backupBtn.style.display = (istSuperAdmin() || normalizeRolle(aktuelleRolle || '') === 'familien_owner') ? '' : 'none';
     if (istAdm) {
       // Deep-Link aus der Benachrichtigungs-Mail (?obav=1): nach dem Laden der
       // offenen Anfragen die Obavještenja-Liste automatisch öffnen (einmalig).
@@ -8990,6 +9038,8 @@ function zeigeKarten() {
     const karte = document.createElement('div');
     karte.className = 'person' + (p.deceased ? ' verstorben' : '');
     karte.onclick = () => zeigeDetails(p.id);
+    karte.setAttribute('role', 'button'); karte.tabIndex = 0;   // a11y: per Tastatur fokus-/aktivierbar
+    karte.setAttribute('aria-label', nm((p.given || '') + ' ' + (p.surname || '')).trim());
     
     const initialen = nm(((p.given[0] || '') + (p.surname[0] || '')).toUpperCase()) || '?';
     const avatarKlasse = p.sex === 'M' ? 'male' : (p.sex === 'F' ? 'female' : 'unknown');
@@ -10818,7 +10868,7 @@ function albumRender() {
     const inner = typ === 'bild'
       ? `<img src="${escapeHtml(f._url)}" alt="${escapeHtml(f.beschriftung || '')}" loading="lazy" onerror="this.style.display='none'">`
       : `<div class="album-thumb-icon">${typ === 'video' ? '🎥' : typ === 'pdf' ? '📄' : '📎'}</div>`;
-    return `<div class="album-thumb album-thumb--${typ}" onclick="albumOeffneLightbox(${i})">
+    return `<div class="album-thumb album-thumb--${typ}" role="button" tabindex="0" onclick="albumOeffneLightbox(${i})">
         ${inner}
         ${f.beschriftung ? `<div class="album-thumb-cap">${escapeHtml(f.beschriftung)}</div>` : ''}
       </div>`;
@@ -11922,7 +11972,7 @@ function zeigeDetails(personId) {
       ? `<button class="rel-move-btn" type="button" title="${escapeHtml(t('bezv_titel'))}" onclick="event.stopPropagation();bezAendernOeffnen('${typ}','${v.id}')">⇄</button>`
         + `<button class="rel-del-btn" type="button" title="${escapeHtml(t('rel_loesen_titel'))}" onclick="event.stopPropagation();beziehungLoesen('${typ}','${v.id}')">✕</button>`
       : '';
-    return `<span class="verwandter${x ? ' mit-x' : ''}" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${x}</span>`;
+    return `<span class="verwandter${x ? ' mit-x' : ''}" role="button" tabindex="0" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${x}</span>`;
   };
   const buildVerwandte = (liste, typ) => liste.map(v => relChip(v, typ)).join('');
 
@@ -15583,6 +15633,171 @@ function integOeffnePerson(ext) {
 function integSpracheUpdate() {
   if (!document.getElementById('integ-modal') || !document.getElementById('integ-modal').classList.contains('aktiv')) return;
   if (integLetzter) renderIntegritaet(integLetzter);
+}
+
+// ============================================================
+// DATENSICHERUNG (Backup / Restore) — super_admin/owner.
+// Erstellen/Download: super_admin + familien_owner. Wiederherstellung: NUR super_admin,
+// zweistufig (Dry-Run-Bericht -> getippte Bestätigung). Edge Functions: backup-export /
+// backup-restore (Service-Role serverseitig). Bucket 'backups' privat (RLS nur super_admin).
+// ============================================================
+let bkRestorePfad = null;   // aktuell für Restore gewählter Snapshot-Pfad
+
+function bkDarfRestore() { return typeof istSuperAdmin === 'function' && istSuperAdmin(); }
+
+function oeffneBackup() {
+  const panel = document.getElementById('nav-menu-panel'); if (panel) panel.classList.remove('offen');
+  document.getElementById('bk-restore-bereich').style.display = bkDarfRestore() ? '' : 'none';
+  bkRestoreReset();
+  const st = document.getElementById('bk-jetzt-status'); if (st) st.style.display = 'none';
+  document.getElementById('backup-modal').classList.add('aktiv');
+  backupListeLaden();
+}
+function schliesseBackup() { document.getElementById('backup-modal').classList.remove('aktiv'); }
+
+function bkRestoreReset() {
+  bkRestorePfad = null;
+  ['bk-restore-auswahl','bk-restore-status'].forEach(id => { const e = document.getElementById(id); if (e) { e.style.display = 'none'; e.textContent = ''; } });
+  const ber = document.getElementById('bk-restore-bericht'); if (ber) ber.innerHTML = '';
+  const cf = document.getElementById('bk-restore-confirm'); if (cf) cf.style.display = 'none';
+  const tk = document.getElementById('bk-restore-token'); if (tk) tk.value = '';
+}
+
+function bkFormatBytes(n) {
+  if (n == null) return '—';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+// Snapshots aus dem privaten Bucket listen (RLS lässt nur super_admin lesen; owner sieht ggf. leer).
+async function backupListeLaden() {
+  const box = document.getElementById('bk-liste');
+  if (!box) return;
+  box.innerHTML = `<div class="bk-leer">${escapeHtml(t('bk_laedt'))}</div>`;
+  try {
+    const { data, error } = await sbClient.storage.from('backups')
+      .list('', { limit: 1000, sortBy: { column: 'name', order: 'desc' } });
+    if (error) throw error;
+    const snaps = (data || []).filter(o => o.name && o.name.indexOf('snapshot-') === 0);
+    if (!snaps.length) { box.innerHTML = `<div class="bk-leer">${escapeHtml(t('bk_keine'))}</div>`; return; }
+    box.innerHTML = snaps.map(o => {
+      const groesse = o.metadata && o.metadata.size != null ? bkFormatBytes(o.metadata.size) : '—';
+      const datum = bkDatumAusName(o.name);
+      const restoreBtn = bkDarfRestore()
+        ? `<button type="button" class="bk-mini bk-mini-danger" onclick="restoreVorbereiten('${escapeHtml(o.name)}')">${escapeHtml(t('bk_restore_waehlen'))}</button>` : '';
+      return `<div class="bk-zeile">
+        <div class="bk-zeile-info"><span class="bk-datum">${escapeHtml(datum)}</span><span class="bk-groesse">${escapeHtml(groesse)}</span></div>
+        <div class="bk-zeile-akt">
+          <button type="button" class="bk-mini" onclick="backupDownload('${escapeHtml(o.name)}')">${escapeHtml(t('bk_download'))}</button>
+          ${restoreBtn}
+        </div></div>`;
+    }).join('');
+  } catch (e) {
+    console.warn('backup list:', e);
+    box.innerHTML = `<div class="bk-leer">${escapeHtml(t('bk_fehler_liste'))}</div>`;
+  }
+}
+
+// Aus Dateiname „snapshot-2026-06-26T08-00-00-000Z.json" ein lesbares Datum bauen.
+function bkDatumAusName(name) {
+  const m = (name || '').match(/snapshot-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/);
+  if (!m) return name;
+  try { return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`).toLocaleString(); }
+  catch (e) { return name; }
+}
+
+// Signierte Download-URL erzeugen und Download anstoßen (offsite-Sicherung durch den Owner).
+async function backupDownload(name) {
+  try {
+    const { data, error } = await sbClient.storage.from('backups').createSignedUrl(name, 120, { download: name });
+    if (error || !data) throw (error || new Error('keine URL'));
+    const a = document.createElement('a'); a.href = data.signedUrl; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { console.warn('backup download:', e); await zeigeHinweis(t('bk_fehler_download')); }
+}
+
+// Backup jetzt erstellen (Edge Function) + danach direkt herunterladen.
+async function backupJetzt() {
+  const btn = document.getElementById('bk-jetzt-btn');
+  const st  = document.getElementById('bk-jetzt-status');
+  const alt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  if (st) { st.style.display = 'block'; st.className = 'bk-status'; st.textContent = t('bk_erstellt_laeuft'); }
+  try {
+    const { data, error } = await sbClient.functions.invoke('backup-export', { body: {} });
+    if (error) throw error;
+    if (!data || !data.ok || !data.pfad) throw new Error((data && data.error) || 'fehler');
+    if (st) st.textContent = t('bk_erstellt_ok', { zeilen: data.zeilen ?? 0, medien: data.medien ?? 0, groesse: bkFormatBytes(data.groesse_bytes) });
+    await backupListeLaden();
+    await backupDownload(data.pfad);   // direkt offsite anbieten
+  } catch (e) {
+    console.warn('backup-export:', e);
+    if (st) { st.className = 'bk-status bk-status-fehler'; st.textContent = t('bk_fehler_erstellen'); }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = alt || t('bk_jetzt_btn'); }
+  }
+}
+
+// --- Wiederherstellung (nur super_admin) -----------------------------------
+async function restoreVorbereiten(name) {
+  if (!bkDarfRestore()) return;
+  bkRestoreReset();
+  bkRestorePfad = name;
+  const aus = document.getElementById('bk-restore-auswahl');
+  if (aus) { aus.style.display = 'block'; aus.textContent = t('bk_restore_gewaehlt', { name: bkDatumAusName(name) }); }
+  const ber = document.getElementById('bk-restore-bericht');
+  if (ber) ber.innerHTML = `<div class="bk-leer">${escapeHtml(t('bk_laedt'))}</div>`;
+  try {
+    const { data, error } = await sbClient.functions.invoke('backup-restore', { body: { pfad: name, modus: 'bericht' } });
+    if (error) throw error;
+    if (!data || !data.ok) throw new Error((data && data.error) || 'fehler');
+    restoreBerichtRender(data);
+    const cf = document.getElementById('bk-restore-confirm'); if (cf) cf.style.display = '';
+  } catch (e) {
+    console.warn('restore bericht:', e);
+    if (ber) ber.innerHTML = `<div class="bk-leer">${escapeHtml(t('bk_fehler_bericht'))}</div>`;
+  }
+}
+
+function restoreBerichtRender(data) {
+  const ber = document.getElementById('bk-restore-bericht'); if (!ber) return;
+  const tab = (data.tabellen || []).filter(r => (r.snapshot || 0) > 0 || (r.aktuell || 0) > 0);
+  const zeilen = tab.map(r => {
+    const aenderung = (r.snapshot !== r.aktuell) ? ' bk-r-diff' : '';
+    return `<tr class="${aenderung}"><td>${escapeHtml(r.tabelle)}</td><td class="bk-num">${r.aktuell}</td><td class="bk-num">${r.snapshot}</td></tr>`;
+  }).join('');
+  const meta = data.meta || {};
+  ber.innerHTML = `
+    <div class="bk-bericht-meta">${escapeHtml(t('bk_bericht_meta', { datum: meta.erstellt_am ? new Date(meta.erstellt_am).toLocaleString() : '—', zeilen: meta.zeilen_gesamt ?? '—' }))}</div>
+    <table class="bk-tabelle"><thead><tr><th>${escapeHtml(t('bk_sp_tabelle'))}</th><th class="bk-num">${escapeHtml(t('bk_sp_aktuell'))}</th><th class="bk-num">${escapeHtml(t('bk_sp_snapshot'))}</th></tr></thead><tbody>${zeilen}</tbody></table>`;
+}
+
+async function restoreAusfuehren() {
+  if (!bkDarfRestore() || !bkRestorePfad) return;
+  const token = (document.getElementById('bk-restore-token').value || '').trim();
+  if (token !== 'RESTORE-AUSFUEHREN') { await zeigeHinweis(t('bk_restore_token_falsch')); return; }
+  const ok = await zeigeBestaetigung(t('bk_restore_final_frage'));
+  if (!ok) return;
+  const btn = document.getElementById('bk-restore-go');
+  const st  = document.getElementById('bk-restore-status');
+  const alt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = t('reg_senden_laeuft'); }
+  if (st) { st.style.display = 'block'; st.className = 'bk-status'; st.textContent = t('bk_restore_laeuft'); }
+  try {
+    const { data, error } = await sbClient.functions.invoke('backup-restore',
+      { body: { pfad: bkRestorePfad, modus: 'ausfuehren', bestaetigung: 'RESTORE-AUSFUEHREN' } });
+    if (error) throw error;
+    if (!data || !data.ok) throw new Error((data && data.error) || 'fehler');
+    if (st) st.textContent = t('bk_restore_ok', { zeilen: data.zeilen_gesamt ?? 0 });
+    await zeigeHinweis(t('bk_restore_ok_reload'));
+    setTimeout(() => hardReload(), 1500);   // frischer Stand nach Restore
+  } catch (e) {
+    console.warn('restore ausfuehren:', e);
+    if (st) { st.className = 'bk-status bk-status-fehler'; st.textContent = t('bk_fehler_restore'); }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = alt || t('bk_restore_go'); }
+  }
 }
 
 // Nachname diakritik-/groß-klein-unempfindlich normalisieren (Frontend-Vorprüfung;
