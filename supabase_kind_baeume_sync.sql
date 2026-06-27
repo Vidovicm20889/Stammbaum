@@ -45,7 +45,7 @@ BEGIN
 
   SELECT pe.familie_id, pe.identitaet_id, pe.stammbaum_daten, pe.vorname, pe.nachname
     INTO v_fam, v_ident, v_sd, v_vn, v_nn
-    FROM public.personen pe WHERE pe.id = p_kind;
+    FROM public.personen pe WHERE pe.id = p_kind AND pe.geloescht_am IS NULL;
   IF v_fam IS NULL THEN RAISE EXCEPTION 'kind_fehlt'; END IF;
 
   -- Rechte: Admin/Owner der Kind-Familie oder Super-Admin
@@ -68,16 +68,18 @@ BEGIN
   CREATE TEMP TABLE _ks_eltern ON COMMIT DROP AS
     SELECT DISTINCT b.person_a AS pid
       FROM public.beziehungen b JOIN _ks_kind k ON b.person_b = k.id
-     WHERE b.typ = 'elternteil';
+     WHERE b.typ = 'elternteil' AND b.geloescht_am IS NULL;
 
   -- Alle Elternkarten über Bäume (Identitätsgruppen der Eltern)
   CREATE TEMP TABLE _ks_ek ON COMMIT DROP AS
     SELECT DISTINCT pe.id, pe.stammbaum_id
       FROM public.personen pe
-     WHERE pe.id IN (SELECT pid FROM _ks_eltern)
+     WHERE pe.geloescht_am IS NULL
+       AND (pe.id IN (SELECT pid FROM _ks_eltern)
         OR pe.identitaet_id IN (
              SELECT pi.identitaet_id FROM public.personen pi
-              WHERE pi.id IN (SELECT pid FROM _ks_eltern) AND pi.identitaet_id IS NOT NULL);
+              WHERE pi.id IN (SELECT pid FROM _ks_eltern) AND pi.identitaet_id IS NOT NULL
+                AND pi.geloescht_am IS NULL));
 
   -- Zielbäume = DISTINCT Bäume der Elternkarten, in denen das Kind noch FEHLT
   FOR v_rec IN

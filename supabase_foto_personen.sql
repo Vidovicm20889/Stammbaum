@@ -121,7 +121,7 @@ BEGIN
            'x', fp.x, 'y', fp.y
          ) ORDER BY pe.vorname, pe.nachname), '[]'::jsonb) INTO v_rows
     FROM public.foto_personen fp
-    JOIN public.personen pe ON pe.id = fp.person_id
+    JOIN public.personen pe ON pe.id = fp.person_id AND pe.geloescht_am IS NULL
    WHERE fp.foto_id = p_foto;
   RETURN jsonb_build_object('ok', true, 'darf_markieren', v_darf, 'tags', v_rows);
 END $$;
@@ -138,9 +138,10 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
          ) ORDER BY fp.erstellt_am DESC), '[]'::jsonb)
     FROM public.foto_personen fp
     JOIN public.personen_fotos pfoto ON pfoto.id = fp.foto_id
-    JOIN public.personen bes         ON bes.id = pfoto.person_id
+    JOIN public.personen bes         ON bes.id = pfoto.person_id AND bes.geloescht_am IS NULL
    WHERE fp.person_id = p_person
-     AND public.ist_in_verbund(fp.verbund_id);
+     AND public.ist_in_verbund(fp.verbund_id)
+     AND EXISTS (SELECT 1 FROM public.personen me WHERE me.id = fp.person_id AND me.geloescht_am IS NULL);
 $$;
 GRANT EXECUTE ON FUNCTION public.person_markierte_fotos(uuid) TO authenticated;
 

@@ -36,6 +36,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
            || coalesce(' (* ' || (pe.stammbaum_daten->>'birth_date') || ')', '') AS name
   FROM public.personen pe
   WHERE pe.familie_id = p_familie
+    AND pe.geloescht_am IS NULL
     AND (public.ist_super_admin() OR public.kann_familie_bearbeiten(p_familie))
   ORDER BY pe.nachname, pe.vorname;
 $$;

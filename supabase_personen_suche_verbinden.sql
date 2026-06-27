@@ -52,15 +52,18 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     s.name AS baum, pe.stammbaum_id AS baum_id, pe.familie_id, pe.identitaet_id,
     (SELECT string_agg(DISTINCT trim(coalesce(po.vorname,'')||' '||coalesce(po.nachname,'')), ', ')
        FROM public.beziehungen b JOIN public.personen po ON po.id = b.person_a
-       WHERE b.typ='elternteil' AND b.person_b = pe.id) AS eltern,
+       WHERE b.typ='elternteil' AND b.person_b = pe.id
+         AND b.geloescht_am IS NULL AND po.geloescht_am IS NULL) AS eltern,
     (SELECT string_agg(DISTINCT trim(coalesce(po.vorname,'')||' '||coalesce(po.nachname,'')), ', ')
        FROM public.beziehungen b
        JOIN public.personen po ON po.id = CASE WHEN b.person_a = pe.id THEN b.person_b ELSE b.person_a END
-       WHERE b.typ='ehepartner' AND (b.person_a = pe.id OR b.person_b = pe.id)) AS partner
+       WHERE b.typ='ehepartner' AND b.geloescht_am IS NULL AND (b.person_a = pe.id OR b.person_b = pe.id)
+         AND b.geloescht_am IS NULL AND po.geloescht_am IS NULL) AS partner
   FROM public.personen pe
   JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
   CROSS JOIN n
-  WHERE (public.ist_super_admin() OR public.sieht_familie(pe.familie_id))
+  WHERE pe.geloescht_am IS NULL
+    AND (public.ist_super_admin() OR public.sieht_familie(pe.familie_id))
     AND (n.vn IS NOT NULL OR n.nn IS NOT NULL OR n.bd IS NOT NULL)   -- mind. ein Kriterium
     AND (n.vn IS NULL OR public.merge_norm(pe.vorname)  LIKE n.vn || '%')
     AND (n.nn IS NULL OR public.merge_norm(pe.nachname) LIKE n.nn || '%')
@@ -79,7 +82,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
     SELECT p_node
     UNION
     SELECT b.person_a FROM public.beziehungen b JOIN up ON b.person_b = up.id
-     WHERE b.typ = 'elternteil'
+     WHERE b.typ = 'elternteil' AND b.geloescht_am IS NULL
   )
   SELECT EXISTS (SELECT 1 FROM up WHERE id = p_candidate AND id <> p_node);
 $$;
@@ -106,7 +109,7 @@ BEGIN
   IF p_kontext = p_ziel THEN RAISE EXCEPTION 'vkn_selbst'; END IF;
 
   IF p_typ = 'partner' THEN
-    IF EXISTS (SELECT 1 FROM public.beziehungen b WHERE b.typ='ehepartner'
+    IF EXISTS (SELECT 1 FROM public.beziehungen b WHERE b.typ='ehepartner' AND b.geloescht_am IS NULL
                 AND ((b.person_a=p_kontext AND b.person_b=p_ziel)
                   OR (b.person_a=p_ziel    AND b.person_b=p_kontext)))
       THEN RAISE EXCEPTION 'vkn_kante_existiert'; END IF;
@@ -124,7 +127,7 @@ BEGIN
   -- Künftiger Elternteil darf kein Nachkomme des Kindes sein (sonst Kreis).
   IF public._ist_vorfahre(v_parent, v_child) THEN RAISE EXCEPTION 'vkn_zyklus'; END IF;
   v_primaer_neu := NOT EXISTS (SELECT 1 FROM public.beziehungen b
-    WHERE b.typ='elternteil' AND b.person_a=v_parent AND b.person_b=v_child);
+    WHERE b.typ='elternteil' AND b.geloescht_am IS NULL AND b.person_a=v_parent AND b.person_b=v_child);
 
   -- Zweiter Elternteil (nur bei typ='kind') ebenfalls prüfen
   IF p_typ='kind' AND p_zweiter IS NOT NULL AND p_zweiter <> v_parent THEN
@@ -132,7 +135,7 @@ BEGIN
     IF public._ist_vorfahre(p_zweiter, v_child) THEN RAISE EXCEPTION 'vkn_zyklus'; END IF;
     v_zweiter_aktiv := true;
     v_zweiter_neu := NOT EXISTS (SELECT 1 FROM public.beziehungen b
-      WHERE b.typ='elternteil' AND b.person_a=p_zweiter AND b.person_b=v_child);
+      WHERE b.typ='elternteil' AND b.geloescht_am IS NULL AND b.person_a=p_zweiter AND b.person_b=v_child);
   END IF;
 
   -- Doppelkante NUR, wenn nichts Neues anzulegen ist (weder primär noch zweiter Elternteil).
@@ -164,23 +167,23 @@ BEGIN
       INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
       SELECT p_ziel, p_kontext, 'elternteil', p_quelle_fam
       WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b
-        WHERE b.typ='elternteil' AND b.person_a=p_ziel AND b.person_b=p_kontext);
+        WHERE b.typ='elternteil' AND b.geloescht_am IS NULL AND b.person_a=p_ziel AND b.person_b=p_kontext);
     ELSIF p_typ = 'partner' THEN
       INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
       SELECT p_kontext, p_ziel, 'ehepartner', p_quelle_fam
-      WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b WHERE b.typ='ehepartner'
+      WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b WHERE b.typ='ehepartner' AND b.geloescht_am IS NULL
         AND ((b.person_a=p_kontext AND b.person_b=p_ziel)
           OR (b.person_a=p_ziel    AND b.person_b=p_kontext)));
     ELSIF p_typ = 'kind' THEN
       INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
       SELECT p_kontext, p_ziel, 'elternteil', p_quelle_fam
       WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b
-        WHERE b.typ='elternteil' AND b.person_a=p_kontext AND b.person_b=p_ziel);
+        WHERE b.typ='elternteil' AND b.geloescht_am IS NULL AND b.person_a=p_kontext AND b.person_b=p_ziel);
       IF p_zweiter IS NOT NULL AND p_zweiter <> p_kontext THEN
         INSERT INTO public.beziehungen(person_a, person_b, typ, familie_id)
         SELECT p_zweiter, p_ziel, 'elternteil', p_quelle_fam
         WHERE NOT EXISTS (SELECT 1 FROM public.beziehungen b
-          WHERE b.typ='elternteil' AND b.person_a=p_zweiter AND b.person_b=p_ziel);
+          WHERE b.typ='elternteil' AND b.geloescht_am IS NULL AND b.person_a=p_zweiter AND b.person_b=p_ziel);
       END IF;
     END IF;
   END IF;
@@ -205,8 +208,8 @@ RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_qf uuid; v_zf uuid; v_qb uuid;
 BEGIN
   IF p_ziel IS NULL THEN RAISE EXCEPTION 'Ziel-Person fehlt.'; END IF;
-  SELECT familie_id, stammbaum_id INTO v_qf, v_qb FROM public.personen WHERE id = p_kontext;
-  SELECT familie_id INTO v_zf FROM public.personen WHERE id = p_ziel;
+  SELECT familie_id, stammbaum_id INTO v_qf, v_qb FROM public.personen WHERE id = p_kontext AND geloescht_am IS NULL;
+  SELECT familie_id INTO v_zf FROM public.personen WHERE id = p_ziel AND geloescht_am IS NULL;
   IF v_zf IS NULL THEN RAISE EXCEPTION 'Ziel-Person nicht gefunden.'; END IF;
   IF v_qf IS NOT NULL AND NOT (public.ist_super_admin() OR public.kann_familie_bearbeiten(v_qf)) THEN
     RAISE EXCEPTION 'Keine Berechtigung für die Quell-Familie.';

@@ -90,7 +90,8 @@ BEGIN
       SELECT v_fam, v_ph, (v_kid#>>'{}')::uuid, 'elternteil'
       WHERE NOT EXISTS (
         SELECT 1 FROM public.beziehungen b
-         WHERE b.person_a = v_ph AND b.person_b = (v_kid#>>'{}')::uuid AND b.typ = 'elternteil');
+         WHERE b.person_a = v_ph AND b.person_b = (v_kid#>>'{}')::uuid AND b.typ = 'elternteil'
+           AND b.geloescht_am IS NULL);
     END LOOP;
   END IF;
 

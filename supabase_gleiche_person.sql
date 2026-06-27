@@ -28,8 +28,8 @@ DECLARE
   v_sa jsonb; v_sb jsonb; v_va uuid; v_vb uuid;
 BEGIN
   IF p_a IS NULL OR p_b IS NULL OR p_a = p_b THEN RAISE EXCEPTION 'Ungültige Auswahl.'; END IF;
-  SELECT familie_id, identitaet_id, stammbaum_daten INTO v_fa, v_ia, v_sa FROM public.personen WHERE id = p_a;
-  SELECT familie_id, identitaet_id, stammbaum_daten INTO v_fb, v_ib, v_sb FROM public.personen WHERE id = p_b;
+  SELECT familie_id, identitaet_id, stammbaum_daten INTO v_fa, v_ia, v_sa FROM public.personen WHERE id = p_a AND geloescht_am IS NULL;
+  SELECT familie_id, identitaet_id, stammbaum_daten INTO v_fb, v_ib, v_sb FROM public.personen WHERE id = p_b AND geloescht_am IS NULL;
   IF v_fa IS NULL OR v_fb IS NULL THEN RAISE EXCEPTION 'Person(en) nicht gefunden.'; END IF;
   IF NOT (public.ist_super_admin()
           OR (public.kann_familie_bearbeiten(v_fa) AND public.kann_familie_bearbeiten(v_fb)))

@@ -1087,6 +1087,17 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   (Diagnose/Reparatur/Restore/konto-spezifisch) liegen unter `sql_archiv/` und gehören NICHT
   zum Neuaufbau.
 - **Edge Functions**: über das Supabase-Dashboard deployen (Supabase-CLI durch Citrix-Firewall blockiert).
+- **Code-Review + Code-Test VOR JEDEM Deployment (PFLICHT):** Bevor committet/veröffentlicht wird,
+  IMMER zuerst
+  1. **Code-Review** der anstehenden Änderung (Diff): Korrektheit, Seiteneffekte auf andere
+     Komponenten, Einhaltung aller CLAUDE.md-Regeln (i18n in allen 5 Sprachen, RLS/Rechte,
+     referenzielle Integrität, Mobile/Touch, Realtime-Invarianten). Findbare Bugs/Schwachstellen
+     werden VOR dem Deploy behoben, nicht danach.
+  2. **Code-Test**: die Änderung tatsächlich prüfen — `node i18n_lint.js` bei Textänderungen,
+     betroffene Flows am Code (und wo möglich real) durchspielen, DB-`.sql` auf Idempotenz/FK-
+     Reihenfolge gegenlesen. Ergebnis explizit benennen (was geprüft, was nur 🔬 am Gerät final
+     verifizierbar). Schlägt ein Test fehl, wird das ehrlich gemeldet und NICHT deployt.
+  Erst wenn Review UND Test sauber sind, wird der Deploy (Commit/Version-Bump/`?v=`) vorbereitet.
 - **Push/Commit nur auf ausdrückliche Anweisung** des Users; vorher kein Veröffentlichen.
 
 ## Dein Arbeitsablauf (Loop)

@@ -2,7 +2,8 @@
 -- WÖCHENTLICHER FAMILIEN-DIGEST — E-Mail-Wochenzusammenfassung (Feature C)
 -- Ausführen in: Supabase -> SQL Editor (Editor leeren, NUR das hier einfügen, Run).
 -- IDEMPOTENT. NACH supabase_benachrichtigungen_anlaesse.sql (Einstellungstabelle),
--- supabase_aktivitaeten.sql (Aktivitäts-Stream) und supabase_familien_fragen.sql.
+-- supabase_aktivitaeten.sql (Aktivitäts-Stream), supabase_familien_fragen.sql UND
+-- supabase_papierkorb.sql (liefert personen.geloescht_am — siehe Layer-2-Hinweis unten).
 --
 -- KONZEPT: EINE ruhige Wochen-Mail je Mitglied (statt Einzel-Benachrichtigungen). Sammelt je
 -- VERBUND die Aktivität der letzten 7 Tage (neue Beiträge/Fotos/Personen/Geschichten/Events),
@@ -20,7 +21,15 @@
 -- Voraussetzungen: supabase_verbund.sql (familien.verbund_id, mitgliedschaften, ist_super_admin),
 --   supabase_profile.sql (profile.sprache), supabase_benachrichtigungen_anlaesse.sql
 --   (benachrichtigungs_einstellungen), supabase_aktivitaeten.sql (aktivitaeten),
---   supabase_familien_fragen.sql (familien_fragen), personen.stammbaum_daten (ISO-Daten).
+--   supabase_familien_fragen.sql (familien_fragen), personen.stammbaum_daten (ISO-Daten),
+--   supabase_papierkorb.sql (personen.geloescht_am).
+--
+-- PAPIERKORB / LAYER-2 (Soft-Delete): digest_woche_sammeln ist SECURITY DEFINER und umgeht damit
+-- die RLS-Policy personen_select -> die geb/ged-CTEs filtern selbst `pe.geloescht_am IS NULL`,
+-- damit gelöschte (in den Papierkorb verschobene) Personen NICHT in der Wochen-Mail erscheinen.
+-- FOLGE FÜR DIE REIHENFOLGE: Diese Datei hängt zur LAUFZEIT an personen.geloescht_am. In SCHEMA.md
+-- steht der Digest VOR supabase_papierkorb.sql -> bei inkrementeller Anwendung diese Datei NACH
+-- dem Papierkorb ERNEUT ausführen (sonst „column geloescht_am does not exist" beim Cron-/Testlauf).
 -- =====================================================
 
 
@@ -85,7 +94,8 @@ BEGIN
         nullif(btrim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')), '') AS nm
       FROM public.personen pe
       JOIN public.familien fv ON fv.id = pe.familie_id
-      WHERE coalesce((pe.stammbaum_daten->>'platzhalter')::boolean, false) = false
+      WHERE pe.geloescht_am IS NULL   -- Papierkorb: gelöschte Personen NICHT im Digest
+        AND coalesce((pe.stammbaum_daten->>'platzhalter')::boolean, false) = false
         AND coalesce((pe.stammbaum_daten->>'deceased')::boolean, false) = false
         AND coalesce(pe.stammbaum_daten->>'death_date','') = ''
         AND pe.stammbaum_daten->>'birth_date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
@@ -102,7 +112,8 @@ BEGIN
         nullif(btrim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')), '') AS nm
       FROM public.personen pe
       JOIN public.familien fv ON fv.id = pe.familie_id
-      WHERE coalesce((pe.stammbaum_daten->>'platzhalter')::boolean, false) = false
+      WHERE pe.geloescht_am IS NULL   -- Papierkorb: gelöschte Personen NICHT im Digest
+        AND coalesce((pe.stammbaum_daten->>'platzhalter')::boolean, false) = false
         AND pe.stammbaum_daten->>'death_date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
         AND substr(pe.stammbaum_daten->>'death_date', 6, 5) IN
             (SELECT to_char(current_date + g, 'MM-DD') FROM generate_series(0, 6) g)

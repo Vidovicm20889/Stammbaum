@@ -45,17 +45,20 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     s.name AS baum, pe.stammbaum_id AS baum_id, pe.familie_id, pe.identitaet_id,
     (SELECT string_agg(DISTINCT trim(coalesce(po.vorname,'')||' '||coalesce(po.nachname,'')), ', ')
        FROM public.beziehungen b JOIN public.personen po ON po.id = b.person_a
-       WHERE b.typ='elternteil' AND b.person_b = pe.id) AS eltern,
+       WHERE b.typ='elternteil' AND b.person_b = pe.id
+         AND b.geloescht_am IS NULL AND po.geloescht_am IS NULL) AS eltern,
     (SELECT string_agg(DISTINCT trim(coalesce(po.vorname,'')||' '||coalesce(po.nachname,'')), ', ')
        FROM public.beziehungen b
        JOIN public.personen po ON po.id = CASE WHEN b.person_a = pe.id THEN b.person_b ELSE b.person_a END
-       WHERE b.typ='ehepartner' AND (b.person_a = pe.id OR b.person_b = pe.id)) AS partner,
+       WHERE b.typ='ehepartner' AND (b.person_a = pe.id OR b.person_b = pe.id)
+         AND b.geloescht_am IS NULL AND po.geloescht_am IS NULL) AS partner,
     pe.user_id AS belegt_user,
     (SELECT u.email FROM auth.users u WHERE u.id = pe.user_id) AS belegt_email
   FROM public.personen pe
   JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
   CROSS JOIN n
-  WHERE (public.ist_super_admin() OR public.kann_familie_bearbeiten(pe.familie_id))
+  WHERE pe.geloescht_am IS NULL
+    AND (public.ist_super_admin() OR public.kann_familie_bearbeiten(pe.familie_id))
     AND (n.vn IS NOT NULL OR n.nn IS NOT NULL OR n.bd IS NOT NULL)   -- mind. ein Kriterium
     AND (n.vn IS NULL OR public.merge_norm(pe.vorname)  LIKE n.vn || '%')
     AND (n.nn IS NULL OR public.merge_norm(pe.nachname) LIKE n.nn || '%')
@@ -141,7 +144,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     SELECT pe.id, pe.stammbaum_id, pe.familie_id,
            trim(coalesce(pe.vorname,'')||' '||coalesce(pe.nachname,'')) AS name
       FROM public.personen pe
-     WHERE pe.user_id = auth.uid()
+     WHERE pe.user_id = auth.uid() AND pe.geloescht_am IS NULL
      ORDER BY pe.updated_at DESC NULLS LAST
      LIMIT 1
   )
@@ -157,7 +160,8 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     'baum_anzahl',     (SELECT count(*) FROM public.stammbaeume s
                           WHERE public.ist_super_admin() OR public.sieht_familie(s.familie_id)),
     'personen_anzahl', (SELECT count(*) FROM public.personen pe
-                          WHERE public.ist_super_admin() OR public.sieht_familie(pe.familie_id)),
+                          WHERE pe.geloescht_am IS NULL
+                            AND (public.ist_super_admin() OR public.sieht_familie(pe.familie_id))),
     'super_admin',     public.ist_super_admin()
   );
 $$;
@@ -193,7 +197,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
            s.name AS bname
     FROM public.personen pe
     LEFT JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
-    WHERE pe.user_id = m.user_id
+    WHERE pe.user_id = m.user_id AND pe.geloescht_am IS NULL
     ORDER BY pe.updated_at DESC NULLS LAST
     LIMIT 1
   ) pv ON true

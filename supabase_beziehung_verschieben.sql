@@ -65,11 +65,13 @@ BEGIN
 
   -- Identitätsgruppen (gespiegelte Karten = dieselbe reale Person)
   SELECT array_agg(pp.id) INTO v_P FROM personen pp
-   WHERE pp.id = p_person
-      OR pp.identitaet_id = (SELECT identitaet_id FROM personen WHERE id = p_person AND identitaet_id IS NOT NULL);
+   WHERE pp.geloescht_am IS NULL
+     AND (pp.id = p_person
+      OR pp.identitaet_id = (SELECT identitaet_id FROM personen WHERE id = p_person AND identitaet_id IS NOT NULL AND geloescht_am IS NULL));
   SELECT array_agg(pp.id) INTO v_X FROM personen pp
-   WHERE pp.id = p_other
-      OR pp.identitaet_id = (SELECT identitaet_id FROM personen WHERE id = p_other AND identitaet_id IS NOT NULL);
+   WHERE pp.geloescht_am IS NULL
+     AND (pp.id = p_other
+      OR pp.identitaet_id = (SELECT identitaet_id FROM personen WHERE id = p_other AND identitaet_id IS NOT NULL AND geloescht_am IS NULL));
   IF v_P IS NULL OR v_X IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'fehler', 'person_fehlt');
   END IF;
@@ -79,8 +81,8 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'fehler', 'bezv_self');
   END IF;
 
-  SELECT familie_id, stammbaum_id INTO v_p_fam, v_p_baum FROM personen WHERE id = p_person;
-  SELECT familie_id INTO v_x_fam FROM personen WHERE id = p_other;
+  SELECT familie_id, stammbaum_id INTO v_p_fam, v_p_baum FROM personen WHERE id = p_person AND geloescht_am IS NULL;
+  SELECT familie_id INTO v_x_fam FROM personen WHERE id = p_other AND geloescht_am IS NULL;
 
   -- Rechte: beide Familien editierbar (oder Super-Admin)
   IF NOT (ist_super_admin()
@@ -90,29 +92,29 @@ BEGIN
 
   -- Eltern von P
   SELECT array_agg(DISTINCT person_a) INTO v_pparents
-    FROM beziehungen WHERE typ = 'elternteil' AND person_b = ANY(v_P);
+    FROM beziehungen WHERE typ = 'elternteil' AND person_b = ANY(v_P) AND geloescht_am IS NULL;
   v_pparents := COALESCE(v_pparents, ARRAY[]::uuid[]);
 
   -- Vorfahren von P (rekursiv über elternteil)
   WITH RECURSIVE anc(id) AS (
-    SELECT person_a FROM beziehungen WHERE typ = 'elternteil' AND person_b = ANY(v_P)
+    SELECT person_a FROM beziehungen WHERE typ = 'elternteil' AND person_b = ANY(v_P) AND geloescht_am IS NULL
     UNION
-    SELECT b.person_a FROM beziehungen b JOIN anc ON b.person_b = anc.id WHERE b.typ = 'elternteil'
+    SELECT b.person_a FROM beziehungen b JOIN anc ON b.person_b = anc.id WHERE b.typ = 'elternteil' AND b.geloescht_am IS NULL
   ) SELECT array_agg(id) INTO v_anc FROM anc;
   v_anc := COALESCE(v_anc, ARRAY[]::uuid[]);
 
   -- Nachfahren von P (rekursiv über elternteil)
   WITH RECURSIVE des(id) AS (
-    SELECT person_b FROM beziehungen WHERE typ = 'elternteil' AND person_a = ANY(v_P)
+    SELECT person_b FROM beziehungen WHERE typ = 'elternteil' AND person_a = ANY(v_P) AND geloescht_am IS NULL
     UNION
-    SELECT b.person_b FROM beziehungen b JOIN des ON b.person_a = des.id WHERE b.typ = 'elternteil'
+    SELECT b.person_b FROM beziehungen b JOIN des ON b.person_a = des.id WHERE b.typ = 'elternteil' AND b.geloescht_am IS NULL
   ) SELECT array_agg(id) INTO v_desc FROM des;
   v_desc := COALESCE(v_desc, ARRAY[]::uuid[]);
 
   -- Geschwister? (X teilt einen Elternteil mit P)
   v_sibling := cardinality(v_pparents) > 0 AND EXISTS (
     SELECT 1 FROM beziehungen
-     WHERE typ = 'elternteil' AND person_b = ANY(v_X) AND person_a = ANY(v_pparents)
+     WHERE typ = 'elternteil' AND person_b = ANY(v_X) AND person_a = ANY(v_pparents) AND geloescht_am IS NULL
   );
 
   -- ---- Validierung je Zieltyp ----
@@ -121,7 +123,7 @@ BEGIN
     IF v_sibling     THEN RETURN jsonb_build_object('ok',false,'fehler','bezv_geschwister_konflikt'); END IF;
     SELECT count(DISTINCT person_a) INTO v_parentcount
       FROM beziehungen
-     WHERE typ = 'elternteil' AND person_b = ANY(v_P) AND NOT (person_a = ANY(v_X));
+     WHERE typ = 'elternteil' AND person_b = ANY(v_P) AND NOT (person_a = ANY(v_X)) AND geloescht_am IS NULL;
     IF p_ersetzt_elternteil IS NOT NULL THEN v_parentcount := v_parentcount - 1; END IF;
     IF v_parentcount >= 2 THEN RETURN jsonb_build_object('ok',false,'fehler','bezv_zu_viele_eltern'); END IF;
   ELSIF p_neu_typ = 'kind' THEN
@@ -155,8 +157,9 @@ BEGIN
       DELETE FROM beziehungen WHERE typ = 'elternteil' AND person_b = ANY(v_P)
         AND person_a IN (
           SELECT id FROM personen
-           WHERE id = p_ersetzt_elternteil
-              OR identitaet_id = (SELECT identitaet_id FROM personen WHERE id = p_ersetzt_elternteil AND identitaet_id IS NOT NULL)
+           WHERE geloescht_am IS NULL
+             AND (id = p_ersetzt_elternteil
+              OR identitaet_id = (SELECT identitaet_id FROM personen WHERE id = p_ersetzt_elternteil AND identitaet_id IS NOT NULL AND geloescht_am IS NULL))
         );
     END IF;
     INSERT INTO beziehungen(person_a, person_b, typ, familie_id)

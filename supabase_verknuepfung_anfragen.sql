@@ -65,7 +65,8 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   FROM public.personen pe
   LEFT JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
   CROSS JOIN n
-  WHERE n.vn <> '' AND n.nn <> '' AND n.bd IS NOT NULL AND n.ld <> ''
+  WHERE pe.geloescht_am IS NULL
+    AND n.vn <> '' AND n.nn <> '' AND n.bd IS NOT NULL AND n.ld <> ''
     AND public.merge_norm(pe.vorname)  = n.vn
     AND public.merge_norm(pe.nachname) = n.nn
     AND nullif(trim(coalesce(pe.stammbaum_daten->>'birth_date','')),'') = n.bd
@@ -131,8 +132,8 @@ RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_qf uuid; v_zf uuid; v_qb uuid;
 BEGIN
   IF p_ziel IS NULL THEN RAISE EXCEPTION 'Ziel-Person fehlt.'; END IF;
-  SELECT familie_id, stammbaum_id INTO v_qf, v_qb FROM public.personen WHERE id = p_kontext;
-  SELECT familie_id INTO v_zf FROM public.personen WHERE id = p_ziel;
+  SELECT familie_id, stammbaum_id INTO v_qf, v_qb FROM public.personen WHERE id = p_kontext AND geloescht_am IS NULL;
+  SELECT familie_id INTO v_zf FROM public.personen WHERE id = p_ziel AND geloescht_am IS NULL;
   IF v_zf IS NULL THEN RAISE EXCEPTION 'Ziel-Person nicht gefunden.'; END IF;
   -- Antragsteller muss seine eigene (Quell-)Familie bearbeiten dürfen
   IF v_qf IS NOT NULL AND NOT (public.ist_super_admin() OR public.kann_familie_bearbeiten(v_qf)) THEN
@@ -177,8 +178,8 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     sz.name || coalesce(' (' || nullif(btrim(sz.zusatz),'') || ')', '') AS ziel_baum_name,
     u.email AS antragsteller_email
   FROM public.verknuepfungs_anfragen v
-  LEFT JOIN public.personen   pk ON pk.id = v.kontext_person
-  LEFT JOIN public.personen   pz ON pz.id = v.ziel_person
+  LEFT JOIN public.personen   pk ON pk.id = v.kontext_person AND pk.geloescht_am IS NULL
+  LEFT JOIN public.personen   pz ON pz.id = v.ziel_person AND pz.geloescht_am IS NULL
   LEFT JOIN public.stammbaeume sq ON sq.id = v.quelle_baum
   LEFT JOIN public.stammbaeume sz ON sz.id = pz.stammbaum_id
   LEFT JOIN auth.users        u  ON u.id = v.antragsteller

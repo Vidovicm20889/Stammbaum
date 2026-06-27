@@ -120,6 +120,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     FROM public.personen pe
     LEFT JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
     WHERE pe.stammbaum_id IN (p_baum_a, p_baum_b)          -- nur die zwei gewählten Bäume
+      AND pe.geloescht_am IS NULL
       AND (public.ist_super_admin() OR public.sieht_familie(pe.familie_id))
       AND trim(coalesce(pe.vorname,'')) <> ''
       AND substring(coalesce(pe.stammbaum_daten->>'birth_date','') from '\d{4}') IS NOT NULL

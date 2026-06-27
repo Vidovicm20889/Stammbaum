@@ -741,6 +741,12 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   max-height: 90vh;
   max-height: min(90vh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
 }
+/* Mobil: kompakteres Innen-Padding, damit Felder mit min-width auf 320–360px nicht
+   über die verfügbare Breite gepresst werden; zweispaltige Kosten-Form auf 1 Spalte. */
+@media (max-width: 480px) {
+  .modal-inhalt { padding: 22px 16px; }
+  .kosten-form { grid-template-columns: 1fr; }
+}
 .modal-schliessen {
   position: absolute; top: 10px; right: 10px; z-index: 10;
   /* Großes, immer sichtbares Tap-Target (≥40px) mit Hintergrund-Kreis, damit der
@@ -840,6 +846,13 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
   transition: background 0.2s, color 0.2s;
 }
 .modal .rel-move-btn:hover { background: var(--gold); color: var(--paper); border-color: var(--gold); }
+/* Mobil: größere Tap-Targets für die nebeneinanderliegenden ✕/⇄-Buttons (sonst Fehl-Taps). */
+@media (max-width: 480px) {
+  .modal .rel-del-btn, .modal .rel-move-btn {
+    width: 34px; height: 34px; min-width: 34px; font-size: 16px; margin-left: 6px;
+  }
+  .modal .verwandter { padding-top: 8px; padding-bottom: 8px; }
+}
 /* Beziehung-ändern-Dialog: ungültige Ziel-Rolle (Grund im Untertext) */
 .ansicht-radio.bez-deaktiviert { opacity: .5; cursor: not-allowed; }
 /* Liegt im DOM vor dem Detail-Modal (#modal, z-index 100) -> muss explizit darüber liegen,
@@ -888,7 +901,8 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
 }
 .event-editor input[type="text"] {
   width: 100%; padding: 16px 14px; min-height: 48px;
-  border: 1px solid var(--linie); font-family: inherit; font-size: 15px;
+  /* 16px (nicht 15): höhere Spezifität als die globale 16px-Mobilregel -> sonst iOS-Auto-Zoom beim Fokus. */
+  border: 1px solid var(--linie); font-family: inherit; font-size: 16px;
   background: var(--paper); color: var(--ink);
 }
 .event-editor textarea {
@@ -1099,8 +1113,25 @@ footer {
 
 @media (max-width: 600px) {
   body { padding-top: 0; }
-  .top-nav { position: static; padding: 8px 12px; flex-wrap: wrap; gap: 6px; justify-content: center; }
-  .nav-controls { gap: 6px; }
+  /* Mobiles Sicherheitsnetz gegen horizontales Wegscrollen: ein einzelnes überlaufendes
+     Kind (zu breite Leiste/Tabelle/Grid) macht sonst die ganze Seite seitlich verschiebbar.
+     Der Baum-Pan/Zoom läuft in #baum-container (eigenes overflow) und bleibt unberührt. */
+  html, body { overflow-x: hidden; }
+  .top-nav { position: static; padding: 8px 10px; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  /* Volle Breite + zentriert: verhindert horizontalen Überlauf der zentrierten Leiste
+     (sonst rutscht die zu breite Tab-Gruppe nach links aus dem Bild). */
+  .nav-controls { gap: 6px; width: 100%; justify-content: center; }
+  /* Tab-Gruppe spannt die Breite; Tabs werden gleichbreite, kompakte Flex-Items statt zu überlaufen. */
+  .tab-gruppe { width: 100%; box-sizing: border-box; }
+  .tab-gruppe .tab { flex: 1 1 0; min-width: 0; padding: 10px 6px; letter-spacing: 1px; font-size: 12px; text-align: center; }
+  /* Suche/Dropdown schrumpffähig (Schriftgröße bleibt ≥16px wegen iOS-Zoom-Regel). */
+  .suche { flex: 1 1 100%; min-width: 0; }
+  .filter, #tree-select { flex: 1 1 160px; min-width: 0; max-width: 100%; }
+  /* Benutzer-Badge in der Leiste darf umbrechen (Name + E-Mail + Rolle + Avatar
+     sonst > Viewport-Breite). flex-wrap nur im nav-menu-panel reicht nicht. */
+  .auth-bereich { flex-wrap: wrap; justify-content: center; }
+  .user-badge { flex-wrap: wrap; min-width: 0; justify-content: center; }
+  .user-name, .user-email { max-width: 60vw; }
   .sprach-menu { right: auto; left: 0; }
   header { padding-top: 20px; }
 }
@@ -1834,6 +1865,13 @@ footer {
   .galerie-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
   .lightbox-nav { width: 40px; height: 54px; font-size: 24px; }
 }
+/* Querformat auf niedrigen Schirmen: Bild/Tags/Engagement zwischen die Pfeile rücken,
+   damit die seitlichen Navigationspfeile den Inhalt nicht überlagern. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .lightbox-inner { max-width: calc(100vw - 120px); }
+  .lightbox-img { max-height: 68vh; }
+  .lightbox-nav { width: 38px; height: 48px; font-size: 22px; }
+}
 
 /* ===== Dokumente & Quellen pro Person ===================================== */
 /* Read-only-Liste in der Detailkarte (#detail-dokumente) + Verwaltungs-Liste
@@ -2475,6 +2513,16 @@ video.lightbox-img { max-width: 96vw; max-height: 78vh; }
 .person:focus-visible, .album-thumb:focus-visible, .verwandter:focus-visible {
   outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px;
 }
+
+/* Papierkorb (Soft-Delete) — Liste gelöschter Einträge */
+.pk-liste { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.pk-leer { text-align: center; color: var(--text-dim); padding: 22px 0; font-size: 14px; }
+.pk-item { border: 1px solid var(--linie); border-radius: 10px; padding: 12px 14px; background: var(--paper); }
+.pk-item-kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.pk-namen { font-weight: bold; color: var(--akzent); font-size: 15px; }
+.pk-meta { font-size: 12px; color: var(--text-dim); }
+.pk-meta2 { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+.pk-aktionen { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks

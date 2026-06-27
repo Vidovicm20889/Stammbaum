@@ -23,6 +23,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
   FROM public.personen pe
   JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
   WHERE pe.stammbaum_id = p_baum
+    AND pe.geloescht_am IS NULL
     AND (public.ist_super_admin() OR public.kann_familie_bearbeiten(s.familie_id))
   ORDER BY pe.nachname, pe.vorname;
 $$;

@@ -57,7 +57,7 @@ BEGIN
   IF p_ziel IS NULL THEN RETURN NULL; END IF;
   IF p_typ = 'person' THEN
     SELECT f.verbund_id INTO v FROM public.personen p
-      JOIN public.familien f ON f.id = p.familie_id WHERE p.id = p_ziel;
+      JOIN public.familien f ON f.id = p.familie_id WHERE p.id = p_ziel AND p.geloescht_am IS NULL;
   ELSIF p_typ = 'foto' THEN
     SELECT f.verbund_id INTO v FROM public.personen_fotos x
       JOIN public.familien f ON f.id = x.familie_id WHERE x.id = p_ziel;

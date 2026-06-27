@@ -46,6 +46,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
            trim(coalesce(pe.vorname,'')||' '||coalesce(pe.nachname,'')) AS name
       FROM public.personen pe
      WHERE pe.user_id = auth.uid()
+       AND pe.geloescht_am IS NULL
      ORDER BY pe.updated_at DESC NULLS LAST
      LIMIT 1
   )
@@ -59,7 +60,8 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     'baum_anzahl',     (SELECT count(*) FROM public.stammbaeume s
                           WHERE public.ist_super_admin() OR public.sieht_familie(s.familie_id)),
     'personen_anzahl', (SELECT count(*) FROM public.personen pe
-                          WHERE public.ist_super_admin() OR public.sieht_familie(pe.familie_id)),
+                          WHERE pe.geloescht_am IS NULL
+                            AND (public.ist_super_admin() OR public.sieht_familie(pe.familie_id))),
     'super_admin',     public.ist_super_admin()
   );
 $$;
@@ -84,6 +86,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     FROM public.personen pe
     JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
    WHERE pe.user_id IS NULL
+     AND pe.geloescht_am IS NULL
      AND (public.ist_super_admin() OR public.sieht_familie(pe.familie_id))
    ORDER BY s.name, name;
 $$;
@@ -107,7 +110,7 @@ BEGIN
   SELECT pe.familie_id, pe.user_id, pe.stammbaum_id,
          trim(coalesce(pe.vorname,'')||' '||coalesce(pe.nachname,''))
     INTO v_fam, v_uid, v_baum, v_name
-    FROM public.personen pe WHERE pe.id = p_person;
+    FROM public.personen pe WHERE pe.id = p_person AND pe.geloescht_am IS NULL;
 
   IF v_fam IS NULL THEN RETURN jsonb_build_object('ok', false, 'grund', 'nicht_gefunden'); END IF;
 

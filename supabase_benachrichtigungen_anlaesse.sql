@@ -109,6 +109,7 @@ BEGIN
       JOIN public.familien fv ON fv.verbund_id = fz.verbund_id
       JOIN public.personen  pe ON pe.familie_id = fv.id
      WHERE e.email_geburtstage
+       AND pe.geloescht_am IS NULL   -- Papierkorb: gelöschte Personen erzeugen keine Erinnerung
        AND coalesce((pe.stammbaum_daten->>'platzhalter')::boolean, false) = false
        AND coalesce((pe.stammbaum_daten->>'deceased')::boolean, false) = false
        AND coalesce(pe.stammbaum_daten->>'death_date','') = ''
@@ -133,6 +134,7 @@ BEGIN
       JOIN public.familien fv ON fv.verbund_id = fz.verbund_id
       JOIN public.personen  pe ON pe.familie_id = fv.id
      WHERE e.email_gedenktage
+       AND pe.geloescht_am IS NULL   -- Papierkorb: gelöschte Personen erzeugen keine Erinnerung
        AND coalesce((pe.stammbaum_daten->>'platzhalter')::boolean, false) = false
        AND pe.stammbaum_daten->>'death_date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
        AND substr(pe.stammbaum_daten->>'death_date', 6, 5) = to_char(current_date + e.vorlauf_tage, 'MM-DD')

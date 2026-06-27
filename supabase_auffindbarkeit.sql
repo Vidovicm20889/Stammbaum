@@ -97,6 +97,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
     JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
     LEFT JOIN public.profile pr ON pr.user_id = pe.user_id
     WHERE pe.id = p_person
+      AND pe.geloescht_am IS NULL
       -- (1) FREMDER Verbund (eigener Verbund läuft über die normale personen_suche).
       --     verbund_id ist NOT NULL -> kein NULL-Problem mit NOT IN.
       AND f.verbund_id NOT IN (
@@ -165,6 +166,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   LEFT JOIN public.profile pr ON pr.user_id = pe.user_id
   CROSS JOIN q
   WHERE q.qn IS NOT NULL
+    AND pe.geloescht_am IS NULL
     AND length(q.qn) >= 2
     -- Namens-Match (Präfix je Feld ODER Teilstring über den ganzen Namen)
     AND (

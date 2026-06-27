@@ -64,7 +64,8 @@ BEGIN
   CREATE TEMP TABLE _bp_intree ON COMMIT DROP AS
     SELECT pe.id, pe.identitaet_id
       FROM public.personen pe
-     WHERE pe.stammbaum_id = p_stammbaum_id;
+     WHERE pe.stammbaum_id = p_stammbaum_id
+       AND pe.geloescht_am IS NULL;
 
   SELECT count(*) INTO v_total FROM _bp_intree;
 
@@ -79,6 +80,7 @@ BEGIN
       FROM public.personen pe
       JOIN _bp_intree it ON it.identitaet_id = pe.identitaet_id
      WHERE pe.identitaet_id IS NOT NULL
+       AND pe.geloescht_am IS NULL
        AND pe.stammbaum_id IS DISTINCT FROM p_stammbaum_id;
 
   -- ---- 3) Ungerichtete Kanten auf Baum-Repräsentanten -------------------------
@@ -89,6 +91,7 @@ BEGIN
       JOIN _bp_map ma ON ma.any_id = b.person_a
       JOIN _bp_map mb ON mb.any_id = b.person_b
      WHERE b.typ IN ('elternteil','ehepartner')
+       AND b.geloescht_am IS NULL
        AND ma.rep <> mb.rep;
 
   -- ---- 4) Zusammenhangskomponenten bilden (iterative BFS je Saat) --------------
@@ -165,8 +168,9 @@ BEGIN
     INTO v_waisen
     FROM public.beziehungen b
    WHERE b.familie_id = v_fam
-     AND ( NOT EXISTS (SELECT 1 FROM public.personen p WHERE p.id = b.person_a)
-        OR NOT EXISTS (SELECT 1 FROM public.personen p WHERE p.id = b.person_b) );
+     AND b.geloescht_am IS NULL
+     AND ( NOT EXISTS (SELECT 1 FROM public.personen p WHERE p.id = b.person_a AND p.geloescht_am IS NULL)
+        OR NOT EXISTS (SELECT 1 FROM public.personen p WHERE p.id = b.person_b AND p.geloescht_am IS NULL) );
 
   -- ---- 8) FEHLENDE ZUORDNUNG: Personen der Familie ohne stammbaum_id ----------
   SELECT coalesce(jsonb_agg(
@@ -174,7 +178,7 @@ BEGIN
              'name', nullif(trim(coalesce(pe.vorname,'')||' '||coalesce(pe.nachname,'')), ''))), '[]'::jsonb)
     INTO v_ohnebaum
     FROM public.personen pe
-   WHERE pe.familie_id = v_fam AND pe.stammbaum_id IS NULL;
+   WHERE pe.familie_id = v_fam AND pe.stammbaum_id IS NULL AND pe.geloescht_am IS NULL;
 
   -- ---- 9) Ergebnis-Bericht -----------------------------------------------------
   v_result := jsonb_build_object(

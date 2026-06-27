@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.8">
+<meta name="app-version" content="14.9">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.8">
+<link rel="stylesheet" href="stammbaum.css?v=14.9">
 </head>
 <body>
 
@@ -92,6 +92,7 @@
               <span data-i18n="obav_zentral_titel"></span><span class="obav-badge" id="avatar-menu-obav-badge" style="display:none"></span>
             </button>
             <button class="account-btn" type="button" data-i18n="prof_bearbeiten" onclick="oeffneProfilAusMenu()"></button>
+            <button class="account-btn" type="button" id="avatar-papierkorb-btn" data-i18n="pk_menu" onclick="oeffnePapierkorbAusMenu()" style="display:none"></button>
             <button class="account-btn" type="button" id="menu-standard-btn" data-i18n="std_menu" onclick="oeffneStandardBaumAusMenu()" style="display:none"></button>
             <button class="account-btn" type="button" data-i18n="prof_privacy_titel" onclick="oeffnePrivatnost()"></button>
             <button class="account-btn" type="button" data-i18n="prof_pw_titel" onclick="oeffnePasswort()"></button>
@@ -597,6 +598,10 @@
             <option value="0" data-i18n="ansicht_gen_unbegrenzt"></option>
           </select>
         </label>
+      </div>
+      <div class="ansicht-familien-block" style="margin-top:14px">
+        <b data-i18n="nav_familien"></b>
+        <div class="ansicht-pick-list" id="ansicht-familien-liste" style="margin-top:6px"></div>
       </div>
     </div>
 
@@ -2253,6 +2258,17 @@
   </div>
 </div>
 
+<!-- Papierkorb (Soft-Delete) — Bearbeiter. Gelöschte Personen 30 Tage wiederherstellbar.
+     Schließt nur per Button (UI-Regel). -->
+<div class="modal" id="papierkorb-modal" style="z-index:216">
+  <div class="modal-inhalt" style="max-width:600px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePapierkorb()">×</button>
+    <h2 data-i18n="pk_titel"></h2>
+    <p class="login-label" data-i18n="pk_intro" style="margin-top:0"></p>
+    <div id="papierkorb-liste" class="pk-liste"></div>
+  </div>
+</div>
+
 <!-- Datensicherung (Backup/Restore) — super_admin/owner. Schließt nur per Button (UI-Regel). -->
 <div class="modal" id="backup-modal" style="z-index:220">
   <div class="modal-inhalt" style="max-width:620px" onclick="event.stopPropagation()">
@@ -2282,12 +2298,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.8"></script>
+<script src="i18n.js?v=14.9"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.6"></script>
-<script src="chat.js?v=14.6"></script>
+<script src="pdf_export.js?v=14.9"></script>
+<script src="chat.js?v=14.9"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2684,6 +2700,9 @@ function aktualisiereAuthUI() {
     // Familien-Isolation (CLAUDE.md). Bucket-RLS + beide Edge Functions erzwingen ebenfalls super_admin.
     const backupBtn = document.getElementById('menu-backup-btn');
     if (backupBtn) backupBtn.style.display = istSuperAdmin() ? '' : 'none';
+    // Papierkorb im Avatar-Menü (unter „Profil bearbeiten") — nur für Bearbeiter.
+    const avPkBtn = document.getElementById('avatar-papierkorb-btn');
+    if (avPkBtn) avPkBtn.style.display = istAdmin() ? '' : 'none';
     if (istAdm) {
       // Deep-Link aus der Benachrichtigungs-Mail (?obav=1): nach dem Laden der
       // offenen Anfragen die Obavještenja-Liste automatisch öffnen (einmalig).
@@ -2794,6 +2813,12 @@ function toggleAvatarMenu(e) {
 function oeffneProfilAusMenu() {
   const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
   oeffneProfil();
+}
+
+// Menüpunkt „Papierkorb" (nur Bearbeiter) — schließt das Avatar-Menü und öffnet den Papierkorb.
+function oeffnePapierkorbAusMenu() {
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  oeffnePapierkorb();
 }
 
 // Menüpunkt „Abmelden" — schließt das Avatar-Menü und meldet ab (Verhalten wie bisher).
@@ -7019,9 +7044,15 @@ let aktuelleAnsicht = 'baum';
 // modus: null (Such-/Fokus-Altlogik) | 'standard' | 'voll' | 'zweig' | 'erweitert'
 let ansichtModus    = null;
 let ansichtFokusId  = null;          // Person, um die der Ausschnitt zentriert ist
-let ansichtGen      = 0;             // 'zweig': Generationen nach unten (0 = unbegrenzt, Default)
-let ansichtGenAuf   = 2;             // 'zweig': Generationen nach oben (0 = unbegrenzt; Default 2 = nahe Vorfahren)
+let ansichtGen      = 0;             // 'zweig': AKTIVE Generationen nach unten (0 = unbegrenzt, Default)
+let ansichtGenAuf   = 2;             // 'zweig': AKTIVE Generationen nach oben (0 = unbegrenzt; Default 2 = nahe Vorfahren)
+// Getrennte Vorbelegung für den „Familienzweig"-Dialog: nur die ZULETZT IM OVERLAY gewählten
+// Tiefen. So überschreibt „von hier aus anzeigen" (graphFokusAufPerson, fix 4/4) die aktiven
+// Render-Tiefen, aber NICHT die Dialog-Vorbelegung des Nutzers.
+let zweigOverlayGen    = 0;
+let zweigOverlayGenAuf = 2;
 let ansichtKat      = null;          // 'erweitert': gewählte Verwandtschafts-Kategorien
+let fokusVerlauf    = [];            // Verbund-Navigation: Stack vorher fokussierter Personen (ext-IDs) für „← Zurück"
 // Multi-Tree (B2): aktuell gewählter Stammbaum + Liste {id: name}
 let aktuellerStammbaumId = null;
 let stammbaeumeListe = {};
@@ -7367,9 +7398,14 @@ function zeichneBaumNeu() {
 // (z.B. I500009) -> bleibt kompatibel zur bestehenden Render-Logik.
 // ============================================================
 async function ladeBaumAusSupabase() {
+  // Soft-Delete-Filter (Papierkorb) DEFENSIV explizit: die RLS-Policies blenden gelöschte Zeilen
+  // bereits aus (supabase_papierkorb.sql, Layer 1), ABER ein erneutes Ausführen von verbund.sql/
+  // baum_freigaben_rls.sql erzeugt die SELECT-Policies OHNE geloescht_am-Filter neu (dokumentierte
+  // Fragilität) → gelöschte Personen würden im Renderer auftauchen. `.is('geloescht_am', null)`
+  // garantiert hier unabhängig von der RLS-Reihenfolge, dass der Renderer nie Papierkorb-Inhalt lädt.
   const [pRes, bRes, sRes] = await Promise.all([
-    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id, updated_at'),
-    sbClient.from('beziehungen').select('person_a, person_b, typ'),
+    sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id, updated_at').is('geloescht_am', null),
+    sbClient.from('beziehungen').select('person_a, person_b, typ').is('geloescht_am', null),
     sbClient.from('stammbaeume').select('id, name, zusatz, familie_id')
   ]);
   if (pRes.error || bRes.error) {
@@ -7422,6 +7458,19 @@ async function ladeBaumAusSupabase() {
   const keyToFam = {};
   let famN = 1;
   function holeFamilie(parents) {
+    // Eltern, die DIESELBE reale Person sind (gleiche identitaet_id, über Bäume gespiegelt),
+    // zu EINEM Elternteil zusammenfassen. Sonst belegen zwei Spiegelkarten desselben Elternteils
+    // (z. B. Milan-Šarčević + Milan-Knežević) BEIDE Eltern-Slots (husband+wife) und der ANDERE
+    // echte Elternteil (z. B. Nada) fällt heraus → in der Karte erscheint nur ein Elternteil und
+    // der Render-Strich geht nur zu einem. (Tritt auf, wenn eine Karte 3–4 Eltern-Kanten zu
+    // gespiegelten Eltern hat — z. B. nach unvollständigem Zwillings-Sync.)
+    const identGesehen = new Set();
+    parents = parents.filter(pid => {
+      const ident = persons[pid] && persons[pid]._ident;
+      const k = ident ? ('i:' + ident) : ('p:' + pid);
+      if (identGesehen.has(k)) return false;
+      identGesehen.add(k); return true;
+    });
     const key = parents.slice().sort().join('__');
     if (keyToFam[key]) return keyToFam[key];
     const fid = 'FAM' + (famN++);
@@ -7677,10 +7726,10 @@ function waehleStammbaum(treeId) {
   if (sel && sel.value !== treeId) sel.value = treeId;
   aktualisiereKopf();
   const root = findeStammbaumWurzel(treeId);
-  // Personalisierte Standardansicht, wenn der Nutzer eine verknüpfte Karte in
-  // diesem Baum hat; sonst Fallback auf den vollen Baum (wie bisher).
-  if (zeigeStandardAnsicht()) { /* Standardansicht aktiv */ }
-  else if (root) { ansichtModus = 'voll'; zeichneBaum(root, 12, 0); }   // kein eigenes Profil im Baum -> Vollbaum (kein 3-Gen-Hinweis)
+  // Reihenfolge: Deep-Link (#p=) > personalisierte Standardansicht (eigene Karte) > Vollansicht.
+  if (fokusAusUrl()) { /* URL-Fokus aktiv */ }
+  else if (zeigeStandardAnsicht()) { /* Standardansicht aktiv */ }
+  else if (root) { ansichtModus = 'voll'; vollGraphRender(); }   // kein eigenes Profil im Baum -> Vollansicht
   else { ansichtModus = null; if (baumG) baumG.selectAll('*').remove(); }
   aktualisiereBaumHinweis();
   startPresence(treeId);   // Live-Indikator an den jetzt offenen Baum koppeln (P2)
@@ -7756,8 +7805,10 @@ function initSprachDropdown() {
     });
   });
 
-  // Klick außerhalb schließt das Menü
-  document.addEventListener('click', (e) => {
+  // Tipp/Klick außerhalb schließt das Menü. pointerdown (nicht click) — feuert sofort
+  // am echten Punkt, vor Tastatur-Reflow/Ghost-Click (Android/iOS), konsistent mit den
+  // anderen kleinen Panels (nav-menu/avatar-menu/suchbare Selects).
+  document.addEventListener('pointerdown', (e) => {
     if (!dropdown.contains(e.target)) schliesse();
   });
 }
@@ -8320,9 +8371,36 @@ function waehleWillkommenSprache(lang) {
   document.getElementById('willkommen-modal').classList.remove('aktiv');
 }
 
+// Mobil: fokussiertes Feld unter der eingeblendeten Tastatur sichtbar halten.
+// iOS Safari verkleinert bei offener Tastatur nur die visualViewport-Höhe (nicht das
+// Layout), daher schiebt ein zentriertes Voll-Overlay das untere Feld NICHT selbst
+// nach oben. Wir scrollen das aktiv fokussierte Feld in den Blick (analog feldFokus).
+// Nur innerhalb offener Overlays/Chat, damit normale Seiten-Scrolls unberührt bleiben.
+function feldInSichtScrollen(el) {
+  if (!el || !el.matches) return;
+  if (!el.matches('input, textarea, select, [contenteditable="true"]')) return;
+  if (!el.closest('.modal.aktiv, .lightbox.aktiv, .chat-box')) return;
+  // Nur scrollen, wenn das Feld tatsächlich (teilweise) außerhalb des sichtbaren Bereichs
+  // liegt (z. B. hinter der Tastatur) — sonst kein unnötiges Springen bei jedem Fokus.
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const r = el.getBoundingClientRect();
+  if (r.top >= 0 && r.bottom <= vh) return;
+  try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  catch (_) { try { el.scrollIntoView(); } catch (_e) {} }
+}
+function initMobileTastatur() {
+  // Fokus in ein Feld -> nach kurzer Verzögerung (Tastatur aufgeklappt) in den Blick scrollen.
+  document.addEventListener('focusin', (e) => { const el = e.target; setTimeout(() => feldInSichtScrollen(el), 250); });
+  // Tastatur öffnet/schließt -> aktives Feld nachführen. Kein Schließen von Panels hier.
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => feldInSichtScrollen(document.activeElement));
+  }
+}
+
 function init() {
   initSprachDropdown();
   initSuchbareSelects();   // alle <select> mit Suchfunktion ausstatten
+  initMobileTastatur();    // fokussierte Felder unter der Mobiltastatur sichtbar halten
   initSessionUeberwachung();   // Aktivitäts-Tracking (Auto-Logout bei Inaktivität)
   initVersionsPruefung();      // neue Deployments erkennen -> Update-Banner
   macheAlleDatumsfelder(document);   // alle Datumsfelder mit Kalender ausstatten
@@ -8513,7 +8591,7 @@ function handleSuche() {
 function suchImBaum(suche, interaktiv) {
   if (!suche) {
     fokusPersonId = null;
-    zeichneBaum(aktuelleWurzel(), 12, 0);
+    vollGraphRender();
     return;
   }
 
@@ -8550,6 +8628,68 @@ function zentriereAufPerson(personId) {
   zeichneBaum(personId, 2, 2);
 }
 
+// ============================================================
+// VERBUND-NAVIGATION (Option B): freie Fokus-Navigation über alle Personen des Verbunds
+// mit Verlauf (Brotkrumen-„Zurück") und „Zu meiner Karte".
+// ============================================================
+// „Von hier aus anzeigen": Person X wird neues Zentrum (balancierte Nachbarschaft, 'zweig'-Modus
+// → getrackt, baumübergreifend). Der bisherige Fokus wandert auf den Verlaufs-Stack.
+function fokusAufPerson(personId, ohneVerlauf) {
+  if (!aktuelleDaten.persons[personId]) return;
+  schliesseModal();
+  const p = aktuelleDaten.persons[personId];
+  if (p && p._tree && p._tree !== aktuellerStammbaumId) {   // ggf. in den Baum der Person wechseln
+    aktuellerStammbaumId = p._tree;
+    const sel = document.getElementById('tree-select'); if (sel) sel.value = p._tree;
+  }
+  if (!ohneVerlauf) {
+    const vorher = ansichtFokusId || (typeof meineKarteImBaum === 'function' && meineKarteImBaum()) || null;
+    if (vorher && vorher !== personId) fokusVerlauf.push(vorher);
+  }
+  const sf = document.getElementById('suche'); if (sf) sf.value = '';
+  wechselAnsicht('baum');
+  zeigeZweigAbPerson(personId, 4, 4);   // 4 hoch / 4 runter = balancierte Umgebung
+  fokusUrlSetzen(personId);
+}
+
+// „← Zurück": zur vorher fokussierten Person; ist der Stack leer ODER war es die eigene Karte,
+// zurück zur persönlichen Standardansicht (eigene Karte) bzw. Vollbild.
+function fokusZurueck() {
+  const meine = (typeof meineKarteImBaum === 'function') ? meineKarteImBaum() : null;
+  const prev = fokusVerlauf.pop();
+  if (prev && prev !== meine && aktuelleDaten.persons[prev]) {
+    fokusAufPerson(prev, true);            // ohne erneutes Pushen
+  } else {
+    fokusVerlauf = [];
+    zeigeStandardOderVoll();               // eigene Karte / Vollbild
+    fokusUrlSetzen(null);
+  }
+}
+
+// Fokus-Person in die URL spiegeln (verbund-intern teilbarer Deep-Link). replaceState → kein
+// Scroll/Reload, kein History-Spam. Schlüssel = ext-ID (p.id), beim Laden über fokusAusUrl aufgelöst.
+function fokusUrlSetzen(personId) {
+  try {
+    const basis = location.pathname + location.search;
+    const url = personId ? (basis + '#p=' + encodeURIComponent(personId)) : basis;
+    history.replaceState(null, '', url);
+  } catch (e) {}
+}
+
+// Beim Öffnen eines Baums: liegt in der URL ein #p=<ext-ID> einer geladenen Person, dort fokussieren.
+// Rückgabe true, wenn ein URL-Fokus gesetzt wurde (Aufrufer überspringt dann die Standardansicht).
+function fokusAusUrl() {
+  try {
+    const m = (location.hash || '').match(/[#&]p=([^&]+)/);
+    if (!m) return false;
+    const id = decodeURIComponent(m[1]);
+    if (!aktuelleDaten.persons[id]) return false;
+    fokusVerlauf = [];
+    fokusAufPerson(id, true);
+    return true;
+  } catch (e) { return false; }
+}
+
 function zeigAuswahlDialog(treffer) {
   const liste = treffer.map(p => {
     const info = [p.birth_date ? '* ' + formatDatumLang(p.birth_date) : '', uebersetzeOrt(p.birth_place)].filter(Boolean).join(', ');
@@ -8581,7 +8721,8 @@ function aktualisiereBaumInfo() {
   if (ansichtModus === 'zweig' && ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) {
     const p = aktuelleDaten.persons[ansichtFokusId];
     info.innerHTML = t('ansicht_zweig_info', { name: escapeHtml(nm(p.name)) }) +
-      `<button class="baum-zurueck-btn" onclick="zeigeStandardOderVoll()">← ${t('zurueck')}</button>`;
+      `<button class="baum-zurueck-btn" onclick="fokusZurueck()">← ${t('zurueck')}</button>` +
+      (fokusVerlauf.length ? ` <button class="baum-zurueck-btn" onclick="zentriereBaumAnsicht()">⌂ ${t('nav_meine_karte')}</button>` : '');
     return;
   }
   if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) {
@@ -8594,10 +8735,19 @@ function aktualisiereBaumInfo() {
   }
 }
 
+// Vollansicht „ganzer Baum": Single-Root-Renderer ab der Stammbaum-Wurzel (sameTree) — der für
+// die aktuelle (Zwillings-)Datenwelt passende Renderer: zeigt den kompletten Baum breit (alle
+// Nachkommen der Wurzel), getrennt je Baum. (Die graph2-Variante ab Wurzel war für die migrierte
+// Option-B-Welt gedacht und ließ in der Zwillings-Welt Familien ineinanderbluten → zurückgedreht.)
+function vollGraphRender() {
+  const w = aktuelleWurzel();
+  zeichneBaum(w, 12, 0);
+}
+
 function zeigVollenBaum() {
   fokusPersonId = null;
   ansichtModus = null;
-  zeichneBaum(aktuelleWurzel(), 12, 0);
+  vollGraphRender();
 }
 
 // ============================================================
@@ -8773,25 +8923,28 @@ function zeigeStandardAnsicht(behalteZoom) {
   return true;
 }
 
-// Erweiterte Ansicht um die eigene Person (Kategorien aus dem Overlay).
+// „Großer Familienkreis" = BEGRENZTER Fokus-Kegel um die eigene Karte (positions-UNABHÄNGIG).
+// IMMER über zeichneGraph2 (Radius UM die Person), NICHT über den Single-Root-Renderer:
+// Single-Root rendert ab der obersten Ahnenkarte (_renderWurzelImSet) und zeigt deren ganzen
+// Unterbaum → bei einer HOCH im Baum stehenden Person ist das praktisch der GANZE Stammbaum
+// (Bug: familien_admin sah bei „Großer Kreis" den ganzen Baum, super_admin/Milan – mittig – nicht).
+// Der Fokus-Kegel ist dagegen für JEDE Position gleich groß. Laterale Cousins/Onkel/Tanten
+// folgen im Renderer-Hardening (graph2 zeigt aktuell die direkte Vorfahren-/Nachkommenlinie +
+// Geschwister). Radius aus den Preset-Kategorien.
 function zeigeErweitertAnsicht(kat, behalteZoom) {
   const meId = meineKarteImBaum();
   if (!meId) return false;
-  // Standardumfang ist immer Basis; Overlay-Kategorien erweitern additiv.
-  const voll = Object.assign({
-    eltern: true, partner: true, geschwister: true, kinder: true,
-    geschwister_familie: true
-  }, kat || {});
-  const S = verwandtschaftsSet(meId, voll);
   ansichtModus = 'erweitert';
   ansichtFokusId = meId;
   ansichtKat = kat || {};
   fokusPersonId = null;
-  const root = _renderWurzelImSet(meId, S);
-  // Explizite Erweiterung -> Blutlinien-Kappung AUS (sonst verschwänden aufgeklappte
-  // Nachkommen/Cousins, die der Nutzer bewusst sehen will).
-  zeichneBaum(root, 12, 0, { erlaubt: S, fokusId: meId, uebergangCut: false });
-  aktualisiereBaumHinweis();   // Generationen-Hinweis je nach Modus ein-/ausblenden
+  // Radius label-treu („Cousins, Urgroßeltern & Enkel"): Urgroßeltern = 3 hoch, Enkel = 2 runter
+  // (eine Generation mehr als die Standardansicht up2/down1). Positions-UNABHÄNGIG begrenzt.
+  const k = kat || {};
+  const upN = k.urgrosseltern ? 3 : 2;   // bis (Ur-)Großeltern nach oben
+  const downN = k.nachkommen ? 2 : 1;    // bis Enkel nach unten
+  zeichneGraph2(meId, downN, upN, { fokusId: meId, upN, downN });
+  aktualisiereBaumHinweis();
   return true;
 }
 
@@ -8825,11 +8978,11 @@ function rendereAktuelleAnsicht() {
     case 'zweig':
       if (ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) { zeigeZweigAbPerson(ansichtFokusId, ansichtGen, ansichtGenAuf, true); return; }
       break;
-    case 'voll': zeichneBaum(aktuelleWurzel(), 12, 0); aktualisiereBaumHinweis(); return;
+    case 'voll': vollGraphRender(); aktualisiereBaumHinweis(); return;
   }
   // Fallback: frühere Such-/Fokuslogik
   if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) zeichneBaum(fokusPersonId, 2, 2);
-  else zeichneBaum(aktuelleWurzel(), 12, 0);
+  else vollGraphRender();
 }
 
 // Rücksprung aus einem Zweig: Standardansicht, sonst Vollbaum.
@@ -8883,6 +9036,32 @@ function ansichtErwToggle() {
   ansichtErwOeffnen(!document.getElementById('ansicht-erw').classList.contains('offen'));
 }
 
+// „Zu einer Familie springen": listet alle Verbund-Familien (Bäume mit ≥1 geladener Person)
+// und fokussiert auf Klick die Ankerperson der Familie (Wurzel des Baums) — freie Verbund-
+// Navigation (Option B), z. B. Milan → „Familie Starčević".
+function familienListeFuellen() {
+  const box = document.getElementById('ansicht-familien-liste');
+  if (!box) return;
+  const trees = {};
+  Object.values(aktuelleDaten.persons || {}).forEach(p => { if (p && p._tree && !p.platzhalter) trees[p._tree] = true; });
+  const items = Object.keys(trees)
+    .map(tid => ({ tid, label: (typeof baumLabel === 'function') ? baumLabel(tid) : tid }))
+    .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+  box.innerHTML = items.length
+    ? items.map(it => `<div class="ansicht-pick-item" onclick="familieAnsehen('${it.tid}')">👪 ${escapeHtml(it.label)}</div>`).join('')
+    : '';
+}
+
+function familieAnsehen(treeId) {
+  schliesseAnsichtModal();
+  let anker = (typeof findeStammbaumWurzel === 'function') ? findeStammbaumWurzel(treeId) : null;
+  if (!anker || !aktuelleDaten.persons[anker]) {
+    const p = Object.values(aktuelleDaten.persons || {}).find(x => x && x._tree === treeId && !x.platzhalter);
+    anker = p ? p.id : null;
+  }
+  if (anker) fokusAufPerson(anker);   // zentriert die Ansicht auf die Ankerperson (zweig-Modus, mit Verlauf)
+}
+
 function oeffneAnsichtModal() {
   ansichtPickSel = null;
   const hatKarte = !!meineKarteImBaum();
@@ -8902,8 +9081,10 @@ function oeffneAnsichtModal() {
   document.querySelectorAll('input[name="ansicht-modus"]').forEach(r => { r.checked = (r.value === vorwahl); });
 
   // Generationen-Selects auf die gespeicherten Werte (unten Default unbegrenzt = '0', oben Default '2')
-  const genEl = document.getElementById('ansicht-gen'); if (genEl) genEl.value = String(ansichtGen || 0);
-  const genAufEl = document.getElementById('ansicht-gen-auf'); if (genAufEl) genAufEl.value = String(ansichtGenAuf);
+  // Vorbelegung aus den ZULETZT IM OVERLAY gewählten Tiefen (nicht aus den aktiven Render-Tiefen,
+  // die z. B. „von hier aus anzeigen" auf 4/4 setzt).
+  const genEl = document.getElementById('ansicht-gen'); if (genEl) genEl.value = String(zweigOverlayGen || 0);
+  const genAufEl = document.getElementById('ansicht-gen-auf'); if (genAufEl) genAufEl.value = String(zweigOverlayGenAuf);
   // Zuletzt gewählte Zweig-Person vorbelegen (Feld gefüllt, Trefferliste zu)
   const sf = document.getElementById('ansicht-suche');
   if (ansichtModus === 'zweig' && ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) {
@@ -8911,6 +9092,7 @@ function oeffneAnsichtModal() {
     if (sf) sf.value = nm(aktuelleDaten.persons[ansichtFokusId].name || ansichtFokusId);
   } else if (sf) { sf.value = ''; }
   document.getElementById('ansicht-pick-list').innerHTML = '';
+  familienListeFuellen();   // „Zu einer Familie springen" (Verbund-Familien des aktuellen Datenstands)
   // Erweiterte Optionen nur aufklappen, wenn der Zweig-Modus aktiv ist.
   ansichtErwOeffnen(vorwahl === 'zweig');
   ansichtModusWahl();
@@ -8979,7 +9161,7 @@ function ansichtAnwenden() {
 
   if (val === 'voll') {
     ansichtModus = 'voll'; fokusPersonId = null; ansichtFokusId = null;
-    zeichneBaum(aktuelleWurzel(), 12, 0);
+    vollGraphRender();
     aktualisiereBaumHinweis();   // Generationen-Hinweis ausblenden (Vollansicht)
     schliesseAnsichtModal();
     return;
@@ -8995,6 +9177,7 @@ function ansichtAnwenden() {
     }
     const gen    = parseInt(document.getElementById('ansicht-gen').value, 10);
     const genAuf = parseInt(document.getElementById('ansicht-gen-auf').value, 10);
+    zweigOverlayGen = gen; zweigOverlayGenAuf = genAuf;   // explizite Nutzerwahl als Dialog-Vorbelegung merken
     zeigeZweigAbPerson(ansichtPickSel, gen, genAuf);
     schliesseAnsichtModal();
     return;
@@ -9023,6 +9206,7 @@ function ansichtModalSprachUpdate() {
   const m = document.getElementById('ansicht-modal');
   if (!m || !m.classList.contains('aktiv')) return;
   if (document.getElementById('ansicht-suche').value.trim().length >= 2) ansichtPickSuche();
+  familienListeFuellen();   // Familien-Liste neu (Baum-Labels)
   if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(m);
 }
 
@@ -12082,8 +12266,7 @@ function zeigeDetails(personId) {
     ${((p.deceased || p.death_date) && p._uuid && !p.platzhalter)
       ? `<button class="baum-zeigen gedenk-oeffnen-btn" onclick="oeffneGedenkseite('${p.id}')">🕯 ${t('gedenk_oeffnen')}</button>` : ''}
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
-    ${graphRendererAn() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graphFokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
-    ${ansichtModus === 'zweig' ? `<button class="baum-zeigen" style="margin-left:10px" onclick="graph2FokusAufPerson('${p.id}')">${t('graph_fokus')}</button>` : ''}
+    ${!p.platzhalter ? `<button class="baum-zeigen" style="margin-left:10px" onclick="fokusAufPerson('${p.id}')">⌖ ${t('nav_von_hier')}</button>` : ''}
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="oeffneMoveBaum('${p.id}')">↪ ${t('move_karte_btn')}</button>` : ''}
     ${istAdmin() ? `
@@ -15355,6 +15538,13 @@ function paElternSucheDebounce(rolle) {
 }
 async function paElternSuche(rolle) {
   const erg = document.getElementById('pa-' + rolle + '-erg');
+  // Touch-sichere Auswahl in der scrollbaren Treffer-Liste: Tap selektiert, Wischen scrollt
+  // (vorher onclick -> Wisch-Scroll konnte versehentlich einen falschen Elternteil wählen).
+  // Einmalig je Container gebunden (Event-Delegation überlebt innerHTML-Neuaufbau).
+  if (erg && !erg._tippGebunden) {
+    erg._tippGebunden = true;
+    tippAuswahl(erg, '.pa-elt-opt[data-uuid]', el => paWaehleErgebnis(el.dataset.rolle, el.dataset.uuid));
+  }
   const q = document.getElementById('pa-' + rolle + '-suche').value.trim();
   if (q.length < 2) { erg.innerHTML = ''; return; }
   erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;opacity:.6">…</div>`;
@@ -15387,7 +15577,7 @@ async function paElternSuche(rolle) {
     const det = [];
     if (rw.birth_date) det.push('* ' + escapeHtml(formatDatumLang(rw.birth_date) || rw.birth_date));
     if (rw.baum)       det.push(escapeHtml(trefferBaumLabel(rw)));
-    return `<div class="pa-elt-opt" onclick="paWaehleErgebnis('${rolle}','${rw.id}')">${escapeHtml(nm(rw.name || ''))}${rw.identitaet_id ? ' 🔗' : ''}<span class="pa-elt-meta">${det.join(' · ')}</span></div>`;
+    return `<div class="pa-elt-opt" data-rolle="${rolle}" data-uuid="${rw.id}">${escapeHtml(nm(rw.name || ''))}${rw.identitaet_id ? ' 🔗' : ''}<span class="pa-elt-meta">${det.join(' · ')}</span></div>`;
   }).join('');
 }
 function paWaehleErgebnis(rolle, uuid) { paSetzeElternteil(rolle, uuid, paElternTreffer[uuid] || ''); }
@@ -16046,98 +16236,40 @@ function abwVerknuepfen() {
 // Option 3: ohne Verknüpfung fortfahren — Person bleibt wie gespeichert.
 function abwOhne() { schliesseAbwNachname(); }
 
-// Person + zugehörige Beziehungen löschen (mit Bestätigung). Keine verwaisten Beziehungen.
+// Person löschen = SOFT-DELETE in den Papierkorb (30 Tage wiederherstellbar). Identitätsbewusst
+// über die RPC person_papierkorb (alle identitaet_id-Zwillinge + deren Kanten, EIN loesch_batch).
+// BEWUSST KEIN Storage-Löschen (Fotos/Dokumente/Aufnahmen/Gedenkseiten bleiben erhalten) und
+// KEINE Baum-Auto-Bereinigung -> nichts geht verloren; Wiederherstellen über den Papierkorb.
 async function loeschePerson(personId) {
   if (!istAdmin()) return;
   const p = aktuelleDaten.persons[personId];
   if (!p || !p._uuid) return;
 
-  // IDENTITÄTSBEWUSST: Alle Karten DERSELBEN realen Person (identitaet_id-Zwillinge über
-  // alle Bäume) werden GEMEINSAM gelöscht. So verschwindet die Person nach EINEM Löschen
-  // NIRGENDWO mehr (Backend + alle Bäume + GUI) — kein „zweimal löschen" bei Spiegelkarten.
-  const alleUuids = p._ident
-    ? [...new Set(Object.values(aktuelleDaten.persons)
-        .filter(x => x._ident === p._ident && x._uuid).map(x => x._uuid))]
-    : [p._uuid];
-  const delSet = new Set(alleUuids);
+  const ok = await zeigeBestaetigung(t('pa_loeschen_frage') + '\n\n' + nm(p.name || p.given || '?'));
+  if (!ok) return;
 
-  // Welche Bäume würden durch das Löschen LEER? (Owner-Gate + kontoschonende Auto-Bereinigung)
-  const betroffeneBaeume = [...new Set(Object.values(aktuelleDaten.persons)
-    .filter(x => delSet.has(x._uuid) && x._tree).map(x => x._tree))];
-  const leereBaeume = betroffeneBaeume.filter(tid =>
-    Object.values(aktuelleDaten.persons).filter(x => x._tree === tid && !delSet.has(x._uuid)).length === 0);
-  const leertBaum = leereBaeume.length > 0;
-
-  if (leertBaum) {
-    // Owner-Exklusivrecht: nur familien_owner / super_admin dürfen einen Baum (durch Löschen
-    // seiner letzten Person) leeren. Server prüft zusätzlich (RPC).
-    const darf = istSuperAdmin() || normalizeRolle(aktuelleRolle || '') === 'familien_owner';
-    if (!darf) { await zeigeHinweis(t('auto_leer_nur_owner')); return; }
-    const ok = await zeigeBestaetigung(t('auto_leer_warnung'),
-      { jaText: t('auto_leer_ja'), neinText: t('abbrechen'), gefahr: true });
-    if (!ok) return;
-  } else {
-    const ok = await zeigeBestaetigung(t('pa_loeschen_frage') + '\n\n' + nm(p.name || p.given || '?'));
-    if (!ok) return;
-  }
-
-  // Fokus-Fallback bestimmen, bevor die Person verschwindet (nur relevant, wenn kein Baum geleert wird)
+  // Fokus-Fallback (Partner/Kind/Elternteil) bestimmen, bevor die Person aus der Ansicht fällt.
   let fallback = null;
-  if (!leertBaum) {
-    (p.families_spouse || []).forEach(fid => {
-      const fam = aktuelleDaten.families[fid]; if (!fam) return;
-      const partner = fam.husband === personId ? fam.wife : fam.husband;
-      if (partner && aktuelleDaten.persons[partner]) fallback = fallback || partner;
-      (fam.children || []).forEach(c => { if (aktuelleDaten.persons[c]) fallback = fallback || c; });
-    });
-    (p.families_child || []).forEach(fid => {
-      const fam = aktuelleDaten.families[fid]; if (!fam) return;
-      if (fam.husband && aktuelleDaten.persons[fam.husband]) fallback = fallback || fam.husband;
-      if (fam.wife && aktuelleDaten.persons[fam.wife]) fallback = fallback || fam.wife;
-    });
+  (p.families_spouse || []).forEach(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return;
+    const partner = fam.husband === personId ? fam.wife : fam.husband;
+    if (partner && aktuelleDaten.persons[partner]) fallback = fallback || partner;
+    (fam.children || []).forEach(c => { if (aktuelleDaten.persons[c]) fallback = fallback || c; });
+  });
+  (p.families_child || []).forEach(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return;
+    if (fam.husband && aktuelleDaten.persons[fam.husband]) fallback = fallback || fam.husband;
+    if (fam.wife && aktuelleDaten.persons[fam.wife]) fallback = fallback || fam.wife;
+  });
+
+  const { data, error } = await sbClient.rpc('person_papierkorb', { p_person: p._uuid });
+  if (error || !data || !data.ok) {
+    await zeigeHinweis(t('reg_fehler') + (error ? error.message : ((data && data.grund) || '')));
+    return;
   }
-
-  // 0) Galerie-Fotos im Storage abräumen (DB-Zeilen hängen per ON DELETE CASCADE an
-  //    den Personen; Storage-Dateien NICHT -> hier entfernen, keine Waisen). Vor dem
-  //    Personen-Delete, solange die personen_fotos-Zeilen noch existieren.
-  await galerieLoescheFuerPersonen(alleUuids);
-  await dokLoescheFuerPersonen(alleUuids);   // Dokument-Storage-Dateien (DB-Zeilen per CASCADE)
-  await aufnLoescheFuerPersonen(alleUuids);  // Aufnahme-Storage-Dateien (DB-Zeilen per CASCADE)
-  await gedenkLoescheFuerPersonen(alleUuids); // Gedenkseiten-Foto-Storage (DB-Zeilen per CASCADE)
-
-  // 1) Alle Beziehungen ALLER betroffenen Karten entfernen (keine verwaisten Kanten)
-  let relErr = (await sbClient.from('beziehungen').delete().in('person_a', alleUuids)).error;
-  if (!relErr) relErr = (await sbClient.from('beziehungen').delete().in('person_b', alleUuids)).error;
-  if (relErr) { await zeigeHinweis(t('reg_fehler') + relErr.message); return; }
-
-  // 2) Die Personen-Karten selbst löschen (alle Zwillinge auf einmal)
-  const { error: pErr } = await sbClient.from('personen').delete().in('id', alleUuids);
-  if (pErr) { await zeigeHinweis(t('reg_fehler') + pErr.message); return; }
-
   schliesseModal();
-
-  if (leertBaum) {
-    // 3) Leer gewordene Bäume kontoschonend auto-löschen (Sweep räumt ALLE leeren Bäume).
-    let dErr = null;
-    try { dErr = (await sbClient.rpc('auto_leere_baeume_aufraeumen')).error; }
-    catch (e) { dErr = e; }
-    if (dErr) {
-      // z. B. 'wartung_aktiv' -> Personen sind weg, Baum bleibt (vorübergehend) leer.
-      const msg = /wartung_aktiv/i.test(dErr.message || '') ? t('auto_leer_wartung') : (t('reg_fehler') + (dErr.message || ''));
-      await reloadBaumBehalteFokus(null);
-      await zeigeHinweis(msg);
-      return;
-    }
-    // 4) Storage-Medien gelöschter Events abräumen (DB kann das nicht)
-    await raeumeVerwaisteMedien();
-    // 5) Navigation nur, wenn der AKTUELL geöffnete Baum geleert wurde
-    if (leereBaeume.includes(aktuellerStammbaumId)) await navigiereNachBaumLoeschung(aktuellerStammbaumId);
-    else await reloadBaumBehalteFokus(fallback);
-    await zeigeHinweis(t('auto_leer_erfolg'));
-  } else {
-    await reloadBaumBehalteFokus(fallback);
-    await zeigeHinweis(t('pa_geloescht'));
-  }
+  await reloadBaumBehalteFokus(fallback);
+  await zeigeHinweis(t('pa_papierkorb_ok'));
 }
 
 // ============================================================
@@ -16337,22 +16469,28 @@ async function beziehungLoesen(typ, vId) {
     { jaText: t('rel_loesen_ja'), neinText: t('abbrechen'), gefahr: true });
   if (!ok) return;
 
-  // Beziehungs-Kanten je Typ entfernen. .in(a).in(b) wirkt als UND-Verknüpfung.
+  // Beziehung lösen = SOFT-DELETE (Papierkorb): jede Kante wird mit geloescht_am markiert statt
+  // physisch gelöscht (gemeinsames loesch_batch -> zusammen wiederherstellbar). .is('geloescht_am',
+  // null) -> nur aktive Kanten anfassen. UPDATE-RLS = kann_familie_bearbeiten (wie zuvor das DELETE).
+  const soft = { geloescht_am: new Date().toISOString(),
+                 geloescht_von: (aktuellerUser && aktuellerUser.id) || null,
+                 loesch_batch: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) };
+  // .in(a).in(b) wirkt als UND-Verknüpfung.
   const del = (filter) => filter.then(r => r.error);
   let err = null;
   try {
     if (typ === 'partner') {
       // ehepartner ist symmetrisch -> beide Richtungen entfernen
-      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'ehepartner').in('person_a', pUu).in('person_b', vUu));
-      if (!err) err = await del(sbClient.from('beziehungen').delete().eq('typ', 'ehepartner').in('person_a', vUu).in('person_b', pUu));
+      err = await del(sbClient.from('beziehungen').update(soft).eq('typ', 'ehepartner').in('person_a', pUu).in('person_b', vUu).is('geloescht_am', null));
+      if (!err) err = await del(sbClient.from('beziehungen').update(soft).eq('typ', 'ehepartner').in('person_a', vUu).in('person_b', pUu).is('geloescht_am', null));
       // Partner von gemeinsamen Kindern trennen (sonst bleibt die Familie über die Elternschaft bestehen)
-      if (!err && sharedKidUuids.length) err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', vUu).in('person_b', sharedKidUuids));
+      if (!err && sharedKidUuids.length) err = await del(sbClient.from('beziehungen').update(soft).eq('typ', 'elternteil').in('person_a', vUu).in('person_b', sharedKidUuids).is('geloescht_am', null));
     } else if (typ === 'eltern') {
       // v ist Elternteil -> Kante v(person_a) -> p(person_b)
-      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', vUu).in('person_b', pUu));
+      err = await del(sbClient.from('beziehungen').update(soft).eq('typ', 'elternteil').in('person_a', vUu).in('person_b', pUu).is('geloescht_am', null));
     } else if (typ === 'kind') {
       // v ist Kind -> Kante p(person_a) -> v(person_b)
-      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', pUu).in('person_b', vUu));
+      err = await del(sbClient.from('beziehungen').update(soft).eq('typ', 'elternteil').in('person_a', pUu).in('person_b', vUu).is('geloescht_am', null));
     } else if (typ === 'geschwister') {
       // Geschwister haben keine eigene Kante: sie sind über GEMEINSAME Eltern abgeleitet.
       // "Eltern bleiben" (Nutzerwunsch) -> wir lösen v von den Eltern DER offenen Person,
@@ -16368,7 +16506,7 @@ async function beziehungLoesen(typ, vId) {
         }));
       const eltUu = [...new Set(elternUuids)];
       if (!eltUu.length) { await zeigeHinweis(t('reg_fehler') + 'keine gemeinsamen Eltern'); return; }
-      err = await del(sbClient.from('beziehungen').delete().eq('typ', 'elternteil').in('person_a', eltUu).in('person_b', vUu));
+      err = await del(sbClient.from('beziehungen').update(soft).eq('typ', 'elternteil').in('person_a', eltUu).in('person_b', vUu).is('geloescht_am', null));
     }
   } catch (e) { err = e; }
 
@@ -16395,6 +16533,80 @@ async function navigiereNachBaumLoeschung(geloeschterTreeId) {
   // „Stammbaum anlegen"-Leer-Zustand (kein Auto-Popup mehr).
 }
 
+// ============================================================
+// PAPIERKORB (Soft-Delete) — Bearbeiter. Gelöschte Personen 30 Tage wiederherstellbar.
+// Liste über papierkorb_liste (DEFINER liest Gelöschtes); Wiederherstellen/Endgültig über RPC.
+// ============================================================
+let papierkorbCache = [];
+async function oeffnePapierkorb() {
+  if (!istAdmin()) return;
+  const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
+  const box = document.getElementById('papierkorb-liste');
+  if (box) box.innerHTML = `<div class="lade-zeile"><span class="spinner"></span><span>${escapeHtml(t('gam_laden'))}</span></div>`;
+  document.getElementById('papierkorb-modal').classList.add('aktiv');
+  try {
+    const { data, error } = await sbClient.rpc('papierkorb_liste');
+    papierkorbCache = (!error && Array.isArray(data)) ? data : [];
+  } catch (e) { papierkorbCache = []; }
+  renderPapierkorb();
+  // Storage-Waisen aus Purge/„Endgültig löschen" abräumen (best-effort, nur super_admin).
+  raeumePersonenMedien();
+}
+function schliessePapierkorb() { document.getElementById('papierkorb-modal').classList.remove('aktiv'); }
+function renderPapierkorb() {
+  const box = document.getElementById('papierkorb-liste'); if (!box) return;
+  if (!papierkorbCache.length) { box.innerHTML = `<div class="pk-leer">${escapeHtml(t('pk_leer'))}</div>`; return; }
+  box.innerHTML = papierkorbCache.map(e => {
+    const datum  = formatDatumLang((e.geloescht_am || '').slice(0, 10));
+    const von    = e.geloescht_von ? `${escapeHtml(t('pk_von'))} ${escapeHtml(nm(e.geloescht_von))}` : '';
+    let kopf, meta;
+    if (e.art === 'beziehung') {
+      const bez = (e.beziehungen || []).map(b =>
+        `${escapeHtml(nm(b.a || '?'))} ↔ ${escapeHtml(nm(b.b || '?'))}${b.typ ? ` (${escapeHtml(pkTypLabel(b.typ))})` : ''}`).join(', ') || '?';
+      kopf = `<span class="pk-namen">🔗 ${bez}</span>`;
+      meta = escapeHtml(e.stammbaum || '');
+    } else {
+      const namen  = (e.personen || []).map(p => escapeHtml(nm(p.name || '?'))).join(', ') || '?';
+      const kanten = e.anzahl_beziehungen ? ` · ${e.anzahl_beziehungen} ${escapeHtml(t('pk_beziehungen'))}` : '';
+      kopf = `<span class="pk-namen">${namen}</span>`;
+      meta = `${escapeHtml(e.stammbaum || '')}${kanten}`;
+    }
+    return `<div class="pk-item">
+      <div class="pk-item-kopf">${kopf}<span class="pk-meta">${meta}</span></div>
+      <div class="pk-meta2">${escapeHtml(datum)} ${von}</div>
+      <div class="pk-aktionen">
+        <button class="mv-toggle" type="button" onclick="papierkorbWiederherstellen('${e.batch}')">↩ ${escapeHtml(t('pk_wiederherstellen'))}</button>
+        <button class="mv-del" type="button" onclick="papierkorbEndgueltig('${e.batch}')">🗑 ${escapeHtml(t('pk_endgueltig'))}</button>
+      </div></div>`;
+  }).join('');
+}
+// Beziehungstyp -> lesbares, lokalisiertes Label (nutzt vorhandene Beziehungs-i18n-Keys).
+function pkTypLabel(typ) {
+  if (typ === 'ehepartner') return t('partner');
+  if (typ === 'elternteil') return t('eltern');
+  return typ || '';
+}
+async function papierkorbWiederherstellen(batch) {
+  try {
+    const { data, error } = await sbClient.rpc('papierkorb_wiederherstellen', { p_batch: batch });
+    if (error || !data || !data.ok) { await zeigeHinweis(t('reg_fehler') + (error ? error.message : ((data && data.grund) || ''))); return; }
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+    await oeffnePapierkorb();   // Liste auffrischen
+    await zeigeHinweis(t('pk_wieder_ok'));
+  } catch (e) { await zeigeHinweis(t('reg_fehler') + (e.message || e)); }
+}
+async function papierkorbEndgueltig(batch) {
+  const ok = await zeigeBestaetigung(t('pk_endgueltig_frage'),
+    { jaText: t('pk_endgueltig'), neinText: t('abbrechen'), gefahr: true });
+  if (!ok) return;
+  try {
+    const { data, error } = await sbClient.rpc('papierkorb_endgueltig', { p_batch: batch });
+    if (error || !data || !data.ok) { await zeigeHinweis(t('reg_fehler') + (error ? error.message : ((data && data.grund) || ''))); return; }
+    await oeffnePapierkorb();
+    await zeigeHinweis(t('pk_endg_ok'));
+  } catch (e) { await zeigeHinweis(t('reg_fehler') + (e.message || e)); }
+}
+
 // Storage-Bucket `events` von Medien gelöschter Bäume befreien (Queue verwaiste_event_medien).
 // Postgres kann den Storage nicht löschen -> DB merkt die Event-ids vor, hier wird abgeräumt.
 async function raeumeVerwaisteMedien() {
@@ -16410,6 +16622,31 @@ async function raeumeVerwaisteMedien() {
     try { await loescheAlbumMedien(row.stammbaum_id, row.event_id); } catch (e) { /* Album-Storage ignorieren */ }
     try { await sbClient.rpc('verwaiste_medien_erledigt', { p_id: row.id }); } catch (e) {}
   }
+}
+
+// Storage-Waisen aus dem Papierkorb-Purge / „Endgültig löschen" abräumen (nur super_admin).
+// Queue `verwaiste_medien` füllt ein DB-Trigger beim PHYSISCHEN Personen-Löschen; hier werden
+// die Dateien je Bucket entfernt (Storage-RLS lässt super_admin überall) und erledigt markiert.
+// Best-effort: ist eine Datei schon weg, ignorieren; Zeile trotzdem als erledigt markieren.
+async function raeumePersonenMedien() {
+  if (!aktuellerUser || typeof istSuperAdmin !== 'function' || !istSuperAdmin()) return;
+  let offen = [];
+  try {
+    const { data, error } = await sbClient.rpc('verwaiste_medien_storage_holen');
+    if (error) return;
+    offen = data || [];
+  } catch (e) { return; }
+  if (!offen.length) return;
+  const proBucket = {};
+  offen.forEach(r => { if (r.bucket && r.pfad) (proBucket[r.bucket] = proBucket[r.bucket] || []).push(r); });
+  const erledigt = [];
+  for (const bucket of Object.keys(proBucket)) {
+    const rows = proBucket[bucket];
+    const pfade = [...new Set(rows.map(r => r.pfad))];
+    try { await sbClient.storage.from(bucket).remove(pfade); } catch (e) { /* Storage-Fehler ignorieren */ }
+    rows.forEach(r => erledigt.push(r.id));
+  }
+  if (erledigt.length) { try { await sbClient.rpc('verwaiste_medien_storage_erledigt', { p_ids: erledigt }); } catch (e) {} }
 }
 
 function schliesseModalUndZeigeBaum(personId) {
@@ -16448,7 +16685,7 @@ function wechselAnsicht(name) {
     if (suche) {
       suchImBaum(suche);
     } else if (!fokusPersonId) {
-      zeichneBaum(aktuelleWurzel(), 12, 0);
+      vollGraphRender();
     }
   } else if (name === 'karten') {
     zeigeKarten();
@@ -16523,6 +16760,8 @@ function initBaum() {
 // (Fokus eigene Karte, Standardzoom, temporär erweiterte Bereiche eingeklappt).
 // Ohne eigene Karte: bisheriges Verhalten (Zoom/Pan auf Fit zurücksetzen).
 function zentriereBaumAnsicht() {
+  fokusVerlauf = [];           // „Zu meiner Karte" beendet die Fokus-Navigation
+  fokusUrlSetzen(null);
   if (meineKarteImBaum()) {
     document.getElementById('suche').value = '';
     if (zeigeStandardAnsicht()) return;   // zeichnet neu inkl. Standardzoom (fitTransform)
@@ -16535,12 +16774,11 @@ function zentriereBaumAnsicht() {
 }
 
 function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
-  // GRAPH-RENDERER (Phase-2 Option C): vollwertiges, graph-basiertes Rendering hinter
-  // Feature-Flag. Behebt das Single-Root-Anzeigeproblem (eingeheiratete Personen, beide
-  // Elternzweige, Voll-/Halbgeschwister, mehrere Ehen, verbund-verknüpfte Familien werden
-  // nicht mehr unterdrückt). Bei AUS = bisheriger Single-Root-Renderer (paralleler Vergleich).
-  if (graphRendererAn()) return zeichneGraph(rootPersonId, tiefeUnten, tiefeOben, opts);
-
+  // zeichneBaum = klassischer, baum-begrenzter Single-Root-Renderer (OFF-Pfad des Feature-Flags).
+  // Das Routing zum Verbund-Graph (Option B) geschieht jetzt auf ANSICHTS-Ebene
+  // (zeigeStandardAnsicht/zeigeErweitertAnsicht/voll/zweig → zeichneGraph2), NICHT mehr hier.
+  // Der frühere `zeichneGraph`-Pfad (v12.7, fehlerhafte Darstellung) wird bewusst nicht mehr
+  // aufgerufen.
   baumG.selectAll('*').remove();
 
   const wurzel = baueBaumDaten(rootPersonId, tiefeUnten, tiefeOben, opts);
@@ -17133,19 +17371,25 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
 // Auto-Wurzel fehlt: die Vollansicht zeigt die GANZE zusammenhängende Komponente; Bäume bleiben
 // als Berechtigungs-/Einstiegsgrenze erhalten (RLS unverändert, rein render-seitige Zusammen-
 // führung des Verbunds). Reuse: zeichneKnotenBox, Zoom/Fit, _ans*-Helfer, verwandtschaftsSet.
-// Feature-Flag RENDERER_GRAPH (localStorage 'vidovic_renderer_graph') — Default unten.
+// Feature-Flag RENDERER_GRAPH (localStorage 'vidovic_renderer_graph').
 // ============================================================
-// HART DEAKTIVIERT (ab v12.7, Nutzerwunsch): Der Graph-Renderer stellte den Baum falsch dar
-// und ist abgeschaltet. graphRendererAn() liefert IMMER false → es wird ausschließlich der
-// klassische Single-Root-Renderer (zeichneBaum) verwendet; der UI-Schalter ist entfernt und
-// der Graph-Fokus-Button blendet sich aus. Der Graph-Code bleibt vorerst als ruhender,
-// unerreichbarer Code stehen (vollständiges Löschen ist ein optionaler Folgeschritt).
+// VERBUND-GRAPH (Option B, Phase 2): Wenn AN, rendern ALLE Ansichtsmodi über den
+// fokus-zentrierten, verbundweiten Graph-Renderer (zeichneGraph2 — bewährt, läuft heute
+// bereits produktiv für 'standard'/'zweig'). Bei AUS bleibt für 'voll'/'erweitert' der
+// klassische baum-begrenzte Single-Root-Renderer (zeichneBaum) — zum direkten Alt/Neu-
+// Vergleich (Rollout-Reversibilität). Der frühere, FEHLERHAFTE Voll-Graph `zeichneGraph`
+// (v12.7, falsche Darstellung) wird NICHT mehr verwendet; Basis ist ausschließlich
+// zeichneGraph2. Default AUS während des Umbaus → kein Nutzer-Impact, opt-in zum Testen.
 const RENDERER_GRAPH_DEFAULT = false;
 function graphRendererAn() {
-  return false;
+  try {
+    const v = localStorage.getItem('vidovic_renderer_graph');
+    return v === null ? RENDERER_GRAPH_DEFAULT : v === '1';
+  } catch (e) { return RENDERER_GRAPH_DEFAULT; }
 }
 function setGraphRenderer(an) {
   try { localStorage.setItem('vidovic_renderer_graph', an ? '1' : '0'); } catch (e) {}
+  if (typeof zeichneBaumNeu === 'function') zeichneBaumNeu();   // sofort neu rendern (Alt/Neu-Vergleich)
 }
 
 // Graph-Layout-Konstanten (kompatibel zur Karten-Geometrie: Box 152×76)
@@ -17439,12 +17683,11 @@ function graphFokusAufPerson(personId) {
     aktuellerStammbaumId = p._tree;
     const sel = document.getElementById('tree-select'); if (sel) sel.value = p._tree;
   }
-  fokusPersonId = personId;
-  ansichtModus = null;
   document.getElementById('suche').value = '';
   wechselAnsicht('baum');
-  zeichneGraph(personId, 4, 4, { fokusId: personId });
-  aktualisiereBaumHinweis();
+  // „Von hier aus anzeigen": balancierte Nachbarschaft (4 hoch/runter), als 'zweig'-Modus
+  // getrackt → Live-Reload/Sprachwechsel halten den Fokus (rendereAktuelleAnsicht).
+  zeigeZweigAbPerson(personId, 4, 4);
 }
 
 // ============================================================
@@ -17585,8 +17828,12 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
     baumG.append('line').attr('class', 'verbindung').attr('x1', a.x).attr('y1', midY).attr('x2', a.x).attr('y2', childTop);
   });
 
-  // ── Geschwister der Fokusperson (gleiche Eltern): auf Fokus-Höhe neben dem Fokus zeigen ──
-  const sibs = [];
+  // ── Geschwister der Fokusperson INKL. ihrer Familien (Partner + Kinder = Neffen/Nichten) ──
+  // Geschwister werden auf Fokus-Höhe NEBEN dem Fokus platziert; je Geschwister werden Partner
+  // (seitlich) und Kinder (1 Ebene darunter) mitgezeichnet. graphRadius liefert die Geschwister-
+  // Kinder NICHT mit → erst in `visible` aufnehmen. Jede Geschwister-Familie bekommt einen eigenen
+  // horizontalen Slot (Breite aus Paar- bzw. Kinderbreite) links/rechts der Fokus-Spanne.
+  const sibs = [];   // alle Geschwister-Familien-Karten {canon,x,y} (Geschwister + Partner + Kinder)
   if (ah.children && ah.children.length) {
     const elternNodes = ah.children;                 // Eltern-Karten der Fokusperson (oben)
     const gezeichnet = new Set([focus]);
@@ -17596,22 +17843,52 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
       if (!gezeichnet.has(k)) { gezeichnet.add(k); sibCanons.push(k); }
     }));
     if (sibCanons.length) {
-      // Geschwister außerhalb der Nachkommen-Spanne des Fokus platzieren (kein Karten-Überlapp)
+      const KID_DX = 200, FAM_GAP = 90;
+      // Geschwister-Partner + -Kinder in visible aufnehmen (graphRadius enthält sie nicht).
+      sibCanons.forEach(s => {
+        (model.partners.get(s) || []).forEach(p => visible.add(p));
+        (model.children.get(s) || []).forEach(k => { visible.add(k); (model.partners.get(k) || []).forEach(p => visible.add(p)); });
+      });
+      // Fokus-Nachkommen-Spanne (Geschwister daneben → kein Überlapp mit eigenen Kindern)
       let minX = 0, maxX = 0;
       dh.each(d => { minX = Math.min(minX, d.x); maxX = Math.max(maxX, d.x + G2_PAAR * ((d.data.partners || []).length)); });
-      let lx = minX, rx = maxX;
-      sibCanons.forEach((s, i) => {
-        let x;
-        if (i % 2 === 0) { lx -= 212; x = lx; } else { rx += 212; x = rx; }
-        sibs.push({ canon: s, x, y: 0 });
-      });
-      // Abstieg vom Eltern-Paar zu jedem Geschwister (gleiche Sammelhöhe wie zum Fokus)
       const pm = elternNodes.reduce((s, c) => s + c.x, 0) / elternNodes.length;
       const py = elternNodes[0].y;
       const midY = (py + G2_HH + (0 - G2_HH)) / 2;
-      sibs.forEach(sb => {
-        baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(pm, sb.x)).attr('y1', midY).attr('x2', Math.max(pm, sb.x)).attr('y2', midY);
-        baumG.append('line').attr('class', 'verbindung').attr('x1', sb.x).attr('y1', midY).attr('x2', sb.x).attr('y2', sb.y - G2_HH);
+      let lx = minX, rx = maxX;
+      sibCanons.forEach((s, i) => {
+        const partner = partnersOf(s).filter(p => !gezeichnet.has(p)); partner.forEach(p => gezeichnet.add(p));
+        const kids = childrenOf(s).filter(k => !gezeichnet.has(k));   kids.forEach(k => gezeichnet.add(k));
+        const coupleW = partner.length * G2_PAAR;                 // Geschwister bei sx, Partner rechts
+        const kidsW = kids.length ? (kids.length - 1) * KID_DX : 0;
+        const famW = Math.max(coupleW, kidsW) + 2 * G2_HW;
+        // Slot abwechselnd links/rechts der Fokus-Spanne, Schrittweite = Familienbreite
+        let famCenter;
+        if (i % 2 === 0) { lx -= (famW + FAM_GAP); famCenter = lx + famW / 2; }
+        else             { rx += FAM_GAP;          famCenter = rx + famW / 2; rx += famW; }
+        const sx = famCenter - coupleW / 2;                       // Geschwister-Karte
+        sibs.push({ canon: s, x: sx, y: 0 });
+        partner.forEach((p, k) => sibs.push({ canon: p, x: sx + G2_PAAR * (k + 1), y: 0 }));
+        const coupleCenter = sx + coupleW / 2;
+        // Ehe-Linie Geschwister ↔ Partner
+        partner.forEach((p, k) => {
+          const ox = sx + G2_PAAR * (k + 1);
+          baumG.append('line').attr('class', 'ehe-linie').attr('x1', sx + G2_HW).attr('y1', 0).attr('x2', ox - G2_HW).attr('y2', 0);
+          joint((sx + G2_HW + ox - G2_HW) / 2, 0);
+        });
+        // Eltern → Geschwister (Abstieg)
+        baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(pm, sx)).attr('y1', midY).attr('x2', Math.max(pm, sx)).attr('y2', midY);
+        baumG.append('line').attr('class', 'verbindung').attr('x1', sx).attr('y1', midY).attr('x2', sx).attr('y2', 0 - G2_HH);
+        // Kinder (Neffen/Nichten) eine Ebene unter dem Geschwister-Paar
+        if (kids.length) {
+          const ky = G2_ROWH, startX = coupleCenter - kidsW / 2;
+          const kidXs = kids.map((k, j) => startX + j * KID_DX);
+          kids.forEach((k, j) => sibs.push({ canon: k, x: kidXs[j], y: ky }));
+          const cmidY = (G2_HH + (ky - G2_HH)) / 2;
+          baumG.append('line').attr('class', 'verbindung').attr('x1', coupleCenter).attr('y1', G2_HH).attr('x2', coupleCenter).attr('y2', cmidY);
+          baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(coupleCenter, ...kidXs)).attr('y1', cmidY).attr('x2', Math.max(coupleCenter, ...kidXs)).attr('y2', cmidY);
+          kidXs.forEach(kx => baumG.append('line').attr('class', 'verbindung').attr('x1', kx).attr('y1', cmidY).attr('x2', kx).attr('y2', ky - G2_HH));
+        }
       });
     }
   }

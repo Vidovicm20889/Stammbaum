@@ -77,7 +77,7 @@ BEGIN
   IF p_ziel IS NULL THEN RETURN NULL; END IF;
   IF p_typ = 'person' THEN
     SELECT f.verbund_id INTO v FROM public.personen p
-      JOIN public.familien f ON f.id = p.familie_id WHERE p.id = p_ziel;
+      JOIN public.familien f ON f.id = p.familie_id WHERE p.id = p_ziel AND p.geloescht_am IS NULL;
   ELSIF p_typ = 'foto' THEN
     SELECT f.verbund_id INTO v FROM public.personen_fotos x
       JOIN public.familien f ON f.id = x.familie_id WHERE x.id = p_ziel;
@@ -201,10 +201,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT
     fr.id, fr.steller_id, fr.frage, fr.foto_url,
     fr.person_id,
-    (SELECT trim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')) FROM public.personen pe WHERE pe.id = fr.person_id) AS person_name,
+    (SELECT trim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')) FROM public.personen pe WHERE pe.id = fr.person_id AND pe.geloescht_am IS NULL) AS person_name,
     fr.status,
     fr.geloest_person,
-    (SELECT trim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')) FROM public.personen pe WHERE pe.id = fr.geloest_person) AS geloest_person_name,
+    (SELECT trim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')) FROM public.personen pe WHERE pe.id = fr.geloest_person AND pe.geloescht_am IS NULL) AS geloest_person_name,
     fr.erstellt_am, fr.geloest_am,
     COALESCE(NULLIF(btrim(concat_ws(' ', pr.vorname, pr.nachname)), ''),
              initcap(replace(replace(replace(split_part(u.email,'@',1),'.',' '),'_',' '),'-',' ')),

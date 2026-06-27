@@ -47,6 +47,7 @@ BEGIN
     SELECT pe.id INTO v_bp
       FROM public.personen pe
      WHERE pe.id = p_bezugsperson
+       AND pe.geloescht_am IS NULL
        AND (public.ist_super_admin() OR public.sieht_familie(pe.familie_id))
      LIMIT 1;
   END IF;

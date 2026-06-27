@@ -44,7 +44,7 @@ BEGIN
            public.merge_nachbarn(p.id,'eltern')  AS eltern,
            public.merge_nachbarn(p.id,'kinder')  AS kinder,
            public.merge_nachbarn(p.id,'partner') AS partner
-    FROM public.personen p WHERE p.stammbaum_id = p_baum_a
+    FROM public.personen p WHERE p.stammbaum_id = p_baum_a AND p.geloescht_am IS NULL
   ),
   b AS (
     SELECT p.id, p.identitaet_id AS iid,
@@ -54,7 +54,7 @@ BEGIN
            public.merge_nachbarn(p.id,'eltern')  AS eltern,
            public.merge_nachbarn(p.id,'kinder')  AS kinder,
            public.merge_nachbarn(p.id,'partner') AS partner
-    FROM public.personen p WHERE p.stammbaum_id = p_baum_b
+    FROM public.personen p WHERE p.stammbaum_id = p_baum_b AND p.geloescht_am IS NULL
   ),
   paare AS (
     SELECT a.id AS id_a, b.id AS id_b, a.anzeige AS name_a, b.anzeige AS name_b,

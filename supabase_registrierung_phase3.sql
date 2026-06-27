@@ -65,7 +65,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
       (NULLIF(p_gemeinde,'') IS NOT NULL AND f.gemeinde ILIKE '%'||p_gemeinde||'%') OR
       EXISTS (
         SELECT 1 FROM public.personen pe
-        WHERE pe.familie_id = f.id AND (
+        WHERE pe.familie_id = f.id AND pe.geloescht_am IS NULL AND (
           (NULLIF(p_geburtsort,'') IS NOT NULL AND
             COALESCE(pe.stammbaum_daten->>'birth_place', pe.stammbaum_daten->>'geburtsort','')
               ILIKE '%'||p_geburtsort||'%') OR

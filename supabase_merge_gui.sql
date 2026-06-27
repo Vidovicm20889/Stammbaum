@@ -61,7 +61,8 @@ RETURNS text[] LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS 
       WHEN p_rolle = 'kinder'  AND b.typ = 'elternteil' AND b.person_a = p_person THEN b.person_b
       WHEN p_rolle = 'partner' AND b.typ = 'ehepartner' AND b.person_a = p_person THEN b.person_b
       WHEN p_rolle = 'partner' AND b.typ = 'ehepartner' AND b.person_b = p_person THEN b.person_a
-      ELSE NULL END;
+      ELSE NULL END
+  WHERE b.geloescht_am IS NULL AND po.geloescht_am IS NULL;
 $$;
 GRANT EXECUTE ON FUNCTION public.merge_nachbarn(uuid, text) TO authenticated;
 
@@ -92,7 +93,7 @@ BEGIN
            public.merge_nachbarn(p.id,'eltern')  AS eltern,
            public.merge_nachbarn(p.id,'kinder')  AS kinder,
            public.merge_nachbarn(p.id,'partner') AS partner
-    FROM public.personen p WHERE p.stammbaum_id = p_baum_a
+    FROM public.personen p WHERE p.stammbaum_id = p_baum_a AND p.geloescht_am IS NULL
   ),
   b AS (
     SELECT p.id,
@@ -102,7 +103,7 @@ BEGIN
            public.merge_nachbarn(p.id,'eltern')  AS eltern,
            public.merge_nachbarn(p.id,'kinder')  AS kinder,
            public.merge_nachbarn(p.id,'partner') AS partner
-    FROM public.personen p WHERE p.stammbaum_id = p_baum_b
+    FROM public.personen p WHERE p.stammbaum_id = p_baum_b AND p.geloescht_am IS NULL
   ),
   paare AS (
     SELECT a.id AS id_a, b.id AS id_b, a.anzeige AS name_a, b.anzeige AS name_b,
@@ -141,8 +142,8 @@ RETURNS TABLE(feld text, wert_a text, wert_b text, status text)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_sa jsonb; v_sb jsonb; v_fa uuid; v_fb uuid;
 BEGIN
-  SELECT stammbaum_daten, familie_id INTO v_sa, v_fa FROM public.personen WHERE id = p_a;
-  SELECT stammbaum_daten, familie_id INTO v_sb, v_fb FROM public.personen WHERE id = p_b;
+  SELECT stammbaum_daten, familie_id INTO v_sa, v_fa FROM public.personen WHERE id = p_a AND geloescht_am IS NULL;
+  SELECT stammbaum_daten, familie_id INTO v_sb, v_fb FROM public.personen WHERE id = p_b AND geloescht_am IS NULL;
   IF v_fa IS NULL OR v_fb IS NULL THEN RAISE EXCEPTION 'Person(en) nicht gefunden.'; END IF;
   IF NOT (public.ist_super_admin()
           OR (public.kann_familie_bearbeiten(v_fa) AND public.kann_familie_bearbeiten(v_fb)))
@@ -214,9 +215,9 @@ DECLARE
   v_tree_d uuid; v_rest_d int;
 BEGIN
   IF p_behalten IS NULL OR p_dublette IS NULL OR p_behalten = p_dublette THEN RETURN p_behalten; END IF;
-  SELECT familie_id, user_id, stammbaum_daten INTO v_fam_b, v_user_b, v_sd_b FROM public.personen WHERE id = p_behalten;
+  SELECT familie_id, user_id, stammbaum_daten INTO v_fam_b, v_user_b, v_sd_b FROM public.personen WHERE id = p_behalten AND geloescht_am IS NULL;
   SELECT familie_id, user_id, stammbaum_daten, stammbaum_id
-    INTO v_fam_d, v_user_d, v_sd_d, v_tree_d FROM public.personen WHERE id = p_dublette;
+    INTO v_fam_d, v_user_d, v_sd_d, v_tree_d FROM public.personen WHERE id = p_dublette AND geloescht_am IS NULL;
   IF v_fam_b IS NULL OR v_fam_d IS NULL THEN RAISE EXCEPTION 'Person(en) nicht gefunden.'; END IF;
   p_aufloesung := coalesce(p_aufloesung, '{}'::jsonb);
 
@@ -355,16 +356,19 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     nullif(trim(coalesce(pe.stammbaum_daten->>'birth_place','')),'') AS geburtsort,
     (SELECT string_agg(DISTINCT trim(coalesce(po.vorname,'')||' '||coalesce(po.nachname,'')), ', ')
        FROM public.beziehungen b JOIN public.personen po ON po.id = b.person_a
-       WHERE b.typ = 'elternteil' AND b.person_b = pe.id)  AS eltern,
+       WHERE b.typ = 'elternteil' AND b.person_b = pe.id
+         AND b.geloescht_am IS NULL AND po.geloescht_am IS NULL)  AS eltern,
     (SELECT string_agg(DISTINCT trim(coalesce(po.vorname,'')||' '||coalesce(po.nachname,'')), ', ')
        FROM public.beziehungen b
        JOIN public.personen po ON po.id = CASE WHEN b.person_a = pe.id THEN b.person_b ELSE b.person_a END
-       WHERE b.typ = 'ehepartner' AND (b.person_a = pe.id OR b.person_b = pe.id))  AS partner,
+       WHERE b.typ = 'ehepartner' AND (b.person_a = pe.id OR b.person_b = pe.id)
+         AND b.geloescht_am IS NULL AND po.geloescht_am IS NULL)  AS partner,
     (SELECT count(*)::int FROM public.beziehungen b
-       WHERE b.typ = 'elternteil' AND b.person_a = pe.id)  AS kinder
+       WHERE b.typ = 'elternteil' AND b.person_a = pe.id AND b.geloescht_am IS NULL)  AS kinder
   FROM public.personen pe
   LEFT JOIN public.stammbaeume s ON s.id = pe.stammbaum_id
   WHERE pe.id = ANY(p_ids)
+    AND pe.geloescht_am IS NULL
     AND (public.ist_super_admin() OR public.sieht_familie(pe.familie_id));
 $$;
 GRANT EXECUTE ON FUNCTION public.merge_person_info(uuid[]) TO authenticated;

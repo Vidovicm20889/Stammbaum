@@ -55,11 +55,11 @@ BEGIN
   -- Wurzel (eingeheirateter Partner): Familie + Quellbaum + Nachname
   SELECT pe.familie_id, pe.stammbaum_id, pe.nachname
     INTO v_fam, v_src, v_name
-    FROM public.personen pe WHERE pe.id = p_wurzel;
+    FROM public.personen pe WHERE pe.id = p_wurzel AND pe.geloescht_am IS NULL;
   IF v_fam IS NULL THEN RAISE EXCEPTION 'zweig_person_fehlt'; END IF;
 
   -- Partner muss zur selben Familie gehören (Isolation)
-  SELECT pe.familie_id INTO v_fam_p FROM public.personen pe WHERE pe.id = p_partner;
+  SELECT pe.familie_id INTO v_fam_p FROM public.personen pe WHERE pe.id = p_partner AND pe.geloescht_am IS NULL;
   IF v_fam_p IS NULL OR v_fam_p <> v_fam THEN RAISE EXCEPTION 'zweig_person_fehlt'; END IF;
 
   -- Rechte: Admin/Owner der Familie
@@ -91,7 +91,8 @@ BEGIN
       FROM public.beziehungen b
       JOIN nach n  ON b.person_a = n.pid
       JOIN public.personen pe ON pe.id = b.person_b
-     WHERE b.typ = 'elternteil' AND pe.stammbaum_id = v_src
+     WHERE b.typ = 'elternteil' AND b.geloescht_am IS NULL
+       AND pe.stammbaum_id = v_src AND pe.geloescht_am IS NULL
   )
   SELECT DISTINCT x.pid
     FROM (
@@ -100,11 +101,11 @@ BEGIN
       UNION ALL
       SELECT CASE WHEN b.person_a IN (SELECT pid FROM nach) THEN b.person_b ELSE b.person_a END
         FROM public.beziehungen b
-       WHERE b.typ = 'ehepartner'
+       WHERE b.typ = 'ehepartner' AND b.geloescht_am IS NULL
          AND (b.person_a IN (SELECT pid FROM nach) OR b.person_b IN (SELECT pid FROM nach))
     ) x
     JOIN public.personen pe ON pe.id = x.pid
-   WHERE x.pid IS NOT NULL AND pe.stammbaum_id = v_src;
+   WHERE x.pid IS NOT NULL AND pe.stammbaum_id = v_src AND pe.geloescht_am IS NULL;
 
   -- Jede gesammelte Karte braucht eine identitaet_id (gemeinsame Identität mit Spiegel)
   UPDATE public.personen
@@ -161,7 +162,8 @@ BEGIN
   SELECT v_new_fam, ma.mir, mb.mir, b.typ
     FROM public.beziehungen b
     JOIN _zweig_map ma ON ma.src = b.person_a
-    JOIN _zweig_map mb ON mb.src = b.person_b;
+    JOIN _zweig_map mb ON mb.src = b.person_b
+   WHERE b.geloescht_am IS NULL;
 
   -- Wurzelperson des neuen Baums setzen (eingeheirateter Partner)
   UPDATE public.stammbaeume

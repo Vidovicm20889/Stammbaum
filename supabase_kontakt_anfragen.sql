@@ -138,9 +138,9 @@ CREATE OR REPLACE FUNCTION public.darf_beziehung_sehen(p_a uuid, p_b uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT public.ist_super_admin()
       OR (
-        coalesce((SELECT public.darf_baum_sehen(p.stammbaum_id) FROM public.personen p WHERE p.id = p_a), false)
+        coalesce((SELECT public.darf_baum_sehen(p.stammbaum_id) FROM public.personen p WHERE p.id = p_a AND p.geloescht_am IS NULL), false)
         AND
-        coalesce((SELECT public.darf_baum_sehen(p.stammbaum_id) FROM public.personen p WHERE p.id = p_b), false)
+        coalesce((SELECT public.darf_baum_sehen(p.stammbaum_id) FROM public.personen p WHERE p.id = p_b AND p.geloescht_am IS NULL), false)
       );
 $$;
 
@@ -182,7 +182,7 @@ BEGIN
   SELECT pe.familie_id, pe.stammbaum_id, pe.user_id, f.verbund_id
     INTO v_fam, v_baum, v_ziel_user, v_verb
     FROM public.personen pe JOIN public.familien f ON f.id = pe.familie_id
-   WHERE pe.id = p_ziel_person;
+   WHERE pe.id = p_ziel_person AND pe.geloescht_am IS NULL;
   IF v_fam IS NULL THEN RETURN jsonb_build_object('ok', false, 'grund', 'person_fehlt'); END IF;
 
   -- HART: die Karte muss für mich entdeckbar sein (fremder Verbund + lebend/minderjährig/opt-in).
@@ -289,7 +289,7 @@ BEGIN
 
   -- Anzeige-Infos für die Benachrichtigung
   SELECT trim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')), pe.user_id
-    INTO v_pname, v_ziel_user FROM public.personen pe WHERE pe.id = a.ziel_person_id;
+    INTO v_pname, v_ziel_user FROM public.personen pe WHERE pe.id = a.ziel_person_id AND pe.geloescht_am IS NULL;
   SELECT s.name INTO v_bname FROM public.stammbaeume s WHERE s.id = a.ziel_stammbaum_id;
 
   IF NOT p_genehmigt THEN

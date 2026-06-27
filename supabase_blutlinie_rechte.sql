@@ -28,7 +28,7 @@ RETURNS TABLE(familie_id uuid)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public STABLE AS $$
 DECLARE v_fam uuid; v_verbund uuid;
 BEGIN
-  SELECT pe.familie_id INTO v_fam FROM public.personen pe WHERE pe.id = p_person;
+  SELECT pe.familie_id INTO v_fam FROM public.personen pe WHERE pe.id = p_person AND pe.geloescht_am IS NULL;
   IF v_fam IS NULL THEN RETURN; END IF;
   SELECT f.verbund_id INTO v_verbund FROM public.familien f WHERE f.id = v_fam;
 
@@ -38,19 +38,19 @@ BEGIN
     UNION
     SELECT b.person_a FROM public.beziehungen b
       JOIN vorfahren v ON b.person_b = v.pid
-     WHERE b.typ = 'elternteil'
+     WHERE b.typ = 'elternteil' AND b.geloescht_am IS NULL
   ),
   nachkommen AS (
     SELECT p_person AS pid
     UNION
     SELECT b.person_b FROM public.beziehungen b
       JOIN nachkommen n ON b.person_a = n.pid
-     WHERE b.typ = 'elternteil'
+     WHERE b.typ = 'elternteil' AND b.geloescht_am IS NULL
   ),
   blut AS (SELECT pid FROM vorfahren UNION SELECT pid FROM nachkommen)
   SELECT DISTINCT pe.familie_id
   FROM blut bl
-  JOIN public.personen pe ON pe.id = bl.pid
+  JOIN public.personen pe ON pe.id = bl.pid AND pe.geloescht_am IS NULL
   JOIN public.familien  f  ON f.id  = pe.familie_id
   WHERE pe.familie_id = v_fam                                  -- Anker-Familie immer dabei
      OR (v_verbund IS NOT NULL AND f.verbund_id = v_verbund);  -- sonst NUR eigener Verbund
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION public.person_user_verknuepfen(p_person uuid, p_user 
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_fam uuid; v_alt uuid;
 BEGIN
-  SELECT pe.familie_id INTO v_fam FROM public.personen pe WHERE pe.id = p_person;
+  SELECT pe.familie_id INTO v_fam FROM public.personen pe WHERE pe.id = p_person AND pe.geloescht_am IS NULL;
   IF v_fam IS NULL THEN RAISE EXCEPTION 'Person nicht gefunden.'; END IF;
   IF NOT (public.ist_super_admin() OR public.kann_familie_bearbeiten(v_fam))
     THEN RAISE EXCEPTION 'Keine Berechtigung.'; END IF;

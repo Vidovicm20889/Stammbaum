@@ -41,6 +41,7 @@ BEGIN
       FROM public.personen pe
       JOIN public.familien f ON f.id = pe.familie_id
      WHERE f.verbund_id = v_verb
+       AND pe.geloescht_am IS NULL   -- Papierkorb: gelöschte Personen NICHT als Anlass
        AND coalesce(pe.stammbaum_daten->>'platzhalter','') <> 'true'
      ORDER BY coalesce(pe.identitaet_id::text, pe.id::text), pe.id
   ),
@@ -81,7 +82,7 @@ BEGIN
              'name', h.name || coalesce(' & ' || part.name, ''),
              'datum', h.hd, 'jahre', v_year - left(h.hd,4)::int) AS o
       FROM hochzeit_roh h
-      LEFT JOIN public.beziehungen bz ON bz.typ='ehepartner' AND (bz.person_a = h.id OR bz.person_b = h.id)
+      LEFT JOIN public.beziehungen bz ON bz.typ='ehepartner' AND bz.geloescht_am IS NULL AND (bz.person_a = h.id OR bz.person_b = h.id)
       LEFT JOIN pers part ON part.id = CASE WHEN bz.person_a = h.id THEN bz.person_b ELSE bz.person_a END
      WHERE h.hd ~ '^\d{4}-\d{2}-\d{2}$'
        AND substring(h.hd from 6 for 5) = v_today
@@ -100,6 +101,7 @@ BEGIN
       JOIN public.familien f  ON f.id = ff.familie_id
       JOIN public.personen pe ON pe.id = ff.person_id
      WHERE f.verbund_id = v_verb
+       AND pe.geloescht_am IS NULL   -- Papierkorb: Fotos gelöschter Personen NICHT als Anlass
        AND ff.aufnahme_datum IS NOT NULL
        AND to_char(ff.aufnahme_datum,'MM-DD') = v_today
        AND v_year - extract(year from ff.aufnahme_datum)::int > 0

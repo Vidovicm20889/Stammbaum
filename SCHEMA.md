@@ -212,6 +212,9 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     `woechentlicher-digest` (Resend) + pg_cron/pg_net-Snippet (separat aktivieren). Datensparsam
     (nur Zähler + Anlass-Namen, keine Inhalte). **NACH 50a/63/65**. (Voraussetzung:
     `benachrichtigungs_einstellungen`, `aktivitaeten`, `familien_fragen`, `profile`, Verbund-Helfer.)
+    **Papierkorb/Layer-2:** die geb/ged-CTEs filtern `personen.geloescht_am IS NULL` → hängt zur
+    Laufzeit an 72 (`supabase_papierkorb.sql`), das in dieser Liste SPÄTER steht → nach dem
+    Papierkorb-File **erneut ausführen** (sonst Laufzeitfehler beim Cron-/Testlauf).
     **VOR Frontend-Deploy ausführen** (Profil-Toggle liest/schreibt die neue Spalte; Frontend ist
     aber tolerant, falls die Spalte fehlt).
 70. `supabase_event_album.sql` — Gemeinsame Event-Alben: Tabelle `event_album_fotos` (verbund-RLS via
@@ -246,6 +249,31 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     Download ist der Rettungsanker; `auth.users` ist NICHT im Export (Restore in fremdes/leeres Projekt
     scheitert an user_id-FKs). pg_cron + Function-Secrets (`CRON_SECRET`, optional `BACKUP_BEHALTEN`)
     separat aktivieren. (Voraussetzung: `ist_super_admin` aus 1, alle App-Tabellen.)
+72. `supabase_papierkorb.sql` — **Soft-Delete / Papierkorb** (umkehrbare Löschungen, 30 Tage).
+    Spalten `geloescht_am`/`geloescht_von`/`loesch_batch` an `personen`+`beziehungen` (+ Teil-Indizes).
+    **Layer-1-Filter:** erzeugt `personen_select`/`beziehungen_select` NEU mit `geloescht_am IS NULL AND
+    (…)` (identische Logik wie 70a `baum_freigaben_rls`, nur + Soft-Delete-Filter; deckt ALLE
+    Frontend-Direktreads inkl. Renderer ab). RPCs: `person_papierkorb`/`beziehung_papierkorb`
+    (Bearbeiter; identitätsbewusst, EIN `loesch_batch`), `papierkorb_liste` (Bearbeiter; liest bewusst
+    `geloescht_am IS NOT NULL`), `papierkorb_wiederherstellen` (nur Kanten mit BEIDEN aktiven
+    Endpunkten → keine Waisen), `papierkorb_endgueltig` (sofort physisch, CASCADE), `papierkorb_purge`
+    (service_role, >30 T physisch + Wartungssperre; pg_cron-Snippet im File). **Scope v1:** nur
+    user-seitiges Löschen — Merge/Baum-Löschen bleiben physisch. **Layer-2-Filter (`geloescht_am IS
+    NULL`) bereits gesetzt in:** `personen_suche` (28), `personen_eines_baums` (27), `personen_entdecken`
+    +`_person_entdeckbar` (auffindbarkeit), `meine_person_kandidaten` (34), `personen_fuer_verknuepfung`
+    (36). **Layer-2 vollständig gesetzt** (re-run nötig): zusätzlich `offene_dubletten` (29),
+    `dubletten_scan`/`merge_nachbarn`/`merge_person_info`/`_person_merge_core`/`personen_feld_diff` (31),
+    `karten_suche_admin` (41a), `baum_integritaet_pruefen` (36a), `blutlinie_familien` + Verknüpfungs-
+    Validierungshelfer `_ist_vorfahre`/`_vkn_pruefe_beziehung` (28), `dubletten_check_global`/
+    `verknuepfung_anfragen`/`verknuepfungs_anfragen_offen` (40), `darf_beziehung_sehen`/Kontakt-Reads
+    (40b), `person_user_verknuepfen` (35), `personen_verknuepfen` (29), `digest_woche_sammeln` (69 —
+    geb/ged-CTEs; Digest steht VOR diesem File → nach dem Papierkorb erneut ausführen). **Bewusst NICHT gefiltert**
+    (Write-Paths auf bereits gefilterte Nutzer-Auswahlen bzw. Rechte-Recompute, das soft-gelöschte
+    Karten verarbeiten MUSS, um Rechte zu entziehen): `kind_baeume_sync`, `stammbaum_zweig_*`,
+    `person_anlegen_atomar`, `rechte_neu_berechnen_verbund`/`trg_blutlinie_recompute`. **VOR
+    Frontend-Aktivierung ausführen** (Spalten müssen existieren, sonst
+    bräche der Renderer-Select). **NACH 3/70a** (nutzt `kann_familie_bearbeiten`, `darf_baum_sehen`,
+    `darf_beziehung_sehen`; `wartung_*` aus 21). Re-Run von 3/70a erfordert Re-Run dieses Files.
 
 ---
 

@@ -164,9 +164,9 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
                    END,
       'person_name', CASE a.typ
                      WHEN 'person_neu'     THEN (SELECT nullif(btrim(coalesce(p.vorname,'')||' '||coalesce(p.nachname,'')),'') FROM public.personen p WHERE p.id = a.ref_id)
-                     WHEN 'foto_neu'       THEN (SELECT nullif(btrim(coalesce(p.vorname,'')||' '||coalesce(p.nachname,'')),'') FROM public.personen p WHERE p.id = pf.person_id)
-                     WHEN 'geschichte_neu' THEN (SELECT nullif(btrim(coalesce(p.vorname,'')||' '||coalesce(p.nachname,'')),'') FROM public.personen p WHERE p.id = pg.person_id)
-                     WHEN 'beitrag_neu'    THEN (SELECT nullif(btrim(coalesce(p.vorname,'')||' '||coalesce(p.nachname,'')),'') FROM public.personen p WHERE p.id = b.ref_person)
+                     WHEN 'foto_neu'       THEN (SELECT nullif(btrim(coalesce(p.vorname,'')||' '||coalesce(p.nachname,'')),'') FROM public.personen p WHERE p.id = pf.person_id AND p.geloescht_am IS NULL)
+                     WHEN 'geschichte_neu' THEN (SELECT nullif(btrim(coalesce(p.vorname,'')||' '||coalesce(p.nachname,'')),'') FROM public.personen p WHERE p.id = pg.person_id AND p.geloescht_am IS NULL)
+                     WHEN 'beitrag_neu'    THEN (SELECT nullif(btrim(coalesce(p.vorname,'')||' '||coalesce(p.nachname,'')),'') FROM public.personen p WHERE p.id = b.ref_person AND p.geloescht_am IS NULL)
                    END,
       'titel', CASE a.typ WHEN 'event_neu' THEN ev.titel WHEN 'geschichte_neu' THEN pg.titel END,
       'foto_pfad', CASE a.typ WHEN 'foto_neu' THEN pf.storage_pfad END,
@@ -191,7 +191,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
          OR (a.typ = 'foto_neu'       AND pf.id IS NOT NULL)
          OR (a.typ = 'geschichte_neu' AND pg.id IS NOT NULL)
          OR (a.typ = 'event_neu'      AND ev.id IS NOT NULL)
-         OR (a.typ = 'person_neu'     AND EXISTS (SELECT 1 FROM public.personen p WHERE p.id = a.ref_id AND coalesce(p.stammbaum_daten->>'platzhalter','') <> 'true'))
+         OR (a.typ = 'person_neu'     AND EXISTS (SELECT 1 FROM public.personen p WHERE p.id = a.ref_id AND p.geloescht_am IS NULL AND coalesce(p.stammbaum_daten->>'platzhalter','') <> 'true'))
          OR (a.typ IN ('geburtstag','erinnerung'))
       )
     ORDER BY a.erstellt_am DESC
