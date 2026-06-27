@@ -5,10 +5,20 @@
 // Funktion serverseitig aus der DB (authoritativ); die Empfänger kommen vom Frontend.
 //
 // Kalender-Anhang (ab v14.11): Bei parsebarem ISO-Datum hängt die Mail eine
-// iCalendar-Datei (einladung.ics, METHOD:PUBLISH) an -> Outlook/Apple/Google bieten
-// "Zum Kalender hinzufügen". Mit Uhrzeit = echter Termin (TZID + VTIMEZONE), ohne
-// Uhrzeit = Ganztags-Termin. UID = event_id -> Änderung ersetzt den Termin.
+// iCalendar-Datei (einladung.ics) an. Mit Uhrzeit = echter Termin (TZID + VTIMEZONE),
+// ohne Uhrzeit = Ganztags-Termin. UID = event_id -> Änderung ersetzt den Termin.
 // Voraussetzung: supabase_event_kalender.sql (Spalten uhrzeit/ende_uhrzeit/zeitzone).
+//
+// METHOD:REQUEST (ab v14.12): echte Termin-Einladung mit ORGANIZER + ATTENDEE ->
+// Outlook zeigt Annehmen/Ablehnen und aktualisiert bei höherer SEQUENCE den
+// vorhandenen Termin (ggf. ohne erneutes Öffnen). Die .ics wird PRO Empfänger gebaut
+// (ATTENDEE = dieser Empfänger). RSVP-Antworten gehen an ORGANIZER_EMAIL (aus MAIL_FROM
+// abgeleitet); mit onboarding@resend.dev laufen sie ins Leere (kein Inbound-Handling).
+//
+// Kalender-UPDATE (ab v14.12): Body-Feld aktualisierung=true -> Update-Texte
+// (subject_update/intro_update). Die SEQUENCE kommt aus events.kalender_seq (steigt
+// bei jeder Eventänderung) -> gleiche UID + höhere SEQUENCE aktualisiert den Termin.
+// Voraussetzung: supabase_event_kalender_update.sql (kalender_seq + event_einladung_empfaenger).
 //
 // Body: { event_id: string, empfaenger: [{ email, name?, sprache? }] }
 //
@@ -22,35 +32,50 @@ const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <onboarding@resend.dev>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
+// ORGANIZER für die .ics (METHOD:REQUEST). RSVP-Antworten gingen an dieses Postfach;
+// mit onboarding@resend.dev laufen sie ins Leere (bewusste Grenze, kein Inbound-Handling).
+const MAIL_FROM_EMAIL = (MAIL_FROM.match(/<([^>]+)>/)?.[1] ?? MAIL_FROM).trim();
+const ORGANIZER_EMAIL = (Deno.env.get("ORGANIZER_EMAIL") ?? MAIL_FROM_EMAIL).trim();
+const ORGANIZER_NAME  = "Vidović AI";
 
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
     subject: "Einladung zu einem Event – Vidović AI",
     intro: "Du wurdest zu einem Event eingeladen:",
+    subject_update: "Aktualisierter Termin – Vidović AI",
+    intro_update: "Ein Event wurde aktualisiert. Der Kalender-Anhang aktualisiert deinen Termin:",
     lbl_datum: "Datum", lbl_ort: "Ort",
     btn_app: "App öffnen", hint: "Öffne die App, um das Event zu sehen.",
   },
   sr: {
     subject: "Позивница за догађај – Vidović AI",
     intro: "Позван/а си на догађај:",
+    subject_update: "Ажуриран термин – Vidović AI",
+    intro_update: "Догађај је ажуриран. Прилог за календар ажурира твој термин:",
     lbl_datum: "Датум", lbl_ort: "Место",
     btn_app: "Отвори апликацију", hint: "Отвори апликацију да видиш догађај.",
   },
   hr: {
     subject: "Pozivnica za događaj – Vidović AI",
     intro: "Pozvan/a si na događaj:",
+    subject_update: "Ažuriran termin – Vidović AI",
+    intro_update: "Događaj je ažuriran. Privitak za kalendar ažurira tvoj termin:",
     lbl_datum: "Datum", lbl_ort: "Mjesto",
     btn_app: "Otvori aplikaciju", hint: "Otvori aplikaciju da vidiš događaj.",
   },
   ba: {
     subject: "Pozivnica za događaj – Vidović AI",
     intro: "Pozvan/a si na događaj:",
+    subject_update: "Ažuriran termin – Vidović AI",
+    intro_update: "Događaj je ažuriran. Prilog za kalendar ažurira tvoj termin:",
     lbl_datum: "Datum", lbl_ort: "Mjesto",
     btn_app: "Otvori aplikaciju", hint: "Otvori aplikaciju da vidiš događaj.",
   },
   en: {
     subject: "Invitation to an event – Vidović AI",
     intro: "You have been invited to an event:",
+    subject_update: "Updated appointment – Vidović AI",
+    intro_update: "An event has been updated. The calendar attachment updates your appointment:",
     lbl_datum: "Date", lbl_ort: "Place",
     btn_app: "Open app", hint: "Open the app to view the event.",
   },
@@ -134,12 +159,19 @@ const dtstampNow = () => {
          `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
 };
 
+// CN-Parameterwert für ORGANIZER/ATTENDEE (immer in Anführungszeichen, RFC 5545).
+const cnParam = (name?: string | null) =>
+  `CN="${String(name ?? "").replace(/["\r\n]/g, " ").trim()}"`;
+
 // Baut die komplette .ics oder null (wenn das Datum nicht parsebar ist).
+// opts.attendee = Empfänger (für METHOD:REQUEST -> Outlook zeigt Annehmen/Ablehnen
+// und aktualisiert bei höherer SEQUENCE den vorhandenen Termin).
 function baueIcs(ev: {
   id: string; titel: string; beschreibung?: string | null; datum?: string | null;
   ort?: string | null; uhrzeit?: string | null; ende_uhrzeit?: string | null;
   zeitzone?: string | null; latitude?: number | null; longitude?: number | null;
-}, appUrl: string): string | null {
+  kalender_seq?: number | null;
+}, appUrl: string, opts: { attendee?: { email: string; name?: string } } = {}): string | null {
   const start = parseDatumZeit(ev.datum ?? "", ev.uhrzeit);
   if (!start) return null; // Freitext-Datum -> kein Kalender-Anhang
 
@@ -147,7 +179,7 @@ function baueIcs(ev: {
   const istUtc = tz.toUpperCase() === "UTC";
   const lines: string[] = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Vidovic AI//Stammbaum//DE",
-    "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "CALSCALE:GREGORIAN", "METHOD:REQUEST",
   ];
 
   let dtStart: string, dtEnd: string;
@@ -182,7 +214,7 @@ function baueIcs(ev: {
     "BEGIN:VEVENT",
     `UID:${ev.id}@vidovic-ai`,
     `DTSTAMP:${dtstampNow()}`,
-    "SEQUENCE:0",
+    `SEQUENCE:${Math.max(0, Number(ev.kalender_seq) || 0)}`,
     dtStart, dtEnd,
     icsFold(`SUMMARY:${icsEsc(ev.titel)}`),
   );
@@ -191,6 +223,14 @@ function baueIcs(ev: {
   if (typeof ev.latitude === "number" && typeof ev.longitude === "number") {
     lines.push(`GEO:${ev.latitude};${ev.longitude}`);
   }
+  // METHOD:REQUEST braucht ORGANIZER + ATTENDEE, damit Outlook RSVP/Update erkennt.
+  lines.push(icsFold(`ORGANIZER;${cnParam(ORGANIZER_NAME)}:mailto:${ORGANIZER_EMAIL}`));
+  if (opts.attendee?.email) {
+    lines.push(icsFold(
+      `ATTENDEE;${cnParam(opts.attendee.name || opts.attendee.email)};ROLE=REQ-PARTICIPANT;` +
+      `PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${opts.attendee.email}`));
+  }
+  lines.push("STATUS:CONFIRMED");
   lines.push("END:VEVENT", "END:VCALENDAR");
   return lines.join("\r\n");
 }
@@ -230,7 +270,8 @@ type Empf = { email: string; name?: string; sprache?: string };
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { event_id, empfaenger } = await req.json() as { event_id: string; empfaenger: Empf[] };
+    const { event_id, empfaenger, aktualisierung } = await req.json() as
+      { event_id: string; empfaenger: Empf[]; aktualisierung?: boolean };
     if (!event_id) return json({ error: "event_id fehlt" }, 400);
     const liste = (empfaenger ?? []).filter((e) => e && e.email);
     if (liste.length === 0) return json({ ok: true, gesendet: 0, info: "keine Empfänger" });
@@ -240,19 +281,12 @@ Deno.serve(async (req) => {
     // Event-Daten authoritativ aus der DB (Titel/Datum/Ort/Zeit/Geo für die .ics)
     const { data: ev, error } = await admin
       .from("events")
-      .select("titel, datum, ort, beschreibung, uhrzeit, ende_uhrzeit, zeitzone, latitude, longitude")
+      .select("titel, datum, ort, beschreibung, uhrzeit, ende_uhrzeit, zeitzone, latitude, longitude, kalender_seq")
       .eq("id", event_id).single();
     if (error || !ev) return json({ error: "Event nicht gefunden" }, 404);
 
     const appUrl = APP_URL + (APP_URL.includes("?") ? "&" : "?") + "event=" + event_id;
     const testEmail = Deno.env.get("TEST_EMAIL");
-
-    // Kalender-Anhang einmal bauen (gleich für alle Empfänger, METHOD:PUBLISH).
-    const ics = baueIcs({ id: event_id, ...ev } as any, appUrl);
-    const attachments = ics
-      ? [{ filename: "einladung.ics", content: toBase64(ics),
-           content_type: "text/calendar; method=PUBLISH; charset=utf-8" }]
-      : undefined;
 
     // Datum + optionale Uhrzeit für die Mail-Anzeige (rein kosmetisch).
     const datumAnzeige = ev.datum
@@ -264,9 +298,18 @@ Deno.serve(async (req) => {
     for (const e of liste) {
       const sprache = e.sprache ?? "de";
       const to = testEmail ? [testEmail] : [e.email];
+      // Kalender-Anhang pro Empfänger (METHOD:REQUEST -> ATTENDEE = dieser Empfänger).
+      const icsR = baueIcs({ id: event_id, ...ev } as any, appUrl,
+        { attendee: { email: e.email, name: e.name } });
+      const attachments = icsR
+        ? [{ filename: "einladung.ics", content: toBase64(icsR),
+             content_type: "text/calendar; method=REQUEST; charset=utf-8" }]
+        : undefined;
+      const introKey   = aktualisierung ? "intro_update"   : "intro";
+      const subjectKey = aktualisierung ? "subject_update" : "subject";
       const inner = `
         <p>${esc(e.name ? e.name + "," : "")}</p>
-        <p>${esc(T(sprache, "intro"))}</p>
+        <p>${esc(T(sprache, introKey))}</p>
         <h3 style="color:#7a2a2a;margin:8px 0 12px;">${esc(ev.titel)}</h3>
         <table style="font-size:14px;border-collapse:collapse;margin:0 0 18px;">
           ${zeile(T(sprache, "lbl_datum"), datumAnzeige)}
@@ -286,7 +329,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: MAIL_FROM, to,
-          subject: T(sprache, "subject"), html: WRAP(inner),
+          subject: T(sprache, subjectKey), html: WRAP(inner),
           ...(attachments ? { attachments } : {}),
         }),
       });

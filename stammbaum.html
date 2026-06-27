@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.11">
+<meta name="app-version" content="14.12">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.11">
+<link rel="stylesheet" href="stammbaum.css?v=14.12">
 </head>
 <body>
 
@@ -2310,12 +2310,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.11"></script>
+<script src="i18n.js?v=14.12"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.11"></script>
-<script src="chat.js?v=14.11"></script>
+<script src="pdf_export.js?v=14.12"></script>
+<script src="chat.js?v=14.12"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -10927,6 +10927,9 @@ async function speichereEvent() {
   if (!titel) return feldFehler('ev-titel', t('feld_pflicht'));
 
   const id = document.getElementById('ev-id').value || null;
+  // Für die Kalender-Update-Mail: alten Stand der kalender-relevanten Felder merken
+  // (nur beim Bearbeiten eines bestehenden Events vorhanden).
+  const orig = id ? (eventsCache || []).find(e => e.id === id) : null;
   // Geokoordinaten (optional) + Bezugsperson (optional, DB-UUID) auslesen
   const latRaw = document.getElementById('ev-lat').value;
   const lngRaw = document.getElementById('ev-lng').value;
@@ -10973,6 +10976,32 @@ async function speichereEvent() {
   button.disabled = false; button.textContent = alt;
   erfolgEl.textContent = t('event_gespeichert'); erfolgEl.style.display = 'block';
   await zeigeShorts();                       // Liste sofort aktualisieren
+
+  // Kalender-Update: Hat sich an einem bestehenden Event ein kalender-relevantes
+  // Feld geändert, bekommt JEDER bereits Eingeladene die aktualisierte .ics
+  // (gleiche UID + höhere SEQUENCE -> Outlook/Apple/Google aktualisieren den Termin).
+  // Nur bei parsebarem ISO-Datum (sonst gibt es keine .ics zum Aktualisieren).
+  if (id && orig) {
+    const neuDatum = datumWert(document.getElementById('ev-datum')) || '';
+    const g = (a, b) => (a || '') !== (b || '');
+    const kalenderGeaendert =
+      g(orig.titel, titel) || g(orig.datum, neuDatum) ||
+      g(orig.uhrzeit, v('ev-uhrzeit')) || g(orig.ende_uhrzeit, v('ev-ende-uhrzeit')) ||
+      g(orig.zeitzone, document.getElementById('ev-zeitzone').value) ||
+      g(orig.ort, v('ev-ort')) || g(orig.beschreibung, v('ev-beschreibung'));
+    if (kalenderGeaendert && /^\d{4}-\d{2}-\d{2}/.test(neuDatum)) {
+      try {
+        const { data: r } = await sbClient.rpc('event_einladung_empfaenger', { p_event: id });
+        const empf = (r && r.empfaenger) || [];
+        if (empf.length) {
+          // best-effort, blockiert das Speichern nicht
+          sbClient.functions.invoke('event-einladung-senden',
+            { body: { event_id: id, empfaenger: empf, aktualisierung: true } })
+            .catch(e => console.warn('Kalender-Update-Mail:', e));
+        }
+      } catch (e) { console.warn('Kalender-Update-Empfänger:', e); }
+    }
+  }
   // Neues Event: Einladung ist Pflicht (mind. 1 Person) -> Schritt direkt öffnen.
   if (!id && gespeicherteId) {
     schliesseEventModal();
