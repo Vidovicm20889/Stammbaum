@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.9">
+<meta name="app-version" content="14.10">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.9">
+<link rel="stylesheet" href="stammbaum.css?v=14.10">
 </head>
 <body>
 
@@ -2298,12 +2298,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.9"></script>
+<script src="i18n.js?v=14.10"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.9"></script>
-<script src="chat.js?v=14.9"></script>
+<script src="pdf_export.js?v=14.10"></script>
+<script src="chat.js?v=14.10"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -8735,11 +8735,26 @@ function aktualisiereBaumInfo() {
   }
 }
 
-// Vollansicht „ganzer Baum": Single-Root-Renderer ab der Stammbaum-Wurzel (sameTree) — der für
-// die aktuelle (Zwillings-)Datenwelt passende Renderer: zeigt den kompletten Baum breit (alle
-// Nachkommen der Wurzel), getrennt je Baum. (Die graph2-Variante ab Wurzel war für die migrierte
-// Option-B-Welt gedacht und ließ in der Zwillings-Welt Familien ineinanderbluten → zurückgedreht.)
+// Vollansicht „ganzer Baum".
+// FLAG AUS (Default, stabil): Single-Root-Renderer ab der Stammbaum-Wurzel (sameTree) — passend zur
+//   aktuellen Zwillings-Welt; normale Nutzer sehen unverändert.
+// FLAG AN (Option-B-Test, graphRendererAn()): VERBUND-GRAPH ab der Wurzel (zeichneGraph2, 0 hoch /
+//   alle Nachkommen runter + Partner seitlich). Datensimulation bestätigt: zeigt die BLUTLINIE +
+//   Ehepartner, KEIN Fremdfamilien-Bleed (Partner-Familien werden nicht hereingezogen). So testen
+//   wir den Option-B-Renderer in der Zwillings-Welt, BEVOR migriert wird (canonOf entdoppelt
+//   Zwillinge → identisches Verhalten vor/nach der Migration).
 function vollGraphRender() {
+  if (graphRendererAn()) {
+    let w = aktuelleWurzel();
+    if (!w || !aktuelleDaten.persons[w]) {
+      const p = Object.values(aktuelleDaten.persons || {}).find(x => x && x._tree === aktuellerStammbaumId && !x.platzhalter);
+      w = p ? p.id : null;
+    }
+    if (w && aktuelleDaten.persons[w]) {
+      zeichneGraph2(w, 99, 0, { fokusId: w, upN: 0, downN: 99 });
+      return;
+    }
+  }
   const w = aktuelleWurzel();
   zeichneBaum(w, 12, 0);
 }
@@ -17379,8 +17394,12 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
 // klassische baum-begrenzte Single-Root-Renderer (zeichneBaum) — zum direkten Alt/Neu-
 // Vergleich (Rollout-Reversibilität). Der frühere, FEHLERHAFTE Voll-Graph `zeichneGraph`
 // (v12.7, falsche Darstellung) wird NICHT mehr verwendet; Basis ist ausschließlich
-// zeichneGraph2. Default AUS während des Umbaus → kein Nutzer-Impact, opt-in zum Testen.
-const RENDERER_GRAPH_DEFAULT = false;
+// zeichneGraph2. Default AN (ab v14.10): Der Verbund-Graph ist visuell abgenommen (Jovanović/
+// Šarčević/Vidović sauber, Blutlinie+Partner, kein Fremd-Bleed) → „ganzer Baum"/Baum-Öffnen zeigt
+// die ganze verbundene Familie ab der Wurzel. Single-Root bleibt als Sicherheits-Fallback per
+// setGraphRenderer(false) erreichbar (Zwillings-Welt). Funktioniert vor UND nach der Zwillings-
+// Migration (canonOf entdoppelt) — daher der Renderer ZUERST live, dann erst migrieren.
+const RENDERER_GRAPH_DEFAULT = true;
 function graphRendererAn() {
   try {
     const v = localStorage.getItem('vidovic_renderer_graph');
