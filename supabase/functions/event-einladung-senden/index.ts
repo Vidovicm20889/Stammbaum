@@ -4,6 +4,12 @@
 // je Empfänger eine Einladungs-Mail per Resend. Den Event-Titel/-Datum/-Ort liest die
 // Funktion serverseitig aus der DB (authoritativ); die Empfänger kommen vom Frontend.
 //
+// Kalender-Anhang (ab v14.11): Bei parsebarem ISO-Datum hängt die Mail eine
+// iCalendar-Datei (einladung.ics, METHOD:PUBLISH) an -> Outlook/Apple/Google bieten
+// "Zum Kalender hinzufügen". Mit Uhrzeit = echter Termin (TZID + VTIMEZONE), ohne
+// Uhrzeit = Ganztags-Termin. UID = event_id -> Änderung ersetzt den Termin.
+// Voraussetzung: supabase_event_kalender.sql (Spalten uhrzeit/ende_uhrzeit/zeitzone).
+//
 // Body: { event_id: string, empfaenger: [{ email, name?, sprache? }] }
 //
 // Secrets (wie anfrage-senden): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY,
@@ -55,6 +61,148 @@ const T = (sprache: string, key: string) =>
 const esc = (v: unknown) => String(v ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
+// ---- iCalendar (.ics) Helfer ----------------------------------------------
+// Reiner Text, von Hand gebaut (keine Library). METHOD:PUBLISH -> Mail-Clients
+// (Outlook/Apple/Google) bieten "Zum Kalender hinzufügen". UID = event_id ->
+// spätere Änderungen ersetzen den Termin statt zu duplizieren.
+
+// ICS-Textwert escapen (RFC 5545): \ ; , und Zeilenumbruch.
+const icsEsc = (v: unknown) => String(v ?? "")
+  .replaceAll("\\", "\\\\").replaceAll(";", "\\;").replaceAll(",", "\\,")
+  .replace(/\r\n|\r|\n/g, "\\n");
+
+// Zeilen auf 75 Oktette falten (RFC 5545), Fortsetzung mit Leerzeichen.
+const icsFold = (line: string): string => {
+  const enc = new TextEncoder();
+  if (enc.encode(line).length <= 75) return line;
+  let out = "", cur = "", curBytes = 0, first = true;
+  for (const ch of line) {
+    const chBytes = enc.encode(ch).length;
+    const limit = first ? 75 : 74; // Fortsetzungszeilen haben 1 führendes Leerzeichen
+    if (curBytes + chBytes > limit) {
+      out += (out ? "\r\n " : "") + cur;
+      cur = ch; curBytes = chBytes; first = false;
+    } else { cur += ch; curBytes += chBytes; }
+  }
+  out += (out ? "\r\n " : "") + cur;
+  return out;
+};
+
+// "2026-08-15" + "18:00" -> {y,m,d,h,min}; Zeit optional.
+const parseDatumZeit = (datum: string, zeit?: string | null) => {
+  const md = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(datum ?? "").trim());
+  if (!md) return null;
+  let h = 0, min = 0, hatZeit = false;
+  if (zeit) {
+    const mt = /^(\d{1,2}):(\d{2})/.exec(String(zeit).trim());
+    if (mt) { h = +mt[1]; min = +mt[2]; hatZeit = true; }
+  }
+  return { y: +md[1], m: +md[2], d: +md[3], h, min, hatZeit };
+};
+const pad = (n: number) => String(n).padStart(2, "0");
+const dateStamp = (y: number, m: number, d: number) => `${y}${pad(m)}${pad(d)}`;
+const dateTimeStamp = (p: { y: number; m: number; d: number; h: number; min: number }) =>
+  `${p.y}${pad(p.m)}${pad(p.d)}T${pad(p.h)}${pad(p.min)}00`;
+
+// Wandgenaue Arithmetik (Tages-/Stundenüberlauf) über UTC, zeitzonen-neutral.
+const addStunden = (p: { y: number; m: number; d: number; h: number; min: number }, std: number) => {
+  const dt = new Date(Date.UTC(p.y, p.m - 1, p.d, p.h, p.min));
+  dt.setUTCHours(dt.getUTCHours() + std);
+  return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(),
+           h: dt.getUTCHours(), min: dt.getUTCMinutes() };
+};
+const addTage = (y: number, m: number, d: number, tage: number) => {
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + tage);
+  return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
+};
+
+// VTIMEZONE-Block für CET/CEST-Zonen (Belgrade/Vienna/Zurich/Berlin teilen die
+// EU-DST-Regeln). UTC braucht keinen Block (Z-Suffix).
+const vtimezone = (tzid: string) => [
+  "BEGIN:VTIMEZONE", `TZID:${tzid}`,
+  "BEGIN:DAYLIGHT", "TZOFFSETFROM:+0100", "TZOFFSETTO:+0200", "TZNAME:CEST",
+  "DTSTART:19700329T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU", "END:DAYLIGHT",
+  "BEGIN:STANDARD", "TZOFFSETFROM:+0200", "TZOFFSETTO:+0100", "TZNAME:CET",
+  "DTSTART:19701025T030000", "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU", "END:STANDARD",
+  "END:VTIMEZONE",
+];
+
+const dtstampNow = () => {
+  const d = new Date();
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
+         `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+};
+
+// Baut die komplette .ics oder null (wenn das Datum nicht parsebar ist).
+function baueIcs(ev: {
+  id: string; titel: string; beschreibung?: string | null; datum?: string | null;
+  ort?: string | null; uhrzeit?: string | null; ende_uhrzeit?: string | null;
+  zeitzone?: string | null; latitude?: number | null; longitude?: number | null;
+}, appUrl: string): string | null {
+  const start = parseDatumZeit(ev.datum ?? "", ev.uhrzeit);
+  if (!start) return null; // Freitext-Datum -> kein Kalender-Anhang
+
+  const tz = (ev.zeitzone || "Europe/Belgrade").trim();
+  const istUtc = tz.toUpperCase() === "UTC";
+  const lines: string[] = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Vidovic AI//Stammbaum//DE",
+    "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+  ];
+
+  let dtStart: string, dtEnd: string;
+  if (start.hatZeit) {
+    if (!istUtc) lines.push(...vtimezone(tz));
+    const ende = parseDatumZeit(ev.datum ?? "", ev.ende_uhrzeit);
+    let endP: { y: number; m: number; d: number; h: number; min: number };
+    if (ende && ende.hatZeit) {
+      endP = { y: ende.y, m: ende.m, d: ende.d, h: ende.h, min: ende.min };
+      // Ende <= Start -> als über Mitternacht werten (+1 Tag)
+      const sMin = start.h * 60 + start.min, eMin = endP.h * 60 + endP.min;
+      if (eMin <= sMin) { const nx = addTage(endP.y, endP.m, endP.d, 1); endP = { ...nx, h: endP.h, min: endP.min }; }
+    } else {
+      endP = addStunden(start, 1);
+    }
+    if (istUtc) {
+      dtStart = `DTSTART:${dateTimeStamp(start)}Z`;
+      dtEnd   = `DTEND:${dateTimeStamp(endP)}Z`;
+    } else {
+      dtStart = `DTSTART;TZID=${tz}:${dateTimeStamp(start)}`;
+      dtEnd   = `DTEND;TZID=${tz}:${dateTimeStamp(endP)}`;
+    }
+  } else {
+    // Ganztags-Termin: DTEND ist exklusiv -> nächster Tag.
+    const nx = addTage(start.y, start.m, start.d, 1);
+    dtStart = `DTSTART;VALUE=DATE:${dateStamp(start.y, start.m, start.d)}`;
+    dtEnd   = `DTEND;VALUE=DATE:${dateStamp(nx.y, nx.m, nx.d)}`;
+  }
+
+  const beschr = [String(ev.beschreibung ?? "").trim(), appUrl].filter(Boolean).join("\n\n");
+  lines.push(
+    "BEGIN:VEVENT",
+    `UID:${ev.id}@vidovic-ai`,
+    `DTSTAMP:${dtstampNow()}`,
+    "SEQUENCE:0",
+    dtStart, dtEnd,
+    icsFold(`SUMMARY:${icsEsc(ev.titel)}`),
+  );
+  if (beschr) lines.push(icsFold(`DESCRIPTION:${icsEsc(beschr)}`));
+  if (ev.ort) lines.push(icsFold(`LOCATION:${icsEsc(ev.ort)}`));
+  if (typeof ev.latitude === "number" && typeof ev.longitude === "number") {
+    lines.push(`GEO:${ev.latitude};${ev.longitude}`);
+  }
+  lines.push("END:VEVENT", "END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+// UTF-8-sichere base64-Kodierung (für Resend-Attachment).
+const toBase64 = (s: string) => {
+  const bytes = new TextEncoder().encode(s);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+};
+
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
@@ -89,13 +237,27 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // Event-Daten authoritativ aus der DB (Titel/Datum/Ort)
+    // Event-Daten authoritativ aus der DB (Titel/Datum/Ort/Zeit/Geo für die .ics)
     const { data: ev, error } = await admin
-      .from("events").select("titel, datum, ort").eq("id", event_id).single();
+      .from("events")
+      .select("titel, datum, ort, beschreibung, uhrzeit, ende_uhrzeit, zeitzone, latitude, longitude")
+      .eq("id", event_id).single();
     if (error || !ev) return json({ error: "Event nicht gefunden" }, 404);
 
     const appUrl = APP_URL + (APP_URL.includes("?") ? "&" : "?") + "event=" + event_id;
     const testEmail = Deno.env.get("TEST_EMAIL");
+
+    // Kalender-Anhang einmal bauen (gleich für alle Empfänger, METHOD:PUBLISH).
+    const ics = baueIcs({ id: event_id, ...ev } as any, appUrl);
+    const attachments = ics
+      ? [{ filename: "einladung.ics", content: toBase64(ics),
+           content_type: "text/calendar; method=PUBLISH; charset=utf-8" }]
+      : undefined;
+
+    // Datum + optionale Uhrzeit für die Mail-Anzeige (rein kosmetisch).
+    const datumAnzeige = ev.datum
+      ? ev.datum + (ev.uhrzeit ? " " + ev.uhrzeit + (ev.ende_uhrzeit ? "–" + ev.ende_uhrzeit : "") : "")
+      : "";
 
     let gesendet = 0;
     const fehler: string[] = [];
@@ -107,7 +269,7 @@ Deno.serve(async (req) => {
         <p>${esc(T(sprache, "intro"))}</p>
         <h3 style="color:#7a2a2a;margin:8px 0 12px;">${esc(ev.titel)}</h3>
         <table style="font-size:14px;border-collapse:collapse;margin:0 0 18px;">
-          ${zeile(T(sprache, "lbl_datum"), ev.datum ?? "")}
+          ${zeile(T(sprache, "lbl_datum"), datumAnzeige)}
           ${zeile(T(sprache, "lbl_ort"), ev.ort ?? "")}
         </table>
         <div style="text-align:center;margin:24px 0;">
@@ -125,6 +287,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: MAIL_FROM, to,
           subject: T(sprache, "subject"), html: WRAP(inner),
+          ...(attachments ? { attachments } : {}),
         }),
       });
       if (r.ok) gesendet++;

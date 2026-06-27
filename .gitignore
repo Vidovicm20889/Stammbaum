@@ -5,3 +5,6 @@ supabase/.temp/
 
 # Claude Code – lokale Arbeitsdateien (Pläne/Memory/Settings), nicht versionieren
 .claude/
+
+# Lokaler Render-Snapshot (Familiendaten, nur für tools/sim_render.js) — NIE committen
+render_snapshot.json

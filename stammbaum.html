@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.10">
+<meta name="app-version" content="14.11">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.10">
+<link rel="stylesheet" href="stammbaum.css?v=14.11">
 </head>
 <body>
 
@@ -1594,6 +1594,18 @@
         <input type="text" id="ev-datum" class="login-feld dp-input"></label>
       <label class="login-label"><span data-i18n="event_ort"></span>
         <input type="text" id="ev-ort" class="login-feld"></label>
+      <label class="login-label"><span data-i18n="ev_uhrzeit_von"></span>
+        <input type="time" id="ev-uhrzeit" class="login-feld" inputmode="numeric"></label>
+      <label class="login-label"><span data-i18n="ev_uhrzeit_bis"></span>
+        <input type="time" id="ev-ende-uhrzeit" class="login-feld" inputmode="numeric"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="ev_zeitzone"></span>
+        <select id="ev-zeitzone" class="login-feld">
+          <option value="Europe/Belgrade">Beograd / Banja Luka (CET)</option>
+          <option value="Europe/Vienna">Wien (CET)</option>
+          <option value="Europe/Zurich">Zürich (CET)</option>
+          <option value="Europe/Berlin">Berlin (CET)</option>
+          <option value="UTC">UTC</option>
+        </select></label>
       <label class="login-label reg-feld-voll"><span data-i18n="event_typ"></span>
         <select id="ev-typ" class="login-feld">
           <option value="" data-i18n="evt_sonstiges"></option>
@@ -2298,12 +2310,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.10"></script>
+<script src="i18n.js?v=14.11"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.10"></script>
-<script src="chat.js?v=14.10"></script>
+<script src="pdf_export.js?v=14.11"></script>
+<script src="chat.js?v=14.11"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -8751,7 +8763,9 @@ function vollGraphRender() {
       w = p ? p.id : null;
     }
     if (w && aktuelleDaten.persons[w]) {
-      zeichneGraph2(w, 99, 0, { fokusId: w, upN: 0, downN: 99 });
+      // blutScope = aktueller Baum: Blutlinien-Kappung (kein Nachbarfamilien-Bleed); re-rootet
+      // an der Blut-Wurzel und zeichnet top-down (upN=0). Verifiziert via tools/sim_render.js.
+      zeichneGraph2(w, 99, 0, { fokusId: w, upN: 0, downN: 99, blutScope: aktuellerStammbaumId });
       return;
     }
   }
@@ -10069,8 +10083,9 @@ function bezugspersonOptionen(selUuid) {
 function zeigeEventNeu() {
   if (!istAdmin() || !aktuellerStammbaumId) return;
   document.getElementById('ev-id').value = '';
-  ['ev-titel','ev-ort','ev-beschreibung','ev-organisator'].forEach(id => document.getElementById(id).value = '');
+  ['ev-titel','ev-ort','ev-beschreibung','ev-organisator','ev-uhrzeit','ev-ende-uhrzeit'].forEach(id => document.getElementById(id).value = '');
   datumSetzen(document.getElementById('ev-datum'), '');   // Datumsfeld + iso zurücksetzen
+  document.getElementById('ev-zeitzone').value = 'Europe/Belgrade';
   document.getElementById('ev-typ').value = '';
   document.getElementById('ev-media-input').value = '';
   document.getElementById('ev-media-liste').innerHTML = '';   // Medien erst nach dem Speichern (Event braucht eine id)
@@ -10096,6 +10111,9 @@ function zeigeEventBearbeiten(eventId) {
   document.getElementById('ev-titel').value        = ev.titel || '';
   datumSetzen(document.getElementById('ev-datum'), ev.datum || '');
   document.getElementById('ev-ort').value          = ev.ort || '';
+  document.getElementById('ev-uhrzeit').value      = ev.uhrzeit || '';
+  document.getElementById('ev-ende-uhrzeit').value = ev.ende_uhrzeit || '';
+  document.getElementById('ev-zeitzone').value     = ev.zeitzone || 'Europe/Belgrade';
   document.getElementById('ev-typ').value          = ev.typ || '';
   document.getElementById('ev-organisator').value  = ev.organisator || '';
   document.getElementById('ev-beschreibung').value = ev.beschreibung || '';
@@ -10921,7 +10939,9 @@ async function speichereEvent() {
     p_beschreibung: v('ev-beschreibung') || null, p_datum: datumWert(document.getElementById('ev-datum')) || null,
     p_ort: v('ev-ort') || null, p_typ: document.getElementById('ev-typ').value || null,
     p_sprache: aktuelleSprache, p_organisator: v('ev-organisator') || null,
-    p_latitude: pLat, p_longitude: pLng, p_bezugsperson: pBezug
+    p_latitude: pLat, p_longitude: pLng, p_bezugsperson: pBezug,
+    p_uhrzeit: v('ev-uhrzeit') || null, p_ende_uhrzeit: v('ev-ende-uhrzeit') || null,
+    p_zeitzone: document.getElementById('ev-zeitzone').value || 'Europe/Belgrade'
   });
   if (error) {
     button.disabled = false; button.textContent = alt;
@@ -17725,6 +17745,61 @@ const G2_ROWH = 178;   // Generationsabstand
 const G2_PAAR = 162;   // Partner-Versatz (eine Karte + kleiner Spalt)
 const G2_HH = 38, G2_HW = 76;   // halbe Kartenhöhe/-breite
 
+// Blutlinien-Scope für die KANONISCHE „ganzer Baum"-Graph-Ansicht (Option B). Spiegelt die
+// Kappung aus zeichneBaum (istBlutName/zielBaumFuer) auf das Graph-Modell: ein Stammbaum zeigt
+// seine eigene Blutlinie (Wurzel→Nachkommen) + Ehepartner (Blätter) + die ERSTE ausgeheiratete
+// Generation; die ZWEITE auswärtige Generation in Folge wird — wenn ihr Nachname einen eigenen
+// Verbund-Baum hat — als Blatt + „→{Baum}"-Badge gekappt. OHNE diese Kappung wandert der
+// bidirektionale Graph über Heirats-Kanten in Nachbarfamilien (nach der Zwillings-Migration ist
+// der ganze Verbund EINE Komponente → Familien-Bleed). Verifiziert auf echten + simuliert-
+// migrierten Daten via tools/sim_render.js (welt-unabhängig: gleiches Ergebnis vor/nach Migration).
+// Liefert { wurzel, visible:Set<canon>, cut:Map<canon,{baumId,baum}> }.
+function graphBlutScope(model, treeId, startCanon) {
+  const treeNameN = zweigNachnameNorm((stammbaeumeListe[treeId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
+  const persOf = (c) => { const n = model.nodes.get(c); return n ? n.person : null; };
+  const istBlut = (c) => {
+    const p = persOf(c); if (!p) return false;
+    if (zweigNachnameNorm(p.surname || '') === treeNameN) return true;
+    if (zweigNachnameNorm(p.ehename || '') === treeNameN) return true;   // Mädchenname (née)
+    for (const par of (model.parents.get(c) || [])) {                    // Vater-Fallback (husband der Geburtsfamilie)
+      const pp = persOf(par);
+      if (pp && pp.sex === 'M' && zweigNachnameNorm(pp.surname || '') === treeNameN) return true;
+    }
+    return false;
+  };
+  const zielBaumFuer = (snNorm) => {
+    if (!snNorm || snNorm === treeNameN) return null;
+    for (const tid in stammbaeumeListe) {
+      if (tid === treeId) continue;
+      if (zweigNachnameNorm(stammbaeumeListe[tid]) === snNorm) return { baumId: tid, baum: stammbaeumeListe[tid] || '' };
+    }
+    return null;   // kein Ziel-Baum -> NICHT kappen (sonst verschwänden Nachkommen nirgends)
+  };
+  // 1) hoch zur Blut-Wurzel (solange ein Blut-Elternteil existiert) — analog findeWurzel.
+  let wurzel = startCanon, guard = 0;
+  while (guard++ < 200) {
+    const be = [...(model.parents.get(wurzel) || [])].filter(istBlut);
+    if (!be.length) break;
+    wurzel = be[0];
+  }
+  // 2) runter mit Kappung der 2. auswärtigen Generation in Folge.
+  const visible = new Set(), cut = new Map(), seen = new Set();
+  const stack = [[wurzel, false]];   // [canon, elternAuswaerts]
+  while (stack.length) {
+    const [c, elternAus] = stack.pop();
+    if (seen.has(c)) continue; seen.add(c);
+    const selbstAus = !istBlut(c);
+    if (selbstAus && elternAus) {
+      const ziel = zielBaumFuer(zweigNachnameNorm((persOf(c) || {}).surname || ''));
+      if (ziel) { visible.add(c); cut.set(c, ziel); continue; }   // Übergangs-Blatt (keine Partner/Kinder)
+    }
+    visible.add(c);
+    (model.partners.get(c) || []).forEach(pc => visible.add(pc));   // Partner als Blatt
+    (model.children.get(c) || []).forEach(k => stack.push([k, selbstAus]));
+  }
+  return { wurzel, visible, cut };
+}
+
 function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   baumG.selectAll('*').remove();
   if (!aktuelleDaten.persons[rootPersonId]) return;
@@ -17736,8 +17811,13 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   // sinnvollen EINSTIEG: vom Wurzel-Ahn aus gäbe es 0 Vorfahren (→ nur eine Linie); von
   // einem jungen Nachkommen aus fächern die Vorfahren BEIDE Elternzweige auf — so werden
   // eingeheiratete Personen samt ihrer Herkunftsfamilie sichtbar (z. B. Mara → Petrović).
-  let focus;
-  if (opts.fokusId && model.nodes.has(model.canonOf(opts.fokusId))) {
+  let focus, blutVisible = null, blutCut = null;
+  if (opts.blutScope) {
+    // KANONISCHE „ganzer Baum"-Ansicht: ab der Blut-Wurzel top-down, Blutlinien-gekappt
+    // (kein Nachbarfamilien-Bleed). Fokus = Blut-Wurzel; visible = graphBlutScope.
+    const bs = graphBlutScope(model, opts.blutScope, model.canonOf(rootPersonId));
+    focus = bs.wurzel; blutVisible = bs.visible; blutCut = bs.cut;
+  } else if (opts.fokusId && model.nodes.has(model.canonOf(opts.fokusId))) {
     focus = model.canonOf(opts.fokusId);
   } else {
     const meine = (typeof meineKarteImBaum === 'function') ? meineKarteImBaum() : null;
@@ -17759,7 +17839,7 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   // Default für die fokus-zentrierte Navigation. 99 = praktisch unbegrenzt.
   const upN = (opts.upN != null) ? opts.upN : 5;
   const downN = (opts.downN != null) ? opts.downN : 5;
-  const visible = graphRadius(model, focus, downN, upN);
+  const visible = blutVisible || graphRadius(model, focus, downN, upN);
 
   const personOf  = c => model.nodes.get(c).person;
   const vis       = c => visible.has(c);
@@ -17917,6 +17997,16 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
     const g = baumG.append('g').attr('class', 'knoten-gruppe' + (canon === focus ? ' fokus' : ''))
       .attr('transform', `translate(${x},${y})`);
     zeichneKnotenBox(g, personOf(canon), 0, canon === focus, BLUTLINIE_IDS.has(model.nodes.get(canon).rep));
+    // Blutlinien-Kappung: klickbares „→{Baum}"-Badge unter dem Übergangs-Blatt (Fortsetzung im Ziel-Baum).
+    if (blutCut && blutCut.has(canon)) {
+      const ziel = blutCut.get(canon), bnm = nm(ziel.baum || '');
+      const badge = g.append('g').attr('class', 'uebergang-badge').attr('transform', 'translate(0,50)')
+        .style('cursor', 'pointer')
+        .on('click', (ev) => { if (ev) ev.stopPropagation(); if (ziel.baumId) waehleStammbaum(ziel.baumId); });
+      badge.append('title').text(t('bl_uebergang_titel', { baum: bnm }));
+      badge.append('text').attr('class', 'uebergang-text').attr('text-anchor', 'middle').attr('y', 0)
+        .text(t('bl_uebergang', { baum: bnm }));
+    }
     pts.push({ x, y });
   };
   dh.each(d => {
