@@ -1123,7 +1123,10 @@ footer {
   .nav-controls { gap: 6px; width: 100%; justify-content: center; }
   /* Tab-Gruppe spannt die Breite; Tabs werden gleichbreite, kompakte Flex-Items statt zu überlaufen. */
   .tab-gruppe { width: 100%; box-sizing: border-box; }
-  .tab-gruppe .tab { flex: 1 1 0; min-width: 0; padding: 10px 6px; letter-spacing: 1px; font-size: 12px; text-align: center; }
+  .tab-gruppe .tab { flex: 1 1 0; min-width: 0; padding: 10px 6px; letter-spacing: 1px; font-size: 12px; text-align: center;
+    /* Lange Einzelwörter (z. B. "FAMILIENMITGLIEDER") müssen umbrechen, sonst laufen sie aus
+       ihrer Flex-Box heraus und überlappen den Nachbar-Tab (DE auf < 480px). */
+    overflow-wrap: anywhere; word-break: break-word; hyphens: auto; line-height: 1.2; }
   /* Suche/Dropdown schrumpffähig (Schriftgröße bleibt ≥16px wegen iOS-Zoom-Regel). */
   .suche { flex: 1 1 100%; min-width: 0; }
   .filter, #tree-select { flex: 1 1 160px; min-width: 0; max-width: 100%; }
