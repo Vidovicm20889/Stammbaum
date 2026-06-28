@@ -1127,6 +1127,9 @@ footer {
     /* Lange Einzelwörter (z. B. "FAMILIENMITGLIEDER") müssen umbrechen, sonst laufen sie aus
        ihrer Flex-Box heraus und überlappen den Nachbar-Tab (DE auf < 480px). */
     overflow-wrap: anywhere; word-break: break-word; hyphens: auto; line-height: 1.2; }
+  /* "Familienmitglieder"/"Чланови породице" ist das längste Label -> mehr Breite, damit es in
+     zwei Zeilen passt (sonst rutschen einzelne Buchstaben in eine dritte Zeile). */
+  .tab-gruppe .tab[data-ansicht="karten"] { flex-grow: 1.7; }
   /* Suche/Dropdown schrumpffähig (Schriftgröße bleibt ≥16px wegen iOS-Zoom-Regel). */
   .suche { flex: 1 1 100%; min-width: 0; }
   .filter, #tree-select { flex: 1 1 160px; min-width: 0; max-width: 100%; }
