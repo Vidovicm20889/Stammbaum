@@ -13,7 +13,8 @@
 // Outlook zeigt Annehmen/Ablehnen und aktualisiert bei höherer SEQUENCE den
 // vorhandenen Termin (ggf. ohne erneutes Öffnen). Die .ics wird PRO Empfänger gebaut
 // (ATTENDEE = dieser Empfänger). RSVP-Antworten gehen an ORGANIZER_EMAIL (aus MAIL_FROM
-// abgeleitet); mit onboarding@resend.dev laufen sie ins Leere (kein Inbound-Handling).
+// abgeleitet); sie landen im Postfach von MAIL_FROM (support@vidovic-ai.com), sofern dort
+// Posteingang eingerichtet ist (kein eigenes Inbound-Handling in der Function).
 //
 // Kalender-UPDATE (ab v14.12): Body-Feld aktualisierung=true -> Update-Texte
 // (subject_update/intro_update). Die SEQUENCE kommt aus events.kalender_seq (steigt
@@ -30,10 +31,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <onboarding@resend.dev>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
-// ORGANIZER für die .ics (METHOD:REQUEST). RSVP-Antworten gingen an dieses Postfach;
-// mit onboarding@resend.dev laufen sie ins Leere (bewusste Grenze, kein Inbound-Handling).
+// ORGANIZER für die .ics (METHOD:REQUEST). RSVP-Antworten gehen an dieses Postfach
+// (support@vidovic-ai.com aus MAIL_FROM); kein eigenes Inbound-Handling in der Function.
 const MAIL_FROM_EMAIL = (MAIL_FROM.match(/<([^>]+)>/)?.[1] ?? MAIL_FROM).trim();
 const ORGANIZER_EMAIL = (Deno.env.get("ORGANIZER_EMAIL") ?? MAIL_FROM_EMAIL).trim();
 const ORGANIZER_NAME  = "Vidović AI";

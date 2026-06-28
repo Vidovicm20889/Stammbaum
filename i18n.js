@@ -6238,14 +6238,14 @@ const RECHTSTEXTE = {
       <h2>Impressum</h2>
       <p><strong>Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)</strong></p>
       <p>[PLATZHALTER: Vor- und Nachname]<br>[PLATZHALTER: Straße und Hausnummer]<br>[PLATZHALTER: PLZ und Ort]<br>[PLATZHALTER: Land]</p>
-      <p><strong>Kontakt</strong><br>E-Mail: [PLATZHALTER: Kontakt-E-Mail]<br>Telefon: [PLATZHALTER: optional]</p>
+      <p><strong>Kontakt</strong><br>E-Mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Telefon: [PLATZHALTER: optional]</p>
       <p><strong>Verantwortlich für den Inhalt</strong><br>[PLATZHALTER: Name und Anschrift wie oben]</p>
       <p>Dieses Angebot ist ein privates, nicht-kommerzielles Familienprojekt.</p>
       <p><strong>Haftung für Inhalte und Links:</strong> Die Inhalte wurden mit Sorgfalt erstellt, für ihre Richtigkeit wird jedoch keine Gewähr übernommen. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich.</p>`,
     datenschutz: `
       <h2>Datenschutzerklärung</h2>
       <h3>1. Verantwortlicher</h3>
-      <p>[PLATZHALTER: Name, Anschrift und E-Mail des Verantwortlichen]</p>
+      <p>[PLATZHALTER: Name und Anschrift]<br>E-Mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
       <h3>2. Welche Daten wir verarbeiten</h3>
       <ul>
         <li>Kontodaten: E-Mail-Adresse, Passwort (verschlüsselt gespeichert), Rolle.</li>
@@ -6274,21 +6274,21 @@ const RECHTSTEXTE = {
       <h3>10. Cookies / lokale Speicherung</h3>
       <p>Es werden nur technisch notwendige Werte im Browser gespeichert (Sprachwahl, Sitzung). Es findet kein Tracking und keine automatisierte Entscheidungsfindung statt.</p>
       <h3>11. Kontakt in Datenschutzfragen</h3>
-      <p>[PLATZHALTER: Datenschutz-Kontakt / E-Mail]</p>`
+      <p>E-Mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
   },
   en: {
     impressum: `
       <h2>Legal notice</h2>
       <p><strong>Provider information</strong></p>
       <p>[PLATZHALTER: first and last name]<br>[PLATZHALTER: street and number]<br>[PLATZHALTER: postal code and city]<br>[PLATZHALTER: country]</p>
-      <p><strong>Contact</strong><br>E-mail: [PLATZHALTER: contact e-mail]<br>Phone: [PLATZHALTER: optional]</p>
+      <p><strong>Contact</strong><br>E-mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Phone: [PLATZHALTER: optional]</p>
       <p><strong>Responsible for the content</strong><br>[PLATZHALTER: name and address as above]</p>
       <p>This is a private, non-commercial family project.</p>
       <p><strong>Liability for content and links:</strong> Content has been prepared with care, but no guarantee is given for its accuracy. Operators of linked external sites are responsible for their own content.</p>`,
     datenschutz: `
       <h2>Privacy Policy</h2>
       <h3>1. Controller</h3>
-      <p>[PLATZHALTER: name, address and e-mail of the controller]</p>
+      <p>[PLATZHALTER: name and address]<br>E-mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
       <h3>2. What data we process</h3>
       <ul>
         <li>Account data: e-mail address, password (stored encrypted), role.</li>
@@ -6317,21 +6317,21 @@ const RECHTSTEXTE = {
       <h3>10. Cookies / local storage</h3>
       <p>Only technically necessary values are stored in the browser (language choice, session). There is no tracking and no automated decision-making.</p>
       <h3>11. Privacy contact</h3>
-      <p>[PLATZHALTER: privacy contact / e-mail]</p>`
+      <p>E-mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
   },
   hr: {
     impressum: `
       <h2>Impressum</h2>
       <p><strong>Podaci o pružatelju usluge</strong></p>
       <p>[PLATZHALTER: ime i prezime]<br>[PLATZHALTER: ulica i broj]<br>[PLATZHALTER: poštanski broj i mjesto]<br>[PLATZHALTER: država]</p>
-      <p><strong>Kontakt</strong><br>E-pošta: [PLATZHALTER: kontakt e-pošta]<br>Telefon: [PLATZHALTER: nije obavezno]</p>
+      <p><strong>Kontakt</strong><br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Telefon: [PLATZHALTER: nije obavezno]</p>
       <p><strong>Odgovoran za sadržaj</strong><br>[PLATZHALTER: ime i adresa kao gore]</p>
       <p>Ovo je privatni, nekomercijalni obiteljski projekt.</p>
       <p><strong>Odgovornost za sadržaj i poveznice:</strong> Sadržaj je izrađen s pažnjom, no ne jamči se njegova točnost. Za sadržaj povezanih vanjskih stranica odgovorni su njihovi vlasnici.</p>`,
     datenschutz: `
       <h2>Izjava o zaštiti podataka</h2>
       <h3>1. Voditelj obrade</h3>
-      <p>[PLATZHALTER: ime, adresa i e-pošta voditelja obrade]</p>
+      <p>[PLATZHALTER: ime i adresa]<br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
       <h3>2. Koje podatke obrađujemo</h3>
       <ul>
         <li>Podaci računa: e-pošta, lozinka (pohranjena šifrirano), uloga.</li>
@@ -6360,21 +6360,21 @@ const RECHTSTEXTE = {
       <h3>10. Kolačići / lokalna pohrana</h3>
       <p>U pregledniku se pohranjuju samo tehnički nužne vrijednosti (izbor jezika, sesija). Nema praćenja ni automatiziranog donošenja odluka.</p>
       <h3>11. Kontakt za zaštitu podataka</h3>
-      <p>[PLATZHALTER: kontakt za zaštitu podataka / e-pošta]</p>`
+      <p>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
   },
   ba: {
     impressum: `
       <h2>Impressum</h2>
       <p><strong>Podaci o pružaocu usluge</strong></p>
       <p>[PLATZHALTER: ime i prezime]<br>[PLATZHALTER: ulica i broj]<br>[PLATZHALTER: poštanski broj i mjesto]<br>[PLATZHALTER: država]</p>
-      <p><strong>Kontakt</strong><br>E-pošta: [PLATZHALTER: kontakt e-pošta]<br>Telefon: [PLATZHALTER: nije obavezno]</p>
+      <p><strong>Kontakt</strong><br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Telefon: [PLATZHALTER: nije obavezno]</p>
       <p><strong>Odgovoran za sadržaj</strong><br>[PLATZHALTER: ime i adresa kao gore]</p>
       <p>Ovo je privatni, nekomercijalni porodični projekat.</p>
       <p><strong>Odgovornost za sadržaj i linkove:</strong> Sadržaj je izrađen s pažnjom, ali se ne garantuje njegova tačnost. Za sadržaj povezanih vanjskih stranica odgovorni su njihovi vlasnici.</p>`,
     datenschutz: `
       <h2>Izjava o zaštiti podataka</h2>
       <h3>1. Rukovalac podacima</h3>
-      <p>[PLATZHALTER: ime, adresa i e-pošta rukovaoca]</p>
+      <p>[PLATZHALTER: ime i adresa]<br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
       <h3>2. Koje podatke obrađujemo</h3>
       <ul>
         <li>Podaci računa: e-pošta, lozinka (pohranjena šifrirano), uloga.</li>
@@ -6403,21 +6403,21 @@ const RECHTSTEXTE = {
       <h3>10. Kolačići / lokalna pohrana</h3>
       <p>U pregledniku se pohranjuju samo tehnički nužne vrijednosti (izbor jezika, sesija). Nema praćenja ni automatiziranog donošenja odluka.</p>
       <h3>11. Kontakt za zaštitu podataka</h3>
-      <p>[PLATZHALTER: kontakt za zaštitu podataka / e-pošta]</p>`
+      <p>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
   },
   sr: {
     impressum: `
       <h2>Импресум</h2>
       <p><strong>Подаци о пружаоцу услуге</strong></p>
       <p>[PLATZHALTER: име и презиме]<br>[PLATZHALTER: улица и број]<br>[PLATZHALTER: поштански број и место]<br>[PLATZHALTER: држава]</p>
-      <p><strong>Контакт</strong><br>Е-пошта: [PLATZHALTER: контакт е-пошта]<br>Телефон: [PLATZHALTER: није обавезно]</p>
+      <p><strong>Контакт</strong><br>Е-пошта: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Телефон: [PLATZHALTER: није обавезно]</p>
       <p><strong>Одговоран за садржај</strong><br>[PLATZHALTER: име и адреса као горе]</p>
       <p>Ово је приватни, некомерцијални породични пројекат.</p>
       <p><strong>Одговорност за садржај и линкове:</strong> Садржај је израђен с пажњом, али се не гарантује његова тачност. За садржај повезаних спољних страница одговорни су њихови власници.</p>`,
     datenschutz: `
       <h2>Изјава о заштити података</h2>
       <h3>1. Руковалац подацима</h3>
-      <p>[PLATZHALTER: име, адреса и е-пошта руковаоца]</p>
+      <p>[PLATZHALTER: име и адреса]<br>Е-пошта: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
       <h3>2. Које податке обрађујемо</h3>
       <ul>
         <li>Подаци налога: е-пошта, лозинка (похрањена шифровано), улога.</li>
@@ -6446,6 +6446,6 @@ const RECHTSTEXTE = {
       <h3>10. Колачићи / локална похрана</h3>
       <p>У прегледачу се похрањују само технички неопходне вредности (избор језика, сесија). Нема праћења ни аутоматизованог доношења одлука.</p>
       <h3>11. Контакт за заштиту података</h3>
-      <p>[PLATZHALTER: контакт за заштиту података / е-пошта]</p>`
+      <p>Е-пошта: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
   }
 };
