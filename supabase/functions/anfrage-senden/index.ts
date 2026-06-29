@@ -2,7 +2,7 @@
 // Wird vom Frontend nach dem Speichern einer Anfrage aufgerufen.
 // Lädt die Anfrage, ermittelt die Admin-Empfänger und verschickt per Resend
 // eine reine BENACHRICHTIGUNGS-Mail (KEINE Bestätigen-/Ablehnen-Links mehr).
-// Die Entscheidung trifft der Admin AUSSCHLIESSLICH in der App unter „Obavještenja".
+// Die Entscheidung trifft der Admin AUSSCHLIESSLICH in der App unter „Obavještenja“.
 // Die Mail enthält nur einen „App öffnen"-Link (Deep-Link ?obav=1).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -19,42 +19,42 @@ const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
     admin_subject: "Neue Anfrage eingegangen – Vidović AI",
-    admin_intro: "Eine neue Zugangsanfrage ist eingegangen. Die Bearbeitung erfolgt in der App unter „Obavještenja":",
+    admin_intro: "Eine neue Zugangsanfrage ist eingegangen. Die Bearbeitung erfolgt in der App unter „Obavještenja“:",
     lbl_email: "E-Mail", lbl_familie: "Familie / Stammbaum", lbl_rolle: "Gewünschte Rolle",
     btn_app: "App öffnen",
-    admin_hint: "Bitte öffne die App und entscheide unter „Obavještenja" über die Anfrage. Eine Bearbeitung per E-Mail ist nicht mehr möglich.",
+    admin_hint: "Bitte öffne die App und entscheide unter „Obavještenja“ über die Anfrage. Eine Bearbeitung per E-Mail ist nicht mehr möglich.",
     rolle_familien_admin: "Familien-Admin", rolle_familien_mitglied: "Mitglied",
   },
   sr: {
     admin_subject: "Нови захтев је стигао – Vidović AI",
-    admin_intro: "Стигао је нови захтев за приступ. Обрада се врши у апликацији у одељку „Обавјештења":",
+    admin_intro: "Стигао је нови захтев за приступ. Обрада се врши у апликацији у одељку „Обавјештења“:",
     lbl_email: "Имејл", lbl_familie: "Породица / стабло", lbl_rolle: "Жељена улога",
     btn_app: "Отвори апликацију",
-    admin_hint: "Отвори апликацију и одлучи о захтеву у одељку „Обавјештења". Обрада путем имејла више није могућа.",
+    admin_hint: "Отвори апликацију и одлучи о захтеву у одељку „Обавјештења“. Обрада путем имејла више није могућа.",
     rolle_familien_admin: "Админ породице", rolle_familien_mitglied: "Члан",
   },
   hr: {
     admin_subject: "Stigao je novi zahtjev – Vidović AI",
-    admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja":",
+    admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja“:",
     lbl_email: "E-mail", lbl_familie: "Obitelj / stablo", lbl_rolle: "Željena uloga",
     btn_app: "Otvori aplikaciju",
-    admin_hint: "Otvori aplikaciju i odluči o zahtjevu u dijelu „Obavještenja". Obrada putem e-maila više nije moguća.",
+    admin_hint: "Otvori aplikaciju i odluči o zahtjevu u dijelu „Obavještenja“. Obrada putem e-maila više nije moguća.",
     rolle_familien_admin: "Admin obitelji", rolle_familien_mitglied: "Član",
   },
   ba: {
     admin_subject: "Stigao je novi zahtjev – Vidović AI",
-    admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja":",
+    admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja“:",
     lbl_email: "E-mail", lbl_familie: "Porodica / stablo", lbl_rolle: "Željena uloga",
     btn_app: "Otvori aplikaciju",
-    admin_hint: "Otvori aplikaciju i odluči o zahtjevu u dijelu „Obavještenja". Obrada putem e-maila više nije moguća.",
+    admin_hint: "Otvori aplikaciju i odluči o zahtjevu u dijelu „Obavještenja“. Obrada putem e-maila više nije moguća.",
     rolle_familien_admin: "Admin porodice", rolle_familien_mitglied: "Član",
   },
   en: {
     admin_subject: "New request received – Vidović AI",
-    admin_intro: "A new access request has arrived. It is handled in the app under „Obavještenja":",
+    admin_intro: "A new access request has arrived. It is handled in the app under „Obavještenja“:",
     lbl_email: "Email", lbl_familie: "Family / tree", lbl_rolle: "Requested role",
     btn_app: "Open app",
-    admin_hint: "Please open the app and decide on the request under „Obavještenja". Handling via email is no longer possible.",
+    admin_hint: "Please open the app and decide on the request under „Obavještenja“. Handling via email is no longer possible.",
     rolle_familien_admin: "Family admin", rolle_familien_mitglied: "Member",
   },
 };
