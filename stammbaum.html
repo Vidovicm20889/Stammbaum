@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.18">
+<meta name="app-version" content="14.19">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.18">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.18">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.19">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.19">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.18">
+<link rel="stylesheet" href="stammbaum.css?v=14.19">
 </head>
 <body>
 
@@ -157,6 +157,7 @@
 </nav>
 
 <header>
+  <img src="favicon.svg?v=14.19" class="header-logo" alt="" width="76" height="76">
   <h1>FamilyRoots</h1>
   <p class="untertitel" data-i18n="untertitel"></p>
   <p class="stats" id="header-stats"></p>
@@ -2437,12 +2438,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.18"></script>
+<script src="i18n.js?v=14.19"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.18"></script>
-<script src="chat.js?v=14.18"></script>
+<script src="pdf_export.js?v=14.19"></script>
+<script src="chat.js?v=14.19"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
