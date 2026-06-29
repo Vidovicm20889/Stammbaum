@@ -415,7 +415,7 @@ function pdfTitelCanvas(meta, pageW_mm, pageH_mm, pxPerMm) {
   ].filter(Boolean);
   let yy = Hp * 0.47; lines.forEach(l => { x.fillText(l, W / 2, yy); yy += pxPerMm * 7; });
   x.fillStyle = '#9c7c3c'; x.font = 'italic ' + (pxPerMm * 4) + 'px Georgia, serif';
-  x.fillText('Vidović AI', W / 2, Hp * 0.93);
+  x.fillText('FamilyRoots', W / 2, Hp * 0.93);
   return c;
 }
 

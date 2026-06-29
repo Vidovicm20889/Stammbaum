@@ -14,7 +14,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 
 // ---------------------------------------------------------------------------
@@ -22,10 +22,10 @@ const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.
 // ---------------------------------------------------------------------------
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    ok_subject: "Dein Zugang wurde bestätigt – Vidović AI",
+    ok_subject: "Dein Zugang wurde bestätigt – FamilyRoots",
     ok_body: "Deine Zugangsanfrage wurde bestätigt. Klicke auf den folgenden Link, um dein Passwort zu setzen und dich anzumelden:",
     ok_btn: "Passwort setzen",
-    no_subject: "Deine Zugangsanfrage – Vidović AI",
+    no_subject: "Deine Zugangsanfrage – FamilyRoots",
     no_body: "Deine Zugangsanfrage wurde leider abgelehnt. Bei Fragen wende dich bitte an deinen Familien-Administrator.",
     page_ok: "Sie haben die Anfrage bestätigt. Die Person wurde per E-Mail benachrichtigt und erhält einen Link zum Passwort-Setzen.",
     page_no: "Sie haben die Anfrage abgelehnt. Die Person wurde per E-Mail benachrichtigt.",
@@ -33,10 +33,10 @@ const TEXTE: Record<string, Record<string, string>> = {
     page_err: "Es ist ein Fehler aufgetreten. Bitte später erneut versuchen.",
   },
   sr: {
-    ok_subject: "Твој приступ је потврђен – Vidović AI",
+    ok_subject: "Твој приступ је потврђен – FamilyRoots",
     ok_body: "Твој захтев за приступ је потврђен. Кликни на следећи линк да поставиш лозинку и пријавиш се:",
     ok_btn: "Постави лозинку",
-    no_subject: "Твој захтев за приступ – Vidović AI",
+    no_subject: "Твој захтев за приступ – FamilyRoots",
     no_body: "Твој захтев за приступ је нажалост одбијен. За питања се обрати админу породице.",
     page_ok: "Потврдили сте захтев. Особа је обавештена имејлом и добија линк за постављање лозинке.",
     page_no: "Одбили сте захтев. Особа је обавештена имејлом.",
@@ -44,10 +44,10 @@ const TEXTE: Record<string, Record<string, string>> = {
     page_err: "Дошло је до грешке. Покушај поново касније.",
   },
   hr: {
-    ok_subject: "Tvoj pristup je potvrđen – Vidović AI",
+    ok_subject: "Tvoj pristup je potvrđen – FamilyRoots",
     ok_body: "Tvoj zahtjev za pristup je potvrđen. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
     ok_btn: "Postavi lozinku",
-    no_subject: "Tvoj zahtjev za pristup – Vidović AI",
+    no_subject: "Tvoj zahtjev za pristup – FamilyRoots",
     no_body: "Tvoj zahtjev za pristup nažalost je odbijen. Za pitanja se obrati administratoru obitelji.",
     page_ok: "Potvrdili ste zahtjev. Osoba je obaviještena e-mailom i dobiva link za postavljanje lozinke.",
     page_no: "Odbili ste zahtjev. Osoba je obaviještena e-mailom.",
@@ -55,10 +55,10 @@ const TEXTE: Record<string, Record<string, string>> = {
     page_err: "Došlo je do greške. Pokušaj ponovno kasnije.",
   },
   ba: {
-    ok_subject: "Tvoj pristup je potvrđen – Vidović AI",
+    ok_subject: "Tvoj pristup je potvrđen – FamilyRoots",
     ok_body: "Tvoj zahtjev za pristup je potvrđen. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
     ok_btn: "Postavi lozinku",
-    no_subject: "Tvoj zahtjev za pristup – Vidović AI",
+    no_subject: "Tvoj zahtjev za pristup – FamilyRoots",
     no_body: "Tvoj zahtjev za pristup nažalost je odbijen. Za pitanja se obrati administratoru porodice.",
     page_ok: "Potvrdili ste zahtjev. Osoba je obaviještena e-mailom i dobiva link za postavljanje lozinke.",
     page_no: "Odbili ste zahtjev. Osoba je obaviještena e-mailom.",
@@ -66,10 +66,10 @@ const TEXTE: Record<string, Record<string, string>> = {
     page_err: "Došlo je do greške. Pokušaj ponovo kasnije.",
   },
   en: {
-    ok_subject: "Your access was approved – Vidović AI",
+    ok_subject: "Your access was approved – FamilyRoots",
     ok_body: "Your access request has been approved. Click the link below to set your password and sign in:",
     ok_btn: "Set password",
-    no_subject: "Your access request – Vidović AI",
+    no_subject: "Your access request – FamilyRoots",
     no_body: "Your access request was unfortunately rejected. If you have questions, please contact your family administrator.",
     page_ok: "You approved the request. The person has been notified by email and receives a link to set their password.",
     page_no: "You rejected the request. The person has been notified by email.",
@@ -86,7 +86,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;
@@ -94,11 +94,11 @@ const WRAP = (inner: string) => `
 const ergebnisSeite = (sprache: string, key: string, ok = true) =>
   `<!doctype html><html lang="${sprache}"><head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Vidović AI</title></head>
+    <title>FamilyRoots</title></head>
     <body style="font-family:Georgia,serif;background:#2c2418;color:#f6f1e7;
       display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:20px;">
       <div style="background:#f6f1e7;color:#2c2418;max-width:420px;padding:32px;border-radius:16px;text-align:center;">
-        <h2 style="color:#7a2a2a;margin-top:0;">Vidović AI</h2>
+        <h2 style="color:#7a2a2a;margin-top:0;">FamilyRoots</h2>
         <p style="font-size:16px;color:${ok ? "#2e7d32" : "#9b2226"};">${esc(T(sprache, key))}</p>
       </div></body></html>`;
 

@@ -36,7 +36,7 @@ füge drei Secrets hinzu (Werte aus `supabase/.env`):
 | Name | Wert |
 |---|---|
 | `RESEND_API_KEY` | dein `re_...` Key |
-| `MAIL_FROM` | `Vidović AI <support@vidovic-ai.com>` (Domain `vidovic-ai.com` in Resend verifiziert) |
+| `MAIL_FROM` | `FamilyRoots <support@vidovic-ai.com>` (Domain `vidovic-ai.com` in Resend verifiziert) |
 | `APP_URL` | `https://vidovicm20889.github.io/Stammbaum/stammbaum.html` |
 
 > `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` sind automatisch vorhanden.
@@ -78,4 +78,4 @@ supabase functions deploy anfrage-entscheiden --no-verify-jwt
 - Account auf resend.com, **API-Key** (`re_...`) erstellen → in Secrets als `RESEND_API_KEY`.
 - **Test:** Absender `onboarding@resend.dev` sendet **nur an deine eigene Resend-Account-Adresse**.
 - **Produktiv (aktiv):** Domain `vidovic-ai.com` ist in Resend verifiziert; `MAIL_FROM` =
-  `Vidović AI <support@vidovic-ai.com>` (auch der Code-Default der Functions).
+  `FamilyRoots <support@vidovic-ai.com>` (auch der Code-Default der Functions).

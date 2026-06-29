@@ -13,34 +13,34 @@ const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY       = Deno.env.get("SUPABASE_ANON_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 
 const TEXTE: Record<string, Record<string, string>> = {
-  de: { ok_subject: "Dein Zugang wurde bestätigt – Vidović AI",
+  de: { ok_subject: "Dein Zugang wurde bestätigt – FamilyRoots",
         ok_body: "Deine Zugangsanfrage wurde bestätigt. Klicke auf den folgenden Link, um dein Passwort zu setzen und dich anzumelden:",
         ok_btn: "Passwort setzen",
-        no_subject: "Deine Zugangsanfrage – Vidović AI",
+        no_subject: "Deine Zugangsanfrage – FamilyRoots",
         no_body: "Deine Zugangsanfrage wurde leider abgelehnt. Bei Fragen wende dich bitte an deinen Familien-Administrator." },
-  sr: { ok_subject: "Твој приступ је потврђен – Vidović AI",
+  sr: { ok_subject: "Твој приступ је потврђен – FamilyRoots",
         ok_body: "Твој захтев за приступ је потврђен. Кликни на следећи линк да поставиш лозинку и пријавиш се:",
         ok_btn: "Постави лозинку",
-        no_subject: "Твој захтев за приступ – Vidović AI",
+        no_subject: "Твој захтев за приступ – FamilyRoots",
         no_body: "Твој захтев за приступ је нажалост одбијен. За питања се обрати админу породице." },
-  hr: { ok_subject: "Tvoj pristup je potvrđen – Vidović AI",
+  hr: { ok_subject: "Tvoj pristup je potvrđen – FamilyRoots",
         ok_body: "Tvoj zahtjev za pristup je potvrđen. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
         ok_btn: "Postavi lozinku",
-        no_subject: "Tvoj zahtjev za pristup – Vidović AI",
+        no_subject: "Tvoj zahtjev za pristup – FamilyRoots",
         no_body: "Tvoj zahtjev za pristup nažalost je odbijen. Za pitanja se obrati administratoru obitelji." },
-  ba: { ok_subject: "Tvoj pristup je potvrđen – Vidović AI",
+  ba: { ok_subject: "Tvoj pristup je potvrđen – FamilyRoots",
         ok_body: "Tvoj zahtjev za pristup je potvrđen. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
         ok_btn: "Postavi lozinku",
-        no_subject: "Tvoj zahtjev za pristup – Vidović AI",
+        no_subject: "Tvoj zahtjev za pristup – FamilyRoots",
         no_body: "Tvoj zahtjev za pristup nažalost je odbijen. Za pitanja se obrati administratoru porodice." },
-  en: { ok_subject: "Your access was approved – Vidović AI",
+  en: { ok_subject: "Your access was approved – FamilyRoots",
         ok_body: "Your access request has been approved. Click the link below to set your password and sign in:",
         ok_btn: "Set password",
-        no_subject: "Your access request – Vidović AI",
+        no_subject: "Your access request – FamilyRoots",
         no_body: "Your access request was unfortunately rejected. If you have questions, please contact your family administrator." },
 };
 const T = (s: string, k: string) => (TEXTE[s] ?? TEXTE.de)[k] ?? TEXTE.de[k] ?? k;
@@ -48,7 +48,7 @@ const esc = (v: unknown) => String(v ?? "").replaceAll("&", "&amp;").replaceAll(
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>${inner}
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p></div>`;
 
 const cors = {

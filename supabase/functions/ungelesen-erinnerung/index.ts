@@ -18,14 +18,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 const CRON_SECRET    = Deno.env.get("CRON_SECRET") ?? "";
 
 // Sprachabhängige Vorlagen (5 Sprachen). {n} wird ersetzt. Neutral, KEINE Inhalte.
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    subject: "Ungelesene Aktivität – Vidović AI",
+    subject: "Ungelesene Aktivität – FamilyRoots",
     intro: "Sie haben ungelesene Aktivität in Ihrem Stammbaum:",
     nachrichten: "{n} ungelesene Nachricht(en) im Chat",
     benachrichtigungen: "{n} ungelesene Benachrichtigung(en)",
@@ -34,7 +34,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     optout: "E-Mail-Erinnerungen können Sie jederzeit im Profil unter „Erinnerungen“ abschalten.",
   },
   sr: {
-    subject: "Непрочитана активност – Vidović AI",
+    subject: "Непрочитана активност – FamilyRoots",
     intro: "Имате непрочитану активност у свом стаблу:",
     nachrichten: "{n} непрочитан(их) порука у ћаскању",
     benachrichtigungen: "{n} непрочитан(их) обавештења",
@@ -43,7 +43,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     optout: "Е-маил подсетнике можете искључити у профилу под „Подсетници“.",
   },
   hr: {
-    subject: "Nepročitana aktivnost – Vidović AI",
+    subject: "Nepročitana aktivnost – FamilyRoots",
     intro: "Imate nepročitanu aktivnost u svom stablu:",
     nachrichten: "{n} nepročitan(ih) poruka u chatu",
     benachrichtigungen: "{n} nepročitan(ih) obavijesti",
@@ -52,7 +52,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     optout: "E-mail podsjetnike možete isključiti u profilu pod „Podsjetnici“.",
   },
   ba: {
-    subject: "Nepročitana aktivnost – Vidović AI",
+    subject: "Nepročitana aktivnost – FamilyRoots",
     intro: "Imate nepročitanu aktivnost u svom stablu:",
     nachrichten: "{n} nepročitan(ih) poruka u chatu",
     benachrichtigungen: "{n} nepročitan(ih) obavještenja",
@@ -61,7 +61,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     optout: "E-mail podsjetnike možete isključiti u profilu pod „Podsjetnici“.",
   },
   en: {
-    subject: "Unread activity – Vidović AI",
+    subject: "Unread activity – FamilyRoots",
     intro: "You have unread activity in your family tree:",
     nachrichten: "{n} unread chat message(s)",
     benachrichtigungen: "{n} unread notification(s)",
@@ -79,7 +79,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;

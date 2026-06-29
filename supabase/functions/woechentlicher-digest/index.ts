@@ -21,13 +21,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 const CRON_SECRET    = Deno.env.get("CRON_SECRET") ?? "";
 
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    subject: "Euer Familien-Wochenrückblick – Vidović AI",
+    subject: "Euer Familien-Wochenrückblick – FamilyRoots",
     hallo: "Hallo", intro: "Das ist in eurer Familie passiert:",
     l_beitraege: "neue Beiträge", l_fotos: "neue Fotos", l_personen: "neue Personen",
     l_geschichten: "neue Geschichten", l_events: "neue Ereignisse",
@@ -38,7 +38,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     hint: "Du erhältst diese Wochenzusammenfassung als Familienmitglied. Abbestellen jederzeit im Profil.",
   },
   sr: {
-    subject: "Породични недељни преглед – Vidović AI",
+    subject: "Породични недељни преглед – FamilyRoots",
     hallo: "Здраво", intro: "Ово се дешавало у вашој породици:",
     l_beitraege: "нових објава", l_fotos: "нових фотографија", l_personen: "нових особа",
     l_geschichten: "нових прича", l_events: "нових догађаја",
@@ -49,7 +49,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     hint: "Овај недељни преглед добијаш као члан породице. Одјава у сваком тренутку у профилу.",
   },
   hr: {
-    subject: "Obiteljski tjedni pregled – Vidović AI",
+    subject: "Obiteljski tjedni pregled – FamilyRoots",
     hallo: "Pozdrav", intro: "Ovo se događalo u vašoj obitelji:",
     l_beitraege: "novih objava", l_fotos: "novih fotografija", l_personen: "novih osoba",
     l_geschichten: "novih priča", l_events: "novih događaja",
@@ -60,7 +60,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     hint: "Ovaj tjedni pregled primaš kao član obitelji. Odjava bilo kada u profilu.",
   },
   ba: {
-    subject: "Porodični sedmični pregled – Vidović AI",
+    subject: "Porodični sedmični pregled – FamilyRoots",
     hallo: "Pozdrav", intro: "Ovo se dešavalo u vašoj porodici:",
     l_beitraege: "novih objava", l_fotos: "novih fotografija", l_personen: "novih osoba",
     l_geschichten: "novih priča", l_events: "novih događaja",
@@ -71,7 +71,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     hint: "Ovaj sedmični pregled primaš kao član porodice. Odjava bilo kada u profilu.",
   },
   en: {
-    subject: "Your family week in review – Vidović AI",
+    subject: "Your family week in review – FamilyRoots",
     hallo: "Hello", intro: "Here's what happened in your family:",
     l_beitraege: "new posts", l_fotos: "new photos", l_personen: "new people",
     l_geschichten: "new stories", l_events: "new events",
@@ -91,7 +91,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;

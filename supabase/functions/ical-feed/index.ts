@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       "PRODID:-//Vidovic//Stammbaum//DE",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
-      "X-WR-CALNAME:Vidović — Porodični događaji",
+      "X-WR-CALNAME:FamilyRoots — Porodični događaji",
       ...events.map(baueVevent),
       "END:VCALENDAR",
     ].join("\r\n");

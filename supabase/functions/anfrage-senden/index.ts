@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 
 // ---------------------------------------------------------------------------
@@ -18,7 +18,7 @@ const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.
 // ---------------------------------------------------------------------------
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    admin_subject: "Neue Anfrage eingegangen – Vidović AI",
+    admin_subject: "Neue Anfrage eingegangen – FamilyRoots",
     admin_intro: "Eine neue Zugangsanfrage ist eingegangen. Die Bearbeitung erfolgt in der App unter „Obavještenja“:",
     lbl_email: "E-Mail", lbl_familie: "Familie / Stammbaum", lbl_rolle: "Gewünschte Rolle",
     btn_app: "App öffnen",
@@ -26,7 +26,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     rolle_familien_admin: "Familien-Admin", rolle_familien_mitglied: "Mitglied",
   },
   sr: {
-    admin_subject: "Нови захтев је стигао – Vidović AI",
+    admin_subject: "Нови захтев је стигао – FamilyRoots",
     admin_intro: "Стигао је нови захтев за приступ. Обрада се врши у апликацији у одељку „Обавјештења“:",
     lbl_email: "Имејл", lbl_familie: "Породица / стабло", lbl_rolle: "Жељена улога",
     btn_app: "Отвори апликацију",
@@ -34,7 +34,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     rolle_familien_admin: "Админ породице", rolle_familien_mitglied: "Члан",
   },
   hr: {
-    admin_subject: "Stigao je novi zahtjev – Vidović AI",
+    admin_subject: "Stigao je novi zahtjev – FamilyRoots",
     admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja“:",
     lbl_email: "E-mail", lbl_familie: "Obitelj / stablo", lbl_rolle: "Željena uloga",
     btn_app: "Otvori aplikaciju",
@@ -42,7 +42,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     rolle_familien_admin: "Admin obitelji", rolle_familien_mitglied: "Član",
   },
   ba: {
-    admin_subject: "Stigao je novi zahtjev – Vidović AI",
+    admin_subject: "Stigao je novi zahtjev – FamilyRoots",
     admin_intro: "Stigao je novi zahtjev za pristup. Obrada se vrši u aplikaciji u dijelu „Obavještenja“:",
     lbl_email: "E-mail", lbl_familie: "Porodica / stablo", lbl_rolle: "Željena uloga",
     btn_app: "Otvori aplikaciju",
@@ -50,7 +50,7 @@ const TEXTE: Record<string, Record<string, string>> = {
     rolle_familien_admin: "Admin porodice", rolle_familien_mitglied: "Član",
   },
   en: {
-    admin_subject: "New request received – Vidović AI",
+    admin_subject: "New request received – FamilyRoots",
     admin_intro: "A new access request has arrived. It is handled in the app under „Obavještenja“:",
     lbl_email: "Email", lbl_familie: "Family / tree", lbl_rolle: "Requested role",
     btn_app: "Open app",
@@ -67,7 +67,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;

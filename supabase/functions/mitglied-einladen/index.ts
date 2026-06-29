@@ -13,7 +13,7 @@ const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY       = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 
 const CORS = {
@@ -29,38 +29,38 @@ const ERLAUBTE_ROLLEN = ["familien_mitglied", "familien_admin"];
 // ---------------------------------------------------------------------------
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    subject: "Du wurdest eingeladen – Vidović AI",
+    subject: "Du wurdest eingeladen – FamilyRoots",
     body: "Du wurdest zum Familienstammbaum eingeladen. Klicke auf den folgenden Link, um dein Passwort zu setzen und dich anzumelden:",
     btn: "Passwort setzen",
-    add_subject: "Du wurdest hinzugefügt – Vidović AI",
+    add_subject: "Du wurdest hinzugefügt – FamilyRoots",
     add_body: "Du wurdest einem weiteren Familienstammbaum hinzugefügt. Melde dich wie gewohnt an, um ihn zu sehen.",
   },
   sr: {
-    subject: "Позван си – Vidović AI",
+    subject: "Позван си – FamilyRoots",
     body: "Позван си у породично стабло. Кликни на следећи линк да поставиш лозинку и пријавиш се:",
     btn: "Постави лозинку",
-    add_subject: "Додат си – Vidović AI",
+    add_subject: "Додат си – FamilyRoots",
     add_body: "Додат си још једном породичном стаблу. Пријави се као обично да га видиш.",
   },
   hr: {
-    subject: "Pozvan si – Vidović AI",
+    subject: "Pozvan si – FamilyRoots",
     body: "Pozvan si u obiteljsko stablo. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
     btn: "Postavi lozinku",
-    add_subject: "Dodan si – Vidović AI",
+    add_subject: "Dodan si – FamilyRoots",
     add_body: "Dodan si još jednom obiteljskom stablu. Prijavi se kao i obično da ga vidiš.",
   },
   ba: {
-    subject: "Pozvan si – Vidović AI",
+    subject: "Pozvan si – FamilyRoots",
     body: "Pozvan si u porodično stablo. Klikni na sljedeći link da postaviš lozinku i prijaviš se:",
     btn: "Postavi lozinku",
-    add_subject: "Dodan si – Vidović AI",
+    add_subject: "Dodan si – FamilyRoots",
     add_body: "Dodan si još jednom porodičnom stablu. Prijavi se kao i obično da ga vidiš.",
   },
   en: {
-    subject: "You have been invited – Vidović AI",
+    subject: "You have been invited – FamilyRoots",
     body: "You have been invited to the family tree. Click the link below to set your password and sign in:",
     btn: "Set password",
-    add_subject: "You have been added – Vidović AI",
+    add_subject: "You have been added – FamilyRoots",
     add_body: "You have been added to another family tree. Sign in as usual to see it.",
   },
 };
@@ -73,7 +73,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;

@@ -1,7 +1,7 @@
-# Stammbaum Vidović — Projektkontext für Claude Code
+# FamilyRoots — Projektkontext für Claude Code
 
 ## Projekt
-Interaktive Familienstammbaum-Webapp für die Familie Vidović.
+Interaktive Familienstammbaum-Webapp **FamilyRoots** (früher „Vidović AI"), zunächst für die Familie Vidović.
 GitHub Pages: vidovicm20889.github.io/Stammbaum/stammbaum.html
 Frontend: Vanilla HTML/CSS/JS in einer Datei (`stammbaum.html`), kein Framework, kein Build-Tool.
 Backend: **Supabase** (Postgres + RLS, Auth, Edge Functions, Storage). E-Mail-Versand über **Resend**.

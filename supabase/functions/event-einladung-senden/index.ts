@@ -31,51 +31,51 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 // ORGANIZER für die .ics (METHOD:REQUEST). RSVP-Antworten gehen an dieses Postfach
 // (support@vidovic-ai.com aus MAIL_FROM); kein eigenes Inbound-Handling in der Function.
 const MAIL_FROM_EMAIL = (MAIL_FROM.match(/<([^>]+)>/)?.[1] ?? MAIL_FROM).trim();
 const ORGANIZER_EMAIL = (Deno.env.get("ORGANIZER_EMAIL") ?? MAIL_FROM_EMAIL).trim();
-const ORGANIZER_NAME  = "Vidović AI";
+const ORGANIZER_NAME  = "FamilyRoots";
 
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    subject: "Einladung zu einem Event – Vidović AI",
+    subject: "Einladung zu einem Event – FamilyRoots",
     intro: "Du wurdest zu einem Event eingeladen:",
-    subject_update: "Aktualisierter Termin – Vidović AI",
+    subject_update: "Aktualisierter Termin – FamilyRoots",
     intro_update: "Ein Event wurde aktualisiert. Der Kalender-Anhang aktualisiert deinen Termin:",
     lbl_datum: "Datum", lbl_ort: "Ort",
     btn_app: "App öffnen", hint: "Öffne die App, um das Event zu sehen.",
   },
   sr: {
-    subject: "Позивница за догађај – Vidović AI",
+    subject: "Позивница за догађај – FamilyRoots",
     intro: "Позван/а си на догађај:",
-    subject_update: "Ажуриран термин – Vidović AI",
+    subject_update: "Ажуриран термин – FamilyRoots",
     intro_update: "Догађај је ажуриран. Прилог за календар ажурира твој термин:",
     lbl_datum: "Датум", lbl_ort: "Место",
     btn_app: "Отвори апликацију", hint: "Отвори апликацију да видиш догађај.",
   },
   hr: {
-    subject: "Pozivnica za događaj – Vidović AI",
+    subject: "Pozivnica za događaj – FamilyRoots",
     intro: "Pozvan/a si na događaj:",
-    subject_update: "Ažuriran termin – Vidović AI",
+    subject_update: "Ažuriran termin – FamilyRoots",
     intro_update: "Događaj je ažuriran. Privitak za kalendar ažurira tvoj termin:",
     lbl_datum: "Datum", lbl_ort: "Mjesto",
     btn_app: "Otvori aplikaciju", hint: "Otvori aplikaciju da vidiš događaj.",
   },
   ba: {
-    subject: "Pozivnica za događaj – Vidović AI",
+    subject: "Pozivnica za događaj – FamilyRoots",
     intro: "Pozvan/a si na događaj:",
-    subject_update: "Ažuriran termin – Vidović AI",
+    subject_update: "Ažuriran termin – FamilyRoots",
     intro_update: "Događaj je ažuriran. Prilog za kalendar ažurira tvoj termin:",
     lbl_datum: "Datum", lbl_ort: "Mjesto",
     btn_app: "Otvori aplikaciju", hint: "Otvori aplikaciju da vidiš događaj.",
   },
   en: {
-    subject: "Invitation to an event – Vidović AI",
+    subject: "Invitation to an event – FamilyRoots",
     intro: "You have been invited to an event:",
-    subject_update: "Updated appointment – Vidović AI",
+    subject_update: "Updated appointment – FamilyRoots",
     intro_update: "An event has been updated. The calendar attachment updates your appointment:",
     lbl_datum: "Date", lbl_ort: "Place",
     btn_app: "Open app", hint: "Open the app to view the event.",
@@ -247,7 +247,7 @@ const toBase64 = (s: string) => {
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;

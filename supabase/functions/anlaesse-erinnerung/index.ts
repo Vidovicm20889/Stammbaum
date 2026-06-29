@@ -20,37 +20,37 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "Vidović AI <support@vidovic-ai.com>";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
 const CRON_SECRET    = Deno.env.get("CRON_SECRET") ?? "";
 
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
-    subject: "Anstehende Anlässe – Vidović AI",
+    subject: "Anstehende Anlässe – FamilyRoots",
     intro: "Diese Anlässe stehen bald an:",
     geburtstag: "Geburtstag", gedenktag: "Gedenktag",
     btn_app: "App öffnen", hint: "Öffne die App, um die Personen zu sehen.",
   },
   sr: {
-    subject: "Предстојећи догађаји – Vidović AI",
+    subject: "Предстојећи догађаји – FamilyRoots",
     intro: "Ускоро следе ови догађаји:",
     geburtstag: "Рођендан", gedenktag: "Помен",
     btn_app: "Отвори апликацију", hint: "Отвори апликацију да видиш особе.",
   },
   hr: {
-    subject: "Nadolazeći događaji – Vidović AI",
+    subject: "Nadolazeći događaji – FamilyRoots",
     intro: "Uskoro slijede ovi događaji:",
     geburtstag: "Rođendan", gedenktag: "Godišnjica smrti",
     btn_app: "Otvori aplikaciju", hint: "Otvori aplikaciju da vidiš osobe.",
   },
   ba: {
-    subject: "Nadolazeći događaji – Vidović AI",
+    subject: "Nadolazeći događaji – FamilyRoots",
     intro: "Uskoro slijede ovi događaji:",
     geburtstag: "Rođendan", gedenktag: "Godišnjica smrti",
     btn_app: "Otvori aplikaciju", hint: "Otvori aplikaciju da vidiš osobe.",
   },
   en: {
-    subject: "Upcoming occasions – Vidović AI",
+    subject: "Upcoming occasions – FamilyRoots",
     intro: "These occasions are coming up soon:",
     geburtstag: "Birthday", gedenktag: "Memorial day",
     btn_app: "Open app", hint: "Open the app to see the people.",
@@ -65,7 +65,7 @@ const esc = (v: unknown) => String(v ?? "")
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
-  <h2 style="color:#7a2a2a;margin:0 0 16px;">Vidović AI</h2>
+  <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
   <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
 </div>`;
