@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220" width="1040" height="440" role="img" aria-label="FamilyRoots">
+  <!-- Emblem -->
+  <g transform="translate(228,8)">
+    <circle cx="32" cy="32" r="32" fill="#722f37"/>
+    <g fill="#e2c074">
+      <circle cx="32" cy="19" r="9"/><circle cx="22" cy="24" r="6"/><circle cx="42" cy="24" r="6"/>
+    </g>
+    <g fill="none" stroke="#e2c074" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M32 23 V41"/>
+      <path d="M32 41 C 28 45, 24 47, 20 51"/><path d="M32 41 C 36 45, 40 47, 44 51"/>
+      <path d="M32 43 C 31 47, 30 50, 29 53"/><path d="M32 43 C 33 47, 34 50, 35 53"/>
+    </g>
+  </g>
+  <!-- Wortmarke -->
+  <text x="260" y="135" text-anchor="middle"
+        font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
+        font-size="56" letter-spacing="6" fill="#722f37">FamilyRoots</text>
+  <text x="260" y="168" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-style="italic"
+        font-size="20" letter-spacing="4" fill="#9c7c3c">Porodično stablo</text>
+</svg>
