@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.15">
+<meta name="app-version" content="14.16">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vidović — Porodično stablo</title>
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
@@ -30,7 +30,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.15">
+<link rel="stylesheet" href="stammbaum.css?v=14.16">
 </head>
 <body>
 
@@ -142,10 +142,8 @@
           <button class="account-btn" type="button" id="menu-fameinst-btn" data-i18n="admin_familieneinst" onclick="oeffneFamilieEinstellungen()"></button>
         </div>
 
-        <!-- Profileinstellungen: für ALLE eingeloggten Nutzer -->
-        <div class="profil-bereich" id="profil-bereich" style="display:none">
-          <button class="account-btn" type="button" id="menu-profil-btn" data-i18n="prof_menu" onclick="oeffneProfil()"></button>
-        </div>
+        <!-- Profileinstellungen liegen ausschließlich im Avatar-Menü ("Profil bearbeiten"),
+             nicht mehr (doppelt) hier im ⚙-Dropdown. -->
 
         <!-- GEDCOM (Admin) -->
         <label class="upload-btn" for="gedcom-input" data-i18n="upload_btn"></label>
@@ -216,6 +214,8 @@
               data-i18n="feed_modus_wand" onclick="feedSetModus('wand')"></button>
       <button type="button" class="ev-modus-btn" id="feed-modus-fragen" role="tab"
               data-i18n="feed_modus_fragen" onclick="feedSetModus('fragen')"></button>
+      <button type="button" class="ev-modus-btn" id="feed-modus-rezepte" role="tab"
+              data-i18n="feed_modus_rezepte" onclick="feedSetModus('rezepte')"></button>
     </div>
 
     <!-- Modus A: Wand (Beiträge) -->
@@ -267,6 +267,46 @@
       <div class="feed-liste" id="fragen-liste"></div>
       <button type="button" class="mv-toggle feed-mehr" id="fragen-mehr" style="display:none" onclick="fragenMehr()" data-i18n="feed_mehr"></button>
     </div>
+
+    <!-- Modus C: Rezepte & Traditionen (verbund-gebunden) -->
+    <div id="feed-rezepte" style="display:none">
+      <div class="feed-composer" id="rezept-composer">
+        <input type="text" class="login-feld" id="rezept-titel" maxlength="120" data-i18n-placeholder="rezept_titel_ph">
+        <div class="feed-composer-zeile">
+          <label class="feed-tag-feld"><span data-i18n="rezept_kategorie"></span>
+            <select id="rezept-kategorie" class="filter">
+              <option value="rezept" data-i18n="rezept_kat_rezept"></option>
+              <option value="tradition" data-i18n="rezept_kat_tradition"></option>
+              <option value="brauch" data-i18n="rezept_kat_brauch"></option>
+              <option value="slava" data-i18n="rezept_kat_slava"></option>
+              <option value="sonstiges" data-i18n="rezept_kat_sonstiges"></option>
+            </select>
+          </label>
+          <label class="feed-bild-btn" data-i18n-title="rezept_bild">📷 <span data-i18n="rezept_bild"></span>
+            <input type="file" id="rezept-bild" accept="image/*" style="display:none" onchange="rezeptBildGewaehlt(event)">
+          </label>
+        </div>
+        <textarea class="eng-textarea" id="rezept-text" rows="4" data-i18n-placeholder="rezept_text_ph"></textarea>
+        <div class="feed-bild-vorschau" id="rezept-bild-vorschau" style="display:none">
+          <img id="rezept-bild-img" alt="">
+          <button type="button" class="feed-bild-x" onclick="rezeptBildEntfernen()" data-i18n-title="feed_bild_entfernen">✕</button>
+        </div>
+        <div class="feed-composer-zeile">
+          <label class="feed-tag-feld"><span data-i18n="rezept_filter"></span>
+            <select id="rezept-filter" class="filter" onchange="rezepteLaden()">
+              <option value="" data-i18n="rezept_filter_alle"></option>
+              <option value="rezept" data-i18n="rezept_kat_rezept"></option>
+              <option value="tradition" data-i18n="rezept_kat_tradition"></option>
+              <option value="brauch" data-i18n="rezept_kat_brauch"></option>
+              <option value="slava" data-i18n="rezept_kat_slava"></option>
+              <option value="sonstiges" data-i18n="rezept_kat_sonstiges"></option>
+            </select>
+          </label>
+          <button type="button" class="mv-toggle feed-senden" id="rezept-senden" onclick="rezeptSenden()" data-i18n="rezept_senden"></button>
+        </div>
+      </div>
+      <div class="feed-liste" id="rezept-liste"></div>
+    </div>
   </div>
 </section>
 
@@ -285,6 +325,10 @@
               role="tab" data-i18n="ev_modus_zeit" onclick="evSetModus('zeit')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-karte" data-ev-modus="karte"
               role="tab" data-i18n="ev_modus_karte" onclick="evSetModus('karte')"></button>
+      <button type="button" class="ev-modus-btn" id="ev-modus-kalender" data-ev-modus="kalender"
+              role="tab" data-i18n="ev_modus_kalender" onclick="evSetModus('kalender')"></button>
+      <button type="button" class="ev-modus-btn" id="ev-modus-termin" data-ev-modus="termin"
+              role="tab" data-i18n="ev_modus_termin" onclick="evSetModus('termin')"></button>
     </div>
     <button class="pa-add-btn" id="event-neu-btn" style="display:none;margin:10px auto 0;max-width:280px"
       onclick="zeigeEventNeu()">＋ <span data-i18n="event_neu"></span></button>
@@ -334,6 +378,30 @@
       <span class="karte-leg-item"><span class="karte-leg-dot start"></span><span data-i18n="karte_start"></span></span>
       <span class="karte-leg-item"><span class="karte-leg-dot ende"></span><span data-i18n="karte_ende"></span></span>
     </div>
+  </div>
+
+  <!-- Ansicht D: Kalender (rein lesend). Monatsraster aus eventsCache (datierte Events)
+       + optionaler Anlässe-Layer (Geburtstage/Gedenktage, wiederkehrend). KEIN Backend. -->
+  <div id="ev-kalender-wrap" style="display:none">
+    <div class="kal-toolbar">
+      <button type="button" class="kal-nav" onclick="kalNav(-1)" aria-label="zurück">‹</button>
+      <div class="kal-titel" id="kal-titel"></div>
+      <button type="button" class="kal-nav" onclick="kalNav(1)" aria-label="weiter">›</button>
+      <button type="button" class="kal-heute" id="kal-heute-btn" onclick="kalHeute()" data-i18n="kal_heute"></button>
+      <label class="kal-anl-toggle"><input type="checkbox" id="kal-anl-cb" checked onchange="kalToggleAnlaesse()">
+        <span data-i18n="kal_anlaesse"></span></label>
+      <button type="button" class="kal-heute" id="ical-abo-btn" onclick="icalAboOeffnen()" data-i18n="ical_abo"></button>
+    </div>
+    <div class="kal-grid" id="kal-grid"></div>
+    <div class="kal-tagdetail" id="kal-tagdetail" style="display:none"></div>
+  </div>
+
+  <!-- Ansicht E: Terminfindung (Doodle). Mehrere Datumsvorschläge, Familie stimmt ab,
+       bester Termin wird zum Event. Verbund-gebunden, eigenes Backend (terminfindung). -->
+  <div id="ev-termin-wrap" style="display:none">
+    <button class="pa-add-btn" id="termin-neu-btn" style="margin:6px auto 14px;max-width:280px"
+      onclick="tfNeuOeffnen()">＋ <span data-i18n="tf_neu"></span></button>
+    <div class="termin-liste" id="termin-liste"></div>
   </div>
 </section>
 
@@ -1620,6 +1688,8 @@
         <input type="text" id="ev-organisator" class="login-feld"></label>
       <label class="login-label reg-feld-voll"><span data-i18n="ev_bezugsperson"></span>
         <select id="ev-bezugsperson" class="login-feld"></select></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="gkal_kalender"></span>
+        <select id="ev-kalender" class="login-feld"></select></label>
     </div>
 
     <!-- Geokoordinaten: Ortssuche (Nominatim) + Karte zum manuellen Setzen.
@@ -1847,6 +1917,60 @@
     <h2 data-i18n="erinn_titel"></h2>
     <p class="mv-legende" data-i18n="erinn_sub" style="margin-top:-6px"></p>
     <div id="erinn-liste" class="benachr-liste" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- Terminfindung: neue Umfrage anlegen -->
+<div class="modal" id="termin-neu-modal" style="z-index:212">
+  <div class="modal-inhalt" style="max-width:520px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseTerminNeu()">×</button>
+    <h2 data-i18n="tf_neu_titel"></h2>
+    <label class="login-label pflicht"><span data-i18n="tf_titel_label"></span>
+      <input type="text" id="tf-titel" class="login-feld" maxlength="120"></label>
+    <label class="login-label"><span data-i18n="tf_beschreibung_label"></span>
+      <textarea id="tf-beschreibung" class="login-feld" rows="2"></textarea></label>
+    <div class="tf-optionen-label" data-i18n="tf_optionen_label"></div>
+    <div id="tf-optionen"></div>
+    <button type="button" class="mv-toggle" onclick="tfOptionHinzu()">＋ <span data-i18n="tf_option_hinzu"></span></button>
+    <div class="tf-optionen-label" data-i18n="tf_wer_label" style="margin-top:14px"></div>
+    <p class="mv-legende" data-i18n="tf_wer_hint" style="margin-top:-4px"></p>
+    <div id="tf-einladen-liste" class="tf-einladen-liste"></div>
+    <button class="login-submit" id="tf-submit" onclick="tfErstellen()" data-i18n="tf_erstellen"></button>
+    <div id="tf-neu-fehler" class="login-fehler"></div>
+  </div>
+</div>
+
+<!-- Terminfindung: Einladungen nachträglich verwalten -->
+<div class="modal" id="termin-einladen-modal" style="z-index:213">
+  <div class="modal-inhalt" style="max-width:520px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseTerminEinladen()">×</button>
+    <h2 data-i18n="tf_einladen_titel"></h2>
+    <p class="mv-legende" data-i18n="tf_wer_hint"></p>
+    <div id="tf-einladen-manage-liste" class="tf-einladen-liste"></div>
+    <button class="login-submit" onclick="tfEinladenSpeichern()" data-i18n="tf_einladen_speichern"></button>
+  </div>
+</div>
+
+<!-- Terminfindung: Detail + Abstimmung -->
+<div class="modal" id="termin-detail-modal" style="z-index:212">
+  <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseTerminDetail()">×</button>
+    <div id="tf-detail-inhalt"></div>
+  </div>
+</div>
+
+<!-- iCal-Abo: Kalender-Feed abonnieren -->
+<div class="modal" id="ical-modal" style="z-index:212">
+  <div class="modal-inhalt" style="max-width:520px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseIcalModal()">×</button>
+    <h2 data-i18n="ical_titel"></h2>
+    <p class="mv-legende" data-i18n="ical_hinweis"></p>
+    <div class="ical-url-zeile">
+      <input type="text" id="ical-url" class="login-feld" readonly onclick="this.select()">
+      <button type="button" class="account-btn" id="ical-copy" onclick="icalKopieren()" data-i18n="ical_kopieren"></button>
+    </div>
+    <button type="button" class="mv-toggle" style="margin-top:12px" onclick="icalReset()" data-i18n="ical_reset"></button>
+    <div id="ical-status" class="reg-erfolg" style="display:none"></div>
   </div>
 </div>
 
@@ -2310,12 +2434,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.15"></script>
+<script src="i18n.js?v=14.16"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.15"></script>
-<script src="chat.js?v=14.15"></script>
+<script src="pdf_export.js?v=14.16"></script>
+<script src="chat.js?v=14.16"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2690,12 +2814,12 @@ function aktualisiereAuthUI() {
     const istMitglied = rolleNorm === 'familien_mitglied';
     const porodicaBereich = document.getElementById('porodica-bereich');
     if (porodicaBereich) porodicaBereich.style.display = (istAdm || istMitglied) ? '' : 'none';
-    // Profileinstellungen: für JEDEN eingeloggten Nutzer (auch lesende Mitglieder).
-    const profilBereich = document.getElementById('profil-bereich');
-    if (profilBereich) profilBereich.style.display = '';
+    // Profileinstellungen liegen ausschließlich im Avatar-Menü ("Profil bearbeiten") —
+    // nicht mehr (doppelt) im ⚙-Dropdown.
     // Badge (Avatar + Name) live aktualisieren.
     aktualisiereBadgeProfil();
-    // Das ⚙-Dropdown: für ALLE eingeloggten Nutzer sichtbar (enthält jetzt mind. die Profileinstellungen).
+    // Das ⚙-Dropdown: für ALLE eingeloggten Nutzer sichtbar — Admins: Admin-/Familieneinstellungen,
+    // Mitglieder: (lesende) Familieneinstellung, tree-lose Nutzer: "Baum anlegen". Nie leer.
     const zeigeMenu = true;
     if (navMenu) { navMenu.style.display = zeigeMenu ? '' : 'none'; if (!zeigeMenu) navMenu.classList.remove('offen'); }
     // Obavještenja sind ins Avatar-Menü zentralisiert (kein ⚙-Button mehr). Admin-Anfragen
@@ -2733,8 +2857,6 @@ function aktualisiereAuthUI() {
     { const ft = document.getElementById('tab-feed'); if (ft) ft.style.display = 'none'; }
     if (accountBtn)  accountBtn.style.display = '';   // ausgeloggt: "Account anlegen" sichtbar
     if (adminBereich) adminBereich.style.display = 'none';
-    const profilBereich = document.getElementById('profil-bereich');
-    if (profilBereich) profilBereich.style.display = 'none';
     aktualisiereBadgeProfil();   // Avatar/Name aus der Leiste entfernen
     if (navMenu) { navMenu.style.display = 'none'; navMenu.classList.remove('offen'); }
     offeneAnfragenCache = []; renderObavBadges();   // Badges leeren (ausgeloggt)
@@ -7346,6 +7468,9 @@ function wechselSprache(lang, speichern = true) {
   if (offen('mp-create-modal') && typeof mpCreateSprachUpdate === 'function') mpCreateSprachUpdate();
   if (typeof entdeckenSpracheUpdate === 'function') entdeckenSpracheUpdate();   // Entdecken-Overlay (Discovery)
   if (typeof engagementSpracheUpdate === 'function') engagementSpracheUpdate();   // Reaktionen/Kommentare-Widgets
+  if (typeof rsvpSpracheUpdate === 'function') rsvpSpracheUpdate();   // RSVP-Block im offenen Event-Detail
+  if (typeof kalSpracheUpdate === 'function') kalSpracheUpdate();   // Kalender-Ansicht (Monats-/Wochentagsnamen)
+  if (typeof tfSpracheUpdate === 'function') tfSpracheUpdate();   // Terminfindung (Liste + offenes Detail)
   if (typeof feedSpracheUpdate === 'function') feedSpracheUpdate();   // Familien-Feed
   if (typeof fragenSpracheUpdate === 'function') fragenSpracheUpdate();   // Familien-Fragen (offener Lösen-Dialog)
   if (offen('obav-modal') && typeof renderObavListe === 'function' && istAdmin()) renderObavListe();   // Kontakt-Anfragen-Karten neu beschriften
@@ -9572,6 +9697,12 @@ async function zeigeShorts() {
   // ----- Ansicht C: Karte (teilt eventsCache; nur wenn aktiv neu zeichnen) -----
   karteFuelleFilter();
   if (evModus === 'karte') karteRender();
+
+  // ----- Ansicht D: Kalender (teilt eventsCache; nur wenn aktiv neu zeichnen) -----
+  if (evModus === 'kalender') kalRender();
+
+  // ----- Ansicht E: Terminfindung (eigenes Backend; nur wenn aktiv laden) -----
+  if (evModus === 'termin') tfRender();
 }
 
 // ============================================================
@@ -9603,20 +9734,403 @@ function evApplyModusUI() {
   const lWrap = document.getElementById('ev-liste-wrap');
   const zWrap = document.getElementById('ev-zeit-wrap');
   const kWrap = document.getElementById('ev-karte-wrap');
+  const calWrap = document.getElementById('ev-kalender-wrap');
+  const tWrap = document.getElementById('ev-termin-wrap');
   if (lWrap) lWrap.style.display = (evModus === 'liste') ? '' : 'none';
   if (zWrap) zWrap.style.display = (evModus === 'zeit')  ? '' : 'none';
   if (kWrap) kWrap.style.display = (evModus === 'karte') ? '' : 'none';
+  if (calWrap) calWrap.style.display = (evModus === 'kalender') ? '' : 'none';
+  if (tWrap) tWrap.style.display = (evModus === 'termin') ? '' : 'none';
   document.querySelectorAll('#ev-modus .ev-modus-btn').forEach(b =>
     b.classList.toggle('aktiv', b.dataset.evModus === evModus));
 }
 function evSetModus(m) {
-  if (m !== 'liste' && m !== 'zeit' && m !== 'karte') return;
+  if (!['liste', 'zeit', 'karte', 'kalender', 'termin'].includes(m)) return;
   evModus = m;
   evApplyModusUI();
   const btn = document.getElementById('event-neu-btn');
   if (btn) btn.style.display = (istAdmin() && aktuellerStammbaumId && evModus === 'liste') ? '' : 'none';
   if (m === 'zeit')  { zsFuelleFilter(); zsRender(); }
   if (m === 'karte') { karteFuelleFilter(); karteRender(); }
+  if (m === 'kalender') kalRender();
+  if (m === 'termin') tfRender();
+}
+
+// ============================================================
+// EREIGNIS-BEREICH — ANSICHT D: KALENDER (rein lesend, KEIN Backend)
+// Monatsraster aus eventsCache (datierte Events) + optionaler Anlässe-Layer
+// (Geburtstage/Gedenktage wiederkehrend, aus aktuelleDaten). Wochentags-/Monatsnamen
+// über Intl (Browser-nativ, keine Library). Scope = aktiver Baum (wie die Event-Liste).
+// ============================================================
+let kalAnker = null;          // {jahr, monat(0-basiert)} – angezeigter Monat
+let kalAnlaesseAn = true;     // Anlässe-Layer ein/aus
+let kalTagOffen = null;       // welcher Tag (ISO) ist im Detail aufgeklappt
+
+function kalLocale() {
+  return ({ de: 'de', sr: 'sr', hr: 'hr', ba: 'bs', en: 'en' })[aktuelleSprache] || 'de';
+}
+function kalInitAnker() {
+  if (kalAnker) return;
+  const h = new Date();
+  kalAnker = { jahr: h.getFullYear(), monat: h.getMonth() };
+}
+
+// Alle Kalender-Einträge des angezeigten Monats: ISO-Tag -> [Eintrag].
+// Eintrag: {kind:'event'|'geb'|'ged', id, titel, sub}
+function kalEintraege(jahr, monat) {
+  const map = {};
+  const add = (iso, item) => { (map[iso] = map[iso] || []).push(item); };
+  // Quelle 1: organisierte Events (eventsCache), nur mit parsebarem ISO-Datum
+  (eventsCache || []).forEach(ev => {
+    const iso = zsIso(ev.datum);
+    if (!iso) return;
+    const m = +iso.slice(5, 7) - 1, j = +iso.slice(0, 4);
+    if (j === jahr && m === monat) add(iso, { kind: 'event', id: ev.id, titel: ev.titel || '', sub: uebersetzeOrt(ev.ort || '') });
+  });
+  // Quelle 2: Anlässe (Geburtstage/Gedenktage) – wiederkehrend im angezeigten Monat
+  if (kalAnlaesseAn) {
+    const persons = (aktuelleDaten && aktuelleDaten.persons) || {};
+    const seen = new Set();
+    Object.values(persons).forEach(p => {
+      if (!p || p.platzhalter) return;
+      const grp = p._ident ? 'grp:' + p._ident : 'id:' + p.id;
+      const verstorben = !!(p.deceased || p.death_date);
+      const quelle = verstorben ? p.death_date : p.birth_date;
+      const iso = istIsoDatum(quelle) ? quelle : parseDatumZuIso(quelle);
+      if (!iso) return;
+      const mm = +iso.slice(5, 7) - 1, dd = +iso.slice(8, 10), j0 = +iso.slice(0, 4);
+      if (mm !== monat) return;
+      const key = grp + (verstorben ? '|gt' : '|gb');
+      if (seen.has(key)) return; seen.add(key);
+      const tagIso = `${jahr}-${String(monat + 1).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+      const name = p.name || ((p.given || '') + ' ' + (p.surname || '')).trim();
+      add(tagIso, { kind: verstorben ? 'ged' : 'geb', id: p.id,
+        titel: nm(name), sub: jahr > j0 ? '(' + (jahr - j0) + ')' : '' });
+    });
+  }
+  return map;
+}
+
+function kalRender() {
+  kalInitAnker();
+  const grid = document.getElementById('kal-grid');
+  const titelEl = document.getElementById('kal-titel');
+  if (!grid) return;
+  const { jahr, monat } = kalAnker;
+  const loc = kalLocale();
+  if (titelEl) {
+    try { titelEl.textContent = new Intl.DateTimeFormat(loc, { month: 'long', year: 'numeric' })
+      .format(new Date(jahr, monat, 1)); }
+    catch (e) { titelEl.textContent = (monat + 1) + '/' + jahr; }
+  }
+  const map = kalEintraege(jahr, monat);
+  // Wochentagskopf (Mo..So) über Intl
+  let wd = [];
+  try { const f = new Intl.DateTimeFormat(loc, { weekday: 'short' });
+    for (let i = 0; i < 7; i++) wd.push(f.format(new Date(2024, 0, 1 + i))); } // 2024-01-01 = Montag
+  catch (e) { wd = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']; }
+  // Monatsraster: Montag-basiert
+  const ersterTag = new Date(jahr, monat, 1);
+  let offset = (ersterTag.getDay() + 6) % 7;   // 0=Mo
+  const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
+  const heuteIso = (() => { const h = new Date();
+    return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`; })();
+  let zellen = '';
+  for (let i = 0; i < offset; i++) zellen += `<div class="kal-zelle leer"></div>`;
+  for (let tag = 1; tag <= tageImMonat; tag++) {
+    const iso = `${jahr}-${String(monat + 1).padStart(2, '0')}-${String(tag).padStart(2, '0')}`;
+    const items = map[iso] || [];
+    const chips = items.slice(0, 2).map(it => {
+      const ic = it.kind === 'event' ? '🗓' : (it.kind === 'ged' ? '🕯️' : '🎂');
+      return `<div class="kal-chip ${it.kind}">${ic} ${escapeHtml(it.titel)}</div>`;
+    }).join('');
+    const mehr = items.length > 2 ? `<div class="kal-mehr">${escapeHtml(t('kal_mehr', { n: items.length - 2 }))}</div>` : '';
+    zellen += `<div class="kal-zelle ${items.length ? 'hat' : ''} ${iso === heuteIso ? 'heute' : ''} ${iso === kalTagOffen ? 'offen' : ''}"
+        onclick="kalTag('${iso}')">
+      <div class="kal-tagnr">${tag}</div>${chips}${mehr}</div>`;
+  }
+  grid.innerHTML = `<div class="kal-wd">${wd.map(d => `<div class="kal-wd-z">${escapeHtml(d)}</div>`).join('')}</div>`
+    + `<div class="kal-tage">${zellen}</div>`;
+  if (kalTagOffen) kalTagDetailRender(kalTagOffen, map);
+}
+
+function kalTag(iso) {
+  kalTagOffen = (kalTagOffen === iso) ? null : iso;
+  kalRender();
+}
+
+function kalTagDetailRender(iso, map) {
+  const box = document.getElementById('kal-tagdetail');
+  if (!box) return;
+  const items = (map || kalEintraege(kalAnker.jahr, kalAnker.monat))[iso] || [];
+  if (!items.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = '';
+  box.innerHTML = `<div class="kal-td-titel">${escapeHtml(formatDatumLang(iso))}</div>`
+    + items.map(it => {
+      const ic = it.kind === 'event' ? '🗓' : (it.kind === 'ged' ? '🕯️' : '🎂');
+      const klick = it.kind === 'event' ? `zeigeEventDetail('${it.id}')` : `zeigeDetails('${it.id}')`;
+      return `<div class="kal-td-item" onclick="${klick}">
+        <span class="kal-td-ic">${ic}</span>
+        <span class="kal-td-body"><span class="kal-td-name">${escapeHtml(it.titel)}</span>
+        ${it.sub ? `<span class="kal-td-sub">${escapeHtml(it.sub)}</span>` : ''}</span></div>`;
+    }).join('');
+}
+
+function kalNav(delta) {
+  kalInitAnker();
+  let m = kalAnker.monat + delta, j = kalAnker.jahr;
+  while (m < 0) { m += 12; j--; }
+  while (m > 11) { m -= 12; j++; }
+  kalAnker = { jahr: j, monat: m };
+  kalTagOffen = null;
+  kalRender();
+}
+function kalHeute() { const h = new Date(); kalAnker = { jahr: h.getFullYear(), monat: h.getMonth() }; kalTagOffen = null; kalRender(); }
+function kalToggleAnlaesse() {
+  const cb = document.getElementById('kal-anl-cb');
+  kalAnlaesseAn = cb ? cb.checked : true;
+  kalRender();
+}
+// Sprachwechsel: Monats-/Wochentagsnamen neu aufbauen, wenn Kalender sichtbar
+function kalSpracheUpdate() {
+  if (evModus === 'kalender' && document.getElementById('ev-kalender-wrap')
+      && document.getElementById('ev-kalender-wrap').style.display !== 'none') kalRender();
+}
+
+// --- iCal-Abo: abonnierbarer Kalender-Feed (webcal) ---
+function icalFeedUrl(token) { return `${SUPABASE_URL}/functions/v1/ical-feed?token=${encodeURIComponent(token)}`; }
+async function icalAboOeffnen() {
+  const inp = document.getElementById('ical-url');
+  const stat = document.getElementById('ical-status'); if (stat) stat.style.display = 'none';
+  if (inp) inp.value = '…';
+  document.getElementById('ical-modal').classList.add('aktiv');
+  try {
+    const { data, error } = await sbClient.rpc('ical_token_get');
+    if (error) throw error;
+    if (inp) inp.value = icalFeedUrl(data);
+  } catch (e) { console.warn('ical_token_get:', e); if (inp) inp.value = ''; }
+}
+function schliesseIcalModal() { document.getElementById('ical-modal').classList.remove('aktiv'); }
+async function icalKopieren() {
+  const inp = document.getElementById('ical-url'); if (!inp || !inp.value) return;
+  try { await navigator.clipboard.writeText(inp.value); } catch (e) { inp.select(); document.execCommand && document.execCommand('copy'); }
+  const stat = document.getElementById('ical-status');
+  if (stat) { stat.textContent = t('ical_kopiert'); stat.style.display = 'block'; }
+}
+async function icalReset() {
+  if (!(await zeigeBestaetigung(t('ical_reset_warnung')))) return;
+  try {
+    const { data, error } = await sbClient.rpc('ical_token_reset');
+    if (error) throw error;
+    const inp = document.getElementById('ical-url'); if (inp) inp.value = icalFeedUrl(data);
+    const stat = document.getElementById('ical-status'); if (stat) { stat.textContent = t('ical_reset_ok'); stat.style.display = 'block'; }
+  } catch (e) { console.warn('ical_token_reset:', e); }
+}
+
+// ============================================================
+// EREIGNIS-BEREICH — ANSICHT E: TERMINFINDUNG (Doodle-Prinzip)
+// Mehrere Datumsvorschläge -> Familie stimmt ab -> bester Termin wird zum Event.
+// Verbund-gebunden, eigenes Backend (terminfindung*). Lädt frisch beim Öffnen.
+// ============================================================
+let tfListeCache = [];
+let tfDetailId = null;        // offene Umfrage im Detail
+let tfDetailDaten = null;     // letzte geladene Detaildaten
+
+async function tfRender() {
+  const wrap = document.getElementById('termin-liste');
+  const btn = document.getElementById('termin-neu-btn');
+  if (btn) btn.style.display = (aktuellerUser && aktuellerStammbaumId) ? '' : 'none';
+  if (!wrap) return;
+  if (!aktuellerStammbaumId) { wrap.innerHTML = `<div class="keine-treffer">${escapeHtml(t('event_kein_baum'))}</div>`; return; }
+  wrap.innerHTML = `<div class="keine-treffer">…</div>`;
+  try {
+    const { data, error } = await sbClient.rpc('terminfindungen_liste', { p_tree: aktuellerStammbaumId });
+    if (error) throw error;
+    tfListeCache = data || [];
+  } catch (e) { console.warn('Terminfindung Liste:', e); wrap.innerHTML = `<div class="keine-treffer">${escapeHtml(e.message || '')}</div>`; return; }
+  if (!tfListeCache.length) { wrap.innerHTML = `<div class="keine-treffer">${escapeHtml(t('tf_keine'))}</div>`; return; }
+  wrap.innerHTML = tfListeCache.map(p => {
+    const erl = p.status === 'entschieden';
+    const meta = [
+      t('tf_anzahl_optionen', { n: p.optionen || 0 }),
+      t('tf_anzahl_stimmen', { n: p.stimmen || 0 })
+    ].join(' · ');
+    return `<div class="termin-karte ${erl ? 'erledigt' : ''}" onclick="tfDetailOeffnen('${p.id}')">
+      <div class="termin-k-titel">${erl ? '✅ ' : '🗳️ '}${escapeHtml(p.titel)}</div>
+      <div class="termin-k-meta">${escapeHtml(meta)}</div>
+      ${erl ? `<div class="termin-k-status">${escapeHtml(t('tf_status_entschieden'))}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// --- Neue Umfrage ---
+function tfNeuOeffnen() {
+  if (!aktuellerStammbaumId) return;
+  document.getElementById('tf-titel').value = '';
+  document.getElementById('tf-beschreibung').value = '';
+  const opt = document.getElementById('tf-optionen');
+  opt.innerHTML = '';
+  tfOptionHinzu(); tfOptionHinzu();   // mit zwei leeren Zeilen starten
+  const f = document.getElementById('tf-neu-fehler'); if (f) f.textContent = '';
+  tfLadeCreateEinladen();             // Verbund-Nutzer zur Auswahl laden (optional)
+  document.getElementById('termin-neu-modal').classList.add('aktiv');
+}
+
+// Checkbox-Liste der Verbund-Nutzer (Einladen) ------------------------------
+function tfEinladenHtml(items) {
+  return items.map(it => `<label class="tf-einladen-item">
+    <input type="checkbox" class="tf-einl-cb" value="${escapeHtml(String(it.user_id))}" ${it.checked ? 'checked' : ''}>
+    <span>${escapeHtml(it.label)}</span></label>`).join('');
+}
+function tfCheckedIds(containerId) {
+  return [...document.querySelectorAll('#' + containerId + ' .tf-einl-cb:checked')].map(c => c.value);
+}
+async function tfLadeCreateEinladen() {
+  const box = document.getElementById('tf-einladen-liste'); if (!box) return;
+  box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`;
+  try {
+    const { data, error } = await sbClient.rpc('verbund_nutzer');
+    if (error) throw error;
+    const items = (data || []).map(u => ({ user_id: u.user_id, label: nm(u.anzeigename || u.email || ''), checked: false }));
+    box.innerHTML = items.length ? tfEinladenHtml(items) : `<div class="benachr-empty">${escapeHtml(t('tf_keine_nutzer'))}</div>`;
+  } catch (e) { console.warn('verbund_nutzer:', e); box.innerHTML = ''; }
+}
+function schliesseTerminNeu() { document.getElementById('termin-neu-modal').classList.remove('aktiv'); }
+function tfOptionHinzu() {
+  const box = document.getElementById('tf-optionen');
+  if (!box || box.children.length >= 8) return;
+  const row = document.createElement('div');
+  row.className = 'tf-opt-row';
+  row.innerHTML = `<input type="text" class="login-feld dp-input tf-opt-datum" placeholder="">
+    <input type="time" class="login-feld tf-opt-zeit" aria-label="Uhrzeit">
+    <button type="button" class="tf-opt-del" onclick="this.closest('.tf-opt-row').remove()">×</button>`;
+  box.appendChild(row);
+  macheDatumsfeld(row.querySelector('.dp-input'));   // Vanilla-Kalender anbinden
+}
+async function tfErstellen() {
+  const titel = document.getElementById('tf-titel').value.trim();
+  const fehler = document.getElementById('tf-neu-fehler');
+  fehler.textContent = '';
+  if (!titel) { return feldFehler('tf-titel', t('feld_pflicht')); }
+  const optionen = [];
+  document.querySelectorAll('#tf-optionen .tf-opt-row').forEach(row => {
+    const iso = datumWert(row.querySelector('.tf-opt-datum'));
+    if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) optionen.push({ datum: iso, uhrzeit: row.querySelector('.tf-opt-zeit').value || null });
+  });
+  if (optionen.length < 2) { fehler.textContent = t('tf_min_optionen'); return; }
+  const eingeladene = tfCheckedIds('tf-einladen-liste');
+  try {
+    const { data, error } = await sbClient.rpc('terminfindung_erstellen', {
+      p_tree: aktuellerStammbaumId, p_titel: titel,
+      p_beschreibung: document.getElementById('tf-beschreibung').value.trim() || null, p_optionen: optionen,
+      p_eingeladene: eingeladene.length ? eingeladene : null });
+    if (error) throw error;
+    schliesseTerminNeu();
+    await tfRender();
+    if (data) tfDetailOeffnen(data);
+  } catch (e) { console.warn('Terminfindung erstellen:', e); fehler.textContent = e.message || t('tf_fehler'); }
+}
+
+// --- Detail + Abstimmung ---
+async function tfDetailOeffnen(id) {
+  tfDetailId = id;
+  const box = document.getElementById('tf-detail-inhalt');
+  box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`;
+  document.getElementById('termin-detail-modal').classList.add('aktiv');
+  try {
+    const { data, error } = await sbClient.rpc('terminfindung_holen', { p_tf: id });
+    if (error) throw error;
+    tfDetailDaten = data; tfDetailRender();
+  } catch (e) { console.warn('Terminfindung holen:', e); box.innerHTML = `<div class="keine-treffer">${escapeHtml(e.message || '')}</div>`; }
+}
+function schliesseTerminDetail() { document.getElementById('termin-detail-modal').classList.remove('aktiv'); tfDetailId = null; tfDetailDaten = null; }
+
+function tfDetailRender() {
+  const d = tfDetailDaten; if (!d) return;
+  const box = document.getElementById('tf-detail-inhalt');
+  const offen = d.status === 'offen';
+  const stimmIcon = { ja: '✅', vielleicht: '🤔', nein: '❌' };
+  const opts = (d.optionen || []).map(o => {
+    const datum = formatDatumLang(o.datum) + (o.uhrzeit ? ' · ' + o.uhrzeit : '');
+    const gewinner = (o.id === d.gewinner_option);
+    const wahl = ['ja', 'vielleicht', 'nein'].map(st =>
+      `<button type="button" class="tf-vote ${o.meine === st ? 'aktiv ' + st : ''}" ${offen ? '' : 'disabled'}
+        onclick="tfStimme('${o.id}','${st}')">${stimmIcon[st]}</button>`).join('');
+    const zaehler = `<span class="tf-z">✅ ${o.ja || 0}</span><span class="tf-z">🤔 ${o.vielleicht || 0}</span><span class="tf-z">❌ ${o.nein || 0}</span>`;
+    const entscheidBtn = (offen && d.darf_entscheiden)
+      ? `<button type="button" class="tf-entscheid" onclick="tfEntscheiden('${o.id}')">${escapeHtml(t('tf_zu_event'))}</button>` : '';
+    return `<div class="tf-opt ${gewinner ? 'gewinner' : ''}">
+      <div class="tf-opt-kopf"><span class="tf-opt-datum-txt">${escapeHtml(datum)}</span>${gewinner ? ' 🏆' : ''}</div>
+      <div class="tf-opt-aktion">${wahl}<span class="tf-zaehler">${zaehler}</span></div>
+      ${entscheidBtn}</div>`;
+  }).join('');
+  box.innerHTML = `<h2>${escapeHtml(d.titel)}</h2>
+    ${d.beschreibung ? `<p class="info-zeile" style="line-height:1.5">${escapeHtml(d.beschreibung)}</p>` : ''}
+    ${d.eingeschraenkt ? `<div class="tf-eingeschraenkt">🔒 ${escapeHtml(t('tf_nur_eingeladene', { n: d.eingeladene || 0 }))}</div>` : ''}
+    ${!offen ? `<div class="sync-hinweis" style="margin:8px 0">${escapeHtml(t('tf_status_entschieden'))}</div>` : ''}
+    <div class="tf-opt-liste">${opts}</div>
+    <div class="tf-detail-aktionen">
+      ${d.darf_verwalten ? `<button class="mv-toggle" onclick="tfEinladenOeffnen()">👥 ${escapeHtml(t('tf_einladen'))}</button>` : ''}
+      ${d.darf_verwalten ? `<button class="mv-del" onclick="tfLoeschen('${d.id}')">🗑 ${escapeHtml(t('tf_loeschen'))}</button>` : ''}
+    </div>`;
+}
+
+// --- Einladungen nachträglich verwalten ---
+async function tfEinladenOeffnen() {
+  if (!tfDetailId) return;
+  const box = document.getElementById('tf-einladen-manage-liste');
+  box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`;
+  document.getElementById('termin-einladen-modal').classList.add('aktiv');
+  try {
+    const { data, error } = await sbClient.rpc('terminfindung_kandidaten', { p_tf: tfDetailId });
+    if (error) throw error;
+    const items = (data || []).map(u => ({ user_id: u.user_id, label: nm(u.name || u.email || ''), checked: !!u.eingeladen }));
+    box.innerHTML = items.length ? tfEinladenHtml(items) : `<div class="benachr-empty">${escapeHtml(t('tf_keine_nutzer'))}</div>`;
+  } catch (e) { console.warn('terminfindung_kandidaten:', e); box.innerHTML = ''; }
+}
+function schliesseTerminEinladen() { document.getElementById('termin-einladen-modal').classList.remove('aktiv'); }
+async function tfEinladenSpeichern() {
+  if (!tfDetailId) return;
+  const ids = tfCheckedIds('tf-einladen-manage-liste');
+  try {
+    const { error } = await sbClient.rpc('terminfindung_einladen', { p_tf: tfDetailId, p_user_ids: ids });
+    if (error) throw error;
+    schliesseTerminEinladen();
+    await tfDetailOeffnen(tfDetailId);
+  } catch (e) { console.warn('terminfindung_einladen:', e); zeigeHinweis(e.message || t('tf_fehler')); }
+}
+
+async function tfStimme(optionId, stimme) {
+  if (!tfDetailId) return;
+  try {
+    const { error } = await sbClient.rpc('terminfindung_abstimmen', {
+      p_tf: tfDetailId, p_stimmen: [{ option_id: optionId, stimme }] });
+    if (error) throw error;
+    await tfDetailOeffnen(tfDetailId);   // frisch laden -> Zähler aktualisiert
+  } catch (e) { console.warn('Terminfindung abstimmen:', e); zeigeHinweis(e.message || t('tf_fehler')); }
+}
+async function tfEntscheiden(optionId) {
+  if (!tfDetailId) return;
+  if (!(await zeigeBestaetigung(t('tf_entscheiden_warnung')))) return;
+  try {
+    const { error } = await sbClient.rpc('terminfindung_entscheiden', { p_tf: tfDetailId, p_option: optionId });
+    if (error) throw error;
+    await tfDetailOeffnen(tfDetailId);
+    tfRender();
+    if (typeof zeigeShorts === 'function') zeigeShorts();   // neues Event taucht in der Liste auf
+  } catch (e) { console.warn('Terminfindung entscheiden:', e); zeigeHinweis(e.message || t('tf_fehler')); }
+}
+async function tfLoeschen(id) {
+  if (!(await zeigeBestaetigung(t('tf_loeschen_warnung')))) return;
+  try {
+    const { error } = await sbClient.rpc('terminfindung_loeschen', { p_tf: id });
+    if (error) throw error;
+    schliesseTerminDetail(); tfRender();
+  } catch (e) { console.warn('Terminfindung löschen:', e); zeigeHinweis(e.message || t('tf_fehler')); }
+}
+function tfSpracheUpdate() {
+  if (evModus === 'termin' && document.getElementById('ev-termin-wrap')?.style.display !== 'none') tfRender();
+  if (document.getElementById('termin-detail-modal')?.classList.contains('aktiv') && tfDetailDaten) tfDetailRender();
 }
 
 // Marker aus BEIDEN Quellen bauen (nur aktiver Baum, nur parsebare ISO-Daten).
@@ -10079,6 +10593,24 @@ function bezugspersonOptionen(selUuid) {
   sel.value = (selUuid && personen.some(p => String(p.uuid) === String(selUuid))) ? selUuid : '';
 }
 
+// Kalender-Auswahl im Event-Editor: „Stammbaum" (Wert leer) + meine Chat-Gruppen.
+// Gruppen-Kalender = ein Event optional einer Chat-Gruppe zuordnen (deren Mitglieder sehen es).
+async function evKalenderOptionen(selectedChatId) {
+  const sel = document.getElementById('ev-kalender'); if (!sel) return;
+  sel.innerHTML = `<option value="">${escapeHtml(t('gkal_stammbaum'))}</option>`;
+  try {
+    const { data, error } = await sbClient.rpc('meine_gruppen_kalender');
+    if (error) throw error;
+    (data || []).forEach(g => {
+      const o = document.createElement('option');
+      o.value = g.id; o.textContent = nm(g.name || '');
+      if (String(g.id) === String(selectedChatId || '')) o.selected = true;
+      sel.appendChild(o);
+    });
+  } catch (e) { console.warn('meine_gruppen_kalender:', e); }
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(document.getElementById('event-modal'));
+}
+
 // ---- Event anlegen/bearbeiten/löschen (pro Stammbaum) ----
 function zeigeEventNeu() {
   if (!istAdmin() || !aktuellerStammbaumId) return;
@@ -10097,6 +10629,7 @@ function zeigeEventNeu() {
   document.getElementById('ev-lat').value = '';
   document.getElementById('ev-lng').value = '';
   bezugspersonOptionen('');
+  evKalenderOptionen('');
   // Teilnehmer/Sichtbarkeit erst nach dem ersten Speichern (Event braucht eine id)
   document.getElementById('ev-teilnehmer-section').style.display = 'none';
   document.getElementById('event-modal').classList.add('aktiv');
@@ -10125,6 +10658,7 @@ function zeigeEventBearbeiten(eventId) {
   document.getElementById('ev-lat').value = hatGeo ? ev.latitude : '';
   document.getElementById('ev-lng').value = hatGeo ? ev.longitude : '';
   bezugspersonOptionen(ev.bezugsperson_id || '');
+  evKalenderOptionen(ev.chat_id || '');
   document.getElementById('ev-fehler').style.display = 'none';
   document.getElementById('ev-erfolg').style.display = 'none';
   document.getElementById('event-modal-titel').textContent = t('event_bearbeiten');
@@ -10396,6 +10930,19 @@ function renderBenachrichtigungen() {
       const ic = b.typ === 'anlass_gedenktag' ? '🕯️ ' : '🎂 ';
       titel = ic + t(b.typ === 'anlass_gedenktag' ? 'anl_gedenktag' : 'anl_geburtstag');
       text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
+    } else if (b.typ === 'event_rsvp') {
+      // RSVP-Rückmeldung: titel = Antwortender (Name), text = Status (zusage/absage/vielleicht).
+      const ic = b.text === 'absage' ? '❌ ' : (b.text === 'vielleicht' ? '🤔 ' : '✅ ');
+      titel = ic + (b.titel ? nm(b.titel) : '');
+      text  = b.text ? t('rsvp_v_' + b.text) : '';
+    } else if (b.typ === 'termin_entschieden') {
+      // Terminfindung entschieden: titel = Umfrage-Titel, text = Datum (ISO).
+      titel = '🗳️ ' + t('benachr_termin_entschieden');
+      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` + (b.text ? ' · ' + escapeHtml(formatDatumLang(b.text)) : '') : '';
+    } else if (b.typ === 'termin_einladung') {
+      // Terminfindung-Einladung: titel = Umfrage-Titel, text = terminfindung_id (Deep-Link).
+      titel = '🗳️ ' + t('benachr_termin_einladung');
+      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
     } else if (b.typ === 'kontakt_genehmigt' || b.typ === 'kontakt_abgelehnt'
             || b.typ === 'baumzugriff_genehmigt' || b.typ === 'baumzugriff_abgelehnt') {
       // Kontakt-/Baumzugriff-Ergebnis (3-Stufen-Feature): titel = Personen-/Baum-Name.
@@ -10407,7 +10954,8 @@ function renderBenachrichtigungen() {
     }
     const zeit  = b.created_at ? new Date(b.created_at).toLocaleString() : '';
     return `<div class="benachr-item ${b.gelesen ? 'gelesen' : 'ungelesen'}" data-id="${escapeHtml(String(b.id))}"
-                 data-event="${escapeHtml(String(b.event_id || ''))}" data-person="${escapeHtml(String(b.ref_person || ''))}" onclick="benachrOeffne(this)">
+                 data-event="${escapeHtml(String(b.event_id || ''))}" data-person="${escapeHtml(String(b.ref_person || ''))}"
+                 data-tf="${b.typ === 'termin_einladung' ? escapeHtml(String(b.text || '')) : ''}" onclick="benachrOeffne(this)">
       <span class="bi-dot"></span>
       <span class="bi-body">
         <div class="bi-titel">${escapeHtml(titel)}</div>
@@ -10430,6 +10978,16 @@ async function benachrOeffne(el) {
     el.classList.remove('ungelesen'); el.classList.add('gelesen');
     sbClient.from('benachrichtigungen').update({ gelesen: true }).eq('id', id)
       .then(({ error }) => { if (error) console.warn('gelesen:', error); });
+  }
+  // Direktlink: Terminumfrage öffnen (Einladung). tf-id steht in data-tf.
+  const tfId = el.dataset.tf;
+  if (tfId) {
+    schliesseProfil();
+    if (document.getElementById('obav-modal')?.classList.contains('aktiv')) schliesseObavModal();
+    wechselAnsicht('shorts');
+    evSetModus('termin');
+    if (typeof tfDetailOeffnen === 'function') tfDetailOeffnen(tfId);
+    return;
   }
   // Direktlink: Event öffnen. Events werden PRO Stammbaum geladen -> erst zum Baum
   // des Events wechseln (falls nötig), dessen Events laden, dann Detail öffnen.
@@ -10957,6 +11515,15 @@ async function speichereEvent() {
     document.getElementById('ev-teilnehmer-section').style.display = '';
   }
 
+  // Gruppen-Kalender-Zuordnung (chat_id oder NULL = Stammbaum-Kalender) speichern.
+  const evIdFuerKalender = id || gespeicherteId;
+  if (evIdFuerKalender) {
+    const chatSel = document.getElementById('ev-kalender');
+    const chatId = (chatSel && chatSel.value) ? chatSel.value : null;
+    try { await sbClient.rpc('event_kalender_setzen', { p_event: evIdFuerKalender, p_chat_id: chatId }); }
+    catch (e) { console.warn('event_kalender_setzen:', e); }
+  }
+
   // Ausgewählte Medien in den geteilten Storage hochladen (Event-id = Ordner)
   const eventIdFuerMedien = id || gespeicherteId;
   const input = document.getElementById('ev-media-input');
@@ -11040,6 +11607,8 @@ async function zeigeEventDetail(eventId) {
     ${istAdmin() ? `<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="baum-zeigen" style="margin-top:0" onclick="schliesseModal(); zeigeEventBearbeiten('${eventId}')">${t('event_edit')}</button>
     </div>` : ''}
+    <!-- RSVP: Zu-/Absage (für alle eingeloggten Nutzer, die das Event sehen) -->
+    <div class="event-section" id="event-rsvp" style="margin-top:18px"></div>
     <!-- Gemeinsames Album: von allen Teilnehmern beigesteuerte Fotos -->
     <div class="event-section" id="event-album-wrap" style="margin-top:18px">
       <div class="event-section-line"><div class="event-section-label">${t('album_titel')}</div></div>
@@ -11050,7 +11619,120 @@ async function zeigeEventDetail(eventId) {
   `;
   document.getElementById('modal').classList.add('aktiv');
   engagementMount('event-engagement', 'event', eventId);
+  rsvpLaden(eventId);
   ladeAlbum(eventId);
+}
+
+// ============================================================
+// EVENT-RSVP (Zu-/Absage): "Komme ich? Ja/Vielleicht/Nein" + Begleitpersonen.
+// Status liegt an event_eingeladene (rsvp_*). Lädt frisch beim Öffnen; der
+// Organisator erfährt Antworten live über den bestehenden benachr-sync-Channel.
+// ============================================================
+let rsvpEventId = null;          // welches Event ist im Detail gerade offen
+let rsvpDaten = null;            // letzte Übersicht (für Render/Sprachwechsel)
+let rsvpNamenOffen = false;      // Namensliste auf-/zugeklappt (nur Verwalter)
+
+async function rsvpLaden(eventId) {
+  const box = document.getElementById('event-rsvp');
+  if (!box) return;
+  if (!aktuellerUser || !eventId) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  rsvpEventId = eventId;
+  box.style.display = '';
+  box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`;
+  try {
+    const { data, error } = await sbClient.rpc('event_rsvp_uebersicht', { p_event: eventId });
+    if (error) throw error;
+    rsvpDaten = data || null;
+    rsvpRender();
+  } catch (e) {
+    console.warn('RSVP laden:', e);
+    if (document.getElementById('event-rsvp')) { box.style.display = 'none'; box.innerHTML = ''; }
+  }
+}
+
+function rsvpRender() {
+  const box = document.getElementById('event-rsvp');
+  if (!box || !rsvpDaten) return;
+  const meine = rsvpDaten.meine || { status: 'offen', anzahl: 1, notiz: null };
+  const z = rsvpDaten.zaehler || { zusage: 0, absage: 0, vielleicht: 0, offen: 0 };
+  const gesamt = rsvpDaten.personen_gesamt || 0;
+  const btn = (st, ic, key) => `<button type="button" class="rsvp-btn ${meine.status === st ? 'aktiv ' + st : ''}"
+      onclick="rsvpSetzen('${st}')">${ic} ${escapeHtml(t(key))}</button>`;
+  const zeigtAnzahl = meine.status === 'zusage' || meine.status === 'vielleicht';
+  let namenHtml = '';
+  if (rsvpDaten.darf_namen && Array.isArray(rsvpDaten.liste) && rsvpDaten.liste.length) {
+    const toggle = `<button type="button" class="rsvp-namen-toggle" onclick="rsvpToggleNamen()">${
+      escapeHtml(t(rsvpNamenOffen ? 'rsvp_namen_verbergen' : 'rsvp_namen_zeigen'))}</button>`;
+    let liste = '';
+    if (rsvpNamenOffen) {
+      const ic = { zusage: '✅', vielleicht: '🤔', absage: '❌' };
+      liste = '<div class="rsvp-namen-liste">' + rsvpDaten.liste.map(p => {
+        const nam = p.name ? nm(p.name) : (p.email ? String(p.email).split('@')[0] : '?');
+        const beg = (p.status === 'zusage' && p.anzahl > 1) ? ` (+${p.anzahl - 1})` : '';
+        const notiz = p.notiz ? ` <span class="rsvp-namen-notiz">„${escapeHtml(p.notiz)}"</span>` : '';
+        return `<div class="rsvp-namen-item">${ic[p.status] || '•'} ${escapeHtml(nam)}${beg}${notiz}</div>`;
+      }).join('') + '</div>';
+    }
+    namenHtml = `<div class="rsvp-namen">${toggle}${liste}</div>`;
+  }
+  box.innerHTML = `
+    <div class="event-section-line"><div class="event-section-label">${escapeHtml(t('rsvp_frage'))}</div></div>
+    <div class="rsvp-btns">
+      ${btn('zusage', '✅', 'rsvp_zusage')}
+      ${btn('vielleicht', '🤔', 'rsvp_vielleicht')}
+      ${btn('absage', '❌', 'rsvp_absage')}
+    </div>
+    <div class="rsvp-begleit" style="${zeigtAnzahl ? '' : 'display:none'}">
+      <span>${escapeHtml(t('rsvp_begleit'))}</span>
+      <button type="button" class="rsvp-step" onclick="rsvpAnzahl(-1)">–</button>
+      <span class="rsvp-anzahl" id="rsvp-anzahl-wert">${Math.max(1, meine.anzahl || 1)}</span>
+      <button type="button" class="rsvp-step" onclick="rsvpAnzahl(1)">+</button>
+    </div>
+    <div class="rsvp-uebersicht">
+      <span class="rsvp-z">✅ ${z.zusage || 0}</span>
+      <span class="rsvp-z">🤔 ${z.vielleicht || 0}</span>
+      <span class="rsvp-z">❌ ${z.absage || 0}</span>
+      <span class="rsvp-z rsvp-z-gesamt">· ${escapeHtml(t('rsvp_personen_gesamt', { n: gesamt }))}</span>
+    </div>
+    ${namenHtml}`;
+}
+
+async function rsvpSetzen(status) {
+  if (!rsvpEventId || !rsvpDaten) return;
+  const meine = rsvpDaten.meine || {};
+  // Begleitpersonen nur bei Zusage/Vielleicht; bei Absage auf 1 zurück.
+  const anzahl = (status === 'zusage' || status === 'vielleicht') ? Math.max(1, meine.anzahl || 1) : 1;
+  try {
+    const { error } = await sbClient.rpc('event_rsvp_setzen', {
+      p_event: rsvpEventId, p_status: status, p_anzahl: anzahl, p_notiz: meine.notiz || null });
+    if (error) throw error;
+    await rsvpLaden(rsvpEventId);   // frisch laden -> Zähler/Liste konsistent
+  } catch (e) {
+    console.warn('RSVP setzen:', e);
+    zeigeHinweis(t('rsvp_fehler'));
+  }
+}
+
+function rsvpAnzahl(delta) {
+  if (!rsvpDaten || !rsvpDaten.meine) return;
+  const st = rsvpDaten.meine.status;
+  if (st !== 'zusage' && st !== 'vielleicht') return;
+  const neu = Math.max(1, (rsvpDaten.meine.anzahl || 1) + delta);
+  rsvpDaten.meine.anzahl = neu;
+  const el = document.getElementById('rsvp-anzahl-wert');
+  if (el) el.textContent = neu;
+  // Persistieren (gleicher Status, neue Anzahl)
+  sbClient.rpc('event_rsvp_setzen', {
+    p_event: rsvpEventId, p_status: st, p_anzahl: neu, p_notiz: rsvpDaten.meine.notiz || null
+  }).then(({ error }) => { if (error) console.warn('RSVP anzahl:', error); else rsvpLaden(rsvpEventId); });
+}
+
+function rsvpToggleNamen() { rsvpNamenOffen = !rsvpNamenOffen; rsvpRender(); }
+
+// Sprachwechsel: offenen RSVP-Block neu beschriften
+function rsvpSpracheUpdate() {
+  if (document.getElementById('modal')?.classList.contains('aktiv')
+      && document.getElementById('event-rsvp') && rsvpDaten) rsvpRender();
 }
 
 // ============================================================
@@ -12189,6 +12871,122 @@ function gamSpracheUpdate() {
   if (document.getElementById('profil-modal')?.classList.contains('aktiv') && gamCache) renderGamification();
 }
 
+// ============================================================
+// VERWANDTSCHAFTSRECHNER — „Wie bin ich mit X verwandt?"
+// Rein clientseitig auf dem geladenen Modell (Graph-Primitive _ansEltern/_ansKinder/
+// _ansPartner/_ansGeschwister). Blutsverwandtschaft über den NÄCHSTEN gemeinsamen
+// Vorfahren (LCA) + direkte Heirat; häufige Schwieger-/Schwager-Fälle; sonst generisch.
+// KEIN Backend, KEINE neue Library. Begriff richtet sich nach dem Geschlecht der Zielperson.
+// v1-Grenze (bewusst): keine slawische Feinunterscheidung (stric/ujak); allgemeine Begriffe.
+// ============================================================
+function _vwKanon(id) { const p = aktuelleDaten.persons[id]; return p && p._ident ? 'i:' + p._ident : id; }
+function _vwSex(id) { const p = aktuelleDaten.persons[id]; return p && p.sex === 'M' ? 'm' : (p && p.sex === 'F' ? 'f' : 'n'); }
+
+// Vorfahren-Distanzen (kanonisch, Zwillinge zusammengefasst): Map kanon -> {dist, id}. Start = dist 0.
+function _vwVorfahren(startId) {
+  const dist = new Map();
+  let ebene = new Map([[_vwKanon(startId), startId]]);
+  let d = 0;
+  while (ebene.size && d < 60) {
+    ebene.forEach((id, k) => { if (!dist.has(k)) dist.set(k, { dist: d, id }); });
+    const next = new Map();
+    ebene.forEach(id => _ansEltern(id).forEach(e => {
+      const k = _vwKanon(e); if (!dist.has(k) && !next.has(k)) next.set(k, e);
+    }));
+    ebene = next; d++;
+  }
+  return dist;
+}
+function _vwAhneTerm(d, sx) {
+  if (d === 1) return { key: sx === 'f' ? 'vw_mutter' : (sx === 'm' ? 'vw_vater' : 'vw_elternteil') };
+  if (d === 2) return { key: sx === 'f' ? 'vw_grossmutter' : (sx === 'm' ? 'vw_grossvater' : 'vw_grosselternteil') };
+  return { key: sx === 'f' ? 'vw_vorfahrin' : 'vw_vorfahr', vars: { n: d } };
+}
+function _vwNachkommeTerm(d, sx) {
+  if (d === 1) return { key: sx === 'f' ? 'vw_tochter' : (sx === 'm' ? 'vw_sohn' : 'vw_kind') };
+  if (d === 2) return { key: sx === 'f' ? 'vw_enkelin' : (sx === 'm' ? 'vw_enkel' : 'vw_enkelkind') };
+  return { key: 'vw_nachkomme', vars: { n: d } };
+}
+function _vwOnkelTerm(extra, sx) {
+  if (extra <= 0) return { key: sx === 'f' ? 'vw_tante' : (sx === 'm' ? 'vw_onkel' : 'vw_onkel_tante') };
+  return { key: sx === 'f' ? 'vw_grosstante' : 'vw_grossonkel' };
+}
+function _vwNichteTerm(extra, sx) {
+  if (extra <= 0) return { key: sx === 'f' ? 'vw_nichte' : (sx === 'm' ? 'vw_neffe' : 'vw_neffe_nichte') };
+  return { key: sx === 'f' ? 'vw_grossnichte' : 'vw_grossneffe' };
+}
+
+// Liefert {key, vars?, cousin?, sx?} für die i18n-Beschriftung der Beziehung von ZIEL aus Sicht von ICH.
+function verwandtschaftBestimmen(meId, zielId) {
+  if (!aktuelleDaten.persons[meId] || !aktuelleDaten.persons[zielId]) return null;
+  if (_vwKanon(meId) === _vwKanon(zielId)) return { key: 'vw_selbst' };
+  const sx = _vwSex(zielId);
+  const zielK = _vwKanon(zielId);
+  // 1) Direkte Heirat
+  if ([..._ansPartner(meId)].some(p => _vwKanon(p) === zielK))
+    return { key: sx === 'f' ? 'vw_ehefrau' : (sx === 'm' ? 'vw_ehemann' : 'vw_partner') };
+  // 2) Blutsverwandtschaft über nächsten gemeinsamen Vorfahren
+  const av = _vwVorfahren(meId), bv = _vwVorfahren(zielId);
+  let best = null;
+  av.forEach((a, k) => {
+    if (!bv.has(k)) return;
+    const b = bv.get(k), s = a.dist + b.dist;
+    if (!best || s < best.s || (s === best.s && Math.max(a.dist, b.dist) < Math.max(best.da, best.db)))
+      best = { s, da: a.dist, db: b.dist };
+  });
+  if (best) {
+    const { da, db } = best;
+    if (da === 0) return _vwAhneTerm(db, sx);
+    if (db === 0) return _vwNachkommeTerm(da, sx);
+    if (da === 1 && db === 1) return { key: sx === 'f' ? 'vw_schwester' : (sx === 'm' ? 'vw_bruder' : 'vw_geschwister') };
+    if (da === 1) return _vwNichteTerm(db - 2, sx);
+    if (db === 1) return _vwOnkelTerm(da - 2, sx);
+    return { key: 'vw_cousin', cousin: true, sx, vars: { grad: Math.min(da, db) - 1, entfernt: Math.abs(da - db) } };
+  }
+  // 3) Häufige angeheiratete Beziehungen
+  const meinePartner = [..._ansPartner(meId)];
+  if (meinePartner.some(pp => [..._ansEltern(pp)].some(e => _vwKanon(e) === zielK)))
+    return { key: sx === 'f' ? 'vw_schwiegermutter' : 'vw_schwiegervater' };
+  if ([..._ansKinder(meId)].some(c => [..._ansPartner(c)].some(pp => _vwKanon(pp) === zielK)))
+    return { key: sx === 'f' ? 'vw_schwiegertochter' : 'vw_schwiegersohn' };
+  if ([..._ansGeschwister(meId)].some(g => [..._ansPartner(g)].some(pp => _vwKanon(pp) === zielK))
+   || meinePartner.some(pp => [..._ansGeschwister(pp)].some(g => _vwKanon(g) === zielK)))
+    return { key: sx === 'f' ? 'vw_schwaegerin' : 'vw_schwager' };
+  return { key: 'vw_angeheiratet' };
+}
+
+function verwandtschaftLabel(res) {
+  if (!res) return t('vw_unbekannt');
+  if (res.cousin) {
+    let s = t(res.sx === 'f' ? 'vw_cousine' : 'vw_cousin');
+    if ((res.vars.grad > 1) || res.vars.entfernt > 0) {
+      s += ' ' + t('vw_grad', { n: res.vars.grad });
+      if (res.vars.entfernt > 0) s += ' · ' + t('vw_entfernt', { n: res.vars.entfernt });
+    }
+    return s;
+  }
+  return t(res.key, res.vars || {});
+}
+
+// Button in der Detailkarte (nur wenn eigene Karte verknüpft + echte fremde Person)
+function verwandtschaftBtnHtml(p) {
+  if (!p || p.platzhalter) return '';
+  const meId = meineKarteImBaum();
+  if (!meId || _vwKanon(meId) === _vwKanon(p.id)) return '';
+  return `<button class="baum-zeigen" style="margin-left:10px" onclick="verwandtschaftZeigen('${p.id}')">👪 ${t('vw_btn')}</button>`;
+}
+function verwandtschaftZeigen(zielId) {
+  const box = document.getElementById('detail-verwandt');
+  if (!box) return;
+  const meId = meineKarteImBaum();
+  if (!meId) { box.innerHTML = `<div class="vw-ergebnis">${escapeHtml(t('vw_keine_eigene'))}</div>`; return; }
+  const res = verwandtschaftBestimmen(meId, zielId);
+  const ziel = aktuelleDaten.persons[zielId];
+  const zielName = ziel ? nm(ziel.name || ((ziel.given || '') + ' ' + (ziel.surname || '')).trim()) : '';
+  box.innerHTML = `<div class="vw-ergebnis"><span class="vw-rolle">${escapeHtml(verwandtschaftLabel(res))}</span>
+    <span class="vw-zusatz">${escapeHtml(t('vw_von', { name: zielName }))}</span></div>`;
+}
+
 function zeigeDetails(personId) {
   if (document.getElementById('modal').classList.contains('aktiv') && aktuelleModalPersonId) {
     modalVerlauf.push(aktuelleModalPersonId);
@@ -12312,6 +13110,9 @@ function zeigeDetails(personId) {
     ${eheHtml}
     ${gpTwinHtml(p)}
 
+    <!-- Verwandtschaftsrechner: Beziehung zur eigenen verknüpften Person (auf Klick) -->
+    <div id="detail-verwandt" class="detail-verwandt"></div>
+
     <!-- Foto-Galerie (read-only) — per JS asynchron nach dem Öffnen befüllt -->
     <div id="detail-galerie"></div>
 
@@ -12331,6 +13132,7 @@ function zeigeDetails(personId) {
       ? `<button class="baum-zeigen gedenk-oeffnen-btn" onclick="oeffneGedenkseite('${p.id}')">🕯 ${t('gedenk_oeffnen')}</button>` : ''}
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
     ${!p.platzhalter ? `<button class="baum-zeigen" style="margin-left:10px" onclick="fokusAufPerson('${p.id}')">⌖ ${t('nav_von_hier')}</button>` : ''}
+    ${verwandtschaftBtnHtml(p)}
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
     ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="oeffneMoveBaum('${p.id}')">↪ ${t('move_karte_btn')}</button>` : ''}
     ${istAdmin() ? `
@@ -13806,22 +14608,24 @@ async function zeigeFeed() {
   if (typeof ladeErinnerungen === 'function') ladeErinnerungen();   // „An diesem Tag"-Sektion oben im Feed (nutzt Cache)
   feedApplyModusUI();
   if (feedModus === 'fragen') { frageRefPersonOptionen(); await fragenLaden(true); }
+  else if (feedModus === 'rezepte') { await rezepteLaden(); }
   else { feedRefPersonOptionen(); await feedLaden(true); }
 }
 
 function feedSetModus(m) {
-  feedModus = (m === 'fragen') ? 'fragen' : 'wand';
+  feedModus = ['wand', 'fragen', 'rezepte'].includes(m) ? m : 'wand';
   feedApplyModusUI();
   if (feedModus === 'fragen') { frageRefPersonOptionen(); fragenLaden(true); }
+  else if (feedModus === 'rezepte') { rezepteLaden(); }
   else { feedRefPersonOptionen(); feedLaden(true); }
 }
 function feedApplyModusUI() {
-  const w = document.getElementById('feed-modus-wand'), f = document.getElementById('feed-modus-fragen');
-  if (w) w.classList.toggle('aktiv', feedModus === 'wand');
-  if (f) f.classList.toggle('aktiv', feedModus === 'fragen');
-  const dw = document.getElementById('feed-wand'), df = document.getElementById('feed-fragen');
-  if (dw) dw.style.display = feedModus === 'wand' ? '' : 'none';
-  if (df) df.style.display = feedModus === 'fragen' ? '' : 'none';
+  [['feed-modus-wand', 'wand'], ['feed-modus-fragen', 'fragen'], ['feed-modus-rezepte', 'rezepte']].forEach(([id, m]) => {
+    const b = document.getElementById(id); if (b) b.classList.toggle('aktiv', feedModus === m);
+  });
+  [['feed-wand', 'wand'], ['feed-fragen', 'fragen'], ['feed-rezepte', 'rezepte']].forEach(([id, m]) => {
+    const d = document.getElementById(id); if (d) d.style.display = feedModus === m ? '' : 'none';
+  });
 }
 
 // Personen-Select aus den geladenen Personen (aktueller + verknüpfte Bäume) füllen (wiederverwendbar).
@@ -14027,6 +14831,138 @@ async function feedBeitragSenden() {
   } finally { if (btn) btn.disabled = false; }
 }
 
+// ============================================================
+// FEED-MODUS C: REZEPTE & TRADITIONEN (verbund-gebunden, eigenes Backend familien_rezepte)
+// Bilder im Bucket 'beitraege' (wie Feed/Fragen). Markdown über geschMarkdownHtml (sanitisiert).
+// ============================================================
+let rezeptCache = [];
+let rezeptBildBlob = null, rezeptBildPreviewUrl = null;
+let rezeptEditId = null;
+
+async function rezeptBildGewaehlt(ev) {
+  const file = ev.target.files && ev.target.files[0]; if (!file) return;
+  try {
+    rezeptBildBlob = await galerieKomprimiere(file, 1600, 0.85);
+    if (rezeptBildPreviewUrl) URL.revokeObjectURL(rezeptBildPreviewUrl);
+    rezeptBildPreviewUrl = URL.createObjectURL(rezeptBildBlob);
+    document.getElementById('rezept-bild-img').src = rezeptBildPreviewUrl;
+    document.getElementById('rezept-bild-vorschau').style.display = '';
+  } catch (e) { console.warn('Rezept-Bild:', e); await zeigeHinweis(t('eng_fehler')); }
+  ev.target.value = '';
+}
+function rezeptBildEntfernen() {
+  rezeptBildBlob = null;
+  if (rezeptBildPreviewUrl) { URL.revokeObjectURL(rezeptBildPreviewUrl); rezeptBildPreviewUrl = null; }
+  document.getElementById('rezept-bild-vorschau').style.display = 'none';
+  document.getElementById('rezept-bild-img').src = '';
+}
+function rezeptKatLabel(k) { return t('rezept_kat_' + (k || 'rezept')); }
+
+async function rezepteLaden() {
+  const box = document.getElementById('rezept-liste'); if (!box) return;
+  box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`;
+  const filter = (document.getElementById('rezept-filter') || {}).value || null;
+  try {
+    const { data, error } = await sbClient.rpc('rezepte_holen', { p_kategorie: filter });
+    if (error) throw error;
+    rezeptCache = Array.isArray(data) ? data : (data || []);
+  } catch (e) { console.warn('rezepte_holen:', e); box.innerHTML = `<div class="feed-leer">${escapeHtml(socialFehler(e))}</div>`; return; }
+  rezeptRender();
+}
+function rezeptRefName(uuid) {
+  if (!uuid) return '';
+  const p = Object.values(aktuelleDaten.persons || {}).find(x => x._uuid === uuid);
+  return p ? nm(p.name || '') : '';
+}
+function rezeptRender() {
+  const box = document.getElementById('rezept-liste'); if (!box) return;
+  if (!rezeptCache.length) { box.innerHTML = `<div class="feed-leer">${escapeHtml(t('rezept_leer'))}</div>`; return; }
+  box.innerHTML = rezeptCache.map(r => {
+    const datum = r.erstellt_am ? new Date(r.erstellt_am).toLocaleDateString() : '';
+    const refName = rezeptRefName(r.ref_person);
+    const md = r.text ? geschMarkdownHtml(r.text) : '';
+    const autor = r.autor_name ? nm(r.autor_name) : '';
+    return `<div class="rezept-karte">
+      <div class="rezept-kopf">
+        <span class="rezept-kat rezept-kat-${escapeHtml(r.kategorie)}">${escapeHtml(rezeptKatLabel(r.kategorie))}</span>
+        <h3 class="rezept-titel">${escapeHtml(r.titel)}</h3>
+      </div>
+      ${r.bild_url ? `<img class="rezept-bild" src="${escapeHtml(r.bild_url)}" alt="" loading="lazy">` : ''}
+      ${md ? `<div class="rezept-text gesch-detail-text">${md}</div>` : ''}
+      ${refName ? `<div class="rezept-ref">👤 ${escapeHtml(refName)}</div>` : ''}
+      <div class="rezept-fuss">
+        <span class="rezept-autor">${escapeHtml([autor, datum].filter(Boolean).join(' · '))}</span>
+        <span class="rezept-aktionen">
+          ${r.darf_bearbeiten ? `<button type="button" class="rezept-edit" onclick="rezeptEditStart('${r.id}')">${escapeHtml(t('eng_bearbeiten'))}</button>` : ''}
+          ${r.darf_loeschen ? `<button type="button" class="rezept-del" onclick="rezeptLoeschen('${r.id}')">${escapeHtml(t('eng_loeschen'))}</button>` : ''}
+        </span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function rezeptComposerReset() {
+  rezeptEditId = null;
+  document.getElementById('rezept-titel').value = '';
+  document.getElementById('rezept-text').value = '';
+  document.getElementById('rezept-kategorie').value = 'rezept';
+  rezeptBildEntfernen();
+  const btn = document.getElementById('rezept-senden'); if (btn) btn.textContent = t('rezept_senden');
+}
+function rezeptEditStart(id) {
+  const r = rezeptCache.find(x => x.id === id); if (!r) return;
+  rezeptEditId = id;
+  document.getElementById('rezept-titel').value = r.titel || '';
+  document.getElementById('rezept-text').value = r.text || '';
+  document.getElementById('rezept-kategorie').value = r.kategorie || 'rezept';
+  const btn = document.getElementById('rezept-senden'); if (btn) btn.textContent = t('rezept_speichern');
+  document.getElementById('rezept-composer').scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+async function rezeptSenden() {
+  const titel = document.getElementById('rezept-titel').value.trim();
+  const text = document.getElementById('rezept-text').value.trim();
+  const kat = document.getElementById('rezept-kategorie').value || 'rezept';
+  if (!titel) { return feldFehler('rezept-titel', t('feld_pflicht')); }
+  const btn = document.getElementById('rezept-senden'); if (btn) btn.disabled = true;
+  try {
+    if (rezeptEditId) {
+      const { error } = await sbClient.rpc('rezept_bearbeiten',
+        { p_id: rezeptEditId, p_titel: titel, p_kategorie: kat, p_text: text || null });
+      if (error) throw error;
+    } else {
+      let bildPfad = null, bildUrl = null;
+      if (rezeptBildBlob) {
+        const name = (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.round(Math.random() * 1e9));
+        bildPfad = `${aktuellerUser.id}/${name}.webp`;
+        const up = await sbClient.storage.from('beitraege').upload(bildPfad, rezeptBildBlob, { contentType: rezeptBildBlob.type || 'image/webp', upsert: false });
+        if (up.error) throw up.error;
+        bildUrl = sbClient.storage.from('beitraege').getPublicUrl(bildPfad).data.publicUrl;
+      }
+      const { error } = await sbClient.rpc('rezept_erstellen',
+        { p_titel: titel, p_kategorie: kat, p_text: text || null, p_bild_pfad: bildPfad, p_bild_url: bildUrl, p_ref_person: null });
+      if (error) throw error;
+    }
+    rezeptComposerReset();
+    await rezepteLaden();
+  } catch (err) { console.warn('rezept speichern:', err); await zeigeHinweis(socialFehler(err)); }
+  finally { if (btn) btn.disabled = false; }
+}
+
+async function rezeptLoeschen(id) {
+  if (!(await zeigeBestaetigung(t('rezept_loeschen_warnung')))) return;
+  try {
+    const { data, error } = await sbClient.rpc('rezept_loeschen', { p_id: id });
+    if (error) throw error;
+    if (data && data.bild_pfad) { try { await sbClient.storage.from('beitraege').remove([data.bild_pfad]); } catch (e) { console.warn('Rezept-Bild remove:', e); } }
+    if (rezeptEditId === id) rezeptComposerReset();
+    await rezepteLaden();
+  } catch (err) { console.warn('rezept_loeschen:', err); await zeigeHinweis(socialFehler(err)); }
+}
+function rezeptSpracheUpdate() {
+  if (feedModus === 'rezepte' && document.getElementById('ansicht-feed')?.style.display !== 'none') rezeptRender();
+}
+
 function feedBearbeitenStart(id) { feedEditId = id; feedRender(); }
 function feedBearbeitenAbbrechen() { feedEditId = null; feedRender(); }
 async function feedBearbeitenSpeichern(id) {
@@ -14057,6 +14993,7 @@ function feedSpracheUpdate() {
   if (!sec || sec.style.display === 'none') return;
   feedApplyModusUI();
   if (feedModus === 'fragen') { frageRefPersonOptionen(); fragenRender(); }
+  else if (feedModus === 'rezepte') { rezeptRender(); }
   else { feedRefPersonOptionen(); feedRender(); }
 }
 

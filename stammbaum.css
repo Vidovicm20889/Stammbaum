@@ -1562,6 +1562,45 @@ footer {
 .lightbox-engagement .eng-wrap { margin-top: 10px; }
 
 /* ============================================================
+   EVENT-RSVP (Zu-/Absage) — Detailkarte. Tap-Targets >=44px, Schrift >=16px.
+   ============================================================ */
+.rsvp-btns { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 6px; }
+.rsvp-btn { flex: 1 1 30%; min-width: 92px; min-height: 46px; background: none;
+  border: 1px solid var(--linie); border-radius: 12px; padding: 8px 10px;
+  font-family: inherit; font-size: 16px; color: var(--ink); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: border-color .15s, background .15s; }
+.rsvp-btn:hover { border-color: var(--gold); }
+.rsvp-btn.aktiv { color: #fff; font-weight: 600; }
+.rsvp-btn.aktiv.zusage { background: #3f7d4a; border-color: #3f7d4a; }
+.rsvp-btn.aktiv.vielleicht { background: var(--gold); border-color: var(--gold); }
+.rsvp-btn.aktiv.absage { background: var(--akzent); border-color: var(--akzent); }
+.rsvp-begleit { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px;
+  color: #6b5a3e; font-size: 15px; }
+.rsvp-step { width: 38px; height: 38px; min-width: 38px; border: 1px solid var(--linie);
+  background: var(--paper); border-radius: 50%; font-size: 20px; line-height: 1; color: var(--ink);
+  cursor: pointer; }
+.rsvp-step:hover { border-color: var(--gold); }
+.rsvp-anzahl { min-width: 24px; text-align: center; font-size: 16px; font-weight: 600; color: var(--ink); }
+.rsvp-uebersicht { display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+  margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--linie); color: #6b5a3e; font-size: 14px; }
+.rsvp-z-gesamt { color: var(--akzent); }
+.rsvp-namen { margin-top: 8px; }
+.rsvp-namen-toggle { background: none; border: none; color: var(--gold); font: inherit; font-size: 14px;
+  cursor: pointer; padding: 4px 0; text-decoration: underline; }
+.rsvp-namen-liste { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.rsvp-namen-item { font-size: 14px; color: var(--ink); }
+.rsvp-namen-notiz { color: #8a7a5a; font-style: italic; }
+@media (max-width: 480px) { .rsvp-btn { flex: 1 1 100%; } }
+
+/* Verwandtschaftsrechner — Ergebnis in der Detailkarte */
+.detail-verwandt:empty { display: none; }
+.vw-ergebnis { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--gold); border-radius: 10px;
+  background: rgba(156,124,60,0.08); display: flex; flex-direction: column; gap: 2px; }
+.vw-rolle { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; color: var(--akzent); }
+.vw-zusatz { font-size: 13px; color: #8a7a5a; }
+
+/* ============================================================
    GEDENKSEITE + Kondolenz-/Erinnerungsbuch — würdevoll, ruhig, reduziert.
    Liegt über dem Detail-Modal; eigene gedämpfte Tonalität (kein bunter Akzent).
    ============================================================ */
@@ -2018,6 +2057,124 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
 .ev-modus-btn:hover:not(.aktiv) { color: var(--akzent); }
 .ev-modus-btn.aktiv { background: var(--akzent); color: var(--paper); }
 
+/* ============================================================
+   EVENT-KALENDER (Ansicht D) — Monatsraster, rein lesend. Mobil: Punkt + Tagdetail.
+   ============================================================ */
+.kal-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 16px 0 12px; }
+.kal-nav { width: 40px; height: 40px; min-width: 40px; border: 1px solid var(--linie); background: var(--paper);
+  border-radius: 50%; font-size: 22px; line-height: 1; color: var(--ink); cursor: pointer; }
+.kal-nav:hover { border-color: var(--gold); }
+.kal-titel { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; color: var(--akzent);
+  min-width: 180px; text-align: center; text-transform: capitalize; }
+.kal-heute { background: none; border: 1px solid var(--gold); color: #6b5a3e; border-radius: 18px;
+  padding: 8px 14px; font: inherit; font-size: 14px; cursor: pointer; min-height: 38px; }
+.kal-heute:hover { background: var(--gold-hell); border-color: var(--gold); }
+.kal-anl-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: #6b5a3e; cursor: pointer; }
+.kal-anl-toggle input { width: 18px; height: 18px; accent-color: var(--gold); }
+.kal-wd { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+.kal-wd-z { text-align: center; font-size: 12px; color: #8a7a5a; letter-spacing: .5px; text-transform: capitalize; padding: 4px 0; }
+.kal-tage { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.kal-zelle { min-height: 84px; border: 1px solid var(--linie); border-radius: 8px; padding: 4px;
+  background: var(--paper); cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+.kal-zelle.leer { background: transparent; border: none; cursor: default; }
+.kal-zelle.hat { border-color: var(--gold); }
+.kal-zelle.heute { box-shadow: inset 0 0 0 2px var(--akzent); }
+.kal-zelle.offen { background: var(--bg-soft); }
+.kal-tagnr { font-size: 13px; color: var(--ink); font-weight: 600; }
+.kal-chip { font-size: 11px; line-height: 1.25; padding: 1px 4px; border-radius: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kal-chip.event { background: rgba(114,47,55,0.10); color: var(--akzent); }
+.kal-chip.geb { background: rgba(156,124,60,0.14); color: #6b5a3e; }
+.kal-chip.ged { background: rgba(80,80,80,0.10); color: #555; }
+.kal-mehr { font-size: 10px; color: #8a7a5a; }
+.kal-tagdetail { margin-top: 14px; border-top: 1px solid var(--linie); padding-top: 12px; }
+.kal-td-titel { font-family: 'Playfair Display', Georgia, serif; color: var(--akzent); font-size: 16px;
+  margin-bottom: 8px; text-transform: capitalize; }
+.kal-td-item { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--linie);
+  border-radius: 8px; margin-bottom: 6px; cursor: pointer; min-height: 44px; }
+.kal-td-item:hover { border-color: var(--gold); }
+.kal-td-ic { font-size: 18px; }
+.kal-td-body { display: flex; flex-direction: column; }
+.kal-td-name { color: var(--ink); font-size: 15px; }
+.kal-td-sub { color: #8a7a5a; font-size: 12px; }
+
+/* ============================================================
+   TERMINFINDUNG (Ansicht E) — Doodle-Umfrage. Tap-Targets >=44px.
+   ============================================================ */
+.termin-liste { display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; }
+.termin-karte { border: 1px solid var(--linie); border-left: 3px solid var(--gold); border-radius: 10px;
+  padding: 14px 16px; cursor: pointer; background: var(--paper); }
+.termin-karte:hover { border-color: var(--gold); }
+.termin-karte.erledigt { border-left-color: #3f7d4a; }
+.termin-k-titel { font-family: 'Playfair Display', Georgia, serif; font-size: 17px; color: var(--akzent); }
+.termin-k-meta { font-size: 13px; color: #8a7a5a; margin-top: 4px; }
+.termin-k-status { font-size: 12px; color: #3f7d4a; margin-top: 4px; }
+.tf-optionen-label { font-size: 14px; color: #6b5a3e; margin: 10px 0 6px; }
+.tf-opt-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.tf-opt-row .tf-opt-datum { flex: 1; }
+.tf-opt-row .tf-opt-zeit { width: 110px; }
+.tf-opt-del { width: 36px; min-width: 36px; height: 38px; border: 1px solid var(--linie);
+  background: var(--paper); border-radius: 8px; color: #a33; font-size: 18px; cursor: pointer; }
+.tf-opt-liste { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.tf-opt { border: 1px solid var(--linie); border-radius: 10px; padding: 10px 12px; }
+.tf-opt.gewinner { border-color: #3f7d4a; background: rgba(63,125,74,0.06); }
+.tf-opt-kopf { font-size: 15px; color: var(--ink); font-weight: 600; }
+.tf-opt-aktion { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.tf-vote { width: 44px; height: 44px; border: 1px solid var(--linie); background: var(--paper);
+  border-radius: 10px; font-size: 18px; cursor: pointer; }
+.tf-vote:hover:not(:disabled) { border-color: var(--gold); }
+.tf-vote.aktiv.ja { background: #3f7d4a; border-color: #3f7d4a; }
+.tf-vote.aktiv.vielleicht { background: var(--gold); border-color: var(--gold); }
+.tf-vote.aktiv.nein { background: var(--akzent); border-color: var(--akzent); }
+.tf-vote:disabled { opacity: 0.6; cursor: default; }
+.tf-zaehler { display: inline-flex; gap: 10px; margin-left: 6px; font-size: 13px; color: #6b5a3e; }
+.tf-z { white-space: nowrap; }
+.tf-entscheid { margin-top: 8px; background: none; border: 1px solid var(--gold); color: #6b5a3e;
+  border-radius: 16px; padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer; min-height: 40px; }
+.tf-entscheid:hover { background: var(--gold-hell); }
+.tf-eingeschraenkt { font-size: 13px; color: #6b5a3e; background: var(--bg-soft); border: 1px solid var(--linie);
+  border-radius: 8px; padding: 6px 10px; margin: 8px 0; }
+.tf-detail-aktionen { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.tf-einladen-liste { max-height: 240px; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--linie);
+  border-radius: 8px; padding: 6px; margin: 6px 0 10px; }
+.tf-einladen-item { display: flex; align-items: center; gap: 10px; padding: 8px 6px; min-height: 44px; cursor: pointer; }
+.tf-einladen-item:hover { background: var(--bg-soft); }
+.tf-einladen-item input { width: 18px; height: 18px; accent-color: var(--gold); flex: 0 0 auto; }
+.tf-einladen-item span { font-size: 15px; color: var(--ink); }
+
+/* ============================================================
+   REZEPTE & TRADITIONEN (Feed-Modus C)
+   ============================================================ */
+.rezept-karte { border: 1px solid var(--linie); border-radius: 12px; padding: 16px; margin-bottom: 14px; background: var(--paper); }
+.rezept-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.rezept-kat { font-size: 11px; letter-spacing: .5px; text-transform: uppercase; padding: 3px 8px;
+  border-radius: 10px; background: var(--bg-soft); color: var(--gold); border: 1px solid var(--gold); }
+.rezept-kat-slava { color: var(--akzent); border-color: var(--akzent); }
+.rezept-titel { font-family: 'Playfair Display', Georgia, serif; font-size: 19px; color: var(--akzent); margin: 0; }
+.rezept-bild { width: 100%; max-height: 320px; object-fit: cover; border-radius: 10px; margin: 6px 0 10px; }
+.rezept-text { color: var(--ink); line-height: 1.6; font-size: 15px; }
+.rezept-ref { font-size: 13px; color: #6b5a3e; margin-top: 8px; }
+.rezept-fuss { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--linie); flex-wrap: wrap; }
+.rezept-autor { font-size: 12px; color: #8a7a5a; }
+.rezept-aktionen { display: inline-flex; gap: 14px; }
+.rezept-edit, .rezept-del { background: none; border: none; cursor: pointer; font: inherit; font-size: 13px; min-height: 36px; }
+.rezept-edit { color: var(--gold); }
+.rezept-del { color: #a33; }
+#rezept-composer .login-feld, #rezept-composer .eng-textarea { margin-bottom: 8px; }
+
+/* iCal-Abo: URL-Zeile */
+.ical-url-zeile { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+.ical-url-zeile .login-feld { flex: 1; font-size: 13px; }
+@media (max-width: 480px) {
+  .kal-zelle { min-height: 54px; }
+  .kal-chip, .kal-mehr { display: none; }      /* mobil: nur Punkt + Tagdetail beim Tippen */
+  .kal-zelle.hat { position: relative; }
+  .kal-zelle.hat::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+  .kal-titel { font-size: 17px; min-width: 120px; }
+}
+
 .zs-filter { display: flex; flex-wrap: wrap; gap: 14px 18px; margin-bottom: 22px; align-items: flex-end; }
 .zs-filter-feld { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #7a6a50; letter-spacing: 0.5px; }
 .zs-filter-feld .filter, .zs-filter-feld .ss-control { min-width: 180px; }
@@ -2080,7 +2237,7 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
 
 @media (max-width: 480px) {
   .ev-modus { display: flex; width: 100%; }
-  .ev-modus-btn { flex: 1; padding: 10px 12px; }
+  .ev-modus-btn { flex: 1; padding: 10px 6px; font-size: 12px; letter-spacing: 0.3px; }
   .zs-item { gap: 12px; }
   .zs-icon { width: 38px; height: 38px; font-size: 17px; }
   .zs-timeline::before { left: 18px; }
@@ -2334,9 +2491,11 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
 .karte-person-feld { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #7a6a50; letter-spacing: 0.5px; }
 .karte-person-feld .filter { min-width: 200px; }
 
-/* Kartencontainer */
+/* Kartencontainer. position+z-index:0 = eigener Stacking-Context, damit Leaflets interne
+   Panes/Controls (z-index 400–1000) NICHT über Header/Menü/Dropdowns/Overlays lecken. */
 .event-karte { width: 100%; height: 460px; max-height: 70vh; border: 1px solid var(--linie);
-  border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(44,36,24,0.10); background: var(--paper-soft); }
+  border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(44,36,24,0.10); background: var(--paper-soft);
+  position: relative; z-index: 0; isolation: isolate; }
 .karte-leer { /* nutzt .keine-treffer */ }
 
 /* Legende (Start grün / Ende rot) */
@@ -2375,7 +2534,8 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
 .geo-treffer-item:hover { background: var(--bg-soft); border-color: var(--gold); }
 .geo-treffer-info { font-size: 13px; color: #8a7c63; padding: 4px 2px; }
 .geo-hint { font-size: 12.5px; color: #8a7c63; margin: 8px 0 6px; line-height: 1.45; }
-.geo-edit-map { width: 100%; height: 240px; border: 1px solid var(--linie); border-radius: 10px; overflow: hidden; background: var(--paper-soft); }
+.geo-edit-map { width: 100%; height: 240px; border: 1px solid var(--linie); border-radius: 10px; overflow: hidden; background: var(--paper-soft);
+  position: relative; z-index: 0; isolation: isolate; }
 .geo-status-zeile { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
 .geo-status { font-size: 13px; color: var(--ink); }
 .geo-clear-btn { flex: 0 0 auto; }
