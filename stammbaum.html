@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.21">
+<meta name="app-version" content="14.22">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.21">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.21">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.22">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.21">
+<link rel="stylesheet" href="stammbaum.css?v=14.22">
 </head>
 <body>
 
@@ -2472,12 +2472,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.21"></script>
+<script src="i18n.js?v=14.22"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.21"></script>
-<script src="chat.js?v=14.21"></script>
+<script src="pdf_export.js?v=14.22"></script>
+<script src="chat.js?v=14.22"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -4172,7 +4172,11 @@ async function mpVerknuepfe(personId, ausDup) {
     const { data, error } = await sbClient.rpc('meine_karte_verknuepfen', { p_person: personId });
     if (error) throw error;
     if (!data || !data.ok) {
-      const msg = (data && data.grund === 'karte_belegt') ? t('mp_link_belegt') : t('mp_link_fehler');
+      // Bekannten Grund freundlich benennen; unbekannten Grund technisch mit anzeigen (Diagnose).
+      const grund = data && data.grund;
+      const bekannt = { karte_belegt: 'mp_link_belegt', keine_berechtigung: 'mp_link_kein_recht',
+                        nicht_gefunden: 'mp_link_weg', nicht_eingeloggt: 'mp_link_fehler' };
+      const msg = bekannt[grund] ? t(bekannt[grund]) : (t('mp_link_fehler') + (grund ? ' (' + grund + ')' : ''));
       if (fehlerEl) { fehlerEl.textContent = msg; fehlerEl.style.display = 'block'; }
       return;
     }
@@ -4189,7 +4193,9 @@ async function mpVerknuepfe(personId, ausDup) {
     zeigeHinweis(t('mp_link_ok'));
   } catch (e) {
     console.warn('meine_karte_verknuepfen:', e);
-    if (fehlerEl) { fehlerEl.textContent = t('mp_link_fehler'); fehlerEl.style.display = 'block'; }
+    // Technische DB-/Trigger-Meldung mit anzeigen (sonst „verschluckt" der generische Text die Ursache).
+    const detail = (e && (e.message || e.details || e.hint)) ? String(e.message || e.details || e.hint) : '';
+    if (fehlerEl) { fehlerEl.textContent = t('mp_link_fehler') + (detail ? ' — ' + detail : ''); fehlerEl.style.display = 'block'; }
   }
 }
 

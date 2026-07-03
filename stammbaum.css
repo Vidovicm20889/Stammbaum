@@ -726,6 +726,12 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .verbindung { fill: none; stroke: rgba(255,248,220,0.88); stroke-width: 2.5; }
 /* Ehelinien: Gold passend zum Sonnenuntergang im Bild */
 .ehe-linie { stroke: #d4a030; stroke-width: 2.5; stroke-dasharray: 6 3; }
+/* Ex-Partnerschaft: gedämpfte, GRAUE (nicht goldene) Linie + kleines „Ex"-Label -> aktuell vs.
+   Ex auf einen Blick unterscheidbar (die goldene Linie = aktuelle Partnerschaft). Muss NACH
+   .ehe-linie stehen, damit die Ex-Farbe die goldene überschreibt. */
+.ehe-linie-ex { stroke: #9aa0a6; stroke-width: 2; stroke-dasharray: 2 4; }
+.ehe-ex-label { fill: #d9cfb6; font-family: 'Playfair Display', Georgia, serif; font-size: 12px;
+  font-style: italic; paint-order: stroke; stroke: rgba(30,24,16,0.8); stroke-width: 3px; stroke-linejoin: round; }
 /* Paar-Knoten (Verwandtschafts-Ansicht/Beta): goldenes Rauten-Gelenk auf der Ehe-Linie */
 .paar-knoten { fill: #d4a030; stroke: rgba(255,248,220,0.85); stroke-width: 1; }
 
