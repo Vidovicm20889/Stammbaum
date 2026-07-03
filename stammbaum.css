@@ -862,7 +862,7 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
 .ansicht-radio.bez-deaktiviert { opacity: .5; cursor: not-allowed; }
 /* Liegt im DOM vor dem Detail-Modal (#modal, z-index 100) -> muss explizit darüber liegen,
    aber unter den Hinweis-/Bestätigungs-Overlays (z-index ≥ 4000). */
-#bez-aendern-modal { z-index: 3000; }
+#bez-aendern-modal, #partner-art-modal { z-index: 3000; }
 .modal .baum-zeigen {
   margin-top: 25px; background: var(--akzent); color: var(--paper);
   border: none; padding: 12px 24px; cursor: pointer;

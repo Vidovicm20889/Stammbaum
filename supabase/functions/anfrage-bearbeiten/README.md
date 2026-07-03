@@ -20,7 +20,7 @@ Macht dasselbe wie `anfrage-entscheiden`, zusätzlich:
 2. Inhalt von `index.ts` (dieser Ordner) komplett einfügen → **Deploy**.
 3. **Verify JWT: AN lassen** (nur eingeloggte Admins dürfen aufrufen).
 4. Secrets (sind durch die anderen Functions i. d. R. schon gesetzt; sonst nachtragen):
-   `RESEND_API_KEY`, `MAIL_FROM` (z. B. `FamilyRoots <noreply@vidovic-ai.com>`),
+   `RESEND_API_KEY`, `MAIL_FROM` (z. B. `FamilyRoots <noreply@familyroots.club>`),
    `APP_URL`. `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY` stellt
    Supabase automatisch bereit. Optional `TEST_EMAIL` (leitet alle Mails dorthin,
    solange keine eigene Domain bei Resend verifiziert ist).

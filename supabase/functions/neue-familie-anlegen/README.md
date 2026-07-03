@@ -21,8 +21,8 @@ Wird vom Registrier-Overlay aufgerufen, wenn der Nutzer bei
 4. Secrets (Project → Settings → Edge Functions) müssen gesetzt sein – dieselben
    wie bei `anfrage-entscheiden`:
    - `RESEND_API_KEY`
-   - `MAIL_FROM` (z. B. `Stammbaum Vidović <noreply@vidovic-ai.com>`)
-   - `APP_URL` (`https://vidovicm20889.github.io/Stammbaum/stammbaum.html`)
+   - `MAIL_FROM` (z. B. `Stammbaum Vidović <noreply@familyroots.club>`)
+   - `APP_URL` (`https://familyroots.club/stammbaum.html`)
    - (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` sind automatisch vorhanden)
    - optional `TEST_EMAIL` zum Testen ohne verifizierte Domain.
 

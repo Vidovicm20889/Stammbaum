@@ -13,7 +13,7 @@
 // Outlook zeigt Annehmen/Ablehnen und aktualisiert bei höherer SEQUENCE den
 // vorhandenen Termin (ggf. ohne erneutes Öffnen). Die .ics wird PRO Empfänger gebaut
 // (ATTENDEE = dieser Empfänger). RSVP-Antworten gehen an ORGANIZER_EMAIL (aus MAIL_FROM
-// abgeleitet); sie landen im Postfach von MAIL_FROM (support@vidovic-ai.com), sofern dort
+// abgeleitet); sie landen im Postfach von MAIL_FROM (support@familyroots.club), sofern dort
 // Posteingang eingerichtet ist (kein eigenes Inbound-Handling in der Function).
 //
 // Kalender-UPDATE (ab v14.12): Body-Feld aktualisierung=true -> Update-Texte
@@ -31,10 +31,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
-const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@familyroots.club>";
+const APP_URL        = Deno.env.get("APP_URL") ?? "https://familyroots.club/stammbaum.html";
 // ORGANIZER für die .ics (METHOD:REQUEST). RSVP-Antworten gehen an dieses Postfach
-// (support@vidovic-ai.com aus MAIL_FROM); kein eigenes Inbound-Handling in der Function.
+// (support@familyroots.club aus MAIL_FROM); kein eigenes Inbound-Handling in der Function.
 const MAIL_FROM_EMAIL = (MAIL_FROM.match(/<([^>]+)>/)?.[1] ?? MAIL_FROM).trim();
 const ORGANIZER_EMAIL = (Deno.env.get("ORGANIZER_EMAIL") ?? MAIL_FROM_EMAIL).trim();
 const ORGANIZER_NAME  = "FamilyRoots";
@@ -249,7 +249,7 @@ const WRAP = (inner: string) => `
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
   <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
-  <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
+  <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">familyroots.club</p>
 </div>`;
 
 const zeile = (label: string, wert: string) =>

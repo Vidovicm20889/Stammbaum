@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.20">
+<meta name="app-version" content="14.21">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.20">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.20">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.21">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.21">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.20">
+<link rel="stylesheet" href="stammbaum.css?v=14.21">
 </head>
 <body>
 
@@ -719,6 +719,21 @@
   </div>
 </div>
 
+<!-- Art einer bestehenden Partnerschaft ändern (Ehe/Partner/Ex). Liegt über dem Detail-Modal,
+     schließt NUR per Button (UI-Regel). -->
+<div class="modal" id="partner-art-modal">
+  <div class="modal-inhalt ansicht-box" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliessePartnerArt()" aria-label="×">×</button>
+    <h2 data-i18n="part_art_titel"></h2>
+    <p class="pdf-sub" id="partner-art-info"></p>
+    <div id="partner-art-opt" class="ansicht-opt"></div>
+    <p class="login-fehler" id="partner-art-fehler" style="display:none"></p>
+    <div class="ansicht-aktionen">
+      <button type="button" class="login-hinweis-btn sekundaer" onclick="schliessePartnerArt()" data-i18n="abbrechen"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Login Modal -->
 <div class="modal" id="login-modal">
   <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
@@ -1338,6 +1353,15 @@
         <option value="elternteil" data-i18n="bzt_elternteil"></option>
         <option value="partner" data-i18n="bzt_partner"></option>
         <option value="geschwister" data-i18n="bzt_geschwister"></option>
+      </select></label>
+    <!-- Bei "Partner": Art der Partnerschaft. Mann/Frau bzw. Exmann/Exfrau leitet die
+         Detailkarte aus dem Geschlecht ab; hier nur die Kategorie wählen. -->
+    <label class="login-label reg-feld-voll" id="pa-partner-art-label" style="display:none"><span data-i18n="part_art_label"></span>
+      <select id="pa-partner-art" class="login-feld">
+        <option value="ehe" data-i18n="part_art_ehe"></option>
+        <option value="partner" data-i18n="part_art_partner"></option>
+        <option value="ex_ehe" data-i18n="part_art_ex_ehe"></option>
+        <option value="ex_partner" data-i18n="part_art_ex_partner"></option>
       </select></label>
     <!-- Bei "Kind": Vater + Mutter (durchsuchbar über aktuellen + verknüpfte Bäume,
          vorbelegt, änderbar, entfernbar). Ersetzt das frühere "zweiter Elternteil"-Select. -->
@@ -2448,12 +2472,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.20"></script>
+<script src="i18n.js?v=14.21"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.20"></script>
-<script src="chat.js?v=14.20"></script>
+<script src="pdf_export.js?v=14.21"></script>
+<script src="chat.js?v=14.21"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -4232,6 +4256,7 @@ async function mpCreateAnlegen(skipDup) {
     fehlerEl.textContent = t('mp_erstellen_fehler'); fehlerEl.style.display = 'block'; return;
   }
 
+  if (!pruefeDatumFelder(['mp-create-geburtsdatum'])) return;
   const sex   = document.getElementById('mp-create-geschlecht').value || '';
   const geb   = datumWert(document.getElementById('mp-create-geburtsdatum'));
   const ort   = document.getElementById('mp-create-geburtsort').value.trim();
@@ -4479,6 +4504,7 @@ async function speichereProfil() {
   const biografie    = document.getElementById('prof-biografie').value.trim();
 
   if (!vorname || !nachname) { profilFehler(t('prof_err_pflicht')); return; }
+  if (!pruefeDatumFelder(['prof-geburtsdatum'])) return;
 
   const btn = document.getElementById('prof-submit');
   btn.disabled = true; btn.textContent = t('reg_senden_laeuft');
@@ -5340,6 +5366,7 @@ async function obavNeueKarteBestaetigen(id) {
   const geb  = datumWert(document.getElementById('nk-geburt-' + id)) || null;
   if (!vor && !nach) { await zeigeHinweis(t('reg_pflicht')); return; }
   if (!baum) { await zeigeHinweis(t('nk_stammbaum')); return; }
+  if (datumFeldUngueltig('nk-geburt-' + id)) { await zeigeHinweis(t('dat_ungueltig')); return; }
   const { data: personId, error } = await sbClient.rpc('namenskarte_anlegen', {
     p_stammbaum: baum, p_vorname: vor, p_nachname: nach, p_geburtsdatum: geb
   });
@@ -6909,6 +6936,8 @@ async function sendeRegistrierAnfrage() {
   // E-Mail-Format (Pflicht-E-Mail) + optionale Kontakt-E-Mail prüfen
   if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('reg-email'), true); return feldFokus('reg-email'); }
   if (!pruefeEmailFeld(document.getElementById('reg-kontakt-email'), false)) return feldFokus('reg-kontakt-email');
+  // Datumsfelder: Freitext wie „xx/xx/xxxx" abfangen (deckt auch den Selbst-Anlege-Pfad regNeueFamilieAnlegen ab).
+  if (!pruefeDatumFelder(['reg-geburtsdatum','reg-getauft','reg-verheiratet'])) return;
 
   // Aktuellen Match-Status sicherstellen (falls der User vor dem Debounce absendet).
   await pruefeBaumMatch();
@@ -7556,7 +7585,7 @@ async function ladeBaumAusSupabase() {
   // garantiert hier unabhängig von der RLS-Reihenfolge, dass der Renderer nie Papierkorb-Inhalt lädt.
   const [pRes, bRes, sRes] = await Promise.all([
     sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id, updated_at').is('geloescht_am', null),
-    sbClient.from('beziehungen').select('person_a, person_b, typ').is('geloescht_am', null),
+    sbClient.from('beziehungen').select('person_a, person_b, typ, partner_art').is('geloescht_am', null),
     sbClient.from('stammbaeume').select('id, name, zusatz, familie_id')
   ]);
   if (pRes.error || bRes.error) {
@@ -7600,7 +7629,7 @@ async function ladeBaumAusSupabase() {
   (bRes.data || []).forEach(b => {
     const a = uuid2ext[b.person_a], c = uuid2ext[b.person_b];
     if (!a || !c) return;
-    if (b.typ === 'ehepartner')      ehe.push([a, c]);
+    if (b.typ === 'ehepartner')      ehe.push([a, c, b.partner_art || null]);
     else if (b.typ === 'elternteil') (elternVon[c] = elternVon[c] || new Set()).add(a);
   });
 
@@ -7637,7 +7666,10 @@ async function ladeBaumAusSupabase() {
     keyToFam[key] = fid;
     return fid;
   }
-  ehe.forEach(([a, b]) => holeFamilie([a, b]));                 // auch kinderlose Paare
+  ehe.forEach(([a, b, art]) => {                                // auch kinderlose Paare
+    const fid = holeFamilie([a, b]);
+    if (art) families[fid].partner_art = art;   // Ehe/Partner/Ex-Kennzeichnung an der Familie
+  });
   Object.entries(elternVon).forEach(([child, set]) => {
     const fid = holeFamilie([...set]);
     if (!families[fid].children.includes(child)) families[fid].children.push(child);
@@ -7877,9 +7909,9 @@ function waehleStammbaum(treeId) {
   if (sel && sel.value !== treeId) sel.value = treeId;
   aktualisiereKopf();
   const root = findeStammbaumWurzel(treeId);
-  // Reihenfolge: Deep-Link (#p=) > personalisierte Standardansicht (eigene Karte) > Vollansicht.
+  // Reihenfolge: Deep-Link (#p=) > zuletzt gewählte/gespeicherte Ansicht (Fallback Standard) > Vollansicht.
   if (fokusAusUrl()) { /* URL-Fokus aktiv */ }
-  else if (zeigeStandardAnsicht()) { /* Standardansicht aktiv */ }
+  else if (wendeGespeicherteAnsichtAn()) { /* gespeicherte/Standard-Ansicht aktiv */ }
   else if (root) { ansichtModus = 'voll'; vollGraphRender(); }   // kein eigenes Profil im Baum -> Vollansicht
   else { ansichtModus = null; if (baumG) baumG.selectAll('*').remove(); }
   aktualisiereBaumHinweis();
@@ -8236,7 +8268,9 @@ function parseDatumZuIso(text) {
   if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))  return dpGueltig(+m[1], +m[2], +m[3]);
   // TT.MM.JJJJ — toleriert serbisch/kroatischen End-Punkt („08.07.1992.") + Leerzeichen nach den Punkten („8. 7. 1992.")
   if ((m = s.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})\.?$/))) return dpGueltig(+m[3], +m[2], +m[1]);
-  if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return dpGueltig(+m[3], +m[1], +m[2]);  // MM/DD/YYYY
+  // TT/MM/JJJJ (Tag zuerst, europäisch/Balkan) — Trenner „/" oder „-", Leerzeichen toleriert.
+  // ISO (YYYY-…) greift bereits oben, daher kein Konflikt mit dem Bindestrich.
+  if ((m = s.match(/^(\d{1,2})\s*[\/\-]\s*(\d{1,2})\s*[\/\-]\s*(\d{4})$/))) return dpGueltig(+m[3], +m[2], +m[1]);
   return null;
 }
 function isoZuKurz(iso, lang) {
@@ -8257,8 +8291,11 @@ function formatDatumLang(value) {
 // Kanonischer Speicherwert eines Feldes: ISO falls parsebar, sonst Freitext
 function datumWert(input) {
   if (!input) return '';
-  const iso = parseDatumZuIso(input.value);
-  return iso || input.value.trim();
+  const roh = (input.value || '').trim();
+  // Unverändert seit dem Setzen (Kalenderwahl/Anzeige)? -> gemerktes ISO nehmen, damit die
+  // Anzeige-Sprache (z. B. en „MM/DD") beim Speichern keinen Reparse-Drift erzeugt.
+  if (input.dataset.iso && isoZuKurz(input.dataset.iso, aktuelleSprache) === roh) return input.dataset.iso;
+  return parseDatumZuIso(roh) || roh;
 }
 // Feld setzen (ISO oder Freitext) -> Kurzformat anzeigen + iso merken
 function datumSetzen(input, value) {
@@ -8267,6 +8304,27 @@ function datumSetzen(input, value) {
   const iso = istIsoDatum(value) ? value : parseDatumZuIso(value);
   if (iso) { input.dataset.iso = iso; input.value = isoZuKurz(iso, aktuelleSprache); }
   else     { delete input.dataset.iso; input.value = value; }
+}
+// Validierung: alle übergebenen Datumsfelder müssen leer ODER parsebar sein (ISO / TT.MM.JJJJ /
+// TT/MM/JJJJ). Nicht-parsebarer Freitext (z. B. „xx/xx/xxxx") -> roter Feldfehler + Fokus,
+// blockiert das Speichern, sonst tauchen die Personen nicht in Anlässen/Zeitstrahl auf.
+function pruefeDatumFelder(felder) {
+  for (const f of felder) {
+    const el = (typeof f === 'string') ? document.getElementById(f) : f;
+    if (!el) continue;
+    const roh = (el.value || '').trim();
+    if (!roh) continue;                                      // leer = ok (optionales Feld)
+    if (istIsoDatum(roh) || parseDatumZuIso(roh)) continue;  // parsebar = ok
+    return feldFehler(el, t('dat_ungueltig'));               // ungültig -> false (blockiert)
+  }
+  return true;
+}
+// Einzelfeld-Check (für Formulare, die eigene Hinweis-Stile nutzen statt feldFehler):
+// true = Feld hat nicht-parsebaren Freitext (leer/parsebar -> false).
+function datumFeldUngueltig(id) {
+  const el = document.getElementById(id);
+  const roh = (el && el.value || '').trim();
+  return !!roh && !istIsoDatum(roh) && !parseDatumZuIso(roh);
 }
 
 let dpPanel, dpAktivInput = null, dpJahr, dpMonat, dpRaf = null;
@@ -8398,7 +8456,12 @@ function macheDatumsfeld(input) {
   input.placeholder = DATUM_PH[aktuelleSprache] || DATUM_PH.de;
   if (input.value) datumSetzen(input, input.value);   // evtl. vorbefüllten Wert normalisieren
   btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); (dpAktivInput === input) ? dpSchliesse() : dpOeffne(input); });
-  input.addEventListener('blur', () => { const iso = parseDatumZuIso(input.value); if (iso) datumSetzen(input, iso); else delete input.dataset.iso; });
+  input.addEventListener('blur', () => {
+    const roh = (input.value || '').trim();
+    const iso = parseDatumZuIso(input.value);
+    if (iso) { datumSetzen(input, iso); feldFehlerWeg(input); }      // gültig -> evtl. Fehler wegräumen
+    else { delete input.dataset.iso; if (!roh) feldFehlerWeg(input); } // leer -> auch ok
+  });
 }
 
 function macheAlleDatumsfelder(root) {
@@ -9323,6 +9386,42 @@ function ansichtPickWaehle(id) {
   if (list) list.innerHTML = '';
 }
 
+// --- Zuletzt gewählte Baum-Ansicht merken & als Standard verwenden ---
+// Die im Ansicht-Overlay angewandte Wahl wird PRO NUTZER in localStorage gemerkt und beim
+// nächsten Öffnen eines Baums als Standard angewandt (statt immer „Moja porodica"). 'zweig' ist
+// person-/baumgebunden -> nur im GLEICHEN Baum + wenn die Person noch existiert wiederhergestellt,
+// sonst Fallback auf die Standardansicht (und diese wiederum auf Vollansicht, wenn keine eigene
+// Karte im Baum liegt — wie bisher).
+function _ansPrefKey() { return 'vidovic_ansicht_' + ((aktuellerUser && aktuellerUser.id) || 'anon'); }
+function ladeAnsichtPref() {
+  try { return JSON.parse(localStorage.getItem(_ansPrefKey()) || 'null'); } catch (e) { return null; }
+}
+function speichereAnsichtPref(v, extra) {
+  try { localStorage.setItem(_ansPrefKey(), JSON.stringify(Object.assign({ v }, extra || {}))); } catch (e) {}
+}
+// Wendet die gespeicherte Ansicht an. Rückgabe wie zeigeStandardAnsicht(): true = etwas
+// gezeichnet; false = nichts anwendbar (Aufrufer macht dann Vollansicht).
+function wendeGespeicherteAnsichtAn() {
+  const pref = ladeAnsichtPref();
+  const v = pref && pref.v;
+  if (v === 'voll') {
+    if (findeStammbaumWurzel(aktuellerStammbaumId)) {
+      ansichtModus = 'voll'; fokusPersonId = null; ansichtFokusId = null;
+      vollGraphRender(); aktualisiereBaumHinweis(); return true;
+    }
+    return false;
+  }
+  if (v === 'kreis') {
+    if (zeigeErweitertAnsicht(Object.assign({}, ANSICHT_KREIS_KAT))) return true;
+    return zeigeStandardAnsicht();
+  }
+  if (v === 'zweig' && pref.tree === aktuellerStammbaumId && pref.person && aktuelleDaten.persons[pref.person]) {
+    return zeigeZweigAbPerson(pref.person, pref.gen, pref.genAuf);
+  }
+  // 'standard', kein Pref, oder Zweig nicht wiederherstellbar
+  return zeigeStandardAnsicht();
+}
+
 function ansichtAnwenden() {
   const val = (document.querySelector('input[name="ansicht-modus"]:checked') || {}).value;
   document.getElementById('suche').value = '';
@@ -9331,6 +9430,7 @@ function ansichtAnwenden() {
     ansichtModus = 'voll'; fokusPersonId = null; ansichtFokusId = null;
     vollGraphRender();
     aktualisiereBaumHinweis();   // Generationen-Hinweis ausblenden (Vollansicht)
+    speichereAnsichtPref('voll');
     schliesseAnsichtModal();
     return;
   }
@@ -9347,6 +9447,7 @@ function ansichtAnwenden() {
     const genAuf = parseInt(document.getElementById('ansicht-gen-auf').value, 10);
     zweigOverlayGen = gen; zweigOverlayGenAuf = genAuf;   // explizite Nutzerwahl als Dialog-Vorbelegung merken
     zeigeZweigAbPerson(ansichtPickSel, gen, genAuf);
+    speichereAnsichtPref('zweig', { person: ansichtPickSel, gen, genAuf, tree: aktuellerStammbaumId });
     schliesseAnsichtModal();
     return;
   }
@@ -9357,6 +9458,7 @@ function ansichtAnwenden() {
       document.getElementById('ansicht-keine-karte').style.display = '';
       return;
     }
+    speichereAnsichtPref('kreis');
     schliesseAnsichtModal();
     return;
   }
@@ -9366,6 +9468,7 @@ function ansichtAnwenden() {
     document.getElementById('ansicht-keine-karte').style.display = '';
     return;
   }
+  speichereAnsichtPref('standard');
   schliesseAnsichtModal();
 }
 
@@ -10026,6 +10129,7 @@ async function tfErstellen() {
   const fehler = document.getElementById('tf-neu-fehler');
   fehler.textContent = '';
   if (!titel) { return feldFehler('tf-titel', t('feld_pflicht')); }
+  if (!pruefeDatumFelder([...document.querySelectorAll('#tf-optionen .tf-opt-datum')])) return;
   const optionen = [];
   document.querySelectorAll('#tf-optionen .tf-opt-row').forEach(row => {
     const iso = datumWert(row.querySelector('.tf-opt-datum'));
@@ -11498,6 +11602,7 @@ async function speichereEvent() {
   feldFehlerReset('event-modal');
   const titel = v('ev-titel');
   if (!titel) return feldFehler('ev-titel', t('feld_pflicht'));
+  if (!pruefeDatumFelder(['ev-datum'])) return;
 
   const id = document.getElementById('ev-id').value || null;
   // Für die Kalender-Update-Mail: alten Stand der kalender-relevanten Felder merken
@@ -12257,6 +12362,7 @@ async function kostenAusgabeSpeichern() {
   const betrag = parseFloat((document.getElementById('kosten-betrag').value || '0').replace(',', '.')) || 0;
   const waehrung = (document.getElementById('kosten-waehrung').value || 'EUR').trim() || 'EUR';
   const payer = document.getElementById('kosten-payer').value || null;
+  if (datumFeldUngueltig('kosten-datum')) { await zeigeHinweis(t('dat_ungueltig')); return; }
   const datum = datumWert(document.getElementById('kosten-datum')) || null;
   const beschreibung = (document.getElementById('kosten-beschreibung').value || '').trim() || null;
   const { error } = await sbClient.rpc('event_kosten_speichern', {
@@ -12897,6 +13003,27 @@ function gamSpracheUpdate() {
 function _vwKanon(id) { const p = aktuelleDaten.persons[id]; return p && p._ident ? 'i:' + p._ident : id; }
 function _vwSex(id) { const p = aktuelleDaten.persons[id]; return p && p.sex === 'M' ? 'm' : (p && p.sex === 'F' ? 'f' : 'n'); }
 
+// Partner-Art (ehe/partner/ex_ehe/ex_partner) -> geschlechtsabhängiges Label. Mann/Frau bzw.
+// Exmann/Exfrau aus dem Geschlecht des PARTNERS; unbekannt -> Partner/in bzw. Ex-Partner/in.
+function partnerArtLabel(partner, art) {
+  const sx = partner && partner.sex === 'M' ? 'm' : (partner && partner.sex === 'F' ? 'f' : 'n');
+  if (art === 'partner')    return t('vw_partner');
+  if (art === 'ex_partner') return t('vw_expartner');
+  if (art === 'ex_ehe')     return t(sx === 'f' ? 'vw_exfrau' : (sx === 'm' ? 'vw_exmann' : 'vw_expartner'));
+  return t(sx === 'f' ? 'vw_ehefrau' : (sx === 'm' ? 'vw_ehemann' : 'vw_partner'));   // 'ehe'/null
+}
+// Partner-Art der Kante zwischen zwei Personen (identitätstolerant über _vwKanon); null = keine/ehe.
+function _partnerArtZwischen(aId, bId) {
+  const a = aktuelleDaten.persons[aId]; if (!a) return null;
+  const bK = _vwKanon(bId);
+  for (const fid of (a.families_spouse || [])) {
+    const fam = aktuelleDaten.families[fid]; if (!fam) continue;
+    const other = fam.husband === aId ? fam.wife : (fam.wife === aId ? fam.husband : null);
+    if (other && _vwKanon(other) === bK) return fam.partner_art || null;
+  }
+  return null;
+}
+
 // Vorfahren-Distanzen (kanonisch, Zwillinge zusammengefasst): Map kanon -> {dist, id}. Start = dist 0.
 function _vwVorfahren(startId) {
   const dist = new Map();
@@ -12937,9 +13064,14 @@ function verwandtschaftBestimmen(meId, zielId) {
   if (_vwKanon(meId) === _vwKanon(zielId)) return { key: 'vw_selbst' };
   const sx = _vwSex(zielId);
   const zielK = _vwKanon(zielId);
-  // 1) Direkte Heirat
-  if ([..._ansPartner(meId)].some(p => _vwKanon(p) === zielK))
+  // 1) Direkte Heirat / Partnerschaft (Art berücksichtigen: Ehe/Partner/Ex)
+  if ([..._ansPartner(meId)].some(p => _vwKanon(p) === zielK)) {
+    const art = _partnerArtZwischen(meId, zielId) || 'ehe';
+    if (art === 'partner')    return { key: 'vw_partner' };
+    if (art === 'ex_partner') return { key: 'vw_expartner' };
+    if (art === 'ex_ehe')     return { key: sx === 'f' ? 'vw_exfrau' : (sx === 'm' ? 'vw_exmann' : 'vw_expartner') };
     return { key: sx === 'f' ? 'vw_ehefrau' : (sx === 'm' ? 'vw_ehemann' : 'vw_partner') };
+  }
   // 2) Blutsverwandtschaft über nächsten gemeinsamen Vorfahren
   const av = _vwVorfahren(meId), bv = _vwVorfahren(zielId);
   let best = null;
@@ -13043,7 +13175,8 @@ function zeigeDetails(personId) {
     let bucket;
     if (partner) {
       const pk = vornKey(partner);
-      if (!ehePartnerIdx.has(pk)) { eheFamilien.push({ partner, kinder: [] }); ehePartnerIdx.set(pk, eheFamilien.length - 1); if (hauptIdx < 0) hauptIdx = eheFamilien.length - 1; }
+      if (!ehePartnerIdx.has(pk)) { eheFamilien.push({ partner, kinder: [], art: fam.partner_art || 'ehe' }); ehePartnerIdx.set(pk, eheFamilien.length - 1); if (hauptIdx < 0) hauptIdx = eheFamilien.length - 1; }
+      else if (fam.partner_art) eheFamilien[ehePartnerIdx.get(pk)].art = fam.partner_art;
       bucket = eheFamilien[ehePartnerIdx.get(pk)].kinder;
     } else bucket = ohnePartnerKinder;
     (fam.children || []).forEach(cid => {
@@ -13084,10 +13217,16 @@ function zeigeDetails(personId) {
   // Ehe-Block: Partner- + Kinder-Abschnitt je Ehe (mit ＋). Ohne Ehe für Admins leere Abschnitte.
   const eheBloecke = eheFamilien.length ? eheFamilien : (istAdmin() ? [{ partner: null, kinder: [] }] : []);
   const eheHtml = eheBloecke.map((ef, i) => {
-    const ptitel = eheFamilien.length > 1 ? `${t('partner')} ${i + 1}` : t('partner');
+    // Titel = geschlechtsabhängiges Art-Label (Ehemann/Ehefrau/Partner/Exmann/Exfrau/Ex-Partner).
+    const ptitel = ef.partner ? partnerArtLabel(ef.partner, ef.art)
+                              : (eheFamilien.length > 1 ? `${t('partner')} ${i + 1}` : t('partner'));
     const partnerHtml = ef.partner ? relChip(ef.partner, 'partner') : '';
+    // Admin: Art der Partnerschaft nachträglich umstellen (Ehe<->Partner, aktiv<->Ex).
+    const artBtn = (istAdmin() && ef.partner)
+      ? `<button class="sec-add-btn" type="button" title="${escapeHtml(t('part_art_titel'))}" onclick="partnerArtDialog('${ef.partner.id}','${ef.art || 'ehe'}')">✎</button>`
+      : '';
     const kinderHtml = ef.kinder.length ? buildVerwandte(ef.kinder, 'kind') : '';
-    return `<div class="beziehungen"><h3>${ptitel} ${addBtn('partner')}</h3>${partnerHtml}</div>
+    return `<div class="beziehungen"><h3>${ptitel} ${addBtn('partner')}${artBtn}</h3>${partnerHtml}</div>
             <div class="beziehungen"><h3>${t('kinder')} ${addBtn('kind')}</h3>${kinderHtml}</div>`;
   }).join('');
 
@@ -15536,6 +15675,7 @@ async function dokUpload() {
   const quelle = document.getElementById('pe-dok-quelle').value.trim();
   if (!file)  { dokFehler(t('dok_datei_pflicht')); return; }
   if (!titel) { dokFehler(t('dok_titel_pflicht')); return; }
+  if (datumFeldUngueltig('pe-dok-datum')) { dokFehler(t('dat_ungueltig')); return; }
   const erlaubt = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
   if (!erlaubt.includes(file.type)) { dokFehler(t('dok_typ_fehler')); return; }
   if (file.size > 20 * 1024 * 1024) { dokFehler(t('dok_gross_fehler')); return; }
@@ -16022,6 +16162,10 @@ async function speicherePerson(force) {
   if (!pruefeNamePflicht('pe', v('pe-vorname'), v('pe-nachname'), sexE, v('pe-ehename'))) return;
   // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt (Hinweis steht am Feld)
   if (!pruefeEmailFeld(document.getElementById('pe-email'), false)) return feldFokus('pe-email');
+  // Datumsfelder: nicht-parsebarer Freitext wie „xx/xx/xxxx" hier abfangen (sonst fehlen Anlässe/Zeitstrahl).
+  { const df = ['pe-geburtsdatum','pe-getauft','pe-hochzeit-standesamt','pe-hochzeit-kirchlich'];
+    if (document.getElementById('pe-status').value === 'verstorben') df.push('pe-sterbedatum');
+    if (!pruefeDatumFelder(df)) return; }
   const altText = button.textContent;
   button.disabled = true; button.textContent = t('reg_senden_laeuft');
 
@@ -16504,6 +16648,9 @@ function paPruefeFelder() {
   // Vater/Mutter-Block nur bei "Kind"
   const typ = document.getElementById('pa-beziehungstyp').value;
   document.getElementById('pa-eltern-block').style.display = (typ === 'kind') ? '' : 'none';
+  // Partner-Art (Ehepartner/Partner/Ex-…) nur bei "Partner"
+  const paArt = document.getElementById('pa-partner-art-label');
+  if (paArt) paArt.style.display = (typ === 'partner') ? '' : 'none';
   paAktualisiereKontext();   // Kopf an die GEWÄHLTE Beziehung anpassen (live bei Dropdown-Wechsel)
 }
 
@@ -16650,6 +16797,10 @@ async function speichereNeuePerson() {
   if (!pruefeNamePflicht('pa', vorname, nachname, sex, v('pa-ehename'))) return;
   // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt (Hinweis steht am Feld)
   if (!pruefeEmailFeld(document.getElementById('pa-email'), false)) return feldFokus('pa-email');
+  // Datumsfelder: nicht-parsebarer Freitext wie „xx/xx/xxxx" hier abfangen (sonst fehlen Anlässe/Zeitstrahl).
+  { const df = ['pa-geburtsdatum','pa-getauft','pa-hochzeit-standesamt','pa-hochzeit-kirchlich'];
+    if (document.getElementById('pa-status').value === 'verstorben') df.push('pa-sterbedatum');
+    if (!pruefeDatumFelder(df)) return; }
 
   const verstorben = document.getElementById('pa-status').value === 'verstorben';
 
@@ -16716,7 +16867,10 @@ async function speichereNeuePerson() {
       op.edges.push({ other: aktiv._uuid, typ: 'elternteil', new_ist_a: true });
     } else if (typ === 'partner') {
       // aktiv = person_a, neu = person_b (ehepartner ist symmetrisch)
-      op.edges.push({ other: aktiv._uuid, typ: 'ehepartner', new_ist_a: false });
+      const paArtEl = document.getElementById('pa-partner-art');
+      const paArt = paArtEl ? paArtEl.value : 'ehe';
+      op.edges.push({ other: aktiv._uuid, typ: 'ehepartner', new_ist_a: false,
+                      partner_art: ['ehe','partner','ex_ehe','ex_partner'].includes(paArt) ? paArt : 'ehe' });
     } else if (typ === 'geschwister') {
       // gleiche Eltern wie die aktive Person; hat sie keine, legt die RPC einen
       // Platzhalter-Elternteil an und hängt BEIDE Geschwister daran (im selben Transaktions-
@@ -17438,6 +17592,49 @@ async function bezAendernAnwenden() {
   await zeigeHinweis(t('bezv_erfolg'));
 }
 
+// --- Partner-Art (Ehe/Partner/Ex) einer BESTEHENDEN Partnerschaft nachträglich umstellen ---
+// P = offene Detailkarte (aktuelleModalPersonId), X = der Partner. Ein Klick auf eine Option
+// wendet sofort an (RPC partner_art_setzen, identitätsbewusst) und rendert die Karte frisch.
+let partnerArtCtx = null;   // { pId, vId }
+function schliessePartnerArt() {
+  document.getElementById('partner-art-modal').classList.remove('aktiv');
+  partnerArtCtx = null;
+}
+function partnerArtDialog(vId, currentArt) {
+  if (!istAdmin()) return;
+  const pId = aktuelleModalPersonId;
+  const P = aktuelleDaten.persons[pId], X = aktuelleDaten.persons[vId];
+  if (!P || !X) return;
+  partnerArtCtx = { pId, vId };
+  const info = document.getElementById('partner-art-info');
+  if (info) info.textContent = nm(X.name || X.given || '');
+  const cur = ['ehe','partner','ex_ehe','ex_partner'].includes(currentArt) ? currentArt : 'ehe';
+  document.getElementById('partner-art-opt').innerHTML = ['ehe','partner','ex_ehe','ex_partner'].map(a =>
+    `<label class="ansicht-radio${a === cur ? ' aktiv' : ''}" onclick="partnerArtWaehle('${a}')">
+      <input type="radio" name="partner-art" value="${a}" ${a === cur ? 'checked' : ''}>
+      <span><b>${escapeHtml(t('part_art_' + a))}</b></span>
+    </label>`).join('');
+  const f = document.getElementById('partner-art-fehler'); if (f) { f.style.display = 'none'; f.textContent = ''; }
+  document.getElementById('partner-art-modal').classList.add('aktiv');
+}
+async function partnerArtWaehle(art) {
+  if (!partnerArtCtx) return;
+  const { pId, vId } = partnerArtCtx;
+  const P = aktuelleDaten.persons[pId], X = aktuelleDaten.persons[vId];
+  const f = document.getElementById('partner-art-fehler');
+  if (!P || !X || !P._uuid || !X._uuid) return;
+  try {
+    const { data, error } = await sbClient.rpc('partner_art_setzen', { p_person: P._uuid, p_other: X._uuid, p_art: art });
+    if (error) throw new Error(error.message);
+    if (!data || !data.ok) throw new Error((data && data.fehler) || 'fehler');
+    schliessePartnerArt();
+    await reloadBaumBehalteFokus(pId);
+    if (aktuelleDaten.persons[pId]) { aktuelleModalPersonId = null; zeigeDetails(pId); }
+  } catch (e) {
+    if (f) { f.textContent = t('bezv_fehler'); f.style.display = 'block'; console.warn('partner_art_setzen', e); }
+  }
+}
+
 // EINE Verknüpfung (Kante) zwischen der offenen Person und einer verwandten Person lösen.
 // Beide Personen BLEIBEN erhalten — nur die Beziehung in `beziehungen` wird entfernt
 // (wie loeschePerson per Direct-Delete; RLS lässt das für editierbare Familien zu).
@@ -17700,8 +17897,10 @@ function wechselAnsicht(name) {
     const suche = document.getElementById('suche').value.trim();
     if (suche) {
       suchImBaum(suche);
-    } else if (!fokusPersonId) {
-      vollGraphRender();
+    } else {
+      // Zurück auf den Stammbaum-Tab: die AKTIVE Ansicht (Standard/Kreis/Zweig/Voll bzw.
+      // Such-/Fokus-Fallback) beibehalten — NICHT stur den Vollbaum zeichnen.
+      rendereAktuelleAnsicht();
     }
   } else if (name === 'karten') {
     zeigeKarten();
@@ -18128,6 +18327,17 @@ function umbrucheNamen(s, max) {
 const BLUTLINIE_IDS = new Set(['I500009', 'I500007', 'I500003']);
 const BLUTLINIE_KINDER = { 'I500009': 'I500007', 'I500007': 'I500003' };
 
+// Ex-Partner (partner_art 'ex_ehe'/'ex_partner') OHNE gemeinsame Kinder werden im Baum-DIAGRAMM
+// nicht als Partner gezeichnet (Nutzerentscheidung: „Ex nur bei gemeinsamen Kindern"); mit
+// gemeinsamen Kindern bleiben sie als Co-Elternteil sichtbar. In der Detailkarte erscheinen
+// Ex-Partner IMMER (dort NICHT gefiltert). Gilt für beide Renderer (baueBaumDaten + zeichneGraph2).
+function istExOhneKinder(fam) {
+  if (!fam) return false;
+  const art = fam.partner_art;
+  if (art !== 'ex_ehe' && art !== 'ex_partner') return false;
+  return !((fam.children || []).length);
+}
+
 function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {}) {
   if (!aktuelleDaten.persons[rootId]) return null;
 
@@ -18278,6 +18488,7 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
       (tp.families_spouse || []).forEach(famId => {
         const fam = aktuelleDaten.families[famId];
         if (!fam) return;
+        if (istExOhneKinder(fam)) return;   // Ex ohne gemeinsame Kinder nicht im Baum-Diagramm
         const partnerId = myTwins.has(fam.husband) ? fam.wife : fam.husband;
         const pk = (partnerId && aktuelleDaten.persons[partnerId]) ? partnerSchluessel(partnerId) : null;
         let ziel;
@@ -18451,6 +18662,7 @@ function baueGraphModell() {
     const key = pc.length ? pc.slice().sort().join('&') : ('solo:' + fam.id);
     let u = unionMap.get(key);
     if (!u) { u = { key, parents: new Set(pc), children: new Set() }; unionMap.set(key, u); }
+    if (fam.partner_art) u.partner_art = fam.partner_art;   // Ehe/Partner/Ex-Kennzeichnung der Union
     (fam.children || []).forEach(cid => { const cc = canonOf(cid); if (nodes.has(cc) && !u.parents.has(cc)) u.children.add(cc); });
   });
   const unions = [...unionMap.values()];
@@ -18460,7 +18672,13 @@ function baueGraphModell() {
   nodes.forEach((_, c) => { parents.set(c, new Set()); children.set(c, new Set()); partners.set(c, new Set()); });
   unions.forEach(u => {
     const ps = [...u.parents], cs = [...u.children];
-    for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { partners.get(ps[i]).add(ps[j]); partners.get(ps[j]).add(ps[i]); }
+    // Ex-Partnerschaft OHNE gemeinsame Kinder: KEINE Partner-Kante -> erscheint nicht im
+    // Graph-Diagramm (bleibt aber in der Detailkarte). Mit gemeinsamen Kindern bleibt die
+    // Kante (Co-Elternschaft sichtbar). Eltern->Kind-Kanten sind davon unberührt.
+    const exOhneKinder = (u.partner_art === 'ex_ehe' || u.partner_art === 'ex_partner') && cs.length === 0;
+    if (!exOhneKinder) {
+      for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { partners.get(ps[i]).add(ps[j]); partners.get(ps[j]).add(ps[i]); }
+    }
     ps.forEach(p => cs.forEach(c => { children.get(p).add(c); parents.get(c).add(p); }));
   });
 

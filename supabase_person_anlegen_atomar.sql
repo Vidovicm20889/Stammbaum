@@ -22,7 +22,8 @@
 --     "externe_id":   text,                -- I<timestamp> (vom Frontend erzeugt)
 --     "daten":        { ...stammbaum_daten... },   -- jsonb, enthält given/surname/...
 --     "edges": [                            -- Kanten der NEUEN Person zu BESTEHENDEN Personen
---        { "other": uuid, "typ": "elternteil"|"ehepartner", "new_ist_a": bool }
+--        { "other": uuid, "typ": "elternteil"|"ehepartner", "new_ist_a": bool,
+--          "partner_art": "ehe"|"partner"|"ex_ehe"|"ex_partner" }  -- nur bei ehepartner, optional
 --        -- new_ist_a=true  -> person_a = neu,  person_b = other
 --        -- new_ist_a=false -> person_a = other, person_b = neu
 --     ],
@@ -51,6 +52,7 @@ DECLARE
   v_edge  jsonb;
   v_kid   jsonb;
   v_typ   text;
+  v_art   text;
 BEGIN
   IF v_fam IS NULL OR v_tree IS NULL THEN RAISE EXCEPTION 'pa_kontext_fehlt'; END IF;
   IF v_ext IS NULL OR v_daten IS NULL OR jsonb_typeof(v_daten) <> 'object' THEN
@@ -102,12 +104,17 @@ BEGIN
       RAISE EXCEPTION 'pa_kante_typ_ungueltig: %', v_typ; END IF;
     IF (v_edge->>'other') IS NULL THEN CONTINUE; END IF;
 
+    -- Partner-Art nur bei ehepartner (sonst NULL); ungültige Werte -> NULL (= 'ehe').
+    v_art := CASE WHEN v_typ = 'ehepartner'
+                   AND (v_edge->>'partner_art') IN ('ehe','partner','ex_ehe','ex_partner')
+                  THEN v_edge->>'partner_art' ELSE NULL END;
+
     IF coalesce((v_edge->>'new_ist_a')::boolean, false) THEN
-      INSERT INTO public.beziehungen (familie_id, person_a, person_b, typ)
-      VALUES (v_fam, v_new, (v_edge->>'other')::uuid, v_typ);
+      INSERT INTO public.beziehungen (familie_id, person_a, person_b, typ, partner_art)
+      VALUES (v_fam, v_new, (v_edge->>'other')::uuid, v_typ, v_art);
     ELSE
-      INSERT INTO public.beziehungen (familie_id, person_a, person_b, typ)
-      VALUES (v_fam, (v_edge->>'other')::uuid, v_new, v_typ);
+      INSERT INTO public.beziehungen (familie_id, person_a, person_b, typ, partner_art)
+      VALUES (v_fam, (v_edge->>'other')::uuid, v_new, v_typ, v_art);
     END IF;
   END LOOP;
 

@@ -13,8 +13,8 @@ const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY       = Deno.env.get("SUPABASE_ANON_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
-const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@familyroots.club>";
+const APP_URL        = Deno.env.get("APP_URL") ?? "https://familyroots.club/stammbaum.html";
 
 const TEXTE: Record<string, Record<string, string>> = {
   de: { ok_subject: "Dein Zugang wurde bestätigt – FamilyRoots",
@@ -49,7 +49,7 @@ const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
   <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>${inner}
-  <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p></div>`;
+  <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">familyroots.club</p></div>`;
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

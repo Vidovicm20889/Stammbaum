@@ -10,8 +10,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@vidovic-ai.com>";
-const APP_URL        = Deno.env.get("APP_URL") ?? "https://vidovicm20889.github.io/Stammbaum/stammbaum.html";
+const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@familyroots.club>";
+const APP_URL        = Deno.env.get("APP_URL") ?? "https://familyroots.club/stammbaum.html";
 
 // ---------------------------------------------------------------------------
 // Mehrsprachige Texte
@@ -69,7 +69,7 @@ const WRAP = (inner: string) => `
   background:#f6f1e7;color:#2c2418;padding:28px 26px;border:1px solid #d8c9a8;border-radius:14px;">
   <h2 style="color:#7a2a2a;margin:0 0 16px;">FamilyRoots</h2>
   ${inner}
-  <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">vidovicm20889.github.io/Stammbaum</p>
+  <p style="margin-top:26px;font-size:12px;color:#8a7a5a;">familyroots.club</p>
 </div>`;
 
 const zeile = (label: string, wert: string) =>

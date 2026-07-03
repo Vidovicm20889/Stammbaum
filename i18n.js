@@ -35,6 +35,8 @@ const TEXTE = {
     vw_keine_eigene: 'Verknüpfe zuerst deine eigene Person im Profil.',
     vw_unbekannt: 'Keine Verwandtschaft im Stammbaum gefunden', vw_selbst: 'Das bist du selbst',
     vw_ehemann: 'Ehemann', vw_ehefrau: 'Ehefrau', vw_partner: 'Partner/in',
+    vw_exmann: 'Exmann', vw_exfrau: 'Exfrau', vw_expartner: 'Ex-Partner/in',
+    part_art_label: 'Art der Partnerschaft', part_art_ehe: 'Ehepartner/in', part_art_partner: 'Partner/in', part_art_ex_ehe: 'Ex-Ehepartner/in', part_art_ex_partner: 'Ex-Partner/in', part_art_aendern: 'Art ändern', part_art_titel: 'Art der Partnerschaft ändern',
     vw_vater: 'Vater', vw_mutter: 'Mutter', vw_elternteil: 'Elternteil',
     vw_grossvater: 'Großvater', vw_grossmutter: 'Großmutter', vw_grosselternteil: 'Großelternteil',
     vw_vorfahr: 'Vorfahr ({n} Generationen)', vw_vorfahrin: 'Vorfahrin ({n} Generationen)',
@@ -664,6 +666,7 @@ const TEXTE = {
     reg_vorname: 'Vorname',
     reg_nachname: 'Nachname',
     reg_geburtsdatum: 'Geburtsdatum',
+    dat_ungueltig: 'Bitte ein gültiges Datum eingeben (z. B. 08.07.1992).',
     reg_geburtsort: 'Geburtsort',
     reg_geburtsland: 'Geburtsland',
     reg_getauft: 'Getauft am',
@@ -1273,6 +1276,8 @@ const TEXTE = {
     vw_keine_eigene: 'Прво повежи своју особу у профилу.',
     vw_unbekannt: 'Сродство није пронађено у стаблу', vw_selbst: 'То си ти',
     vw_ehemann: 'Супруг', vw_ehefrau: 'Супруга', vw_partner: 'Партнер',
+    vw_exmann: 'Бивши супруг', vw_exfrau: 'Бивша супруга', vw_expartner: 'Бивши партнер',
+    part_art_label: 'Врста везе', part_art_ehe: 'Брачни партнер', part_art_partner: 'Партнер/ка', part_art_ex_ehe: 'Бивши брачни партнер', part_art_ex_partner: 'Бивши партнер/ка', part_art_aendern: 'Промени врсту', part_art_titel: 'Промени врсту везе',
     vw_vater: 'Отац', vw_mutter: 'Мајка', vw_elternteil: 'Родитељ',
     vw_grossvater: 'Деда', vw_grossmutter: 'Бака', vw_grosselternteil: 'Деда/бака',
     vw_vorfahr: 'Предак ({n} генерација)', vw_vorfahrin: 'Предак ({n} генерација)',
@@ -1902,6 +1907,7 @@ const TEXTE = {
     reg_vorname: 'Име',
     reg_nachname: 'Презиме',
     reg_geburtsdatum: 'Датум рођења',
+    dat_ungueltig: 'Унесите исправан датум (нпр. 08.07.1992).',
     reg_geburtsort: 'Место рођења',
     reg_geburtsland: 'Држава рођења',
     reg_getauft: 'Крштен(а)',
@@ -2511,6 +2517,8 @@ const TEXTE = {
     vw_keine_eigene: 'Prvo poveži svoju osobu u profilu.',
     vw_unbekannt: 'Srodstvo nije pronađeno u stablu', vw_selbst: 'To si ti',
     vw_ehemann: 'Suprug', vw_ehefrau: 'Supruga', vw_partner: 'Partner',
+    vw_exmann: 'Bivši suprug', vw_exfrau: 'Bivša supruga', vw_expartner: 'Bivši partner',
+    part_art_label: 'Vrsta veze', part_art_ehe: 'Bračni partner', part_art_partner: 'Partner/ica', part_art_ex_ehe: 'Bivši bračni partner', part_art_ex_partner: 'Bivši partner/ica', part_art_aendern: 'Promijeni vrstu', part_art_titel: 'Promijeni vrstu veze',
     vw_vater: 'Otac', vw_mutter: 'Majka', vw_elternteil: 'Roditelj',
     vw_grossvater: 'Djed', vw_grossmutter: 'Baka', vw_grosselternteil: 'Djed/baka',
     vw_vorfahr: 'Predak ({n} generacija)', vw_vorfahrin: 'Predak ({n} generacija)',
@@ -3140,6 +3148,7 @@ const TEXTE = {
     reg_vorname: 'Ime',
     reg_nachname: 'Prezime',
     reg_geburtsdatum: 'Datum rođenja',
+    dat_ungueltig: 'Unesite ispravan datum (npr. 08.07.1992).',
     reg_geburtsort: 'Mjesto rođenja',
     reg_geburtsland: 'Država rođenja',
     reg_getauft: 'Kršten(a)',
@@ -3749,6 +3758,8 @@ const TEXTE = {
     vw_keine_eigene: 'Prvo poveži svoju osobu u profilu.',
     vw_unbekannt: 'Srodstvo nije pronađeno u stablu', vw_selbst: 'To si ti',
     vw_ehemann: 'Suprug', vw_ehefrau: 'Supruga', vw_partner: 'Partner',
+    vw_exmann: 'Bivši suprug', vw_exfrau: 'Bivša supruga', vw_expartner: 'Bivši partner',
+    part_art_label: 'Vrsta veze', part_art_ehe: 'Bračni partner', part_art_partner: 'Partner/ica', part_art_ex_ehe: 'Bivši bračni partner', part_art_ex_partner: 'Bivši partner/ica', part_art_aendern: 'Promijeni vrstu', part_art_titel: 'Promijeni vrstu veze',
     vw_vater: 'Otac', vw_mutter: 'Majka', vw_elternteil: 'Roditelj',
     vw_grossvater: 'Djed', vw_grossmutter: 'Nana', vw_grosselternteil: 'Djed/nana',
     vw_vorfahr: 'Predak ({n} generacija)', vw_vorfahrin: 'Predak ({n} generacija)',
@@ -4378,6 +4389,7 @@ const TEXTE = {
     reg_vorname: 'Ime',
     reg_nachname: 'Prezime',
     reg_geburtsdatum: 'Datum rođenja',
+    dat_ungueltig: 'Unesite ispravan datum (npr. 08.07.1992).',
     reg_geburtsort: 'Mjesto rođenja',
     reg_geburtsland: 'Država rođenja',
     reg_getauft: 'Kršten(a)',
@@ -4987,6 +4999,8 @@ const TEXTE = {
     vw_keine_eigene: 'Link your own person in your profile first.',
     vw_unbekannt: 'No relationship found in the tree', vw_selbst: 'This is you',
     vw_ehemann: 'Husband', vw_ehefrau: 'Wife', vw_partner: 'Partner',
+    vw_exmann: 'Ex-husband', vw_exfrau: 'Ex-wife', vw_expartner: 'Ex-partner',
+    part_art_label: 'Type of partnership', part_art_ehe: 'Spouse', part_art_partner: 'Partner', part_art_ex_ehe: 'Ex-spouse', part_art_ex_partner: 'Ex-partner', part_art_aendern: 'Change type', part_art_titel: 'Change type of partnership',
     vw_vater: 'Father', vw_mutter: 'Mother', vw_elternteil: 'Parent',
     vw_grossvater: 'Grandfather', vw_grossmutter: 'Grandmother', vw_grosselternteil: 'Grandparent',
     vw_vorfahr: 'Ancestor ({n} generations)', vw_vorfahrin: 'Ancestor ({n} generations)',
@@ -5616,6 +5630,7 @@ const TEXTE = {
     reg_vorname: 'First name',
     reg_nachname: 'Last name',
     reg_geburtsdatum: 'Date of birth',
+    dat_ungueltig: 'Please enter a valid date (e.g. 08/07/1992).',
     reg_geburtsort: 'Place of birth',
     reg_geburtsland: 'Country of birth',
     reg_getauft: 'Baptised on',
@@ -6543,14 +6558,14 @@ const RECHTSTEXTE = {
       <h2>Impressum</h2>
       <p><strong>Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)</strong></p>
       <p>[PLATZHALTER: Vor- und Nachname]<br>[PLATZHALTER: Straße und Hausnummer]<br>[PLATZHALTER: PLZ und Ort]<br>[PLATZHALTER: Land]</p>
-      <p><strong>Kontakt</strong><br>E-Mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Telefon: [PLATZHALTER: optional]</p>
+      <p><strong>Kontakt</strong><br>E-Mail: <a href="mailto:support@familyroots.club">support@familyroots.club</a><br>Telefon: [PLATZHALTER: optional]</p>
       <p><strong>Verantwortlich für den Inhalt</strong><br>[PLATZHALTER: Name und Anschrift wie oben]</p>
       <p>Dieses Angebot ist ein privates, nicht-kommerzielles Familienprojekt.</p>
       <p><strong>Haftung für Inhalte und Links:</strong> Die Inhalte wurden mit Sorgfalt erstellt, für ihre Richtigkeit wird jedoch keine Gewähr übernommen. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich.</p>`,
     datenschutz: `
       <h2>Datenschutzerklärung</h2>
       <h3>1. Verantwortlicher</h3>
-      <p>[PLATZHALTER: Name und Anschrift]<br>E-Mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
+      <p>[PLATZHALTER: Name und Anschrift]<br>E-Mail: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>
       <h3>2. Welche Daten wir verarbeiten</h3>
       <ul>
         <li>Kontodaten: E-Mail-Adresse, Passwort (verschlüsselt gespeichert), Rolle.</li>
@@ -6579,21 +6594,21 @@ const RECHTSTEXTE = {
       <h3>10. Cookies / lokale Speicherung</h3>
       <p>Es werden nur technisch notwendige Werte im Browser gespeichert (Sprachwahl, Sitzung). Es findet kein Tracking und keine automatisierte Entscheidungsfindung statt.</p>
       <h3>11. Kontakt in Datenschutzfragen</h3>
-      <p>E-Mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
+      <p>E-Mail: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>`
   },
   en: {
     impressum: `
       <h2>Legal notice</h2>
       <p><strong>Provider information</strong></p>
       <p>[PLATZHALTER: first and last name]<br>[PLATZHALTER: street and number]<br>[PLATZHALTER: postal code and city]<br>[PLATZHALTER: country]</p>
-      <p><strong>Contact</strong><br>E-mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Phone: [PLATZHALTER: optional]</p>
+      <p><strong>Contact</strong><br>E-mail: <a href="mailto:support@familyroots.club">support@familyroots.club</a><br>Phone: [PLATZHALTER: optional]</p>
       <p><strong>Responsible for the content</strong><br>[PLATZHALTER: name and address as above]</p>
       <p>This is a private, non-commercial family project.</p>
       <p><strong>Liability for content and links:</strong> Content has been prepared with care, but no guarantee is given for its accuracy. Operators of linked external sites are responsible for their own content.</p>`,
     datenschutz: `
       <h2>Privacy Policy</h2>
       <h3>1. Controller</h3>
-      <p>[PLATZHALTER: name and address]<br>E-mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
+      <p>[PLATZHALTER: name and address]<br>E-mail: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>
       <h3>2. What data we process</h3>
       <ul>
         <li>Account data: e-mail address, password (stored encrypted), role.</li>
@@ -6622,21 +6637,21 @@ const RECHTSTEXTE = {
       <h3>10. Cookies / local storage</h3>
       <p>Only technically necessary values are stored in the browser (language choice, session). There is no tracking and no automated decision-making.</p>
       <h3>11. Privacy contact</h3>
-      <p>E-mail: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
+      <p>E-mail: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>`
   },
   hr: {
     impressum: `
       <h2>Impressum</h2>
       <p><strong>Podaci o pružatelju usluge</strong></p>
       <p>[PLATZHALTER: ime i prezime]<br>[PLATZHALTER: ulica i broj]<br>[PLATZHALTER: poštanski broj i mjesto]<br>[PLATZHALTER: država]</p>
-      <p><strong>Kontakt</strong><br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Telefon: [PLATZHALTER: nije obavezno]</p>
+      <p><strong>Kontakt</strong><br>E-pošta: <a href="mailto:support@familyroots.club">support@familyroots.club</a><br>Telefon: [PLATZHALTER: nije obavezno]</p>
       <p><strong>Odgovoran za sadržaj</strong><br>[PLATZHALTER: ime i adresa kao gore]</p>
       <p>Ovo je privatni, nekomercijalni obiteljski projekt.</p>
       <p><strong>Odgovornost za sadržaj i poveznice:</strong> Sadržaj je izrađen s pažnjom, no ne jamči se njegova točnost. Za sadržaj povezanih vanjskih stranica odgovorni su njihovi vlasnici.</p>`,
     datenschutz: `
       <h2>Izjava o zaštiti podataka</h2>
       <h3>1. Voditelj obrade</h3>
-      <p>[PLATZHALTER: ime i adresa]<br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
+      <p>[PLATZHALTER: ime i adresa]<br>E-pošta: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>
       <h3>2. Koje podatke obrađujemo</h3>
       <ul>
         <li>Podaci računa: e-pošta, lozinka (pohranjena šifrirano), uloga.</li>
@@ -6665,21 +6680,21 @@ const RECHTSTEXTE = {
       <h3>10. Kolačići / lokalna pohrana</h3>
       <p>U pregledniku se pohranjuju samo tehnički nužne vrijednosti (izbor jezika, sesija). Nema praćenja ni automatiziranog donošenja odluka.</p>
       <h3>11. Kontakt za zaštitu podataka</h3>
-      <p>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
+      <p>E-pošta: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>`
   },
   ba: {
     impressum: `
       <h2>Impressum</h2>
       <p><strong>Podaci o pružaocu usluge</strong></p>
       <p>[PLATZHALTER: ime i prezime]<br>[PLATZHALTER: ulica i broj]<br>[PLATZHALTER: poštanski broj i mjesto]<br>[PLATZHALTER: država]</p>
-      <p><strong>Kontakt</strong><br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Telefon: [PLATZHALTER: nije obavezno]</p>
+      <p><strong>Kontakt</strong><br>E-pošta: <a href="mailto:support@familyroots.club">support@familyroots.club</a><br>Telefon: [PLATZHALTER: nije obavezno]</p>
       <p><strong>Odgovoran za sadržaj</strong><br>[PLATZHALTER: ime i adresa kao gore]</p>
       <p>Ovo je privatni, nekomercijalni porodični projekat.</p>
       <p><strong>Odgovornost za sadržaj i linkove:</strong> Sadržaj je izrađen s pažnjom, ali se ne garantuje njegova tačnost. Za sadržaj povezanih vanjskih stranica odgovorni su njihovi vlasnici.</p>`,
     datenschutz: `
       <h2>Izjava o zaštiti podataka</h2>
       <h3>1. Rukovalac podacima</h3>
-      <p>[PLATZHALTER: ime i adresa]<br>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
+      <p>[PLATZHALTER: ime i adresa]<br>E-pošta: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>
       <h3>2. Koje podatke obrađujemo</h3>
       <ul>
         <li>Podaci računa: e-pošta, lozinka (pohranjena šifrirano), uloga.</li>
@@ -6708,21 +6723,21 @@ const RECHTSTEXTE = {
       <h3>10. Kolačići / lokalna pohrana</h3>
       <p>U pregledniku se pohranjuju samo tehnički nužne vrijednosti (izbor jezika, sesija). Nema praćenja ni automatiziranog donošenja odluka.</p>
       <h3>11. Kontakt za zaštitu podataka</h3>
-      <p>E-pošta: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
+      <p>E-pošta: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>`
   },
   sr: {
     impressum: `
       <h2>Импресум</h2>
       <p><strong>Подаци о пружаоцу услуге</strong></p>
       <p>[PLATZHALTER: име и презиме]<br>[PLATZHALTER: улица и број]<br>[PLATZHALTER: поштански број и место]<br>[PLATZHALTER: држава]</p>
-      <p><strong>Контакт</strong><br>Е-пошта: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a><br>Телефон: [PLATZHALTER: није обавезно]</p>
+      <p><strong>Контакт</strong><br>Е-пошта: <a href="mailto:support@familyroots.club">support@familyroots.club</a><br>Телефон: [PLATZHALTER: није обавезно]</p>
       <p><strong>Одговоран за садржај</strong><br>[PLATZHALTER: име и адреса као горе]</p>
       <p>Ово је приватни, некомерцијални породични пројекат.</p>
       <p><strong>Одговорност за садржај и линкове:</strong> Садржај је израђен с пажњом, али се не гарантује његова тачност. За садржај повезаних спољних страница одговорни су њихови власници.</p>`,
     datenschutz: `
       <h2>Изјава о заштити података</h2>
       <h3>1. Руковалац подацима</h3>
-      <p>[PLATZHALTER: име и адреса]<br>Е-пошта: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>
+      <p>[PLATZHALTER: име и адреса]<br>Е-пошта: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>
       <h3>2. Које податке обрађујемо</h3>
       <ul>
         <li>Подаци налога: е-пошта, лозинка (похрањена шифровано), улога.</li>
@@ -6751,6 +6766,6 @@ const RECHTSTEXTE = {
       <h3>10. Колачићи / локална похрана</h3>
       <p>У прегледачу се похрањују само технички неопходне вредности (избор језика, сесија). Нема праћења ни аутоматизованог доношења одлука.</p>
       <h3>11. Контакт за заштиту података</h3>
-      <p>Е-пошта: <a href="mailto:support@vidovic-ai.com">support@vidovic-ai.com</a></p>`
+      <p>Е-пошта: <a href="mailto:support@familyroots.club">support@familyroots.club</a></p>`
   }
 };
