@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.22">
+<meta name="app-version" content="14.23">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.22">
+<link rel="stylesheet" href="stammbaum.css?v=14.23">
 </head>
 <body>
 
@@ -645,6 +645,21 @@
         <input type="radio" name="ansicht-modus" value="voll" onchange="ansichtModusWahl()">
         <span><b data-i18n="ansicht_opt_voll"></b><small data-i18n="ansicht_opt_voll_sub"></small></span>
       </label>
+    </div>
+
+    <!-- Vertikale Ausrichtung (gilt für ALLE Ansichten; sofort wirksam) -->
+    <div class="ansicht-orient-block" style="margin-top:14px">
+      <b data-i18n="ansicht_orient_titel"></b>
+      <div class="ansicht-opt" style="margin-top:6px">
+        <label class="ansicht-radio" id="ansicht-orient-unten">
+          <input type="radio" name="baum-orient" value="unten" onchange="orientWahl()">
+          <span><b data-i18n="ansicht_orient_unten"></b></span>
+        </label>
+        <label class="ansicht-radio" id="ansicht-orient-oben">
+          <input type="radio" name="baum-orient" value="oben" onchange="orientWahl()">
+          <span><b data-i18n="ansicht_orient_oben"></b></span>
+        </label>
+      </div>
     </div>
 
     <!-- Erweiterte Optionen (eingeklappt) -> Power-User: Familienzweig ab beliebiger Person -->
@@ -2472,12 +2487,12 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.22"></script>
+<script src="i18n.js?v=14.23"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.22"></script>
-<script src="chat.js?v=14.22"></script>
+<script src="pdf_export.js?v=14.23"></script>
+<script src="chat.js?v=14.23"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2714,6 +2729,11 @@ async function setzeUser(user) {
   // awaiten, damit Aufrufer (z.B. erstelleStammbaum) danach mit aktueller Baumliste arbeiten können.
   // finally: Lade-Hinweis IMMER entfernen + Ansicht einblenden (auch bei Fehler -> kein
   // hängender Spinner; vorher wurde NICHT das eingebettete FAMILY_DATA gezeigt = kein Vidović-Flash).
+  // Profil ZUERST laden (Konto-Stammdaten + Avatar + UI-Einstellungen + Sprache): so sind die
+  // konto-gebundenen Präferenzen (Standard-Baum/Ansicht) in localStorage gespiegelt, BEVOR
+  // ladeBaumDaten Start-Baum + Ansicht wählt — sonst gälte auf einem neuen Gerät der Default.
+  await ladeMeinProfil();
+
   try {
     await ladeBaumDaten();
   } finally {
@@ -2727,9 +2747,6 @@ async function setzeUser(user) {
 
   // Live-Sync (P1): Baumänderungen anderer Nutzer ohne Reload empfangen.
   startRealtimeSync();
-
-  // Profil (Konto-Stammdaten + Avatar) laden -> Badge/Presence/Sprache aktualisieren.
-  await ladeMeinProfil();
 
   // Benachrichtigungen (z. B. Event-Einladungen) laden -> Ungelesen-Indikator.
   ladeBenachrichtigungen();
@@ -3896,12 +3913,55 @@ async function ladeMeinProfil() {
     meinProfil = data || null;
   } catch (e) { console.warn('Profil laden (Ausnahme):', e); }
 
+  // Konto-gebundene UI-Einstellungen (Standard-Baum/Ansicht/…) in localStorage spiegeln,
+  // BEVOR (im Login-Flow) Start-Baum + Ansicht gewählt werden -> Präferenzen folgen dem Konto.
+  profilEinstellungenAnwenden();
+
   // Gespeicherte Profil-Sprache anwenden (Profil steuert die App-Sprache), wenn gültig.
   const ps = meinProfil && meinProfil.sprache;
   if (ps && TEXTE[ps] && ps !== aktuelleSprache) wechselSprache(ps, true);
 
   aktualisiereBadgeProfil();
   if (presenceChannel) presenceTrack(meinLockPerson);   // Name/Avatar in Presence auffrischen
+}
+
+// Konto-gebundene UI-Einstellungen: dauerhaft in profile.einstellungen (jsonb), beim Login in
+// die (browser-lokalen) localStorage-Keys gespiegelt, die der Rest der App weiter nutzt.
+// Änderungen schreiben BEIDES -> Einstellungen folgen dem Konto geräteübergreifend; ohne Login
+// bleibt reines localStorage. einstellungen-Writes sind billig (der Profil->Karte-Sync-Trigger
+// ignoriert Nicht-Karten-Felder -> kein Karten-Update/Recompute).
+function profilEinstellungSetzen(key, val) {
+  if (!aktuellerUser || !sbClient) return;
+  const e = Object.assign({}, (meinProfil && meinProfil.einstellungen) || {});
+  if (val === null || val === undefined) delete e[key]; else e[key] = val;
+  if (meinProfil) meinProfil.einstellungen = e;
+  sbClient.from('profile').upsert({ user_id: aktuellerUser.id, einstellungen: e }, { onConflict: 'user_id' })
+    .then(({ error }) => { if (error) console.warn('Einstellung speichern:', error.message); }, err => console.warn('Einstellung speichern:', err));
+}
+// Beim Login: gespeicherte Konto-Einstellungen in die localStorage-Keys spiegeln (Konto gewinnt).
+// Nur setzen, wenn im Profil vorhanden -> sonst lokalen Wert/Default belassen.
+function profilEinstellungenAnwenden() {
+  const e = (meinProfil && meinProfil.einstellungen) || {};
+  const uid = aktuellerUser && aktuellerUser.id;
+  try {
+    if (uid && e.standard_baum) localStorage.setItem('vidovic_standard_baum_' + uid, e.standard_baum);
+    if (uid && e.ansicht)       localStorage.setItem('vidovic_ansicht_' + uid, JSON.stringify(e.ansicht));
+    if (e.letzter_baum)         localStorage.setItem('vidovic_tree', e.letzter_baum);
+    if (uid && e.mp_snooze)     localStorage.setItem('mp_snooze_' + uid, String(e.mp_snooze));
+    if (e.baum_hilfe_gesehen)   localStorage.setItem('hasSeenTreeHelp', 'true');
+  } catch (err) {}
+}
+
+// Explizite Sprachwahl (Dropdown/Willkommen) zusätzlich am KONTO speichern, damit sie
+// browser-/geräteübergreifend gilt: localStorage('vidovic_lang') ist nur browser-lokal;
+// profile.sprache wird beim Login via ladeMeinProfil angewandt. No-op ohne Login. Partieller
+// Upsert (nur user_id + sprache, wie pw_geaendert_am) -> andere Profilfelder bleiben unberührt.
+async function speichereProfilSprache(lang) {
+  if (!aktuellerUser || !sbClient || !TEXTE[lang]) return;
+  try {
+    await sbClient.from('profile').upsert({ user_id: aktuellerUser.id, sprache: lang }, { onConflict: 'user_id' });
+    if (meinProfil) meinProfil.sprache = lang;   // lokalen Profil-Cache nachziehen
+  } catch (e) { console.warn('Profil-Sprache speichern:', e); }
 }
 
 // Leise Profil-Auffrischung (Profil<->Karte-Sync): nach einem Live-Sync-Reload das eigene
@@ -4056,7 +4116,7 @@ function mpIstGesnoozt() {
   try { const t0 = parseInt(localStorage.getItem(mpSnoozeKey()) || '0', 10);
         return !!t0 && (Date.now() - t0) < 24 * 60 * 60 * 1000; } catch (e) { return false; }
 }
-function mpSnoozeSetzen() { try { localStorage.setItem(mpSnoozeKey(), String(Date.now())); } catch (e) {} }
+function mpSnoozeSetzen() { const t = Date.now(); try { localStorage.setItem(mpSnoozeKey(), String(t)); } catch (e) {} profilEinstellungSetzen('mp_snooze', t); }
 
 // Bedingung der "Neuen Regel": Zugriff auf >=1 Baum UND >=1 Karte vorhanden UND selbst NICHT verknüpft.
 async function pruefeMeinePersonHinweis() {
@@ -7229,6 +7289,11 @@ let ansichtModus    = null;
 let ansichtFokusId  = null;          // Person, um die der Ausschnitt zentriert ist
 let ansichtGen      = 0;             // 'zweig': AKTIVE Generationen nach unten (0 = unbegrenzt, Default)
 let ansichtGenAuf   = 2;             // 'zweig': AKTIVE Generationen nach oben (0 = unbegrenzt; Default 2 = nahe Vorfahren)
+// Vertikale Ausrichtung des Baums (orthogonal zum ansichtModus, gilt für ALLE Modi):
+//   'unten' = Älteste unten, Jüngste oben (Standard, Nutzerwunsch)
+//   'oben'  = Älteste oben, Jüngste unten
+// Wird pro Nutzer in localStorage gemerkt (ladeOrientPref/speichereOrientPref).
+let baumOrient      = 'unten';
 // Getrennte Vorbelegung für den „Familienzweig"-Dialog: nur die ZULETZT IM OVERLAY gewählten
 // Tiefen. So überschreibt „von hier aus anzeigen" (graphFokusAufPerson, fix 4/4) die aktiven
 // Render-Tiefen, aber NICHT die Dialog-Vorbelegung des Nutzers.
@@ -7747,7 +7812,7 @@ function getStandardBaum() {
   const v = localStorage.getItem(k);
   return (v && stammbaeumeListe[v]) ? v : null;   // nur, wenn noch zugänglich
 }
-function setStandardBaum(id) { const k = standardBaumKey(); if (k && id) localStorage.setItem(k, id); }
+function setStandardBaum(id) { const k = standardBaumKey(); if (k && id) { localStorage.setItem(k, id); profilEinstellungSetzen('standard_baum', id); } }
 
 // Bäume, für die der User verantwortlich ist (Owner/Admin; Super-Admin zählt wie Owner).
 // Nur Bäume mit Personen. -> { owner:[ids], admin:[ids], verantwortlich:[ids] }
@@ -7908,8 +7973,10 @@ function waehleStammbaum(treeId) {
   if (typeof albumCache !== 'undefined') albumCache = [];
   if (typeof eventAlbumUebersicht !== 'undefined') eventAlbumUebersicht = {};
   try { localStorage.setItem('vidovic_tree', treeId); } catch (e) {}   // zuletzt geöffneten Baum merken (Reload-Wiederherstellung)
+  profilEinstellungSetzen('letzter_baum', treeId);   // + am Konto (geräteübergreifend)
   fokusPersonId = null;
   ansichtModus = null;
+  ladeOrientPref();   // gespeicherte Baum-Ausrichtung (oben/unten) je Nutzer
   document.getElementById('suche').value = '';
   const sel = document.getElementById('tree-select');
   if (sel && sel.value !== treeId) sel.value = treeId;
@@ -7990,6 +8057,7 @@ function initSprachDropdown() {
   menu.querySelectorAll('li').forEach(li => {
     li.addEventListener('click', () => {
       wechselSprache(li.dataset.lang);
+      speichereProfilSprache(li.dataset.lang);   // Wahl am Konto merken (geräteübergreifend)
       schliesse();
     });
   });
@@ -8588,6 +8656,7 @@ function zeigeWillkommenSprache() {
 }
 function waehleWillkommenSprache(lang) {
   wechselSprache(lang);   // setzt + speichert (localStorage) + rendert neu
+  speichereProfilSprache(lang);   // falls schon eingeloggt: auch am Konto merken
   document.getElementById('willkommen-modal').classList.remove('aktiv');
 }
 
@@ -9317,6 +9386,9 @@ function oeffneAnsichtModal() {
   if ((vorwahl === 'standard' || vorwahl === 'kreis') && !hatKarte) vorwahl = 'voll';
   document.querySelectorAll('input[name="ansicht-modus"]').forEach(r => { r.checked = (r.value === vorwahl); });
 
+  // Ausrichtungs-Radios auf den aktuell aktiven Wert setzen.
+  document.querySelectorAll('input[name="baum-orient"]').forEach(r => { r.checked = (r.value === baumOrient); });
+
   // Generationen-Selects auf die gespeicherten Werte (unten Default unbegrenzt = '0', oben Default '2')
   // Vorbelegung aus den ZULETZT IM OVERLAY gewählten Tiefen (nicht aus den aktiven Render-Tiefen,
   // die z. B. „von hier aus anzeigen" auf 4/4 setzt).
@@ -9403,7 +9475,31 @@ function ladeAnsichtPref() {
   try { return JSON.parse(localStorage.getItem(_ansPrefKey()) || 'null'); } catch (e) { return null; }
 }
 function speichereAnsichtPref(v, extra) {
-  try { localStorage.setItem(_ansPrefKey(), JSON.stringify(Object.assign({ v }, extra || {}))); } catch (e) {}
+  const pref = Object.assign({ v }, extra || {});
+  try { localStorage.setItem(_ansPrefKey(), JSON.stringify(pref)); } catch (e) {}
+  profilEinstellungSetzen('ansicht', pref);   // + am Konto (geräteübergreifend)
+}
+
+// ── Baum-Ausrichtung (oben/unten) — pro Nutzer gemerkt, orthogonal zum ansichtModus ──
+function _orientKey() { return 'vidovic_orient_' + ((aktuellerUser && aktuellerUser.id) || 'anon'); }
+function ladeOrientPref() {
+  try {
+    const v = localStorage.getItem(_orientKey());
+    baumOrient = (v === 'oben' || v === 'unten') ? v : 'unten';   // Default: Älteste unten
+  } catch (e) { baumOrient = 'unten'; }
+}
+function speichereOrientPref() {
+  try { localStorage.setItem(_orientKey(), baumOrient); } catch (e) {}
+}
+// Umschalten aus dem Ansicht-Overlay: setzt die Richtung, merkt sie und rendert die
+// aktuelle Ansicht sofort neu (behält Modus/Fokus). Modal bleibt offen.
+function orientWahl() {
+  const val = (document.querySelector('input[name="baum-orient"]:checked') || {}).value;
+  if (val !== 'oben' && val !== 'unten') return;
+  if (val === baumOrient) return;
+  baumOrient = val;
+  speichereOrientPref();
+  rendereAktuelleAnsicht();
 }
 // Wendet die gespeicherte Ansicht an. Rückgabe wie zeigeStandardAnsicht(): true = etwas
 // gezeichnet; false = nichts anwendbar (Aufrufer macht dann Vollansicht).
@@ -16376,6 +16472,7 @@ async function reloadBaumBehalteFokus(fokusExtId) {
 function schliessePaHilfe() {
   document.getElementById('pa-hilfe').style.display = 'none';
   try { localStorage.setItem('hasSeenTreeHelp', 'true'); } catch (e) {}
+  profilEinstellungSetzen('baum_hilfe_gesehen', true);   // + am Konto (geräteübergreifend)
 }
 
 // Hilfe per „?"-Button wieder ein-/ausblenden (auch nachdem sie einmal weggeklickt wurde)
@@ -18024,8 +18121,9 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
   const wurzelNode = d3.hierarchy(wurzel);
   treeLayout(wurzelNode);
 
-  // y-Koordinaten negieren → Baum wächst von unten nach oben
-  wurzelNode.each(d => { d.y = -d.y; });
+  // Ausrichtung: 'unten' (Standard) = Baum wächst von unten nach oben (Wurzel/Älteste unten) →
+  // y negieren. 'oben' = natürliches d3-Layout (Wurzel/Älteste oben, Nachkommen nach unten).
+  if (baumOrient !== 'oben') wurzelNode.each(d => { d.y = -d.y; });
 
   // Kollisions-Check (Konsolen-Warnung bei Überlapp, sollte nicht vorkommen)
   kollisionsPrüfung(wurzelNode);
@@ -19076,18 +19174,25 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   }
   const ancRoot = ancNode(focus, 0);
 
+  // Vertikale Ausrichtung: VZ=+1 → Älteste OBEN (Vorfahren nach oben, klassisch);
+  // VZ=-1 → Älteste UNTEN (Standard, Nutzerwunsch). ALLE vertikalen Größen (Knoten-y +
+  // Kanten-Offsets HH/RH) werden mit VZ multipliziert → die gesamte Zeichnung wird konsistent
+  // gespiegelt (Karten bleiben aufrecht, Verbindungen bleiben verbunden).
+  const VZ = (baumOrient === 'oben') ? 1 : -1;
+  const HH = G2_HH * VZ, RH = G2_ROWH * VZ;
+
   // ── Tidy-Layout je Richtung (d3.tree); beide an der Fokusperson (0,0) ausgerichtet ──
   const dh = d3.hierarchy(descRoot, d => d.children);
   d3.tree().nodeSize([370, G2_ROWH]).separation((a, b) => a.parent === b.parent ? 1.0 : 1.35)(dh);
   const dShift = -dh.x;
-  dh.each(d => { d.x += dShift; });   // y: 0,178,356… nach unten
+  dh.each(d => { d.x += dShift; d.y *= VZ; });   // y: Nachkommen in Richtung VZ
 
   const ah = d3.hierarchy(ancRoot, d => d.children);
   // nodeSize[0]=162 → die zwei Eltern eines Kindes (gleicher Parent in der Hierarchie) stehen
   // als Paar ENG (≈ Partner-Versatz); verschiedene Elternpaare großzügig getrennt (separation).
   d3.tree().nodeSize([162, G2_ROWH]).separation((a, b) => a.parent === b.parent ? 1.0 : 2.2)(ah);
   const aShift = -ah.x;
-  ah.each(a => { a.x += aShift; a.y = -a.y; });   // y nach oben spiegeln; Wurzel(Fokus) bei 0
+  ah.each(a => { a.x += aShift; a.y = -a.y * VZ; });   // Vorfahren entgegen VZ; Wurzel(Fokus) bei 0
 
   const pts = [];
   const joint = (x, y) => baumG.append('rect').attr('class', 'paar-knoten')
@@ -19105,12 +19210,12 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
       joint((px + G2_HW + ox - G2_HW) / 2, py);
     });
     if (d.children && d.children.length) {
-      const childTop = Math.min(...d.children.map(c => c.y)) - G2_HH;
-      const midY = (py + G2_HH + childTop) / 2;
+      const childTop = Math.min(...d.children.map(c => c.y)) - HH;
+      const midY = (py + HH + childTop) / 2;
       const xs = d.children.map(c => c.x);
-      baumG.append('line').attr('class', 'verbindung').attr('x1', px).attr('y1', py + G2_HH).attr('x2', px).attr('y2', midY);
+      baumG.append('line').attr('class', 'verbindung').attr('x1', px).attr('y1', py + HH).attr('x2', px).attr('y2', midY);
       baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(px, ...xs)).attr('y1', midY).attr('x2', Math.max(px, ...xs)).attr('y2', midY);
-      d.children.forEach(c => baumG.append('line').attr('class', 'verbindung').attr('x1', c.x).attr('y1', midY).attr('x2', c.x).attr('y2', c.y - G2_HH));
+      d.children.forEach(c => baumG.append('line').attr('class', 'verbindung').attr('x1', c.x).attr('y1', midY).attr('x2', c.x).attr('y2', c.y - HH));
     }
   });
   // Vorfahren: Elternpaar (a.children) als Paar oben, Abstieg zur Kind-Person a
@@ -19124,8 +19229,8 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
       joint((xs[0] + xs[xs.length - 1]) / 2, py);
     }
     const mid = par.reduce((s, p) => s + p.x, 0) / par.length;
-    const parentBottom = py + G2_HH;
-    const childTop = a.y - G2_HH;
+    const parentBottom = py + HH;
+    const childTop = a.y - HH;
     const midY = (parentBottom + childTop) / 2;
     baumG.append('line').attr('class', 'verbindung').attr('x1', mid).attr('y1', parentBottom).attr('x2', mid).attr('y2', midY);
     baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(mid, a.x)).attr('y1', midY).attr('x2', Math.max(mid, a.x)).attr('y2', midY);
@@ -19158,7 +19263,7 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
       dh.each(d => { minX = Math.min(minX, d.x); maxX = Math.max(maxX, d.x + G2_PAAR * ((d.data.partners || []).length)); });
       const pm = elternNodes.reduce((s, c) => s + c.x, 0) / elternNodes.length;
       const py = elternNodes[0].y;
-      const midY = (py + G2_HH + (0 - G2_HH)) / 2;
+      const midY = (py + HH + (0 - HH)) / 2;
       let lx = minX, rx = maxX;
       sibCanons.forEach((s, i) => {
         const partner = partnersOf(s).filter(p => !gezeichnet.has(p)); partner.forEach(p => gezeichnet.add(p));
@@ -19182,16 +19287,16 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
         });
         // Eltern → Geschwister (Abstieg)
         baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(pm, sx)).attr('y1', midY).attr('x2', Math.max(pm, sx)).attr('y2', midY);
-        baumG.append('line').attr('class', 'verbindung').attr('x1', sx).attr('y1', midY).attr('x2', sx).attr('y2', 0 - G2_HH);
+        baumG.append('line').attr('class', 'verbindung').attr('x1', sx).attr('y1', midY).attr('x2', sx).attr('y2', 0 - HH);
         // Kinder (Neffen/Nichten) eine Ebene unter dem Geschwister-Paar
         if (kids.length) {
-          const ky = G2_ROWH, startX = coupleCenter - kidsW / 2;
+          const ky = RH, startX = coupleCenter - kidsW / 2;
           const kidXs = kids.map((k, j) => startX + j * KID_DX);
           kids.forEach((k, j) => sibs.push({ canon: k, x: kidXs[j], y: ky }));
-          const cmidY = (G2_HH + (ky - G2_HH)) / 2;
-          baumG.append('line').attr('class', 'verbindung').attr('x1', coupleCenter).attr('y1', G2_HH).attr('x2', coupleCenter).attr('y2', cmidY);
+          const cmidY = (HH + (ky - HH)) / 2;
+          baumG.append('line').attr('class', 'verbindung').attr('x1', coupleCenter).attr('y1', HH).attr('x2', coupleCenter).attr('y2', cmidY);
           baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(coupleCenter, ...kidXs)).attr('y1', cmidY).attr('x2', Math.max(coupleCenter, ...kidXs)).attr('y2', cmidY);
-          kidXs.forEach(kx => baumG.append('line').attr('class', 'verbindung').attr('x1', kx).attr('y1', cmidY).attr('x2', kx).attr('y2', ky - G2_HH));
+          kidXs.forEach(kx => baumG.append('line').attr('class', 'verbindung').attr('x1', kx).attr('y1', cmidY).attr('x2', kx).attr('y2', ky - HH));
         }
       });
     }

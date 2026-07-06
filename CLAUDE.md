@@ -18,6 +18,19 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - Dauerhafte Konventionen, die aus einem Feature entstehen, werden hier festgehalten,
   damit die Datei den realen Stand widerspiegelt.
 
+## Umgang mit Anweisungen/Prompts (Ideenphase ZUERST) — verbindlich
+- **Jede Anweisung/jeder Prompt wird ZUERST analysiert und als Ideen ausgearbeitet — NICHT
+  sofort umgesetzt.** Bevor ich Code schreibe oder Dateien ändere, lege ich dar:
+  - kurze **Analyse** des Wunsches (Ziel, betroffene Komponenten, Konflikte mit CLAUDE.md,
+    offene Fragen/Annahmen);
+  - **mehrere Vorschläge/Lösungswege** (in der Regel 2–3) mit **Vor-/Nachteilen**, Aufwand,
+    Auswirkungen auf Architektur/RLS/Mobile/i18n und einer **Empfehlung**.
+- **Erst nach deiner Entscheidung** für einen Weg wird umgesetzt. Ich beginne die Umsetzung
+  nicht eigenmächtig, solange du keinen Vorschlag gewählt (oder eigene Vorgabe gemacht) hast.
+- **Ausnahmen** (direkt umsetzbar ohne Ideenphase): triviale/eindeutige Aufgaben ohne
+  Gestaltungsspielraum (z. B. Tippfehler, exakt spezifizierte Einzeländerung, reine Nachfrage/
+  Analyse ohne Umsetzung) — im Zweifel lege ich lieber Vorschläge vor.
+
 ## Design-Regeln (IMMER einhalten)
 - Edles, nobles Design — dunkles Farbschema, Serifenschriften, Gold-Akzente
 - Konsistent mit bestehendem Stil (Bild4.jpg als Hintergrundbild auf #baum-container)
