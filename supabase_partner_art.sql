@@ -24,10 +24,15 @@ ALTER TABLE public.beziehungen DROP CONSTRAINT IF EXISTS beziehungen_partner_art
 ALTER TABLE public.beziehungen ADD CONSTRAINT beziehungen_partner_art_chk
   CHECK (partner_art IS NULL OR partner_art IN ('ehe','partner','ex_ehe','ex_partner'));
 
--- 2) RPC: Art einer BESTEHENDEN Partnerschaft umstellen -----------------------
+-- 2) RPC: Art einer Partnerschaft setzen (Upsert) -----------------------------
 -- Identitätsbewusst (ganze identitaet_id-Gruppe beider Personen, wie das Löschen/Verschieben),
 -- damit gespiegelte Karten konsistent bleiben. Rechte: kann_familie_bearbeiten() für BEIDE
 -- Familien (verbundbasiert) oder Super-Admin -> Isolation bleibt gewahrt.
+-- UPSERT: Existiert noch KEINE ehepartner-Kante, wird sie angelegt. Solche Paare
+-- entstehen, wenn zwei Personen bisher NUR über ein gemeinsames Kind (elternteil-Kanten)
+-- verbunden waren und nie explizit als Partner angelegt wurden — das Frontend zeigt sie
+-- trotzdem als Partner (families_spouse aus elternVon) und bietet das ✎ an. Ohne diesen
+-- Upsert lief das ins Leere ('keine_partnerkante').
 CREATE OR REPLACE FUNCTION public.partner_art_setzen(p_person uuid, p_other uuid, p_art text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -67,8 +72,13 @@ BEGIN
        OR (person_a = ANY(v_X) AND person_b = ANY(v_P)));
   GET DIAGNOSTICS v_n = ROW_COUNT;
 
+  -- Keine aktive ehepartner-Kante zwischen den beiden (identitäts-)Personen -> anlegen.
+  -- familie_id bevorzugt von p_person (Fallback p_other). Rechte sind oben bereits für BEIDE
+  -- Familien geprüft. ehepartner ist symmetrisch -> Richtung (person_a/b) egal fürs Rendering.
   IF v_n = 0 THEN
-    RETURN jsonb_build_object('ok', false, 'fehler', 'keine_partnerkante');
+    INSERT INTO beziehungen (familie_id, person_a, person_b, typ, partner_art)
+    VALUES (COALESCE(v_p_fam, v_x_fam), p_person, p_other, 'ehepartner', p_art);
+    RETURN jsonb_build_object('ok', true, 'aktualisiert', 1, 'angelegt', true);
   END IF;
   RETURN jsonb_build_object('ok', true, 'aktualisiert', v_n);
 END $$;
@@ -77,4 +87,4 @@ GRANT EXECUTE ON FUNCTION public.partner_art_setzen(uuid, uuid, text) TO authent
 
 NOTIFY pgrst, 'reload schema';
 
-SELECT 'OK: beziehungen.partner_art + partner_art_setzen() angelegt' AS status;
+SELECT 'OK: beziehungen.partner_art + partner_art_setzen() (Upsert) angelegt' AS status;

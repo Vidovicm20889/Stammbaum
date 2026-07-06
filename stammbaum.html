@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.23">
+<meta name="app-version" content="14.25">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,14 +33,14 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.23">
+<link rel="stylesheet" href="stammbaum.css?v=14.25">
 </head>
 <body>
 
 <nav class="top-nav">
   <div class="nav-controls">
     <div class="tab-gruppe">
-      <button class="tab" data-ansicht="karten" data-i18n="tab_karten"></button>
+      <button class="tab" id="tab-mape" data-ansicht="mape" data-i18n="tab_mape"></button>
       <button class="tab" id="tab-feed" data-ansicht="feed" data-i18n="tab_feed" style="display:none"></button>
       <button class="tab" id="tab-shorts" data-ansicht="shorts" data-i18n="tab_shorts"></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
@@ -96,6 +96,7 @@
             </button>
             <button class="account-btn" type="button" data-i18n="prof_bearbeiten" onclick="oeffneProfilAusMenu()"></button>
             <button class="account-btn" type="button" id="avatar-papierkorb-btn" data-i18n="pk_menu" onclick="oeffnePapierkorbAusMenu()" style="display:none"></button>
+            <button class="account-btn" type="button" id="menu-clanovi-btn" data-i18n="tab_karten" onclick="oeffneClanoviAusMenu()"></button>
             <button class="account-btn" type="button" id="menu-standard-btn" data-i18n="std_menu" onclick="oeffneStandardBaumAusMenu()" style="display:none"></button>
             <button class="account-btn" type="button" data-i18n="prof_privacy_titel" onclick="oeffnePrivatnost()"></button>
             <button class="account-btn" type="button" data-i18n="prof_pw_titel" onclick="oeffnePasswort()"></button>
@@ -137,6 +138,7 @@
           <button class="account-btn" type="button" id="menu-bereinigung-btn" data-i18n="ber_titel" onclick="zeigeBereinigungModal()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-integ-btn" data-i18n="integ_menu" onclick="oeffneIntegritaet()"></button>
           <button class="account-btn" type="button" id="menu-backup-btn" data-i18n="bk_menu" onclick="oeffneBackup()" style="display:none"></button>
+          <button class="account-btn" type="button" id="menu-analytik-btn" data-i18n="analytik_menu" onclick="oeffneAnalytik()" style="display:none"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
         </div>
 
@@ -284,6 +286,28 @@
 
     <!-- Modus C: Rezepte & Traditionen (verbund-gebunden) -->
     <div id="feed-rezepte" style="display:none">
+      <!-- Quelle: Eigene (DB) | Kochbuch (statischer Pool, „Gericht des Tages") -->
+      <div class="ev-modus" id="rezept-quelle" role="tablist" style="margin:0 auto 14px">
+        <button type="button" class="ev-modus-btn aktiv" id="rq-kochbuch" role="tab"
+                data-i18n="rezept_quelle_kochbuch" onclick="rezeptQuelle('kochbuch')"></button>
+        <button type="button" class="ev-modus-btn" id="rq-eigene" role="tab"
+                data-i18n="rezept_quelle_eigene" onclick="rezeptQuelle('eigene')"></button>
+      </div>
+
+      <!-- Kochbuch (kuratierter Pool, rein clientseitig) — Standard-Ansicht -->
+      <div id="rezept-kochbuch">
+        <div class="kb-tagesgericht" id="kb-tagesgericht"></div>
+        <div class="feed-composer-zeile" style="margin-bottom:14px">
+          <label class="feed-tag-feld"><span data-i18n="rezept_kueche"></span>
+            <select id="kb-kueche" class="filter no-search" onchange="kochbuchRender()"></select>
+          </label>
+          <button type="button" class="mv-toggle" onclick="kbUeberrasche()" data-i18n="rezept_ueberrasche"></button>
+        </div>
+        <div class="feed-liste" id="kb-liste"></div>
+      </div>
+
+      <!-- Eigene (bestehend, DB) -->
+      <div id="rezept-eigene" style="display:none">
       <div class="feed-composer" id="rezept-composer">
         <input type="text" class="login-feld" id="rezept-titel" maxlength="120" data-i18n-placeholder="rezept_titel_ph">
         <div class="feed-composer-zeile">
@@ -320,9 +344,18 @@
         </div>
       </div>
       <div class="feed-liste" id="rezept-liste"></div>
+      </div><!-- /#rezept-eigene -->
     </div>
   </div>
 </section>
+
+<!-- Kochbuch-Rezept: Detail (Zutaten + Zubereitung), schließt nur per Button -->
+<div class="modal" id="kochbuch-modal" style="z-index:212">
+  <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseKochbuch()">×</button>
+    <div id="kb-detail-inhalt"></div>
+  </div>
+</div>
 
 <!-- EREIGNISSE: EIN Bereich, zwei Ansichten (Liste = Verwaltung | Zeitstrahl = rein lesend).
      Beide teilen DIESELBE Datenquelle (eventsCache aus events_fuer_mich); der Zeitstrahl
@@ -337,8 +370,6 @@
               role="tab" data-i18n="ev_modus_liste" onclick="evSetModus('liste')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-zeit" data-ev-modus="zeit"
               role="tab" data-i18n="ev_modus_zeit" onclick="evSetModus('zeit')"></button>
-      <button type="button" class="ev-modus-btn" id="ev-modus-karte" data-ev-modus="karte"
-              role="tab" data-i18n="ev_modus_karte" onclick="evSetModus('karte')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-kalender" data-ev-modus="kalender"
               role="tab" data-i18n="ev_modus_kalender" onclick="evSetModus('kalender')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-termin" data-ev-modus="termin"
@@ -370,30 +401,6 @@
     <div class="zs-timeline" id="zs-timeline"></div>
   </div>
 
-  <!-- Ansicht C: Karte (rein lesend; Leaflet/OpenStreetMap). Zwei Modi:
-       (a) alle verorteten Events des aktiven Baums, (b) Migrationspfad EINER Person
-       (ihre Events chronologisch, Polyline, Start grün/Ende rot). Scope = aktiver Baum. -->
-  <div id="ev-karte-wrap" style="display:none">
-    <div class="karte-toolbar">
-      <div class="karte-modus" id="karte-modus" role="tablist">
-        <button type="button" class="karte-modus-btn aktiv" data-karte-modus="alle"
-                role="tab" data-i18n="karte_modus_alle" onclick="karteSetModus('alle')"></button>
-        <button type="button" class="karte-modus-btn" data-karte-modus="person"
-                role="tab" data-i18n="karte_modus_person" onclick="karteSetModus('person')"></button>
-      </div>
-      <label class="karte-person-feld" id="karte-person-wrap" style="display:none">
-        <span data-i18n="karte_filter_person"></span>
-        <select id="karte-f-person" class="filter" onchange="karteRender()"></select>
-      </label>
-    </div>
-    <div id="karte-leer" class="keine-treffer" style="display:none"></div>
-    <div id="event-karte" class="event-karte"></div>
-    <div class="karte-legende" id="karte-legende" style="display:none">
-      <span class="karte-leg-item"><span class="karte-leg-dot start"></span><span data-i18n="karte_start"></span></span>
-      <span class="karte-leg-item"><span class="karte-leg-dot ende"></span><span data-i18n="karte_ende"></span></span>
-    </div>
-  </div>
-
   <!-- Ansicht D: Kalender (rein lesend). Monatsraster aus eventsCache (datierte Events)
        + optionaler Anlässe-Layer (Geburtstage/Gedenktage, wiederkehrend). KEIN Backend. -->
   <div id="ev-kalender-wrap" style="display:none">
@@ -416,6 +423,33 @@
     <button class="pa-add-btn" id="termin-neu-btn" style="margin:6px auto 14px;max-width:280px"
       onclick="tfNeuOeffnen()">＋ <span data-i18n="tf_neu"></span></button>
     <div class="termin-liste" id="termin-liste"></div>
+  </div>
+</section>
+
+<!-- MAPE — Ereignis-/Migrationskarte als eigener Vollbild-Tab (aus dem Events-Bereich
+     herausgelöst). Reine Lese-Ansicht; nutzt dieselbe Leaflet-Logik (karteInit/karteRender)
+     + eventsCache. Zwei Modi: alle verorteten Events / Migrationspfad EINER Person. -->
+<section id="ansicht-mape" style="display:none">
+  <div class="mape-header"><h2 data-i18n="tab_mape"></h2></div>
+  <div id="ev-karte-wrap">
+    <div class="karte-toolbar">
+      <div class="karte-modus" id="karte-modus" role="tablist">
+        <button type="button" class="karte-modus-btn aktiv" data-karte-modus="alle"
+                role="tab" data-i18n="karte_modus_alle" onclick="karteSetModus('alle')"></button>
+        <button type="button" class="karte-modus-btn" data-karte-modus="person"
+                role="tab" data-i18n="karte_modus_person" onclick="karteSetModus('person')"></button>
+      </div>
+      <label class="karte-person-feld" id="karte-person-wrap" style="display:none">
+        <span data-i18n="karte_filter_person"></span>
+        <select id="karte-f-person" class="filter" onchange="karteRender()"></select>
+      </label>
+    </div>
+    <div id="karte-leer" class="keine-treffer" style="display:none"></div>
+    <div id="event-karte" class="event-karte"></div>
+    <div class="karte-legende" id="karte-legende" style="display:none">
+      <span class="karte-leg-item"><span class="karte-leg-dot start"></span><span data-i18n="karte_start"></span></span>
+      <span class="karte-leg-item"><span class="karte-leg-dot ende"></span><span data-i18n="karte_ende"></span></span>
+    </div>
   </div>
 </section>
 
@@ -1175,6 +1209,11 @@
         </select></label>
       <label class="login-label" id="pe-row-sterbedatum" style="display:none"><span data-i18n="pe_sterbedatum"></span>
         <input type="text" id="pe-sterbedatum" class="login-feld dp-input"></label>
+      <label class="login-label reg-feld-voll" id="pe-row-sterbeort" style="display:none"><span data-i18n="pe_sterbeort"></span>
+        <div class="geoadr">
+          <input type="text" id="pe-sterbeort" class="login-feld geoadr-suche" data-lat="" data-lng="" oninput="geoAdrInput(this)">
+          <div class="geoadr-treffer"></div><div class="geoadr-status"></div>
+        </div></label>
       <label class="login-label pflicht"><span data-i18n="reg_vorname"></span>
         <input type="text" id="pe-vorname" class="login-feld"></label>
       <label class="login-label pflicht"><span data-i18n="reg_nachname"></span>
@@ -1187,8 +1226,11 @@
         <input type="text" id="pe-ehename" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
         <input type="text" id="pe-geburtsdatum" class="login-feld dp-input"></label>
-      <label class="login-label"><span data-i18n="reg_geburtsort"></span>
-        <input type="text" id="pe-geburtsort" class="login-feld"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="reg_geburtsort"></span>
+        <div class="geoadr">
+          <input type="text" id="pe-geburtsort" class="login-feld geoadr-suche" data-lat="" data-lng="" oninput="geoAdrInput(this)">
+          <div class="geoadr-treffer"></div><div class="geoadr-status"></div>
+        </div></label>
       <label class="login-label"><span data-i18n="reg_geburtsland"></span>
         <select id="pe-geburtsland" class="login-feld land-select"></select></label>
       <label class="login-label"><span data-i18n="fe_grad"></span>
@@ -1230,14 +1272,15 @@
         <input type="text" id="pe-instagram" class="login-feld"></label>
     </div>
 
-    <div class="reg-gruppe-titel" data-i18n="pe_g_wohnen"></div>
+    <!-- WOHNORTE: wiederholbare Liste geokodierter Adressen (Adresssuche) mit wohnhaft von–bis.
+         Ersetzt die früheren Einzelfelder wohnland/wohnstadt/adresse. -->
+    <div class="reg-gruppe-titel" data-i18n="adr_g_wohnorte"></div>
+    <div id="pe-wohnorte" class="wohnorte-liste"></div>
+    <button type="button" class="wohnort-add-btn" onclick="wohnortHinzu('pe')">
+      <span data-i18n="adr_hinzufuegen"></span></button>
+
+    <div class="reg-gruppe-titel" data-i18n="adr_g_zanimanje"></div>
     <div class="reg-grid">
-      <label class="login-label"><span data-i18n="pe_wohnland"></span>
-        <select id="pe-wohnland" class="login-feld land-select"></select></label>
-      <label class="login-label"><span data-i18n="pe_wohnstadt"></span>
-        <input type="text" id="pe-wohnstadt" class="login-feld"></label>
-      <label class="login-label reg-feld-voll"><span data-i18n="pe_adresse"></span>
-        <input type="text" id="pe-adresse" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_beruf"></span>
         <input type="text" id="pe-beruf" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_ausbildung"></span>
@@ -1420,10 +1463,18 @@
         </select></label>
       <label class="login-label" id="pa-row-sterbedatum" style="display:none"><span data-i18n="pe_sterbedatum"></span>
         <input type="text" id="pa-sterbedatum" class="login-feld dp-input"></label>
+      <label class="login-label reg-feld-voll" id="pa-row-sterbeort" style="display:none"><span data-i18n="pe_sterbeort"></span>
+        <div class="geoadr">
+          <input type="text" id="pa-sterbeort" class="login-feld geoadr-suche" data-lat="" data-lng="" oninput="geoAdrInput(this)">
+          <div class="geoadr-treffer"></div><div class="geoadr-status"></div>
+        </div></label>
       <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
         <input type="text" id="pa-geburtsdatum" class="login-feld dp-input"></label>
-      <label class="login-label"><span data-i18n="reg_geburtsort"></span>
-        <input type="text" id="pa-geburtsort" class="login-feld"></label>
+      <label class="login-label reg-feld-voll"><span data-i18n="reg_geburtsort"></span>
+        <div class="geoadr">
+          <input type="text" id="pa-geburtsort" class="login-feld geoadr-suche" data-lat="" data-lng="" oninput="geoAdrInput(this)">
+          <div class="geoadr-treffer"></div><div class="geoadr-status"></div>
+        </div></label>
       <label class="login-label"><span data-i18n="reg_geburtsland"></span>
         <select id="pa-geburtsland" class="login-feld land-select"></select></label>
       <label class="login-label"><span data-i18n="fe_grad"></span>
@@ -1471,14 +1522,14 @@
         <input type="text" id="pa-instagram" class="login-feld"></label>
     </div>
 
-    <div class="reg-gruppe-titel" data-i18n="pe_g_wohnen"></div>
+    <!-- WOHNORTE (siehe Personen-Editor): geokodierte Adressliste mit wohnhaft von–bis. -->
+    <div class="reg-gruppe-titel" data-i18n="adr_g_wohnorte"></div>
+    <div id="pa-wohnorte" class="wohnorte-liste"></div>
+    <button type="button" class="wohnort-add-btn" onclick="wohnortHinzu('pa')">
+      <span data-i18n="adr_hinzufuegen"></span></button>
+
+    <div class="reg-gruppe-titel" data-i18n="adr_g_zanimanje"></div>
     <div class="reg-grid">
-      <label class="login-label"><span data-i18n="pe_wohnland"></span>
-        <select id="pa-wohnland" class="login-feld land-select"></select></label>
-      <label class="login-label"><span data-i18n="pe_wohnstadt"></span>
-        <input type="text" id="pa-wohnstadt" class="login-feld"></label>
-      <label class="login-label reg-feld-voll"><span data-i18n="pe_adresse"></span>
-        <input type="text" id="pa-adresse" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_beruf"></span>
         <input type="text" id="pa-beruf" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_ausbildung"></span>
@@ -2487,12 +2538,29 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.23"></script>
+<!-- Analytik / Nutzungs-Statistik — NUR super_admin. Schließt nur per Button (UI-Regel). -->
+<div class="modal" id="analytik-modal" style="z-index:220">
+  <div class="modal-inhalt" style="max-width:820px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseAnalytik()">×</button>
+    <h2 data-i18n="analytik_titel"></h2>
+    <p class="pdf-sub" id="analytik-stand" style="margin-top:0"></p>
+    <div id="analytik-inhalt"><p class="pdf-sub" data-i18n="analytik_laden"></p></div>
+    <div class="ansicht-aktionen" style="margin-top:16px">
+      <button type="button" class="login-hinweis-btn sekundaer" onclick="schliesseAnalytik()" data-i18n="ansicht_abbrechen"></button>
+      <button type="button" class="login-hinweis-btn sekundaer" id="analytik-nutzer-btn" onclick="analytikNutzerListe()" data-i18n="analytik_nutzerliste"></button>
+      <button type="button" class="login-submit" id="analytik-refresh-btn" onclick="ladeAnalytik()" data-i18n="analytik_aktualisieren"></button>
+    </div>
+  </div>
+</div>
+
+<script src="i18n.js?v=14.25"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
-     chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow). -->
-<script src="pdf_export.js?v=14.23"></script>
-<script src="chat.js?v=14.23"></script>
+     chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
+     rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
+<script src="pdf_export.js?v=14.25"></script>
+<script src="chat.js?v=14.25"></script>
+<script src="rezepte_pool.js?v=14.25"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -2766,6 +2834,8 @@ async function setzeUser(user) {
 
   // "Meine Person im Stammbaum": bedingten Verknüpfungs-Hinweis prüfen (nach Baum + Profil).
   pruefeMeinePersonHinweis();
+
+  track('login');   // Analytik: Session-Start (kuratiertes Nutzungs-Tracking)
 }
 
 function normalizeRolle(rolle) {
@@ -2781,6 +2851,283 @@ function istSuperAdmin() {
   return normalizeRolle(aktuelleRolle || '') === 'super_admin';
 }
 
+// ============================================================
+// ANALYTIK: kuratiertes Nutzungs-Tracking (best-effort, gebündelt)
+// track('feature') sammelt Ereignisse und flusht gedrosselt an die RPC ereignis_track.
+// WICHTIG (CLAUDE.md): setzt den Inaktivitäts-/Auto-Logout-Timer NICHT zurück; speichert NUR
+// Feature-Namen + optionalen Mini-Kontext (KEINE Inhalte); nur bei eingeloggtem Nutzer.
+// ============================================================
+let _trackQueue = [];
+let _trackTimer = null;
+function track(aktion, detail) {
+  try {
+    if (!aktion || !aktuellerUser || !sbClient) return;   // nur eingeloggt + Backend da
+    const e = { aktion: String(aktion).slice(0, 60), ts: new Date().toISOString() };
+    if (detail && typeof detail === 'object') e.detail = detail;
+    _trackQueue.push(e);
+    if (_trackQueue.length >= 25) { flushTrack(); return; }        // Batch voll -> sofort senden
+    if (!_trackTimer) _trackTimer = setTimeout(flushTrack, 20000); // sonst gedrosselt (20 s)
+  } catch (err) {}
+}
+async function flushTrack() {
+  if (_trackTimer) { clearTimeout(_trackTimer); _trackTimer = null; }
+  if (!_trackQueue.length || !sbClient || !aktuellerUser) return;
+  const batch = _trackQueue.splice(0, 200);
+  try { await sbClient.rpc('ereignis_track', { p_events: batch }); }
+  catch (err) { /* Analytics ist best-effort — Verlust ist unkritisch */ }
+}
+// Ausstehende Ereignisse beim Tab-Wechsel/Schließen sichern (Timer könnte sonst verpassen).
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushTrack(); });
+window.addEventListener('pagehide', () => { flushTrack(); });
+
+// ── Analytik-Panel (nur super_admin): Kennzahlen + Diagramme ──
+let analytikTage = 30;   // gewählter Zeitraum des Verlaufs-Diagramms (7/30/90/365)
+function oeffneAnalytik() {
+  if (!istSuperAdmin()) return;
+  document.getElementById('avatar-menu')?.classList.remove('offen');
+  document.getElementById('nav-menu')?.classList.remove('offen');
+  document.getElementById('analytik-modal').classList.add('aktiv');
+  ladeAnalytik();
+}
+function schliesseAnalytik() {
+  document.getElementById('analytik-modal').classList.remove('aktiv');
+}
+async function ladeAnalytik() {
+  if (!istSuperAdmin() || !sbClient) return;
+  const inhalt = document.getElementById('analytik-inhalt');
+  const stand  = document.getElementById('analytik-stand');
+  const btn    = document.getElementById('analytik-refresh-btn');
+  if (btn) btn.disabled = true;
+  if (inhalt) inhalt.innerHTML = `<p class="pdf-sub">${t('analytik_laden')}</p>`;
+  if (stand) stand.textContent = '';
+  try {
+    const [uRes, dRes] = await Promise.all([
+      sbClient.rpc('analytik_uebersicht'),
+      sbClient.rpc('analytik_dau', { p_tage: analytikTage })
+    ]);
+    if (uRes.error) throw uRes.error;
+    const u   = uRes.data || {};
+    const dau = Array.isArray(dRes.data) ? dRes.data : [];
+    renderAnalytik(u, dau);
+    if (stand) stand.textContent = t('analytik_stand', { zeit: new Date().toLocaleString() });
+  } catch (e) {
+    console.warn('Analytik:', e);
+    if (inhalt) inhalt.innerHTML = `<p class="pdf-sub" style="color:var(--akzent)">${t('analytik_fehler')}</p>`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+function _anKpi(label, wert, sub) {
+  return `<div style="background:var(--bg-soft);border:1px solid rgba(156,124,60,.25);border-radius:10px;padding:10px 8px;text-align:center">`
+    + `<div style="font-size:26px;font-weight:700;color:var(--gold-hell);line-height:1.1">${wert}</div>`
+    + `<div style="font-size:12px;color:var(--text-dim);margin-top:3px">${label}</div>`
+    + (sub ? `<div style="font-size:11px;color:var(--gold);margin-top:1px">${sub}</div>` : '')
+    + `</div>`;
+}
+function _anH3(txt) {
+  return `<h3 style="margin:18px 0 6px;font-size:15px;color:var(--gold);font-weight:600">${txt}</h3>`;
+}
+function renderAnalytik(u, dau) {
+  const inhalt = document.getElementById('analytik-inhalt');
+  if (!inhalt) return;
+  const neu = u.neu || {}, akt = u.aktiv || {};
+  const gesamt  = u.nutzer_gesamt || 0;
+  const inaktiv = u.inaktiv_30 || 0;
+  const aktivPct = gesamt ? Math.round((akt.d30 || 0) / gesamt * 100) : 0;
+
+  const kpis = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:8px">`
+    + _anKpi(t('analytik_k_gesamt'),  gesamt, '')
+    + _anKpi(t('analytik_k_aktiv7'),  akt.d7 || 0, '')
+    + _anKpi(t('analytik_k_aktiv30'), akt.d30 || 0, aktivPct + '%')
+    + _anKpi(t('analytik_k_inaktiv'), inaktiv, '')
+    + _anKpi(t('analytik_k_neu7'),    neu.d7 || 0, '')
+    + _anKpi(t('analytik_k_nie'),     u.nie_aktiv || 0, '')
+    + `</div>`;
+
+  inhalt.innerHTML = kpis
+    + `<div id="an-dau-wrap">` + analytikDauBlock(dau) + `</div>`
+    + _anH3(t('analytik_aktiv_titel')) + analytikAktivBalken(akt.d30 || 0, inaktiv, gesamt)
+    + _anH3(t('analytik_top_titel'))   + analytikTopHtml(u.top_aktionen || []);
+}
+// Verlaufs-Block: Titel (mit gewähltem Zeitraum) + Zeitraum-Umschalter + Liniendiagramm.
+function analytikDauBlock(dau) {
+  return _anH3(t('analytik_dau_titel', { n: analytikTage }))
+    + analytikRangeBtns()
+    + analytikLineSvg(dau);
+}
+function analytikRangeBtns() {
+  return `<div style="display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap">`
+    + [7, 30, 90, 365].map(n => {
+        const aktiv = (n === analytikTage);
+        return `<button type="button" onclick="analytikSetTage(${n})" style="padding:4px 11px;border-radius:6px;`
+          + `border:1px solid rgba(156,124,60,.4);cursor:pointer;font-size:12px;`
+          + `background:${aktiv ? 'var(--gold)' : 'transparent'};color:${aktiv ? '#1a1410' : 'var(--text-dim)'}">`
+          + t('analytik_tage', { n }) + `</button>`;
+      }).join('')
+    + `</div>`;
+}
+// Zeitraum umschalten: nur das Verlaufs-Diagramm neu laden/rendern (KPIs bleiben feste 1/7/30-T-Fenster).
+async function analytikSetTage(n) {
+  if (!istSuperAdmin() || !sbClient) return;
+  analytikTage = n;
+  const wrap = document.getElementById('an-dau-wrap');
+  if (wrap) wrap.innerHTML = _anH3(t('analytik_dau_titel', { n })) + analytikRangeBtns()
+    + `<p class="pdf-sub">${t('analytik_laden')}</p>`;
+  try {
+    const r = await sbClient.rpc('analytik_dau', { p_tage: n });
+    const dau = Array.isArray(r.data) ? r.data : [];
+    if (wrap) wrap.innerHTML = analytikDauBlock(dau);
+  } catch (e) {
+    if (wrap) wrap.innerHTML = _anH3(t('analytik_dau_titel', { n })) + analytikRangeBtns()
+      + `<p class="pdf-sub" style="color:var(--akzent)">${t('analytik_fehler')}</p>`;
+  }
+}
+// Tages-Verlauf aktive Nutzer als SVG-Liniendiagramm (d3 nicht nötig; reines SVG).
+function analytikLineSvg(dau) {
+  if (!dau.length) return `<p class="pdf-sub">${t('analytik_keine_daten')}</p>`;
+  const W = 780, H = 180, padL = 30, padR = 12, padT = 12, padB = 22;
+  const vals = dau.map(d => d.aktive_nutzer || 0);
+  const n = vals.length;
+  const max = Math.max(1, ...vals);
+  const x = i => padL + (n <= 1 ? (W - padL - padR) / 2 : i * (W - padL - padR) / (n - 1));
+  const y = v => padT + (H - padT - padB) * (1 - v / max);
+  const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area = `${x(0).toFixed(1)},${y(0).toFixed(1)} ${pts} ${x(n - 1).toFixed(1)},${y(0).toFixed(1)}`;
+  const grid = [0, 0.5, 1].map(f => {
+    const yy = (padT + (H - padT - padB) * f).toFixed(1);
+    const val = Math.round(max * (1 - f));
+    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--gold)" stroke-opacity="0.15"/>`
+         + `<text x="2" y="${(+yy + 3)}" fill="var(--text-dim)" font-size="9">${val}</text>`;
+  }).join('');
+  // Punkte nur bei überschaubarem Zeitraum (sonst überladen, z. B. 365 Tage).
+  const dots = (n <= 60)
+    ? vals.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2" fill="var(--gold-hell)"/>`).join('')
+    : '';
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;height:auto;display:block" role="img" aria-label="${t('analytik_dau_titel', { n })}">`
+    + grid
+    + `<polygon points="${area}" fill="var(--gold)" fill-opacity="0.10"/>`
+    + `<polyline points="${pts}" fill="none" stroke="var(--gold)" stroke-width="2"/>`
+    + dots
+    + `<text x="${padL}" y="${H - 6}" fill="var(--text-dim)" font-size="9">${escapeHtml(String(dau[0].tag))}</text>`
+    + `<text x="${W - padR}" y="${H - 6}" fill="var(--text-dim)" font-size="9" text-anchor="end">${escapeHtml(String(dau[n - 1].tag))}</text>`
+    + `</svg></div>`;
+}
+// Aktiv vs. inaktiv (30 Tage) als gestapelter Balken.
+function analytikAktivBalken(aktiv, inaktiv, gesamt) {
+  const g = Math.max(1, gesamt);
+  const aPct = Math.round(aktiv / g * 100);
+  const iPct = 100 - aPct;
+  return `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid rgba(156,124,60,.3)">`
+    + `<div style="width:${aPct}%;background:var(--gold)"></div>`
+    + `<div style="width:${iPct}%;background:var(--bg-soft)"></div></div>`
+    + `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-top:5px;gap:8px;flex-wrap:wrap">`
+    + `<span>● ${t('analytik_aktiv_leg', { n: aktiv, pct: aPct })}</span>`
+    + `<span>${t('analytik_inaktiv_leg', { n: inaktiv, pct: iPct })}</span></div>`;
+}
+// Top-Aktionen als horizontale Balkenliste.
+function analytikTopHtml(top) {
+  if (!top.length) return `<p class="pdf-sub">${t('analytik_keine_daten')}</p>`;
+  const max = Math.max(1, ...top.map(x => x.anzahl || 0));
+  return `<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">` + top.map(x => {
+    const pct  = Math.round((x.anzahl || 0) / max * 100);
+    const name = String(x.aktion || '').replace(/_/g, ' ');
+    return `<div style="display:flex;align-items:center;gap:8px">`
+      + `<div style="flex:0 0 34%;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}</div>`
+      + `<div style="flex:1;background:var(--bg-soft);border-radius:5px;height:16px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--gold)"></div></div>`
+      + `<div style="flex:0 0 auto;font-size:12px;color:var(--gold-hell);min-width:56px;text-align:right">${x.anzahl || 0}<span style="color:var(--text-dim)"> · ${x.nutzer || 0}👤</span></div>`
+      + `</div>`;
+  }).join('') + `</div>`;
+}
+
+// ── Nutzerliste (Report aktiv/inaktiv je Konto) ──
+let analytikNutzerCache  = [];
+let analytikNutzerFilter = 'alle';   // 'alle' | 'aktiv' | 'inaktiv'
+async function analytikNutzerListe() {
+  if (!istSuperAdmin() || !sbClient) return;
+  const inhalt = document.getElementById('analytik-inhalt');
+  const stand  = document.getElementById('analytik-stand');
+  if (inhalt) inhalt.innerHTML = `<p class="pdf-sub">${t('analytik_laden')}</p>`;
+  try {
+    const r = await sbClient.rpc('analytik_nutzer_liste', { p_tage: analytikTage });
+    if (r.error) throw r.error;
+    analytikNutzerCache = Array.isArray(r.data) ? r.data : [];
+    renderNutzerListe();
+    if (stand) stand.textContent = t('analytik_stand', { zeit: new Date().toLocaleString() });
+  } catch (e) {
+    console.warn('Analytik-Nutzerliste:', e);
+    if (inhalt) inhalt.innerHTML = `<p class="pdf-sub" style="color:var(--akzent)">${t('analytik_fehler')}</p>`;
+  }
+}
+function analytikNutzerSetFilter(f) { analytikNutzerFilter = f; renderNutzerListe(); }
+function _anDatum(iso, mitZeit) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return '—';
+  return mitZeit ? d.toLocaleString() : d.toLocaleDateString();
+}
+function renderNutzerListe() {
+  const inhalt = document.getElementById('analytik-inhalt');
+  if (!inhalt) return;
+  const liste = analytikNutzerCache.filter(u =>
+    analytikNutzerFilter === 'aktiv'   ? u.aktiv :
+    analytikNutzerFilter === 'inaktiv' ? !u.aktiv : true);
+
+  const fBtn = (f, label) => {
+    const aktiv = (f === analytikNutzerFilter);
+    return `<button type="button" onclick="analytikNutzerSetFilter('${f}')" style="padding:4px 11px;border-radius:6px;`
+      + `border:1px solid rgba(156,124,60,.4);cursor:pointer;font-size:12px;`
+      + `background:${aktiv ? 'var(--gold)' : 'transparent'};color:${aktiv ? '#1a1410' : 'var(--text-dim)'}">${label}</button>`;
+  };
+  const kopf = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 10px">`
+    + `<button type="button" onclick="ladeAnalytik()" style="padding:4px 11px;border-radius:6px;border:1px solid rgba(156,124,60,.4);cursor:pointer;font-size:12px;background:transparent;color:var(--text-dim)">← ${t('zurueck')}</button>`
+    + fBtn('alle', t('analytik_f_alle')) + fBtn('aktiv', t('analytik_f_aktiv')) + fBtn('inaktiv', t('analytik_f_inaktiv'))
+    + `<span style="font-size:12px;color:var(--text-dim);margin-left:auto">${t('analytik_anzahl', { n: liste.length })}</span>`
+    + `<button type="button" onclick="analytikNutzerCsv()" style="padding:4px 11px;border-radius:6px;border:1px solid rgba(156,124,60,.4);cursor:pointer;font-size:12px;background:transparent;color:var(--gold-hell)">⬇ ${t('analytik_csv')}</button>`
+    + `</div>`;
+
+  const th = s => `<th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text-dim);font-weight:600;border-bottom:1px solid rgba(156,124,60,.25);white-space:nowrap">${s}</th>`;
+  const rows = liste.map(u => {
+    const badge = u.aktiv
+      ? `<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;background:rgba(120,160,90,.22);color:#8fbf6a">${t('analytik_status_aktiv')}</span>`
+      : `<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;background:var(--bg-soft);color:var(--text-dim)">${t('analytik_status_inaktiv')}</span>`;
+    const wer = u.name ? escapeHtml(u.name) : escapeHtml(u.email || '—');
+    const sub = u.name ? `<div style="font-size:11px;color:var(--text-dim)">${escapeHtml(u.email || '')}</div>` : '';
+    const td = (inner, extra) => `<td style="padding:6px 8px;font-size:12px;border-bottom:1px solid rgba(156,124,60,.12);${extra || ''}">${inner}</td>`;
+    return `<tr>${td(`<div style="color:var(--text)">${wer}</div>${sub}`)}${td(badge, 'white-space:nowrap')}`
+      + `${td(u.letzte_aktivitaet ? _anDatum(u.letzte_aktivitaet, true) : t('analytik_nie'), 'white-space:nowrap;color:var(--text-dim)')}`
+      + `${td(_anDatum(u.registriert, false), 'white-space:nowrap;color:var(--text-dim)')}`
+      + `${td(String(u.ereignisse || 0), 'text-align:right;color:var(--gold-hell)')}</tr>`;
+  }).join('');
+
+  const tabelle = liste.length
+    ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:480px">`
+      + `<thead><tr>${th(t('analytik_sp_nutzer'))}${th(t('analytik_sp_status'))}${th(t('analytik_sp_letzte'))}${th(t('analytik_sp_registriert'))}${th(t('analytik_sp_ereignisse'))}</tr></thead>`
+      + `<tbody>${rows}</tbody></table></div>`
+    : `<p class="pdf-sub">${t('analytik_keine_daten')}</p>`;
+
+  inhalt.innerHTML = kopf + tabelle;
+}
+// CSV der aktuell gefilterten Nutzerliste herunterladen.
+function analytikNutzerCsv() {
+  const liste = analytikNutzerCache.filter(u =>
+    analytikNutzerFilter === 'aktiv'   ? u.aktiv :
+    analytikNutzerFilter === 'inaktiv' ? !u.aktiv : true);
+  const q = s => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`;
+  const kopf = ['email', 'name', t('analytik_sp_status'), 'registriert', 'letzter_login', 'letzte_aktivitaet', 'ereignisse'];
+  const zeilen = liste.map(u => [
+    u.email || '', u.name || '',
+    u.aktiv ? t('analytik_status_aktiv') : t('analytik_status_inaktiv'),
+    u.registriert || '', u.letzter_login || '', u.letzte_aktivitaet || '', u.ereignisse || 0
+  ].map(q).join(','));
+  const csv = '﻿' + [kopf.map(q).join(','), ...zeilen].join('\r\n');   // BOM für Excel/UTF-8
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'nutzer-report-' + analytikNutzerFilter + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 // DEBUG: Hilfsfunction zum Setzen der Debug-Rolle (nur für lokales Testen)
 function setDebugRolle(rolle) {
   if (rolle) {
@@ -2797,6 +3144,7 @@ function getDebugRolle() {
 }
 
 function loescheUser() {
+  try { track('logout'); flushTrack(); } catch (e) {}   // Analytik: ausstehende Ereignisse sichern (noch mit user_id)
   aktuellerUser = null;
   aktuelleRolle = null;
   baumDatenGeladen = false;   // nächster Login zeigt erst den Lade-Hinweis (kein FAMILY_DATA-Flash)
@@ -2891,6 +3239,9 @@ function aktualisiereAuthUI() {
     // Familien-Isolation (CLAUDE.md). Bucket-RLS + beide Edge Functions erzwingen ebenfalls super_admin.
     const backupBtn = document.getElementById('menu-backup-btn');
     if (backupBtn) backupBtn.style.display = istSuperAdmin() ? '' : 'none';
+    // Analytik/Nutzungs-Statistik: NUR super_admin (Betreiber-Kennzahlen, für normale Nutzer unsichtbar)
+    const analytikBtn = document.getElementById('menu-analytik-btn');
+    if (analytikBtn) analytikBtn.style.display = istSuperAdmin() ? '' : 'none';
     // Papierkorb im Avatar-Menü (unter „Profil bearbeiten") — nur für Bearbeiter.
     const avPkBtn = document.getElementById('avatar-papierkorb-btn');
     if (avPkBtn) avPkBtn.style.display = istAdmin() ? '' : 'none';
@@ -2934,7 +3285,7 @@ function aktualisiereInhaltSichtbarkeit() {
   // Eingeloggt, aber die echten Baumdaten sind noch nicht geladen: KEINE Ansicht zeigen
   // (sonst würde das eingebettete FAMILY_DATA = Vidović kurz aufblitzen) -> Lade-Hinweis.
   if (eingeloggt && !baumDatenGeladen) {
-    ['ansicht-karten','ansicht-shorts','ansicht-baum'].forEach(id => {
+    ['ansicht-karten','ansicht-shorts','ansicht-baum','ansicht-mape','ansicht-feed'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
     if (hinweis)   hinweis.style.display   = 'none';
@@ -2950,7 +3301,7 @@ function aktualisiereInhaltSichtbarkeit() {
   // zentrierter „Stammbaum anlegen"-Button statt einer leeren Baum-Ansicht.
   const keinBaum = document.getElementById('kein-baum-hinweis');
   if (eingeloggt && Object.keys(stammbaeumeListe || {}).length === 0) {
-    ['ansicht-karten','ansicht-shorts','ansicht-baum'].forEach(id => {
+    ['ansicht-karten','ansicht-shorts','ansicht-baum','ansicht-mape','ansicht-feed'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
     if (hinweis)   hinweis.style.display   = 'none';
@@ -2969,7 +3320,7 @@ function aktualisiereInhaltSichtbarkeit() {
     if (treeSel)   treeSel.style.display   = treeSel.options.length ? '' : 'none';
     wechselAnsicht(aktuelleAnsicht || 'baum');   // aktuelle Ansicht wieder einblenden
   } else {
-    ['ansicht-karten','ansicht-shorts','ansicht-baum'].forEach(id => {
+    ['ansicht-karten','ansicht-shorts','ansicht-baum','ansicht-mape','ansicht-feed'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
     if (tabGruppe) tabGruppe.style.display = 'none';
@@ -3001,6 +3352,7 @@ function toggleAvatarMenu(e) {
 // Menüpunkt „Profil bearbeiten" — schließt das Avatar-Menü und öffnet das Profil.
 function oeffneProfilAusMenu() {
   const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  track('profil_offnen');   // Analytik
   oeffneProfil();
 }
 
@@ -4644,6 +4996,7 @@ let entdeckenTimer = null;
 
 function oeffneEntdecken() {
   if (!aktuellerUser) return;
+  track('entdecken_offnen');   // Analytik
   const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
   entdeckenModus = 'verbund';
   entdeckenModusUI();
@@ -6880,10 +7233,11 @@ async function setzePasswort() {
 }
 
 // ---- Hintergrund-Prüfung: existiert dieser Stammbaum schon? -------------------
-// Sobald Naziv stabla + Država + Grad/selo + Opština ausgefüllt sind, prüfen wir
-// per RPC familie_finden_exakt (striktes 4-Felder-Matching, diakritik-/groß-klein-
-// unempfindlich). Treffer -> Zugriffsanfrage (Info + Rolle). Kein Treffer -> der
-// normale Erstellungsprozess (Self-Service) läuft beim Absenden.
+// Sobald Naziv stabla + Država + Opština ausgefüllt sind, prüfen wir per RPC
+// familie_finden_exakt (striktes 3-Felder-Matching Name/Land/Gemeinde, diakritik-/
+// groß-klein-unempfindlich; Grad/selo = Dorf ist optional und NICHT Teil des Abgleichs).
+// Treffer -> Zugriffsanfrage (Info + Rolle). Kein Treffer -> der normale
+// Erstellungsprozess (Self-Service) läuft beim Absenden.
 let regMatchTimer = null;
 let regMatchFamilie = null;   // { id, name } bei Treffer, sonst null
 function pruefeBaumMatchDebounced() {
@@ -7602,6 +7956,8 @@ function wechselSprache(lang, speichern = true) {
   if (typeof pdfModalSprachUpdate === 'function') pdfModalSprachUpdate();
   // „Ansicht erweitern"-Overlay (Picker-Labels/Personennamen) neu aufbauen
   if (typeof ansichtModalSprachUpdate === 'function') ansichtModalSprachUpdate();
+  // Analytik-Panel: dynamisch gerenderte Kennzahlen/Diagramme in neuer Sprache neu aufbauen
+  if (document.getElementById('analytik-modal')?.classList.contains('aktiv') && typeof ladeAnalytik === 'function') ladeAnalytik();
   // „Abweichender Nachname"-Overlay: dynamischen Titel + Beziehungs-Select neu aufbauen
   if (typeof abwSpracheUpdate === 'function') abwSpracheUpdate();
   // Baum-Integrität: offenen Diagnose-Bericht neu beschriften
@@ -7995,6 +8351,7 @@ function waehleStammbaum(treeId) {
   // Ereignis-Ansicht (Liste/Zeitstrahl) zeigt Baum-bezogene Daten -> beim Baumwechsel neu laden,
   // da waehleStammbaum sonst nur die (versteckte) Baum-Ansicht neu zeichnet.
   if (aktuelleAnsicht === 'shorts') zeigeShorts();
+  else if (aktuelleAnsicht === 'mape') zeigeMape();   // Karte des jetzt offenen Baums neu laden
 }
 
 // Hinweis-Banner: in welchem Stammbaum man ist + dass man oben wechseln kann
@@ -8840,7 +9197,7 @@ function aktualisiereKopf(rootId) {
 function aktualisiereSucheZustand(name) {
   const suche = document.getElementById('suche');
   if (!suche) return;
-  if (name === 'shorts' || name === 'feed') {
+  if (name === 'shorts' || name === 'feed' || name === 'mape') {
     if (suche.value) suche.value = '';          // leeren → Platzhalter sichtbar
     suche.disabled = true;
     suche.title = t('suche_events_tooltip');
@@ -9913,9 +10270,7 @@ async function zeigeShorts() {
   zsFuelleFilter();   // Filter-Optionen (Personen/Jahrzehnte) aus den frischen Daten
   zsRender();         // Achse zeichnen (auch wenn versteckt -> nach Modus-Wechsel sofort da)
 
-  // ----- Ansicht C: Karte (teilt eventsCache; nur wenn aktiv neu zeichnen) -----
-  karteFuelleFilter();
-  if (evModus === 'karte') karteRender();
+  // ----- Karte: ausgelagert in den eigenen „Mape"-Tab (zeigeMape) -----
 
   // ----- Ansicht D: Kalender (teilt eventsCache; nur wenn aktiv neu zeichnen) -----
   if (evModus === 'kalender') kalRender();
@@ -9952,25 +10307,22 @@ function zsName(p) { return p ? nm(p.name || ((p.given || '') + ' ' + (p.surname
 function evApplyModusUI() {
   const lWrap = document.getElementById('ev-liste-wrap');
   const zWrap = document.getElementById('ev-zeit-wrap');
-  const kWrap = document.getElementById('ev-karte-wrap');
   const calWrap = document.getElementById('ev-kalender-wrap');
   const tWrap = document.getElementById('ev-termin-wrap');
   if (lWrap) lWrap.style.display = (evModus === 'liste') ? '' : 'none';
   if (zWrap) zWrap.style.display = (evModus === 'zeit')  ? '' : 'none';
-  if (kWrap) kWrap.style.display = (evModus === 'karte') ? '' : 'none';
   if (calWrap) calWrap.style.display = (evModus === 'kalender') ? '' : 'none';
   if (tWrap) tWrap.style.display = (evModus === 'termin') ? '' : 'none';
   document.querySelectorAll('#ev-modus .ev-modus-btn').forEach(b =>
     b.classList.toggle('aktiv', b.dataset.evModus === evModus));
 }
 function evSetModus(m) {
-  if (!['liste', 'zeit', 'karte', 'kalender', 'termin'].includes(m)) return;
+  if (!['liste', 'zeit', 'kalender', 'termin'].includes(m)) return;
   evModus = m;
   evApplyModusUI();
   const btn = document.getElementById('event-neu-btn');
   if (btn) btn.style.display = (istAdmin() && aktuellerStammbaumId && evModus === 'liste') ? '' : 'none';
   if (m === 'zeit')  { zsFuelleFilter(); zsRender(); }
-  if (m === 'karte') { karteFuelleFilter(); karteRender(); }
   if (m === 'kalender') kalRender();
   if (m === 'termin') tfRender();
 }
@@ -10562,10 +10914,92 @@ function kartePersonen() {
     if (!ev.bezugsperson_id || seen.has(ev.bezugsperson_id)) return;
     const p = Object.values(aktuelleDaten.persons || {})
       .find(pp => pp && String(pp._uuid) === String(ev.bezugsperson_id));
-    seen.set(ev.bezugsperson_id, p ? zsName(p) : '');
+    seen.set(ev.bezugsperson_id, { name: p ? zsName(p) : '', geb: p ? (p.birth_date || '') : '' });
   });
-  return [...seen.entries()].map(([id, name]) => ({ id, name }))
+  return [...seen.entries()].map(([id, v]) => ({ id, name: v.name, geb: v.geb }))
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+}
+
+// --- Migrationspfad pro Person (Phase 3): Geburt -> Wohnorte -> Events -> Tod ---
+const _guteLL = (la, lo) => typeof la === 'number' && typeof lo === 'number' && isFinite(la) && isFinite(lo);
+
+// Alle verorteten Lebens-Stationen einer Person als chronologische Punktliste.
+// IDENTITÄTSBEWUSST: sammelt über ALLE Zwillingskarten (gleiche identitaet_id / _ident), da
+// Koordinaten (wohnadressen/birth_lat/…) auf einer gespiegelten Karte in einem anderen Baum
+// liegen können, wenn ident_sync sie nicht auf alle Karten propagiert hat. Dedupe: Geburt/Tod
+// je einmal, Wohnorte nach Adresse+von, Events nach id.
+function personLocPunkte(pid) {
+  const alle = Object.values(aktuelleDaten.persons || {});
+  const start = alle.find(pp => pp && String(pp._uuid) === String(pid));
+  if (!start) return [];
+  const gruppe = start._ident ? alle.filter(pp => pp && pp._ident === start._ident) : [start];
+  const punkte = [];
+  let hatGeburt = false, hatTod = false; const wohnSeen = new Set();
+  gruppe.forEach(pObj => {
+    if (!hatGeburt && _guteLL(pObj.birth_lat, pObj.birth_lng)) {
+      hatGeburt = true;
+      punkte.push({ ll: [pObj.birth_lat, pObj.birth_lng], datum: pObj.birth_date, typ: 'geburt', name: pObj.birth_place, ext: start.id });
+    }
+    (pObj.wohnadressen || []).forEach(a => {
+      if (!_guteLL(a.lat, a.lng)) return;
+      const k = (a.adresse || '') + '|' + (a.von || '');
+      if (wohnSeen.has(k)) return; wohnSeen.add(k);
+      punkte.push({ ll: [a.lat, a.lng], datum: a.von, typ: 'wohnort', name: a.adresse, ext: start.id });
+    });
+    if (!hatTod && _guteLL(pObj.death_lat, pObj.death_lng)) {
+      hatTod = true;
+      punkte.push({ ll: [pObj.death_lat, pObj.death_lng], datum: pObj.death_date, typ: 'tod', name: pObj.death_place, ext: start.id });
+    }
+  });
+  const uuids = new Set(gruppe.map(g => String(g._uuid)));
+  const evSeen = new Set();
+  karteEvents().filter(ev => uuids.has(String(ev.bezugsperson_id))).forEach(ev => {
+    if (evSeen.has(ev.id)) return; evSeen.add(ev.id);
+    punkte.push({ ll: [ev.latitude, ev.longitude], datum: ev.datum, typ: 'event', ev });
+  });
+  // chronologisch nach parsebarem ISO-Datum; undatierte ans Ende; Tiebreak nach Typ (Geburt zuerst, Tod zuletzt).
+  const prio = { geburt: 0, wohnort: 1, event: 1, tod: 2 };
+  punkte.sort((a, b) => {
+    const ia = zsIso(a.datum) || '', ib = zsIso(b.datum) || '';
+    if (ia && ib && ia !== ib) return ia.localeCompare(ib);
+    if (ia && !ib) return -1; if (!ia && ib) return 1;
+    return (prio[a.typ] ?? 1) - (prio[b.typ] ?? 1);
+  });
+  return punkte;
+}
+
+// Personen für das Migrationspfad-Dropdown: alle Personen des AKTIVEN Baums PLUS alle
+// VERORTETEN Personen (auch aus anderen Bäumen, die hier per Render-Brücke eingeblendet sind —
+// z. B. ein Kind, das physisch in einem Zweigbaum liegt). Identitäts-dedupliziert; das
+// Geburtsdatum (`geb`) wird mitgeführt, damit gleichnamige Karten unterscheidbar sind.
+// Platzhalter-Eltern werden ausgelassen.
+function kartePersonenMigration() {
+  const out = [], seen = new Set();
+  const kanon = p => p._ident || p._uuid;
+  Object.values(aktuelleDaten.persons || {}).forEach(p => {
+    if (!p || !p._uuid || p.platzhalter) return;
+    const imBaum = p._tree === aktuellerStammbaumId;
+    const verortet = _guteLL(p.birth_lat, p.birth_lng) || _guteLL(p.death_lat, p.death_lng)
+      || (p.wohnadressen || []).some(a => _guteLL(a.lat, a.lng));
+    if (!(imBaum || verortet)) return;
+    const k = kanon(p);
+    if (seen.has(k)) return; seen.add(k);
+    out.push({ id: p._uuid, name: zsName(p), geb: p.birth_date || '' });
+  });
+  kartePersonen().forEach(pp => { if (!seen.has(pp.id)) { seen.add(pp.id); out.push(pp); } });   // + Event-Bezugspersonen
+  return out.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+}
+
+// Popup für eine Personen-Station (Geburt/Wohnort/Tod). Events nutzen weiter kartePopupHtml.
+function kartePunktPopupHtml(p) {
+  const typLb = { geburt: t('geburtsort'), wohnort: t('adr_g_wohnorte'), tod: t('sterbeort') }[p.typ] || '';
+  const zeilen = [
+    `<strong>${escapeHtml(typLb)}</strong>`,
+    p.name ? escapeHtml(uebersetzeOrt(p.name)) : '',
+    p.datum ? `${escapeHtml(t('event_datum'))}: ${escapeHtml(formatDatumLang(p.datum))}` : ''
+  ].filter(Boolean).join('<br>');
+  const btn = p.ext ? `<button class="karte-popup-btn" type="button" onclick="zeigeDetails('${p.ext}')">${escapeHtml(t('karte_details'))}</button>` : '';
+  return `<div class="karte-popup">${zeilen}${btn}</div>`;
 }
 
 function karteSetModus(m) {
@@ -10581,10 +11015,13 @@ function karteSetModus(m) {
 function karteFuelleFilter() {
   const fp = document.getElementById('karte-f-person');
   if (!fp) return;
-  const personen = kartePersonen();
+  const personen = kartePersonenMigration();
   const alt = fp.value;
   fp.innerHTML = `<option value="">${escapeHtml(t('karte_person_waehlen'))}</option>` +
-    personen.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || t('zs_alle'))}</option>`).join('');
+    personen.map(p => {
+      const lbl = (p.name || t('zs_alle')) + (p.geb ? ' (* ' + formatDatumLang(p.geb) + ')' : '');
+      return `<option value="${escapeHtml(p.id)}">${escapeHtml(lbl)}</option>`;
+    }).join('');
   fp.value = personen.some(p => String(p.id) === String(alt)) ? alt : '';
 }
 
@@ -10650,21 +11087,21 @@ async function karteRender() {
     const fp  = document.getElementById('karte-f-person');
     const pid = fp ? fp.value : '';
     if (!pid) { karteLeer(t('karte_person_hinweis')); return; }
-    let evs = karteEvents().filter(ev => String(ev.bezugsperson_id) === String(pid) && zsIso(ev.datum));
-    evs.sort((a, b) => zsIso(a.datum).localeCompare(zsIso(b.datum)));   // chronologisch
-    if (evs.length === 0) { karteLeer(t('karte_keine_person_orte')); return; }
+    // Migrationspfad: Geburt -> Wohnorte (nach „wohnhaft von") -> Events -> Tod (chronologisch).
+    const punkte = personLocPunkte(pid);
+    if (punkte.length === 0) { karteLeer(t('karte_keine_person_orte')); return; }
     karteLeerAus();
-    const punkte = [];
-    evs.forEach((ev, i) => {
-      const ll = [ev.latitude, ev.longitude];
-      punkte.push(ll);
-      const cls = (i === 0) ? 'start' : (i === evs.length - 1 ? 'ende' : 'pfad');
-      L.marker(ll, { icon: karteIcon(cls, String(i + 1)) })
-        .bindPopup(kartePopupHtml(ev)).addTo(karteLayer);
+    const lls = [];
+    punkte.forEach((p, i) => {
+      lls.push(p.ll);
+      const cls = (i === 0) ? 'start' : (i === punkte.length - 1 ? 'ende' : 'pfad');
+      const m = L.marker(p.ll, { icon: karteIcon(cls, String(i + 1)) });
+      m.bindPopup(p.typ === 'event' && p.ev ? kartePopupHtml(p.ev) : kartePunktPopupHtml(p));
+      m.addTo(karteLayer);
     });
-    if (punkte.length > 1)
-      L.polyline(punkte, { color: '#9c7c3c', weight: 3, opacity: 0.85, dashArray: '6 6' }).addTo(karteLayer);
-    if (leg && evs.length > 1) leg.style.display = '';
+    if (lls.length > 1)
+      L.polyline(lls, { color: '#9c7c3c', weight: 3, opacity: 0.85, dashArray: '6 6' }).addTo(karteLayer);
+    if (leg && punkte.length > 1) leg.style.display = '';
     karteFit();
     return;
   }
@@ -10798,6 +11235,165 @@ function geoTrefferWahl(lat, lng, btn) {
   const ortEl = document.getElementById('ev-ort');
   if (ortEl && !ortEl.value.trim() && btn && btn.dataset.name)
     ortEl.value = btn.dataset.name.split(',').slice(0, 2).join(', ').replace(/\s+/g, ' ').trim();
+}
+
+// ============================================================
+// WOHNORTE (Prebivališta): wiederholbare, geokodierte Adressliste mit „wohnhaft von–bis".
+// Wiederverwendbares Geo-Adressfeld (Nominatim-Suche wie Event-Ort) + manueller Freitext-Fallback
+// (dann Warnung: ohne Koordinaten kein Migrationspfad). Gespeichert als Array
+// `wohnadressen: [{adresse, lat, lng, von, bis}]` in stammbaum_daten. prefix = 'pe' | 'pa'.
+// ============================================================
+let wohnortSuchTimer = null;   // Debounce je Tastendruck (Nominatim schonen; teilt geoLetzteSuche)
+
+function wohnortRowHtml(a) {
+  a = a || {};
+  const lat = (a.lat != null && isFinite(a.lat)) ? a.lat : '';
+  const lng = (a.lng != null && isFinite(a.lng)) ? a.lng : '';
+  return `<div class="wohnort-row">
+    <div class="wohnort-adr geoadr">
+      <input type="text" class="login-feld geoadr-suche" data-lat="${lat}" data-lng="${lng}"
+             value="${escapeHtml(a.adresse || '')}" oninput="geoAdrInput(this)"
+             placeholder="${escapeHtml(t('adr_suche_ph'))}">
+      <div class="geoadr-treffer"></div>
+      <div class="geoadr-status"></div>
+    </div>
+    <div class="wohnort-zeit">
+      <input type="text" class="login-feld dp-input geoadr-von" placeholder="${escapeHtml(t('adr_von'))}">
+      <input type="text" class="login-feld dp-input geoadr-bis" placeholder="${escapeHtml(t('adr_bis'))}">
+    </div>
+    <button type="button" class="wohnort-del" title="${escapeHtml(t('adr_entfernen'))}" onclick="wohnortEntfernen(this)">×</button>
+  </div>`;
+}
+
+function wohnortRowMount(html, containerId, a) {
+  const c = document.getElementById(containerId); if (!c) return null;
+  const wrap = document.createElement('div'); wrap.innerHTML = html.trim();
+  const el = wrap.firstElementChild; c.appendChild(el);
+  el.querySelectorAll('input.dp-input').forEach(d => { if (typeof macheDatumsfeld === 'function') macheDatumsfeld(d); });
+  if (a) {
+    if (a.von) datumSetzen(el.querySelector('.geoadr-von'), a.von);
+    if (a.bis) datumSetzen(el.querySelector('.geoadr-bis'), a.bis);
+  }
+  geoAdrStatus(el.querySelector('.geoadr-suche'));
+  return el;
+}
+
+function wohnortRender(prefix, liste) {
+  const c = document.getElementById(prefix + '-wohnorte'); if (!c) return;
+  c.innerHTML = '';
+  (liste || []).forEach(a => wohnortRowMount(wohnortRowHtml(a), prefix + '-wohnorte', a));
+}
+
+function wohnortHinzu(prefix) {
+  const el = wohnortRowMount(wohnortRowHtml({}), prefix + '-wohnorte', null);
+  if (el) { const s = el.querySelector('.geoadr-suche'); if (s) s.focus(); }
+}
+
+function wohnortEntfernen(btn) { const r = btn.closest('.wohnort-row'); if (r) r.remove(); }
+
+// Alle Zeilen einsammeln -> Array; leere Zeilen (ohne Adresse) überspringen.
+function wohnortSammeln(prefix) {
+  const c = document.getElementById(prefix + '-wohnorte'); if (!c) return [];
+  const out = [];
+  c.querySelectorAll('.wohnort-row').forEach(r => {
+    const s = r.querySelector('.geoadr-suche');
+    const adr = ((s && s.value) || '').trim();
+    if (!adr) return;
+    const lat = (s.dataset.lat !== '' && !isNaN(+s.dataset.lat)) ? +s.dataset.lat : null;
+    const lng = (s.dataset.lng !== '' && !isNaN(+s.dataset.lng)) ? +s.dataset.lng : null;
+    const von = datumWert(r.querySelector('.geoadr-von')) || null;
+    const bis = datumWert(r.querySelector('.geoadr-bis')) || null;
+    out.push({ adresse: adr, lat, lng, von, bis });
+  });
+  return out;
+}
+
+// Legacy-Übernahme: alte Einzelfelder (adresse/wohnort_stadt/wohnort_land) -> ein Wohnort-Eintrag,
+// falls noch kein `wohnadressen`-Array existiert (kein Datenverlust, lazy beim ersten Öffnen).
+function wohnortAusPerson(p) {
+  if (Array.isArray(p.wohnadressen) && p.wohnadressen.length) return p.wohnadressen;
+  const teile = [p.adresse, p.wohnort_stadt, p.wohnort_land].map(x => (x || '').trim()).filter(Boolean);
+  if (!teile.length) return [];
+  return [{ adresse: teile.join(', '), lat: null, lng: null, von: null, bis: null }];
+}
+
+// Read-only-Anzeige der Wohnorte in der Detailkarte (mit von–bis, sonst leer).
+function wohnorteDetailHtml(p) {
+  const liste = wohnortAusPerson(p);
+  if (!liste.length) return '';
+  const rows = liste.map(a => {
+    const vonS = a.von ? formatDatumLang(a.von) : '', bisS = a.bis ? formatDatumLang(a.bis) : '';
+    const zeit = (vonS || bisS)
+      ? ` <span class="wohnort-zeit-det">(${vonS && bisS ? vonS + ' – ' + bisS : (vonS ? vonS + ' –' : '– ' + bisS)})</span>` : '';
+    return `<div class="wohnort-det">${escapeHtml(uebersetzeOrt(a.adresse))}${zeit}</div>`;
+  }).join('');
+  return `<div class="info-zeile"><strong>${t('adr_g_wohnorte')}:</strong></div><div class="wohnorte-det">${rows}</div>`;
+}
+
+// --- Wiederverwendbares Geo-Adressfeld ---
+function geoAdrInput(inp) {
+  inp.dataset.lat = ''; inp.dataset.lng = '';   // manuelle Eingabe verwirft die vorherige Wahl
+  geoAdrStatus(inp);
+  clearTimeout(wohnortSuchTimer);
+  const q = (inp.value || '').trim();
+  const box = inp.parentElement.querySelector('.geoadr-treffer');
+  if (q.length < 3) { if (box) box.innerHTML = ''; return; }
+  wohnortSuchTimer = setTimeout(() => geoAdrSuche(inp), 700);
+}
+
+async function geoAdrSuche(inp) {
+  const box = inp.parentElement.querySelector('.geoadr-treffer'); if (!box) return;
+  const q = (inp.value || '').trim(); if (q.length < 3) { box.innerHTML = ''; return; }
+  const seit = Date.now() - geoLetzteSuche;   // globales Nominatim-Rate-Limit teilen
+  if (seit < 1100) { clearTimeout(wohnortSuchTimer); wohnortSuchTimer = setTimeout(() => geoAdrSuche(inp), 1100 - seit); return; }
+  geoLetzteSuche = Date.now();
+  box.innerHTML = `<div class="geoadr-info">${escapeHtml(t('geo_suchen_laeuft'))}</div>`;
+  try {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language='
+      + encodeURIComponent(aktuelleSprache || 'de') + '&q=' + encodeURIComponent(q);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const arr = await res.json();
+    if (!Array.isArray(arr) || !arr.length) { box.innerHTML = `<div class="geoadr-info">${escapeHtml(t('geo_keine_treffer'))}</div>`; return; }
+    box.innerHTML = arr.map(r =>
+      `<button type="button" class="geoadr-opt" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${escapeHtml(r.display_name)}" onclick="geoAdrWahl(this)">${escapeHtml(r.display_name)}</button>`
+    ).join('');
+  } catch (e) { box.innerHTML = `<div class="geoadr-info">${escapeHtml(t('geo_fehler'))}</div>`; }
+}
+
+function geoAdrWahl(btn) {
+  const box = btn.closest('.geoadr-treffer');
+  const inp = box.parentElement.querySelector('.geoadr-suche');
+  inp.value = btn.dataset.name;
+  inp.dataset.lat = (+btn.dataset.lat).toFixed(6);
+  inp.dataset.lng = (+btn.dataset.lng).toFixed(6);
+  box.innerHTML = '';
+  geoAdrStatus(inp);
+}
+
+// Status: grün „Koordinaten übernommen" ODER Warnung „ohne Koordinaten kein Migrationspfad".
+function geoAdrStatus(inp) {
+  if (!inp) return;
+  const st = inp.parentElement.querySelector('.geoadr-status'); if (!st) return;
+  const hat = inp.dataset.lat !== '' && inp.dataset.lng !== '';
+  if (!(inp.value || '').trim()) { st.textContent = ''; st.className = 'geoadr-status'; return; }
+  if (hat) { st.textContent = '✓ ' + t('adr_koord_ok'); st.className = 'geoadr-status ok'; }
+  else { st.textContent = '⚠ ' + t('adr_manuell_warnung'); st.className = 'geoadr-status warn'; }
+}
+
+// Einzelnes Geo-Adressfeld (Geburts-/Sterbeort): setzen (Load) bzw. Koordinaten lesen (Save).
+function geoAdrSetze(inp, adresse, lat, lng) {
+  if (!inp) return;
+  inp.value = adresse || '';
+  inp.dataset.lat = (lat != null && isFinite(lat)) ? (+lat).toFixed(6) : '';
+  inp.dataset.lng = (lng != null && isFinite(lng)) ? (+lng).toFixed(6) : '';
+  const box = inp.parentElement.querySelector('.geoadr-treffer'); if (box) box.innerHTML = '';
+  geoAdrStatus(inp);
+}
+function geoAdrKoord(inp) {
+  if (!inp) return { lat: null, lng: null };
+  const lat = (inp.dataset.lat !== '' && !isNaN(+inp.dataset.lat)) ? +inp.dataset.lat : null;
+  const lng = (inp.dataset.lng !== '' && !isNaN(+inp.dataset.lng)) ? +inp.dataset.lng : null;
+  return { lat, lng };
 }
 
 // Bezugsperson-Dropdown (Personen des aktiven Baums) füllen; Wert = personen.id (DB-UUID).
@@ -11704,6 +12300,7 @@ async function speichereEvent() {
   feldFehlerReset('event-modal');
   const titel = v('ev-titel');
   if (!titel) return feldFehler('ev-titel', t('feld_pflicht'));
+  track('event_speichern');   // Analytik
   if (!pruefeDatumFelder(['ev-datum'])) return;
 
   const id = document.getElementById('ev-id').value || null;
@@ -13243,6 +13840,7 @@ function zeigeDetails(personId) {
   aktuelleModalPersonId = personId;
   const p = aktuelleDaten.persons[personId];
   if (!p) return;
+  track('person_offnen');   // Analytik: Personenkarte geöffnet
   
   // Gleiche reale Person über Bäume: Beziehungen aller Zwillingskarten zusammenführen,
   // damit die Detail-Karte überall dieselben Eltern/Kinder/Partner zeigt (entdoppelt).
@@ -13354,7 +13952,7 @@ function zeigeDetails(personId) {
     ${(p.hochzeit_standesamt || p.hochzeit_kirchlich || p.hochzeitsort) ? `<div class="info-zeile"><strong>${t('pe_hochzeit_standesamt')}:</strong> ${escapeHtml([formatDatumLang(p.hochzeit_standesamt), formatDatumLang(p.hochzeit_kirchlich), p.hochzeitsort].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.beruf ? `<div class="info-zeile"><strong>${t('pe_beruf')}:</strong> ${escapeHtml(p.beruf)}</div>` : ''}
     ${p.ausbildung ? `<div class="info-zeile"><strong>${t('pe_ausbildung')}:</strong> ${escapeHtml(p.ausbildung)}</div>` : ''}
-    ${(p.adresse || p.wohnort_stadt || p.wohnort_land) ? `<div class="info-zeile"><strong>${t('pe_g_wohnen')}:</strong> ${escapeHtml([uebersetzeOrt([p.adresse, p.wohnort_stadt].filter(Boolean).join(', ')), landAnzeige(p.wohnort_land)].filter(Boolean).join(', '))}</div>` : ''}
+    ${wohnorteDetailHtml(p)}
     ${(p.email || p.telefon || p.facebook || p.instagram) ? `<div class="info-zeile"><strong>${t('reg_kontakt')}:</strong> ${escapeHtml([p.email, p.telefon, p.facebook, p.instagram].filter(Boolean).join(' · '))}</div>` : ''}
     ${p.beschreibung ? `<div class="info-zeile" id="detail-beschreibung-zeile"><strong>${t('pe_beschreibung')}:</strong> ${escapeHtml(p.beschreibung)}</div>` : ''}
 
@@ -13810,7 +14408,9 @@ async function zeigePersonBearbeiten(personId) {
   set('pe-vorname', p.given);        set('pe-nachname', p.surname);
   set('pe-titel', p.titel);          set('pe-namenszusatz', p.namenszusatz);
   set('pe-ehename', p.ehename);      setD('pe-geburtsdatum', p.birth_date);
-  set('pe-geburtsort', p.birth_place); setLandSelect('pe-geburtsland', p.geburtsland);
+  geoAdrSetze(document.getElementById('pe-geburtsort'), p.birth_place, p.birth_lat, p.birth_lng);
+  geoAdrSetze(document.getElementById('pe-sterbeort'), p.death_place, p.death_lat, p.death_lng);
+  setLandSelect('pe-geburtsland', p.geburtsland);
   set('pe-stadt', p.stadt);          set('pe-gemeinde', p.gemeinde);
   setD('pe-getauft', p.getauft);
   setD('pe-sterbedatum', p.death_date);
@@ -13823,8 +14423,8 @@ async function zeigePersonBearbeiten(personId) {
       .includes(p.beziehung) ? p.beziehung : 'unbekannt';
   set('pe-email', p.email);          set('pe-telefon', p.telefon);
   set('pe-facebook', p.facebook);    set('pe-instagram', p.instagram);
-  setLandSelect('pe-wohnland', p.wohnort_land); set('pe-wohnstadt', p.wohnort_stadt);
-  set('pe-adresse', p.adresse);      set('pe-beruf', p.beruf);
+  wohnortRender('pe', wohnortAusPerson(p));   // Wohnorte-Liste (Geo-Adressen; Alt-Adresse übernommen)
+  set('pe-beruf', p.beruf);
   set('pe-ausbildung', p.ausbildung); set('pe-beschreibung', p.beschreibung);
   document.getElementById('pe-fehler').style.display = 'none';
   document.getElementById('pe-erfolg').style.display = 'none';
@@ -13847,6 +14447,7 @@ async function zeigePersonBearbeiten(personId) {
 function pePruefeFelder() {
   const verstorben = document.getElementById('pe-status').value === 'verstorben';
   document.getElementById('pe-row-sterbedatum').style.display = verstorben ? '' : 'none';
+  document.getElementById('pe-row-sterbeort').style.display = verstorben ? '' : 'none';
   const bez = document.getElementById('pe-beziehung').value;
   const ehe = bez === 'verheiratet';
   document.getElementById('pe-row-hochzeitsort').style.display = ehe ? '' : 'none';
@@ -15115,6 +15716,7 @@ function rezeptBildEntfernen() {
 function rezeptKatLabel(k) { return t('rezept_kat_' + (k || 'rezept')); }
 
 async function rezepteLaden() {
+  if (rezeptQuelleAktiv === 'kochbuch') kochbuchInit();   // Standard-Ansicht: Kuvar/Kochbuch beim Öffnen aufbauen
   const box = document.getElementById('rezept-liste'); if (!box) return;
   box.innerHTML = `<div class="eng-laed">${escapeHtml(t('eng_laed'))}</div>`;
   const filter = (document.getElementById('rezept-filter') || {}).value || null;
@@ -15216,7 +15818,178 @@ async function rezeptLoeschen(id) {
   } catch (err) { console.warn('rezept_loeschen:', err); await zeigeHinweis(socialFehler(err)); }
 }
 function rezeptSpracheUpdate() {
-  if (feedModus === 'rezepte' && document.getElementById('ansicht-feed')?.style.display !== 'none') rezeptRender();
+  if (feedModus === 'rezepte' && document.getElementById('ansicht-feed')?.style.display !== 'none') {
+    rezeptRender();
+    if (typeof kochbuchSpracheUpdate === 'function') kochbuchSpracheUpdate();
+  }
+}
+
+// ============================================================
+// KOCHBUCH — statischer, mehrsprachiger Rezept-Pool (rezepte_pool.js)
+// „Gericht des Tages" (deterministisch nach Datum) + Küchen-Filter + Detail.
+// Rein clientseitig, KEIN Backend. Anzeige in der aktuellen App-Sprache (Fallback).
+// ============================================================
+let rezeptQuelleAktiv = 'kochbuch';   // Standard = Kuvar/Kochbuch (statischer Pool) | 'eigene' (DB)
+let kbDetailId = null;
+const KB_POOL = (typeof REZEPT_POOL !== 'undefined' && Array.isArray(REZEPT_POOL)) ? REZEPT_POOL : [];
+
+function rezeptQuelle(q) {
+  rezeptQuelleAktiv = (q === 'kochbuch') ? 'kochbuch' : 'eigene';
+  const e = document.getElementById('rezept-eigene');
+  const k = document.getElementById('rezept-kochbuch');
+  if (e) e.style.display = rezeptQuelleAktiv === 'eigene' ? '' : 'none';
+  if (k) k.style.display = rezeptQuelleAktiv === 'kochbuch' ? '' : 'none';
+  document.getElementById('rq-eigene')?.classList.toggle('aktiv', rezeptQuelleAktiv === 'eigene');
+  document.getElementById('rq-kochbuch')?.classList.toggle('aktiv', rezeptQuelleAktiv === 'kochbuch');
+  if (rezeptQuelleAktiv === 'kochbuch') kochbuchInit();
+}
+
+// Wert aus einem {de,sr,hr,ba,en}-Objekt in der aktuellen Sprache (mit Fallback).
+function rzLang(obj) {
+  if (!obj) return '';
+  if (obj[aktuelleSprache]) return obj[aktuelleSprache];
+  for (const l of ['de', 'en', 'hr', 'ba', 'sr']) if (obj[l]) return obj[l];
+  return '';
+}
+function rzEinheit(code) { return code ? t('einheit_' + code) : ''; }
+function kuecheLabel(code) { return t('kueche_' + code); }
+
+function kbFuelleKueche() {
+  const sel = document.getElementById('kb-kueche'); if (!sel) return;
+  const v = sel.value;
+  const kuechen = [...new Set(KB_POOL.map(r => r.kueche))];
+  sel.innerHTML = `<option value="">${escapeHtml(t('rezept_kueche_alle'))}</option>`
+    + kuechen.map(kk => `<option value="${escapeHtml(kk)}">${escapeHtml(kuecheLabel(kk))}</option>`).join('');
+  sel.value = v;
+}
+function kochbuchInit() {
+  kbFuelleKueche(); kbTagesgerichtRender(); kochbuchRender();
+  kochbuchBewLaden().then(() => {
+    kbTagesgerichtRender(); kochbuchRender();
+    if (kbDetailId) { const r = KB_POOL.find(x => x.id === kbDetailId); if (r) { const el = document.getElementById('kb-detail-inhalt'); if (el) el.innerHTML = kbVollHtml(r); } }
+  });
+}
+
+// Deterministischer Tages-Index: Tage seit Epoche (UTC) mod Pool-Größe -> für alle gleich,
+// wechselt täglich, rotiert durch den ganzen Pool. Kein Backend/Speicher nötig.
+function kbTagesIndex(len) {
+  if (!len) return 0;
+  const tage = Math.floor(Date.now() / 86400000);
+  return ((tage % len) + len) % len;
+}
+
+function kbZutatenHtml(r) {
+  if (!r.zutaten || !r.zutaten.length) return '';
+  const rows = r.zutaten.map(z => {
+    const menge = (z.menge != null) ? `${z.menge} ${escapeHtml(rzEinheit(z.einheit))}` : escapeHtml(t('einheit_ng'));
+    return `<tr><td class="kb-z-menge">${menge}</td><td>${escapeHtml(rzLang(z.name))}</td></tr>`;
+  }).join('');
+  return `<div class="kb-block-titel">${escapeHtml(t('rezept_zutaten'))}</div>
+    <table class="kb-zutaten">${rows}</table>`;
+}
+function kbSchritteHtml(r) {
+  const schritte = (r.schritte && (r.schritte[aktuelleSprache] || r.schritte.de || r.schritte.en)) || [];
+  if (!schritte.length) return '';
+  return `<div class="kb-block-titel">${escapeHtml(t('rezept_zubereitung'))}</div>
+    <ol class="kb-schritte">${schritte.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`;
+}
+function kbMetaHtml(r) {
+  const teile = [kuecheLabel(r.kueche)];
+  if (r.portionen) teile.push(t('rezept_portionen', { n: r.portionen }));
+  if (r.dauer_min) teile.push(t('rezept_dauer', { n: r.dauer_min }));
+  return teile.map(x => `<span class="kb-meta-chip">${escapeHtml(x)}</span>`).join('');
+}
+function kbVollHtml(r) {
+  return `<h2 class="kb-titel">${escapeHtml(rzLang(r.titel))}</h2>
+    <div class="kb-meta">${kbMetaHtml(r)}</div>
+    ${kochbuchSterneHtml(r.id)}
+    ${kbZutatenHtml(r)}
+    ${kbSchritteHtml(r)}`;
+}
+
+// ---- Kochbuch-Bewertungen (Sterne 1–5, GLOBAL über alle Nutzer) ----
+// Aggregat-Cache key -> {avg, anzahl, meine}; global geladen (RPC kochbuch_bewertungen_holen).
+let kochbuchBewertungen = {};
+async function kochbuchBewLaden() {
+  if (!sbClient || !aktuellerUser) return;
+  try {
+    const { data, error } = await sbClient.rpc('kochbuch_bewertungen_holen', { p_keys: null });
+    if (!error && data && typeof data === 'object') kochbuchBewertungen = data;
+  } catch (e) { console.warn('kochbuch_bewertungen_holen:', e); }
+}
+// Sterne-Widget: eigene Bewertung (klickbar) + globaler Ø + Anzahl.
+function kochbuchSterneHtml(key) {
+  const b = kochbuchBewertungen[key] || {};
+  const meine = b.meine || 0, anz = b.anzahl || 0;
+  const sterne = [1, 2, 3, 4, 5].map(n =>
+    `<button type="button" class="kb-star${meine >= n ? ' meine' : ''}" onclick="event.stopPropagation();kochbuchStern('${escapeHtml(key)}',${n})" aria-label="${n}">★</button>`
+  ).join('');
+  const info = anz
+    ? `<span class="kb-rating-avg">⌀ ${(+b.avg).toFixed(1)} <span class="kb-rating-n">(${anz})</span></span>`
+    : `<span class="kb-rating-avg leer">${escapeHtml(t('kb_rating_keine'))}</span>`;
+  return `<div class="kb-rating" data-key="${escapeHtml(key)}">
+    <span class="kb-rating-label">${escapeHtml(t('kb_rating_deine'))}</span>
+    <span class="kb-stars">${sterne}</span>${info}</div>`;
+}
+async function kochbuchStern(key, n) {
+  if (!aktuellerUser) { zeigeHinweis(t('kb_rating_login')); return; }
+  try {
+    const { data, error } = await sbClient.rpc('kochbuch_bewerten', { p_key: key, p_sterne: n });
+    if (error || !data || !data.ok) throw new Error((data && data.fehler) || (error && error.message) || 'fehler');
+    kochbuchBewertungen[key] = { avg: data.avg, anzahl: data.anzahl, meine: data.meine };
+    kochbuchSterneNeu(key);           // alle sichtbaren Widgets dieses Rezepts auffrischen
+    if (typeof kochbuchRender === 'function') kochbuchRender();   // Ø in der Liste nachziehen
+  } catch (e) { console.warn('kochbuch_bewerten:', e); zeigeHinweis(t('kb_rating_fehler')); }
+}
+function kochbuchSterneNeu(key) {
+  document.querySelectorAll('.kb-rating[data-key="' + key + '"]').forEach(el => { el.outerHTML = kochbuchSterneHtml(key); });
+}
+
+function kbTagesgerichtRender() {
+  const box = document.getElementById('kb-tagesgericht'); if (!box) return;
+  if (!KB_POOL.length) { box.style.display = 'none'; return; }
+  const r = KB_POOL[kbTagesIndex(KB_POOL.length)];
+  box.style.display = '';
+  box.innerHTML = `<div class="kb-tag-label">🍽️ ${escapeHtml(t('rezept_tagesgericht'))}</div>${kbVollHtml(r)}`;
+}
+
+function kochbuchRender() {
+  const box = document.getElementById('kb-liste'); if (!box) return;
+  const kueche = (document.getElementById('kb-kueche') || {}).value || '';
+  const liste = kueche ? KB_POOL.filter(r => r.kueche === kueche) : KB_POOL;
+  if (!liste.length) { box.innerHTML = `<div class="feed-leer">${escapeHtml(t('rezept_leer'))}</div>`; return; }
+  box.innerHTML = liste.map(r => {
+    const b = kochbuchBewertungen[r.id];
+    const sternChip = (b && b.anzahl) ? `<span class="kb-meta-chip">⭐ ${(+b.avg).toFixed(1)} <span class="kb-rating-n">(${b.anzahl})</span></span>` : '';
+    return `<div class="kb-karte" onclick="oeffneKochbuch('${escapeHtml(r.id)}')">
+    <div class="kb-karte-titel">${escapeHtml(rzLang(r.titel))}</div>
+    <div class="kb-karte-meta">${kbMetaHtml(r)}
+      <span class="kb-meta-chip">🧾 ${escapeHtml(t('rezept_n_zutaten', { n: (r.zutaten || []).length }))}</span>${sternChip}</div>
+  </div>`;
+  }).join('');
+}
+
+function oeffneKochbuch(id) {
+  const r = KB_POOL.find(x => x.id === id); if (!r) return;
+  kbDetailId = id;
+  document.getElementById('kb-detail-inhalt').innerHTML = kbVollHtml(r);
+  document.getElementById('kochbuch-modal').classList.add('aktiv');
+}
+function schliesseKochbuch() { document.getElementById('kochbuch-modal').classList.remove('aktiv'); kbDetailId = null; }
+
+// „Überrasche mich" — zufälliges Rezept im Detail (ändert den Tagesvorschlag NICHT).
+function kbUeberrasche() {
+  if (!KB_POOL.length) return;
+  oeffneKochbuch(KB_POOL[Math.floor(Math.random() * KB_POOL.length)].id);
+}
+
+function kochbuchSpracheUpdate() {
+  if (feedModus !== 'rezepte' || rezeptQuelleAktiv !== 'kochbuch') return;
+  kbFuelleKueche(); kbTagesgerichtRender(); kochbuchRender();
+  if (kbDetailId && document.getElementById('kochbuch-modal')?.classList.contains('aktiv')) {
+    const r = KB_POOL.find(x => x.id === kbDetailId);
+    if (r) document.getElementById('kb-detail-inhalt').innerHTML = kbVollHtml(r);
+  }
 }
 
 function feedBearbeitenStart(id) { feedEditId = id; feedRender(); }
@@ -16256,6 +17029,7 @@ async function speicherePerson(force) {
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
   feldFehlerReset('person-edit-modal');   // alte Feld-Fehler zurücksetzen
   if (!pObj || !pObj._uuid) { fehlerEl.textContent = 'Person nicht gefunden.'; fehlerEl.style.display = 'block'; return; }
+  track('person_speichern');   // Analytik
 
   const v  = id => document.getElementById(id).value.trim();
   const vd = id => datumWert(document.getElementById(id));   // Datumsfelder -> ISO/Freitext
@@ -16280,12 +17054,15 @@ async function speicherePerson(force) {
   }
   const sd = row.stammbaum_daten || {};
   const verstorben = document.getElementById('pe-status').value === 'verstorben';
+  const gebK = geoAdrKoord(document.getElementById('pe-geburtsort'));   // Geburtsort-Koordinaten
+  const todK = geoAdrKoord(document.getElementById('pe-sterbeort'));    // Sterbeort-Koordinaten
   const neu = {
     ...sd,
     sex: document.getElementById('pe-geschlecht').value || '',
     given: v('pe-vorname'), surname: v('pe-nachname'),
     titel: v('pe-titel'), namenszusatz: v('pe-namenszusatz'), ehename: v('pe-ehename'),
-    birth_date: vd('pe-geburtsdatum'), birth_place: v('pe-geburtsort'), geburtsland: v('pe-geburtsland'),
+    birth_date: vd('pe-geburtsdatum'), birth_place: v('pe-geburtsort'), birth_lat: gebK.lat, birth_lng: gebK.lng,
+    geburtsland: v('pe-geburtsland'),
     stadt: v('pe-stadt'), gemeinde: v('pe-gemeinde'),
     getauft: vd('pe-getauft'),
     hochzeitsort: v('pe-hochzeitsort'),
@@ -16295,10 +17072,12 @@ async function speicherePerson(force) {
     beziehung: document.getElementById('pe-beziehung').value,
     beziehung_sonstige: v('pe-beziehung-sonstige'),
     email: v('pe-email'), telefon: v('pe-telefon'), facebook: v('pe-facebook'), instagram: v('pe-instagram'),
-    wohnort_land: v('pe-wohnland'), wohnort_stadt: v('pe-wohnstadt'), adresse: v('pe-adresse'),
+    wohnadressen: wohnortSammeln('pe'),
     beruf: v('pe-beruf'), ausbildung: v('pe-ausbildung'), beschreibung: v('pe-beschreibung'),
     deceased: verstorben,
-    death_date: verstorben ? vd('pe-sterbedatum') : ''
+    death_date: verstorben ? vd('pe-sterbedatum') : '',
+    death_place: verstorben ? v('pe-sterbeort') : '',
+    death_lat: verstorben ? todK.lat : null, death_lng: verstorben ? todK.lng : null
   };
   neu.name = (neu.given + ' ' + neu.surname).trim();
 
@@ -16319,14 +17098,17 @@ async function speicherePerson(force) {
   Object.assign(pObj, {
     sex: neu.sex, given: neu.given, surname: neu.surname, name: neu.name,
     titel: neu.titel, namenszusatz: neu.namenszusatz, ehename: neu.ehename,
-    birth_date: neu.birth_date, birth_place: neu.birth_place, geburtsland: neu.geburtsland,
+    birth_date: neu.birth_date, birth_place: neu.birth_place, birth_lat: neu.birth_lat, birth_lng: neu.birth_lng,
+    geburtsland: neu.geburtsland,
     getauft: neu.getauft, hochzeitsort: neu.hochzeitsort,
     hochzeit_standesamt: neu.hochzeit_standesamt, hochzeit_kirchlich: neu.hochzeit_kirchlich,
     beziehung: neu.beziehung, beziehung_sonstige: neu.beziehung_sonstige,
     email: neu.email, telefon: neu.telefon, facebook: neu.facebook, instagram: neu.instagram,
     wohnort_land: neu.wohnort_land, wohnort_stadt: neu.wohnort_stadt, adresse: neu.adresse,
+    wohnadressen: neu.wohnadressen,
     beruf: neu.beruf, ausbildung: neu.ausbildung, beschreibung: neu.beschreibung,
-    deceased: neu.deceased, death_date: neu.death_date
+    deceased: neu.deceased, death_date: neu.death_date,
+    death_place: neu.death_place, death_lat: neu.death_lat, death_lng: neu.death_lng
   });
   zeichneBaumNeu();
   erfolgEl.textContent = t('pe_gespeichert'); erfolgEl.style.display = 'block';
@@ -16695,8 +17477,11 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
    'pa-titel','pa-namenszusatz','pa-ehename','pa-getauft','pa-hochzeitsort',
    'pa-hochzeit-standesamt','pa-hochzeit-kirchlich','pa-beziehung-sonstige',
    'pa-email','pa-telefon','pa-facebook','pa-instagram',
-   'pa-wohnland','pa-wohnstadt','pa-adresse','pa-beruf','pa-ausbildung','pa-beschreibung']
+   'pa-beruf','pa-ausbildung','pa-beschreibung']
     .forEach(id => document.getElementById(id).value = '');
+  wohnortRender('pa', []);   // Wohnorte-Liste leeren
+  geoAdrSetze(document.getElementById('pa-geburtsort'), '', null, null);   // Geo-Felder (Koord/Status) zurücksetzen
+  geoAdrSetze(document.getElementById('pa-sterbeort'), '', null, null);
   ['pa-geburtsdatum','pa-sterbedatum','pa-getauft','pa-hochzeit-standesamt','pa-hochzeit-kirchlich']
     .forEach(id => datumSetzen(document.getElementById(id), ''));   // Datumsfelder + iso zurücksetzen
   // Geschlecht: bei "Als Vater/Mutter" (Schnell-Menü) vorbelegt (M/F), sonst leer.
@@ -16741,6 +17526,7 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
 function paPruefeFelder() {
   const verstorben = document.getElementById('pa-status').value === 'verstorben';
   document.getElementById('pa-row-sterbedatum').style.display = verstorben ? '' : 'none';
+  document.getElementById('pa-row-sterbeort').style.display = verstorben ? '' : 'none';
   // Beziehung (Ehe -> Hochzeitsfelder, Sonstige -> Freitext)
   const bez = document.getElementById('pa-beziehung').value;
   const ehe = bez === 'verheiratet';
@@ -16884,6 +17670,7 @@ async function speichereNeuePerson() {
   const aktivId = document.getElementById('pa-context-id').value;
   const aktiv   = aktuelleDaten.persons[aktivId];
   if (!aktiv || !aktiv._uuid) { fehlerEl.textContent = t('pa_kein_kontext'); fehlerEl.style.display = 'block'; return; }
+  track('person_anlegen');   // Analytik
 
   // Beziehung zur aktiven Person ist PFLICHT — der generische "＋ Person hinzufügen"-Button
   // startet ohne Vorauswahl, damit nicht unbemerkt ein "Kind" angelegt wird (Fehler am Feld).
@@ -16923,10 +17710,12 @@ async function speichereNeuePerson() {
   const name = (vorname + ' ' + nachname).trim();
   const land = v('pa-geburtsland');
   const geb  = vd('pa-geburtsdatum');
+  const gebK = geoAdrKoord(document.getElementById('pa-geburtsort'));
+  const todK = geoAdrKoord(document.getElementById('pa-sterbeort'));
   const stammbaum_daten = {
     id: externeId, given: vorname, surname: nachname, name, sex,
     titel: v('pa-titel'), namenszusatz: v('pa-namenszusatz'), ehename: v('pa-ehename'),
-    birth_date: geb, birth_place: v('pa-geburtsort'),
+    birth_date: geb, birth_place: v('pa-geburtsort'), birth_lat: gebK.lat, birth_lng: gebK.lng,
     geburtsland: land, stadt: v('pa-stadt'), gemeinde: v('pa-gemeinde'),
     getauft: vd('pa-getauft'),
     hochzeitsort: v('pa-hochzeitsort'),
@@ -16934,9 +17723,10 @@ async function speichereNeuePerson() {
     hochzeit_kirchlich: vd('pa-hochzeit-kirchlich'),
     beziehung: ehe, beziehung_sonstige: v('pa-beziehung-sonstige'),
     email: v('pa-email'), telefon: v('pa-telefon'), facebook: v('pa-facebook'), instagram: v('pa-instagram'),
-    wohnort_land: v('pa-wohnland'), wohnort_stadt: v('pa-wohnstadt'), adresse: v('pa-adresse'),
+    wohnadressen: wohnortSammeln('pa'),
     beruf: v('pa-beruf'), ausbildung: v('pa-ausbildung'), beschreibung: v('pa-beschreibung'),
     deceased: verstorben, death_date: verstorben ? vd('pa-sterbedatum') : '',
+    death_place: verstorben ? v('pa-sterbeort') : '', death_lat: verstorben ? todK.lat : null, death_lng: verstorben ? todK.lng : null,
     angelegt_aus: 'stammbaum-anlegen'
   };
 
@@ -17986,6 +18776,7 @@ function schliesseModalUndZeigeBaum(personId) {
 // ============================================================
 function wechselAnsicht(name) {
   aktuelleAnsicht = name;
+  track('tab_' + name);   // Analytik: welcher Bereich (baum/karten/shorts/feed) genutzt wird
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.toggle('aktiv', t.dataset.ansicht === name);
   });
@@ -17993,6 +18784,7 @@ function wechselAnsicht(name) {
   document.getElementById('ansicht-shorts').style.display = name === 'shorts' ? 'block' : 'none';
   document.getElementById('ansicht-baum').style.display = name === 'baum' ? 'block' : 'none';
   { const f = document.getElementById('ansicht-feed'); if (f) f.style.display = name === 'feed' ? 'block' : 'none'; }
+  { const m = document.getElementById('ansicht-mape'); if (m) m.style.display = name === 'mape' ? 'block' : 'none'; }
 
   aktualisiereSucheZustand(name);   // Suchfeld kontextabhängig aktivieren/deaktivieren
 
@@ -18011,7 +18803,36 @@ function wechselAnsicht(name) {
     zeigeShorts();
   } else if (name === 'feed') {
     zeigeFeed();
+  } else if (name === 'mape') {
+    zeigeMape();
   }
+}
+
+// MAPE-Tab: Ereignis-/Migrationskarte als Vollbild-Ansicht (aus dem Events-Bereich
+// herausgelöst). Lädt die Events des aktiven Baums (eventsCache, wie zeigeShorts) und
+// zeichnet die Leaflet-Karte über die bestehende karte*-Logik. Setzt den Inaktivitäts-
+// Timer NICHT zurück (rein lesend, analog zeigeShorts).
+async function zeigeMape() {
+  const kWrap = document.getElementById('ev-karte-wrap');
+  if (kWrap) kWrap.style.display = '';   // im Mape-Tab immer sichtbar
+  if (!sbClient) return;
+  if (!aktuellerStammbaumId) {
+    eventsCache = [];
+    if (typeof karteFuelleFilter === 'function') karteFuelleFilter();
+    if (typeof karteRender === 'function') karteRender();
+    return;
+  }
+  try {
+    const { data, error } = await sbClient.rpc('events_fuer_mich', { p_tree: aktuellerStammbaumId });
+    eventsCache = (!error && data) ? data : [];
+  } catch (e) { eventsCache = []; }
+  if (typeof karteFuelleFilter === 'function') karteFuelleFilter();
+  if (typeof karteRender === 'function') karteRender();
+}
+// Menüpunkt „Članovi porodice" (aus dem Avatar-Menü): öffnet die Mitglieder-Ansicht.
+function oeffneClanoviAusMenu() {
+  document.getElementById('avatar-menu')?.classList.remove('offen');
+  wechselAnsicht('karten');
 }
 
 // ============================================================

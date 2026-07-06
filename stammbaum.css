@@ -2174,6 +2174,40 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
 .rezept-del { color: #a33; }
 #rezept-composer .login-feld, #rezept-composer .eng-textarea { margin-bottom: 8px; }
 
+/* Kochbuch-Pool (Gericht des Tages, Küchen-Filter, Rezeptkarten) */
+.kb-tagesgericht { border: 1px solid var(--gold); border-radius: 12px; padding: 18px; margin-bottom: 16px;
+  background: rgba(156,124,60,0.08); }
+.kb-tag-label { font-size: 13px; letter-spacing: .5px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.kb-titel { font-family: 'Playfair Display', Georgia, serif; font-size: 22px; color: var(--akzent); margin: 0 0 8px; }
+.kb-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.kb-meta-chip { font-size: 12px; color: #6b5a3e; background: var(--bg-soft); border: 1px solid var(--linie);
+  border-radius: 10px; padding: 3px 8px; }
+.kb-block-titel { font-family: 'Playfair Display', Georgia, serif; color: var(--akzent); font-size: 15px;
+  letter-spacing: 1px; margin: 14px 0 6px; }
+.kb-zutaten { width: 100%; border-collapse: collapse; font-size: 15px; }
+.kb-zutaten td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--linie); color: var(--ink); vertical-align: top; }
+.kb-z-menge { white-space: nowrap; color: #6b5a3e; width: 120px; }
+.kb-schritte { margin: 6px 0 0; padding-left: 20px; color: var(--ink); font-size: 15px; line-height: 1.6; }
+.kb-schritte li { margin-bottom: 6px; }
+.kb-karte { border: 1px solid var(--linie); border-left: 3px solid var(--gold); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 10px; cursor: pointer; background: var(--paper); }
+.kb-karte:hover { border-color: var(--gold); }
+.kb-karte-titel { font-family: 'Playfair Display', Georgia, serif; font-size: 17px; color: var(--akzent); }
+.kb-karte-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+/* Kochbuch-Bewertung (Sterne 1–5, globaler Ø) */
+.kb-rating { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px;
+  padding: 8px 10px; background: var(--bg-soft); border: 1px solid var(--linie); border-radius: 10px; }
+.kb-rating-label { font-size: 13px; color: #6b5a3e; }
+.kb-stars { display: inline-flex; gap: 2px; }
+.kb-star { background: none; border: none; cursor: pointer; padding: 2px; line-height: 1;
+  font-size: 26px; color: #d8cdb5; transition: color .12s, transform .12s; min-width: 32px; min-height: 32px; }
+.kb-star:hover { transform: scale(1.12); }
+.kb-star.meine { color: var(--gold); }
+.kb-rating-avg { font-size: 14px; color: var(--ink); font-weight: 600; }
+.kb-rating-avg.leer { color: #9a8f78; font-weight: 400; font-style: italic; }
+.kb-rating-n { color: #9a8f78; font-weight: 400; }
+
 /* iCal-Abo: URL-Zeile */
 .ical-url-zeile { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 .ical-url-zeile .login-feld { flex: 1; font-size: 13px; }
@@ -2508,6 +2542,12 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
   border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(44,36,24,0.10); background: var(--paper-soft);
   position: relative; z-index: 0; isolation: isolate; }
 .karte-leer { /* nutzt .keine-treffer */ }
+/* MAPE als eigener Vollbild-Tab: Kopf + große Karte (nutzt die gesamte verfügbare Höhe). */
+#ansicht-mape { padding: 16px; }
+.mape-header { text-align: center; margin: 4px 0 14px; }
+.mape-header h2 { margin: 0; }
+#ansicht-mape .event-karte { height: calc(100vh - 250px); min-height: 400px; max-height: none; }
+@media (max-width: 480px) { #ansicht-mape { padding: 10px; } #ansicht-mape .event-karte { height: calc(100vh - 220px); min-height: 340px; } }
 
 /* Legende (Start grün / Ende rot) */
 .karte-legende { display: flex; gap: 18px; margin-top: 10px; font-size: 13px; color: #5e4b35; }
@@ -2549,6 +2589,42 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
   position: relative; z-index: 0; isolation: isolate; }
 .geo-status-zeile { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
 .geo-status { font-size: 13px; color: var(--ink); }
+
+/* Wohnorte (Prebivališta): wiederholbare Geo-Adressliste im Personen-Editor / „Person anlegen". */
+.wohnorte-liste { display: flex; flex-direction: column; gap: 12px; margin: 4px 0 10px; }
+.wohnort-row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.wohnort-adr { flex: 1 1 260px; min-width: 200px; position: relative; }
+.wohnort-zeit { display: flex; gap: 8px; }
+.wohnort-zeit .dp-input { width: 132px; }
+.wohnort-del { flex: 0 0 auto; width: 40px; height: 46px; border: 1px solid var(--linie); background: var(--paper);
+  border-radius: 10px; color: var(--akzent); font-size: 20px; line-height: 1; cursor: pointer; }
+.wohnort-del:hover { border-color: var(--akzent); }
+.wohnort-add-btn { align-self: flex-start; margin: 2px 0 14px; background: none; border: 1px dashed var(--gold);
+  color: var(--gold); border-radius: 10px; padding: 8px 14px; font-family: inherit; font-size: 15px; cursor: pointer; }
+.wohnort-add-btn:hover { background: var(--gold-hell); }
+/* Geo-Adressfeld: Suchfeld + Treffer-Dropdown + Status (wiederverwendbar) */
+.geoadr { position: relative; }
+.geoadr-treffer { position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 60;
+  background: var(--paper); border: 1px solid var(--linie); border-radius: 10px; overflow-y: auto;
+  box-shadow: 0 6px 18px rgba(44,36,24,0.18); max-height: 240px; }
+.geoadr-treffer:empty { display: none; }
+.geoadr-opt { display: block; width: 100%; text-align: left; background: none; border: none;
+  border-bottom: 1px solid var(--linie); padding: 9px 12px; font-family: inherit; font-size: 14px;
+  color: var(--ink); cursor: pointer; }
+.geoadr-opt:last-child { border-bottom: none; }
+.geoadr-opt:hover { background: var(--gold-hell); }
+.geoadr-info { padding: 9px 12px; font-size: 13px; color: #8a7a5a; }
+.geoadr-status { font-size: 12.5px; margin-top: 3px; min-height: 1em; }
+.geoadr-status.ok { color: #3f7d4a; }
+.geoadr-status.warn { color: var(--akzent); }
+/* Detailkarte: Wohnorte read-only */
+.wohnorte-det { margin: 2px 0 8px; }
+.wohnort-det { padding: 2px 0; font-size: 14px; }
+.wohnort-zeit-det { color: #8a7a5a; font-size: 13px; }
+@media (max-width: 480px) {
+  .wohnort-zeit { flex: 1 1 100%; }
+  .wohnort-zeit .dp-input { flex: 1; width: auto; }
+}
 .geo-clear-btn { flex: 0 0 auto; }
 
 @media (max-width: 480px) {

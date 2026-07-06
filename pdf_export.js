@@ -556,6 +556,7 @@ async function pdfExportStart() {
   if (pdfBusy) return;
   const opts = pdfSammleOptionen();
   if (!opts.wurzel) { pdfHinweis(t('pdf_keine_wurzel'), true); return; }
+  if (typeof track === 'function') track('pdf_export', { format: opts.format });   // Analytik
   // jsPDF/svg2pdf erst bei Bedarf laden (PDF + Browser-Druck nutzen jsPDF; PNG/SVG nicht).
   if (opts.format === 'pdf' || opts.format === 'druck') {
     pdfHinweis(t('gam_laden'), false);   // kurzer „Wird geladen…"-Hinweis während des Lib-Downloads

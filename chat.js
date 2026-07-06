@@ -162,6 +162,7 @@ async function chatLadeNachrichten(chatId, nurRender) {
 // ---- Öffnen/Schließen -------------------------------------------------------
 async function oeffneChat() {
   if (!aktuellerUser) return;
+  if (typeof track === 'function') track('chat_offnen');   // Analytik
   document.getElementById('avatar-menu')?.classList.remove('offen');
   document.getElementById('chat-modal').classList.add('aktiv');
   if (!chatTippInit) {

@@ -38,7 +38,7 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
 13. `supabase_registrierung_phase2.sql`
 14. `supabase_registrierung_phase3.sql`
 15. `supabase_fix_anfragen_rls.sql` — INSERT-Policy für `registrierungs_anfragen` (anon)
-16. `supabase_familie_finden_exakt.sql` — `familie_finden_exakt` (strikter 4-Felder-Match)
+16. `supabase_familie_finden_exakt.sql` — `familie_finden_exakt` (strikter 3-Felder-Match Name/Land/Gemeinde; Grad/selo/Dorf seit v13.9 ausgenommen)
 17. `supabase_email_validierung.sql`
 
 ### 4 — Stammbaum-Lebenszyklus
@@ -274,6 +274,15 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     Frontend-Aktivierung ausführen** (Spalten müssen existieren, sonst
     bräche der Renderer-Select). **NACH 3/70a** (nutzt `kann_familie_bearbeiten`, `darf_baum_sehen`,
     `darf_beziehung_sehen`; `wartung_*` aus 21). Re-Run von 3/70a erfordert Re-Run dieses Files.
+
+73. `supabase_analytik.sql` — **Nutzungs-Statistik (Produkt-Analytics, STRIKT INTERN)**: Tabelle
+    `nutzer_ereignisse` (user_id/verbund_id/aktion/detail/created_at, RLS AN ohne Policies → nur über
+    RPCs) + SECURITY-DEFINER-RPCs `ereignis_track` (gebündeltes Schreiben, `authenticated`),
+    `analytik_uebersicht`/`analytik_dau`/`analytik_nutzer_liste` (Lesen NUR `ist_super_admin`; Kennzahlen
+    + Tages-Verlauf + Report aktiv/inaktiv je Konto) und `analytik_purge` (`service_role`, pg_cron-Snippet
+    im File). Speichert NUR Feature-Namen + eigene user_id (keine Inhalte). `analytik_nutzer_liste` liest
+    zusätzlich `auth.users` (E-Mail/Login) + `profile` (Name) — bewusst nur Super-Admin.
+    (Voraussetzung: `ist_super_admin` aus 3, `mein_verbund` aus 62, `profile` aus 37)
 
 ---
 

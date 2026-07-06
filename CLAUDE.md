@@ -462,6 +462,20 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Bezugsperson + Koordinaten + parsebarem Datum** (keine Ableitung aus Geburts-/Sterbeort der Person —
   Personenfelder bleiben unverortet); nur aktiver Baum; manuelle Geokodierung pro Event (keine
   Massen-/Auto-Geokodierung von Altbestand).
+  **UMBAU ab v14.25 — Karte ist ein EIGENER Top-Level-Tab „Mapa/Karte" (nicht mehr Events-Untermodus):**
+  Das dritte Segment „Karte" wurde aus dem Ereignis-`#ev-modus` **entfernt** (`evModus` jetzt nur noch
+  'liste'|'zeit'|'kalender'|'termin'); der komplette Block **`#ev-karte-wrap` wurde physisch in eine neue
+  Sektion `#ansicht-mape` verschoben** (Karte + Toolbar bleiben IDENTISCH, `karteInit`/`karteRender`/
+  `karteSetModus`/`karteFuelleFilter` unverändert — kein Code-Duplikat, keine zweite Leaflet-Instanz).
+  Neuer Tab in der Tab-Leiste (`data-ansicht="mape"`, i18n `tab_mape`) an der Stelle, wo vorher der
+  Karten-/Mitglieder-Tab „Članovi porodice" war. `wechselAnsicht('mape')` → **`zeigeMape()`** lädt
+  `eventsCache` (wie `zeigeShorts`, RPC `events_fuer_mich`) und zeichnet die Karte (Leaflet lazy +
+  `invalidateSize`); Vollhöhe via CSS `#ansicht-mape .event-karte { height: calc(100vh − …) }`. Live-
+  Refresh in `waehleStammbaum` (`aktuelleAnsicht==='mape' → zeigeMape()`); Suche im Mape-Tab deaktiviert
+  (wie Events/Feed); Inaktivitäts-Timer wird NICHT zurückgesetzt. **„Članovi porodice" (Tab `karten`)
+  wanderte ins Avatar-Menü** (Button `menu-clanovi-btn` direkt unter „Papierkorb", `oeffneClanoviAusMenu`
+  → `wechselAnsicht('karten')`); kein Zugriffsverlust, da die Tab-Leiste ohnehin nur eingeloggt sichtbar
+  ist. `ev_modus_karte` als i18n-Key entfernt (ungenutzt). Deploy: stammbaum.html/.css/i18n.js + `?v=`.
 - **Foto-Galerie pro Person (ab v12.1):** Baut auf dem bestehenden Medien-Upload (`feMediaUpload`/
   Avatar-Canvas-Kompression) auf — **kein zweites System**. DB-Datei `supabase_personen_fotos.sql`
   (idempotent): Tabelle **`personen_fotos`** (`person_id`→personen CASCADE, `familie_id`/`stammbaum_id`,
@@ -826,6 +840,21 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   mit `wartung_start`/`wartung_ende`. Audit in `familien_audit` (`aktion='auto_leer_geloescht'`:
   Baum-ID, Name, Personen-vorher, Nutzer, Datum, Grund). DB-Datei `supabase_stammbaum_auto_leer.sql`.
 - Familien-Isolation: jede Familie sieht nur eigene Daten (verbundweit), außer Super-Admin.
+- **Kochbuch-Bewertungen = EINZIGE globale Datenart (bewusste Isolations-Ausnahme, ab v14.25):**
+  Nutzer bewerten die statischen Kochbuch-Rezepte (`rezepte_pool.js`/`REZEPT_POOL`, stabile `id`)
+  mit **1–5 Sternen; Aggregat GLOBAL über ALLE Nutzer/Verbünde** (vom Nutzer ausdrücklich so
+  gewählt). Zulässige Ausnahme zur „strikt verbund-gebunden"-Social-Regel, weil KEINE Personen-/
+  Familiendaten die Grenze überschreiten — nur ein **anonymer Aggregatwert** (Ø + Anzahl) auf
+  global-öffentlichem Read-only-Inhalt. Tabelle **`kochbuch_bewertungen`**(`rezept_key`,`user_id`,
+  `sterne`, PK(rezept_key,user_id) = 1 Bewertung je Nutzer je Rezept), **RLS AN, aber OHNE Policies**
+  → kein direkter Client-Zugriff; ALLES über SECURITY-DEFINER-RPCs `kochbuch_bewerten(p_key,p_sterne)`
+  (Upsert der eigenen Bewertung) / `kochbuch_bewertungen_holen(p_keys)` (liefert je Key NUR
+  `{avg,anzahl,meine}` — Fremd-Einzelbewertungen sind NIE lesbar). DB-Datei
+  `supabase_kochbuch_bewertungen.sql`. Frontend: Sterne-Widget in `kbVollHtml` (Detail + Tagesgericht)
+  + Ø-Chip in den Listenkarten (`kochbuchRender`); Cache `kochbuchBewertungen` via `kochbuchBewLaden`
+  (in `kochbuchInit`), Klick `kochbuchStern` → RPC → `kochbuchSterneNeu`. **Gilt NUR fürs Kochbuch**,
+  NICHT für die verbund-gebundenen `familien_rezepte` (die bleiben strikt verbund-intern). i18n
+  `kb_rating_*` in allen 5 Blöcken.
 - Datenmodell: `familien` = Konto/Mandant; `stammbaeume` = Bäume (familie_id); `personen`/
   `beziehungen` referenzieren `stammbaum_id`/`familie_id`. Rollen liegen in `mitgliedschaften`
   (user_id + familie_id + rolle). Sichtbarkeit/Verknüpfung über `verbund_id` der Familie.
@@ -1162,9 +1191,11 @@ Nach JEDER Änderung:
   Obavještenja-Liste). Die früher öffentliche `anfrage-entscheiden` ist deaktiviert (leitet nur
   noch in die App) und sollte im Dashboard gelöscht werden.
 - **„Kreiraj nalog"-Overlay (kein da/ne-Self-Service-Schalter mehr):** Ein einziger Flow.
-  Pflichtfelder: Naziv stabla + Država + Grad/selo + Opština (+ E-Mail). Eine Hintergrundprüfung
-  (`familie_finden_exakt`, **strikter 4-Felder-Match**, diakritik-/groß-klein-unempfindlich über
-  `merge_norm`) erkennt einen vorhandenen Baum: Treffer → Info + Rollen-Dropdown → Zugriffsanfrage
+  Pflichtfelder: Naziv stabla + Država + Opština (+ E-Mail); **Grad/selo (= Dorf) ist optional**.
+  Eine Hintergrundprüfung (`familie_finden_exakt`, **strikter 3-Felder-Match Name/Land/Gemeinde**,
+  diakritik-/groß-klein-unempfindlich über
+  `merge_norm`; **Grad/selo/Dorf ist seit v13.9 NICHT mehr Teil des Abgleichs**) erkennt einen
+  vorhandenen Baum: Treffer → Info + Rollen-Dropdown → Zugriffsanfrage
   (Entscheidung in der App). Kein Treffer → bisheriger Self-Service: `neue-familie-anlegen` legt
   Konto + Baum sofort an (User = `familien_owner`, sofortige Passwort-Mail, KEINE Freigabe).
   Beim Self-Service-Anlegen werden `land`/`stadt`/`gemeinde` in `familien` gespeichert, damit das
