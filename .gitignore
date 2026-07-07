@@ -8,3 +8,6 @@ supabase/.temp/
 
 # Lokaler Render-Snapshot (Familiendaten, nur für tools/sim_render.js) — NIE committen
 render_snapshot.json
+
+# Lokale Backup-Ordner (Snapshots vor größeren Umbauten) — nicht versionieren
+backup_pre_verbund_umbau/
