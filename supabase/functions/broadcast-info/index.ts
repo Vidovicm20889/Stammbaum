@@ -139,7 +139,7 @@ const json = (obj: unknown, status = 200) =>
   });
 
 // Resend-Batch: bis zu 100 Mails in EINEM API-Call (rate-limit-schonend).
-async function resendBatch(mails: Array<{ from: string; to: string[]; subject: string; html: string; text: string }>) {
+async function resendBatch(mails: Array<{ from: string; to: string[]; subject: string; html: string; text: string; headers?: Record<string, string> }>) {
   const r = await fetch("https://api.resend.com/emails/batch", {
     method: "POST",
     headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
@@ -174,6 +174,7 @@ Deno.serve(async (req) => {
         from: MAIL_FROM, to: [testEmail],
         subject: "[TEST] FamilyRoots – neue Web-Adresse (alle 5 Sprachen)", html,
         text: htmlZuText(html),
+        headers: { "List-Unsubscribe": "<mailto:support@familyroots.club?subject=Abmelden>" },
       }]);
       return json({ ok: res.ok, modus: "test", mails: 1, sprachen: SPRACHEN.length, an: testEmail,
                     fehler: res.ok ? undefined : res.text });
@@ -196,7 +197,8 @@ Deno.serve(async (req) => {
         const m = baueMail(e.sprache ?? "de", e.name);
         // Echtlauf geht IMMER an die echte Adresse (Vorschau nur über {"test":true} an TEST_EMAIL)
         // -> kein Footgun, dass bei gesetztem TEST_EMAIL alle als "gesendet" markiert werden.
-        return { from: MAIL_FROM, to: [e.email], subject: m.subject, html: m.html, text: htmlZuText(m.html) };
+        return { from: MAIL_FROM, to: [e.email], subject: m.subject, html: m.html, text: htmlZuText(m.html),
+          headers: { "List-Unsubscribe": "<mailto:support@familyroots.club?subject=Abmelden>" } };
       });
       const res = await resendBatch(mails);
       if (res.ok) {

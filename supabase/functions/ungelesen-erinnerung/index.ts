@@ -161,7 +161,8 @@ Deno.serve(async (req) => {
       const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: MAIL_FROM, to, subject: T(sprache, "subject"), html: WRAP(inner), text: htmlZuText(WRAP(inner)) }),
+        body: JSON.stringify({ from: MAIL_FROM, to, subject: T(sprache, "subject"), html: WRAP(inner), text: htmlZuText(WRAP(inner)),
+          headers: { "List-Unsubscribe": "<mailto:support@familyroots.club?subject=Abmelden>" } }),
       });
 
       if (r.ok) {

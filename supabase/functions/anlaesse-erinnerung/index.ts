@@ -168,6 +168,7 @@ Deno.serve(async (req) => {
           from: MAIL_FROM, to,
           subject: T(sprache, "subject"), html: WRAP(inner),
           text: htmlZuText(WRAP(inner)),
+          headers: { "List-Unsubscribe": "<mailto:support@familyroots.club?subject=Abmelden>" },
         }),
       });
       if (r.ok) { gesendet++; erledigt.push(...g.ids); }
