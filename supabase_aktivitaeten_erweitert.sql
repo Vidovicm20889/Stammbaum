@@ -10,6 +10,10 @@
 --   * rezept_neu       — neues Rezept (Tabelle familien_rezepte)
 --   * familie_geaendert— „echte" Familien-/Baum-Änderung: Name ODER Foto/Wappen/Logo/Motto
 --                        (NICHT bei jedem Speichern; ref_id=NULL -> wiederholbar, kein Dedup)
+--   * album_foto_neu   — Foto/Video in ein STANDALONE-Familien-Album (Tabelle album_medien).
+--                        AGGREGIERT: EIN Eintrag je Album (ref_id=album_id), der bei jedem weiteren
+--                        Upload per erstellt_am=now() nach oben rutscht -> kein Feed-Spam bei
+--                        Mehrfach-Upload (bewusst anders als event_foto_neu = 1 Eintrag je Foto).
 --
 -- ANTI-SPAM wie gehabt: NUR bei echter Nutzer-Aktion (auth.uid() gesetzt). Service-Role/
 -- Bulk-Schreibvorgänge (auth.uid() IS NULL) erzeugen KEINE Aktivitäten.
@@ -26,7 +30,7 @@
 ALTER TABLE public.aktivitaeten DROP CONSTRAINT IF EXISTS aktivitaeten_typ_check;
 ALTER TABLE public.aktivitaeten ADD  CONSTRAINT aktivitaeten_typ_check CHECK (typ IN (
   'person_neu','foto_neu','geschichte_neu','event_neu','beitrag_neu','geburtstag','erinnerung',
-  'event_foto_neu','rezept_neu','familie_geaendert'));
+  'event_foto_neu','rezept_neu','familie_geaendert','album_foto_neu'));
 
 
 -- =====================================================
@@ -81,6 +85,25 @@ DROP TRIGGER IF EXISTS akt_familie_geaendert ON public.stammbaeume;
 CREATE TRIGGER akt_familie_geaendert AFTER UPDATE ON public.stammbaeume
   FOR EACH ROW EXECUTE FUNCTION public.akt_trg_familie();
 
+-- 2d) Standalone-Album: neues Foto/Video -> EIN aggregierter Eintrag je Album (ref_id = album_id).
+--     Bei jedem weiteren Upload wird erstellt_am=now() gesetzt (Upsert) -> der Album-Eintrag rutscht
+--     erneut nach oben, statt je Foto einen neuen Eintrag zu erzeugen (kein Spam bei Mehrfach-Upload).
+--     Nutzt DO UPDATE (nicht _akt_log, das DO NOTHING macht). verbund_id liegt denormalisiert vor.
+CREATE OR REPLACE FUNCTION public.akt_trg_album_medium() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN NEW; END IF;      -- nur echte Nutzer-Aktion (kein Bulk/Service-Role)
+  IF NEW.verbund_id IS NULL THEN RETURN NEW; END IF;
+  INSERT INTO public.aktivitaeten (verbund_id, typ, ref_id, akteur_id, erstellt_am)
+  VALUES (NEW.verbund_id, 'album_foto_neu', NEW.album_id, auth.uid(), now())
+  ON CONFLICT (typ, ref_id) WHERE ref_id IS NOT NULL
+    DO UPDATE SET erstellt_am = now(), akteur_id = excluded.akteur_id;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS akt_album_foto_neu ON public.album_medien;
+CREATE TRIGGER akt_album_foto_neu AFTER INSERT ON public.album_medien
+  FOR EACH ROW EXECUTE FUNCTION public.akt_trg_album_medium();
+
 
 -- =====================================================
 -- 3) aktivitaeten_holen NEU: neue Typen + darf_eintrag_loeschen (für ALLE Typen)
@@ -117,6 +140,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
                  WHEN 'geschichte_neu'  THEN pg.titel
                  WHEN 'event_foto_neu'  THEN ev2.titel
                  WHEN 'rezept_neu'      THEN fr.titel
+                 WHEN 'album_foto_neu'  THEN al2.titel
                END,
       'foto_pfad', CASE a.typ
                      WHEN 'foto_neu'       THEN pf.storage_pfad
@@ -124,6 +148,14 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
                    END,
       -- Zielobjekt für Klick: bei Event-Album-Foto das zugehörige Event öffnen.
       'ziel_event', CASE a.typ WHEN 'event_foto_neu' THEN ea.event_id END,
+      -- bei Standalone-Album-Foto das Album öffnen (ref_id = album_id).
+      'ziel_album', CASE a.typ WHEN 'album_foto_neu' THEN a.ref_id END,
+      -- Vorschau: EIN zufälliges BILD des Albums (Videos ausgeschlossen); Frontend signiert die URL.
+      'album_foto_pfad', CASE a.typ WHEN 'album_foto_neu' THEN (
+                            SELECT m.storage_pfad FROM public.album_medien m
+                             WHERE m.album_id = a.ref_id
+                               AND coalesce(m.mime,'') NOT LIKE 'video/%'
+                             ORDER BY random() LIMIT 1) END,
       -- Beitragsfelder (nur beitrag_neu) — Frontend reused feedBeitragHtml
       'text', CASE a.typ WHEN 'beitrag_neu' THEN b.text END,
       'bild_url', CASE a.typ WHEN 'beitrag_neu' THEN b.bild_url END,
@@ -143,6 +175,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     LEFT JOIN public.event_album_fotos ea    ON a.typ = 'event_foto_neu'  AND ea.id = a.ref_id
     LEFT JOIN public.events ev2              ON a.typ = 'event_foto_neu'  AND ev2.id = ea.event_id
     LEFT JOIN public.familien_rezepte fr     ON a.typ = 'rezept_neu'      AND fr.id = a.ref_id AND fr.geloescht = false
+    LEFT JOIN public.alben al2               ON a.typ = 'album_foto_neu'  AND al2.id = a.ref_id
     WHERE public.ist_in_verbund(a.verbund_id)
       AND (p_vor IS NULL OR a.erstellt_am < p_vor)
       AND (
@@ -152,6 +185,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
          OR (a.typ = 'event_neu'       AND ev.id IS NOT NULL)
          OR (a.typ = 'event_foto_neu'  AND ea.id IS NOT NULL)
          OR (a.typ = 'rezept_neu'      AND fr.id IS NOT NULL)
+         OR (a.typ = 'album_foto_neu'  AND al2.id IS NOT NULL)
          OR (a.typ = 'familie_geaendert')
          OR (a.typ = 'person_neu'      AND EXISTS (SELECT 1 FROM public.personen p WHERE p.id = a.ref_id AND p.geloescht_am IS NULL AND coalesce(p.stammbaum_daten->>'platzhalter','') <> 'true'))
          OR (a.typ IN ('geburtstag','erinnerung'))
@@ -185,4 +219,4 @@ GRANT EXECUTE ON FUNCTION public.aktivitaet_loeschen(uuid) TO authenticated;
 
 
 NOTIFY pgrst, 'reload schema';
-SELECT 'supabase_aktivitaeten_erweitert.sql ausgeführt — Typen event_foto_neu/rezept_neu/familie_geaendert + Trigger + aktivitaeten_holen erweitert + aktivitaet_loeschen (Moderatoren)' AS status;
+SELECT 'supabase_aktivitaeten_erweitert.sql ausgeführt — Typen event_foto_neu/rezept_neu/familie_geaendert/album_foto_neu + Trigger + aktivitaeten_holen erweitert + aktivitaet_loeschen (Moderatoren)' AS status;

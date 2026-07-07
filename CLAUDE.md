@@ -41,6 +41,15 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - Bei der Umsetzung immer sicherstellen, dass alle sichtbaren Inhalte korrekt in alle Sprachen übersetzt werden
 
 ## Frontend-Komponenten & UI-Konventionen (IMMER einhalten)
+- **Styleguide-Pflicht — KEINE nativen Browser-Dialoge (ab v14.34):** Jede UI eines neuen oder
+  geänderten Features MUSS dem bestehenden App-Design entsprechen (edel/dunkel/Serif/Gold, edle
+  Overlays) — **niemals** die nativen Browser-Dialoge `alert()`/`confirm()`/`prompt()` (sie zeigen
+  „127.0.0.1 enthält …", brechen Optik, i18n und Mobile). Verbindliche Bausteine stattdessen:
+  **`zeigeHinweis(text)`** (reine Info/Fehler, nur OK), **`zeigeBestaetigung(text, {gefahr, jaText})`**
+  (Ja/Nein-Rückfrage, gibt `Promise<boolean>`), Feld-Fehler über `feldFehler(...)`, Toasts/Status-
+  Zeilen für nebenläufige Rückmeldungen. Gleiches gilt für alle sichtbaren Elemente: bestehende
+  CSS-Klassen/Muster wiederverwenden statt Ad-hoc-Styles; i18n in allen 5 Sprachen; Mobile-/Touch-
+  Regeln (≥16px, `pointerdown`, `overscroll`). Vor jedem Commit prüfen: `grep -nE "\bconfirm\(|[^.\w]alert\(|\bprompt\("` liefert im Frontend **nichts**.
 - **Overlays/Modals schließen NUR per Button (ab v9.2):** Jedes Voll-Overlay (`.modal`) wird
   ausschließlich über seinen Schließen-Button (× / „Abbrechen") bzw. die zugehörige
   `schliesse…()`-Funktion geschlossen — **NICHT** durch Klick auf den Hintergrund/daneben.
