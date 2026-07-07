@@ -89,13 +89,29 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(e);
 }
 
+// HTML -> lesbarer Klartext für den text/plain-Teil (Links als "Text: URL",
+// Tags entfernt, Entities zurück). Sorgt für multipart/alternative statt
+// HTML-only -> deutlich besseres Zustell-/Spam-Verhalten.
+function htmlZuText(html: string): string {
+  return html
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gis, "$2: $1")
+    .replace(/<\/(p|div|h[1-6])>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+/g, " ")
+    .split("\n").map((z) => z.trim()).join("\n")
+    .trim();
+}
+
 async function sendMail(to: string, subject: string, html: string) {
   // TEST-Modus: wenn TEST_EMAIL gesetzt ist, gehen alle Mails dorthin.
   const empfaenger = Deno.env.get("TEST_EMAIL") || to;
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: MAIL_FROM, to: empfaenger, subject, html }),
+    body: JSON.stringify({ from: MAIL_FROM, to: empfaenger, subject, html, text: htmlZuText(html) }),
   });
   if (!r.ok) console.error("Resend-Fehler:", await r.text());
 }

@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.31">
+<meta name="app-version" content="14.32">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.31">
+<link rel="stylesheet" href="stammbaum.css?v=14.32">
 </head>
 <body>
 
@@ -2563,14 +2563,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.31"></script>
+<script src="i18n.js?v=14.32"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.31"></script>
-<script src="chat.js?v=14.31"></script>
-<script src="rezepte_pool.js?v=14.31"></script>
+<script src="pdf_export.js?v=14.32"></script>
+<script src="chat.js?v=14.32"></script>
+<script src="rezepte_pool.js?v=14.32"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -3354,7 +3354,7 @@ function toggleAvatarMenu(e) {
   const m = document.getElementById('avatar-menu');
   if (!m) return;
   const offen = m.classList.toggle('offen');
-  if (offen) aktualisiereStandardBaumBtn();   // „Standard-Stammbaum"-Button nur bei ≥2 verantwortlichen Bäumen
+  if (offen) aktualisiereStandardBaumBtn();   // „Standard-Stammbaum"-Button für jeden eingeloggten Nutzer einblenden
   const btn = document.getElementById('profil-icon-btn');
   if (btn) btn.setAttribute('aria-expanded', offen ? 'true' : 'false');
 }
@@ -8313,25 +8313,26 @@ function speichereStandardWahl() {
 }
 
 // Standard-Stammbaum-Auswahl als eigenes Overlay (aus dem Avatar-/Profil-Menü erreichbar,
-// früher ein Abschnitt in den Familieneinstellungen). Nur sinnvoll bei ≥2 verantwortlichen Bäumen.
-// Button im Avatar-Menü entsprechend ein-/ausblenden.
+// früher ein Abschnitt in den Familieneinstellungen). ROLLENUNABHÄNGIG: der Button ist – wie die
+// übrigen Menüpunkte im Avatar-Dropdown – für JEDEN eingeloggten Nutzer sichtbar. Rollen-
+// Unterscheidungen gehören in die Familieneinstellungen, NICHT ins Avatar-Menü. Der Dialog
+// listet die zugänglichen Bäume (auch für reine Lesemitglieder mit Zugriff auf mehrere Bäume).
 function aktualisiereStandardBaumBtn() {
   const btn = document.getElementById('menu-standard-btn');
   if (!btn) return;
-  const mehrere = !!aktuellerUser && meineVerantwortlichenBaeume().verantwortlich.length >= 2;
-  btn.style.display = mehrere ? '' : 'none';
+  btn.style.display = aktuellerUser ? '' : 'none';
 }
 // Baum-Dropdown des Modals befüllen (aktuelle Auswahl best-effort erhalten — wichtig für Sprachwechsel).
 function fuelleStandardBaumSelect() {
   const sel = document.getElementById('std-baum');
   if (!sel) return;
-  const { verantwortlich } = meineVerantwortlichenBaeume();
+  const ids = Object.keys(stammbaeumeListe || {});   // ZUGÄNGLICHE Bäume (rollenunabhängig)
   const groessen = stammbaumGroessen();
   const vorher = sel.value;
-  sel.innerHTML = verantwortlich.map(id =>
+  sel.innerHTML = ids.map(id =>
     `<option value="${escapeHtml(id)}">${escapeHtml(baumLabel(id))} (${groessen[id] || 0})</option>`).join('');
-  const ziel = verantwortlich.includes(vorher) ? vorher : (getStandardBaum() || aktuellerStammbaumId);
-  sel.value = verantwortlich.includes(ziel) ? ziel : (verantwortlich[0] || '');
+  const ziel = ids.includes(vorher) ? vorher : (getStandardBaum() || aktuellerStammbaumId);
+  sel.value = ids.includes(ziel) ? ziel : (ids[0] || '');
   macheAlleSelectsSuchbar(document.getElementById('standard-baum-modal'));
 }
 function oeffneStandardBaumAusMenu() {
@@ -12172,60 +12173,30 @@ function berechneLoseKarten() {
   Object.values(persons).forEach(p => {
     if (p && p._ident) (identGruppen[p._ident] = identGruppen[p._ident] || []).push(p.id);
   });
-  // 2) Repräsentant einer BELIEBIGEN Karte IM aktiven Baum (sich selbst, falls im Baum;
-  //    sonst ein identitaet_id-Zwilling im Baum) -> baumübergreifende Kanten zählen als Brücke.
-  const rep = (ext) => {
-    const p = persons[ext];
-    if (!p) return null;
-    if (p._tree === treeId) return ext;
-    if (p._ident) {
-      const twin = (identGruppen[p._ident] || []).find(t => persons[t] && persons[t]._tree === treeId);
-      if (twin) return twin;
-    }
-    return null;
-  };
-  // 3) In-Tree-Personen + ungerichtete Nachbarschaft (Partner + Eltern↔Kind) auf Repräsentanten
-  const intree = Object.values(persons).filter(p => p._tree === treeId).map(p => p.id);
-  if (!intree.length) return [];
-  const adj = {};
-  intree.forEach(id => { adj[id] = new Set(); });
-  const verbinde = (a, b) => {
-    const ra = rep(a), rb = rep(b);
-    if (!ra || !rb || ra === rb) return;
-    (adj[ra] = adj[ra] || new Set()).add(rb);
-    (adj[rb] = adj[rb] || new Set()).add(ra);
-  };
+  // 2) Alle Personen, die IRGENDWO (über ALLE Bäume) mindestens eine Familien-Kante haben
+  //    (Ehepartner ODER Eltern↔Kind). Ab v14.32: „lose" = eine Karte im aktiven Baum, deren
+  //    REALE Person (inkl. aller identitaet_id-Zwillinge) NIRGENDWO in einer Familie hängt =
+  //    echte Waise (z. B. Import-/manuelle Streukarte ohne jede Beziehung). BEWUSST NICHT mehr
+  //    „nicht in der Haupt-Komponente": ein baumübergreifender Spiegel (Zwilling in anderem Baum
+  //    verbunden, z. B. Mirsada) ODER eine untereinander verbundene Insel (z. B. Ivana+Saša) sind
+  //    KEINE Waisen und sollen die Leiste nicht mehr fluten (Nutzerentscheidung, Option A).
+  const hatKante = new Set();
   Object.values(aktuelleDaten.families || {}).forEach(fam => {
-    if (fam.husband && fam.wife) verbinde(fam.husband, fam.wife);
-    (fam.children || []).forEach(cid => {
-      if (fam.husband) verbinde(fam.husband, cid);
-      if (fam.wife)    verbinde(fam.wife, cid);
-    });
+    if (fam.husband) hatKante.add(fam.husband);
+    if (fam.wife)    hatKante.add(fam.wife);
+    (fam.children || []).forEach(cid => hatKante.add(cid));
   });
-  // 4) Zusammenhangskomponenten; Haupt-Komponente = die der Render-Wurzel (Fallback: größte)
-  const compOf = {}; const groesse = {}; let compN = 0;
-  intree.forEach(seed => {
-    if (compOf[seed] != null) return;
-    const c = compN++; let g = 0; const stack = [seed]; compOf[seed] = c;
-    while (stack.length) {
-      const x = stack.pop(); g++;
-      (adj[x] || []).forEach(y => { if (compOf[y] == null) { compOf[y] = c; stack.push(y); } });
-    }
-    groesse[c] = g;
-  });
-  const wurzel    = (typeof aktuelleWurzel === 'function') ? aktuelleWurzel() : null;
-  const wurzelRep = wurzel ? rep(wurzel) : null;
-  let mainComp = (wurzelRep != null && compOf[wurzelRep] != null) ? compOf[wurzelRep] : null;
-  if (mainComp == null) {           // keine Wurzel im Baum -> größte Komponente gilt als Hauptbaum
-    let best = -1;
-    Object.keys(groesse).forEach(c => { if (groesse[c] > best) { best = groesse[c]; mainComp = +c; } });
-  }
-  // 5) Alles außerhalb der Haupt-Komponente = lose/Insel; Platzhalter („Unbekannt") nicht zeigen
+  const gruppeHatKante = (ext) => {
+    if (hatKante.has(ext)) return true;
+    const p = persons[ext];
+    if (p && p._ident) return (identGruppen[p._ident] || []).some(tw => hatKante.has(tw));
+    return false;
+  };
+  // 3) Lose = Karten im aktiven Baum ohne jede Familien-Kante der realen Person (Platzhalter nie)
   const lose = [];
-  intree.forEach(id => {
-    if (compOf[id] === mainComp) return;
-    const p = persons[id];
-    if (!p || p.platzhalter) return;
+  Object.values(persons).forEach(p => {
+    if (!p || p._tree !== treeId || p.platzhalter) return;
+    if (gruppeHatKante(p.id)) return;   // real vernetzt (evtl. nur in anderem Baum) -> nicht lose
     lose.push(p);
   });
   lose.sort((a, b) => nm(a.name || a.given || '').localeCompare(nm(b.name || b.given || '')));
