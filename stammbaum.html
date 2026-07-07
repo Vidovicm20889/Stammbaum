@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.26">
+<meta name="app-version" content="14.27">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.26">
+<link rel="stylesheet" href="stammbaum.css?v=14.27">
 </head>
 <body>
 
@@ -2553,14 +2553,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.26"></script>
+<script src="i18n.js?v=14.27"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.26"></script>
-<script src="chat.js?v=14.26"></script>
-<script src="rezepte_pool.js?v=14.26"></script>
+<script src="pdf_export.js?v=14.27"></script>
+<script src="chat.js?v=14.27"></script>
+<script src="rezepte_pool.js?v=14.27"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -4005,9 +4005,12 @@ async function obavLivePoll() {
   if (document.getElementById('obav-modal')?.classList.contains('aktiv') && !obavInlineAktion()) renderObavListe();
 }
 // True, solange im Obav-Overlay eine Inline-Aktion offen ist (Person-Auswahl oder Neue-Karte-
-// Formular) → Polling/Sprachwechsel dürfen die Liste dann NICHT neu aufbauen.
+// Formular) → Polling/Sprachwechsel dürfen die Liste dann NICHT neu aufbauen. Flag deckt auch
+// das RPC-await-Fenster ab (DOM-Element noch nicht da); DOM-Check als zusätzliche Absicherung.
+let obavInlineOffen = false;
 function obavInlineAktion() {
-  return !!document.querySelector('#obav-liste [id^="obav-person-"], #obav-liste [id^="nk-vorname-"]');
+  return obavInlineOffen
+    || !!document.querySelector('#obav-liste [id^="obav-person-"], #obav-liste [id^="nk-vorname-"]');
 }
 
 function startObavPolling() {
@@ -5561,6 +5564,7 @@ function aktualisiereSyncBannerSprache() {
 // Beide bisherigen Einstiege (⚙-Menü, Profil-Sektion) sind dadurch ersetzt.
 async function oeffneObavZentral() {
   if (!aktuellerUser) return;
+  obavInlineOffen = false;   // frischer Aufbau -> keine Inline-Aktion offen (evtl. Rest von einem harten Modal-Close löschen)
   const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
   renderObavZentral();
   document.getElementById('obav-modal').classList.add('aktiv');
@@ -5588,12 +5592,13 @@ function renderObavZentral() {
   const wrap = document.getElementById('obav-anfragen-wrap');
   const admin = istAdmin();
   if (wrap) wrap.style.display = admin ? '' : 'none';
-  if (admin) renderObavListe();                // Admin-Zugriffsanfragen (#obav-liste)
+  if (admin && !obavInlineAktion()) renderObavListe();   // Admin-Zugriffsanfragen (#obav-liste) — nicht während offener Inline-Auswahl
 }
-function schliesseObavModal() { document.getElementById('obav-modal').classList.remove('aktiv'); }
+function schliesseObavModal() { obavInlineOffen = false; document.getElementById('obav-modal').classList.remove('aktiv'); }
 
 function renderObavListe() {
   const box = document.getElementById('obav-liste'); if (!box) return;
+  obavInlineOffen = false;   // expliziter Neuaufbau = keine Inline-Aktion mehr offen (Abbruch/Bestätigung/Neu öffnen)
   if (!offeneAnfragenCache.length && !vknAnfragenCache.length && !kontaktAnfragenCache.length) {
     box.innerHTML = `<div class="event-media-empty">${escapeHtml(t('obav_keine'))}</div>`; return;
   }
@@ -5740,6 +5745,7 @@ async function dubVerknuepfen(matchId) {
 // Akzeptieren: zuerst die Person im Baum wählen (für Rechte entlang der Blutlinie)
 async function obavAkzeptierenStart(id, familieId) {
   const karte = document.getElementById('obav-' + id); if (!karte) return;
+  obavInlineOffen = true;   // Guard schon VOR dem RPC-await setzen (Poll/Sprachwechsel dürfen die Liste nicht neu bauen)
   const akt = karte.querySelector('.obav-aktionen');
   akt.innerHTML = `<div class="event-media-empty">…</div>`;
   const { data, error } = await sbClient.rpc('personen_fuer_verknuepfung', { p_familie: familieId });
@@ -5764,6 +5770,7 @@ function obavAkzeptierenBestaetigen(id) {
 // Option 2 bei der Genehmigung: eine NEUE Namenskarte anlegen und damit verknüpfen
 async function obavNeueKarteStart(id, familieId) {
   const karte = document.getElementById('obav-' + id); if (!karte) return;
+  obavInlineOffen = true;   // s. obavAkzeptierenStart — Inline-Formular vor automatischem Re-Render schützen
   const akt = karte.querySelector('.obav-aktionen');
   akt.innerHTML = `<div class="event-media-empty">…</div>`;
   const { data, error } = await sbClient.rpc('stammbaeume_der_familie', { p_familie: familieId });
