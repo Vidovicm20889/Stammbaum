@@ -1428,7 +1428,24 @@ footer {
   box-shadow: 0 10px 26px rgba(44,36,24,0.28); padding: 10px; box-sizing: border-box;
 }
 .dp-head { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
-.dp-title { flex: 1; text-align: center; font-weight: bold; color: var(--akzent); font-size: 15px; letter-spacing: .5px; }
+.dp-title {
+  flex: 1; text-align: center; font-weight: bold; color: var(--akzent); font-size: 15px; letter-spacing: .5px;
+  background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer;
+  font-family: inherit; padding: 4px 6px; min-height: 28px;
+}
+.dp-title:hover, .dp-title.dp-title-aktiv { background: var(--gold-hell); border-color: var(--gold); }
+.dp-title::after { content: ' ▾'; font-size: 11px; opacity: .7; }
+/* Jahres-Schnellauswahl (Klick auf Titel): scrollbare 4-Spalten-Liste, aktives Jahr markiert */
+.dp-years {
+  grid-template-columns: repeat(4, 1fr); gap: 4px; display: grid;
+  max-height: 208px; overflow-y: auto; overscroll-behavior: contain; padding: 2px;
+}
+.dp-year {
+  border: 1px solid var(--linie); background: none; color: var(--ink); font-family: inherit;
+  font-size: 13px; padding: 8px 0; border-radius: 6px; cursor: pointer;
+}
+.dp-year:hover { background: var(--gold-hell); border-color: var(--gold); }
+.dp-year.active { background: var(--akzent); color: var(--paper); border-color: var(--akzent); font-weight: bold; }
 .dp-nav {
   background: none; border: 1px solid var(--linie); color: var(--akzent);
   width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px;

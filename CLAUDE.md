@@ -53,9 +53,20 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Außerhalb-Schließen über `pointerdown` (NICHT `click`, sonst schließt der Ghost-Click sofort);
   Auswahl in scrollbaren Listen über `tippAuswahl` (Tap selektiert, Wischen scrollt);
   `resize`/`scroll` schließen Panels NICHT, sondern positionieren neu (mobile Tastatur = Resize).
-- **Datumsfelder**: `<input class="login-feld dp-input">` → eigener Vanilla-Kalender,
-  sprachabhängiges Format. Werte über `datumWert`/`datumSetzen`, Anzeige `formatDatumLang`
-  (Speicherung als ISO, siehe Backend-/Daten-Regeln).
+- **Datumsfelder**: `<input class="login-feld dp-input">` → eigener Vanilla-Kalender. Werte über
+  `datumWert`/`datumSetzen`, Anzeige `formatDatumLang` (Speicherung als ISO, siehe Backend-/Daten-
+  Regeln). **Kurz-/Eingabeformat = REIHENFOLGE-Präferenz (ab v14.30, kontogebunden):** eigene
+  Nutzer-Einstellung `datumsFormat` ∈ {`tmj` = Tag zuerst (Standard) / `mtj` = Monat zuerst},
+  gespeichert in `profile.einstellungen.datumsformat` (+ localStorage `vidovic_datumsformat`), im
+  Profil-Overlay wählbar (`fuelleProfilDatumsformat`/`setzeDatumsFormat`, instant via onchange). Die
+  Reihenfolge ist **von der Sprache ENTKOPPELT** (Bugfix: früher zwang `en` das US-`MM/DD` auf, das
+  der Parser nicht verstand → Eingaben abgelehnt). Das **Trennzeichen** bleibt sprachüblich
+  (`datumTrenner`: en `/`, sonst `.`), Platzhalter über `datumPlatzhalter`. **Parser
+  (`parseDatumZuIso`) ist ordnungs- UND fehlertolerant:** akzeptiert ISO, `.`/`/`/`-` und
+  **trennerlos** (8 Ziffern, z. B. `01011999`); `dpAusPaar` deutet die Reihenfolge per Präferenz,
+  erkennt aber **automatisch** den Tag, wenn eine Position > 12 ist. Umschalten/Sprachwechsel rendert
+  alle offenen Felder neu (`aktualisiereDatumsfelder`). i18n `prof_datumsformat`/`prof_df_*` in allen
+  5 Blöcken.
 - **Pflichtfelder & Feld-Fehler (app-weit, ab v11):** Jedes Pflichtfeld bekommt am Label die
   Klasse **`.pflicht`** → rotes „ *" hinter der Beschriftung (CSS, sprachneutral — KEINE
   hartcodierten `*` mehr; dynamisch umschaltbar, z. B. Mädchenname nur bei `geschlecht='F'` über

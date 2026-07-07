@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.29">
+<meta name="app-version" content="14.30">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.29">
+<link rel="stylesheet" href="stammbaum.css?v=14.30">
 </head>
 <body>
 
@@ -1005,6 +1005,9 @@
       </label>
       <label class="login-label"><span data-i18n="prof_sprache"></span>
         <select id="prof-sprache" class="login-feld"></select>
+      </label>
+      <label class="login-label"><span data-i18n="prof_datumsformat"></span>
+        <select id="prof-datumsformat" class="login-feld" onchange="setzeDatumsFormat(this.value)"></select>
       </label>
       <label class="login-label"><span data-i18n="prof_land"></span>
         <select id="prof-land" class="login-feld land-select"></select>
@@ -2558,14 +2561,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.29"></script>
+<script src="i18n.js?v=14.30"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.29"></script>
-<script src="chat.js?v=14.29"></script>
-<script src="rezepte_pool.js?v=14.29"></script>
+<script src="pdf_export.js?v=14.30"></script>
+<script src="chat.js?v=14.30"></script>
+<script src="rezepte_pool.js?v=14.30"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -3869,6 +3872,21 @@ async function fuegeMitgliedEinladen() {
   if (karteModus === 'neue') {
     if (!vorname && !nachname) return feldFehler('ma-vorname', t('ma_karte_name_pflicht'));
     if (!document.getElementById('ma-karte-baum').value) return feldFehler('ma-karte-baum', t('ma_karte_baum_pflicht'));
+    // Verbundweite Dubletten-WARNUNG (Haupt-Kriterien Vor-/Nachname; blockiert NICHT). Gleiche
+    // Prüfung wie im Personen-Anlege-Flow, hier vor dem Anlegen der NEUEN Namenskarte.
+    if (vorname && nachname) {
+      try {
+        const { data: ns } = await sbClient.rpc('personen_suche', {
+          p_vorname: srCyr2Lat(vorname), p_nachname: srCyr2Lat(nachname), p_geburt: null, p_limit: 25, p_offset: 0
+        });
+        const treffer = entdoppeltePersonen(ns || []).filter(r => r && r.id);
+        if (treffer.length) {
+          const namen = treffer.slice(0, 6).map(r => nm(r.name || '') + (r.baum ? ' (' + nm(r.baum) + ')' : '')).join(', ');
+          const ok = await zeigeBestaetigung(t('ma_dublette_warnung', { namen }), { jaText: t('dub_trotzdem') });
+          if (!ok) return;
+        }
+      } catch (e) { console.warn('ma-namens-dublette:', e); }
+    }
   }
 
   const altText = button.textContent;
@@ -4316,6 +4334,12 @@ function profilEinstellungenAnwenden() {
     if (e.letzter_baum)         localStorage.setItem('vidovic_tree', e.letzter_baum);
     if (uid && e.mp_snooze)     localStorage.setItem('mp_snooze_' + uid, String(e.mp_snooze));
     if (e.baum_hilfe_gesehen)   localStorage.setItem('hasSeenTreeHelp', 'true');
+    if (e.datumsformat) {   // Datumsformat-Präferenz (Reihenfolge) kontogebunden übernehmen
+      const df = (e.datumsformat === 'mtj') ? 'mtj' : 'tmj';
+      localStorage.setItem('vidovic_datumsformat', df);
+      datumsFormat = df;
+      if (typeof aktualisiereDatumsfelder === 'function') aktualisiereDatumsfelder();
+    }
   } catch (err) {}
 }
 
@@ -4416,6 +4440,7 @@ async function oeffneProfil() {
   document.getElementById('prof-nachname').oninput = renderProfilKopf;
 
   fuelleProfilSprache(p.sprache || aktuelleSprache);
+  fuelleProfilDatumsformat(datumsFormat);
   fuelleProfilZeitzone(p.zeitzone || '');
   const landSel = document.getElementById('prof-land');
   if (landSel) { fuelleEinLandSelect(landSel); setLandSelectValue(landSel, p.land || ''); }
@@ -4812,6 +4837,23 @@ function fuelleProfilSprache(aktiv) {
   const s = document.getElementById('prof-sprache'); if (!s) return;
   s.innerHTML = SPRACHEN.map(sp => `<option value="${sp.code}">${escapeHtml(sp.name)}</option>`).join('');
   s.value = (aktiv && TEXTE[aktiv]) ? aktiv : aktuelleSprache;
+}
+
+// Datumsformat-Selektor im Profil füllen (2 Optionen, lokalisierte Beispiel-Labels).
+function fuelleProfilDatumsformat(aktiv) {
+  const s = document.getElementById('prof-datumsformat'); if (!s) return;
+  const cur = (aktiv === 'mtj') ? 'mtj' : 'tmj';
+  s.innerHTML = [['tmj', t('prof_df_tmj')], ['mtj', t('prof_df_mtj')]]
+    .map(([v, lab]) => `<option value="${v}">${escapeHtml(lab)}</option>`).join('');
+  s.value = cur;   // programmatisch -> löst KEIN change aus (nur ssSyncLabel)
+}
+// Format-Wahl anwenden + kontogebunden speichern (instant, via onchange des Selects).
+function setzeDatumsFormat(val) {
+  const v = (val === 'mtj') ? 'mtj' : 'tmj';
+  datumsFormat = v;
+  try { localStorage.setItem('vidovic_datumsformat', v); } catch (e) {}
+  if (typeof profilEinstellungSetzen === 'function') profilEinstellungSetzen('datumsformat', v);
+  if (typeof aktualisiereDatumsfelder === 'function') aktualisiereDatumsfelder();
 }
 
 // Zeitzonen-Dropdown (optional). Nutzt Intl-Liste, mit robustem Fallback.
@@ -7180,7 +7222,7 @@ async function passwortVergessen() {
     return;
   }
   schliesseLoginModal();
-  await zeigeHinweis(t('pw_reset_gesendet'));
+  await zeigeHinweis(t('pw_reset_gesendet'), true);
 }
 
 function zeigeLoginModal() {
@@ -7341,13 +7383,14 @@ function aktualisiereRegSubmitButton() {
 }
 
 // Einfacher Hinweis-Dialog (nur OK-Button) – für klare Bestätigungen.
-function zeigeHinweis(text) {
+function zeigeHinweis(text, spamHinweis) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
     overlay.innerHTML = `
       <div class="confirm-box">
         <p class="confirm-text">${escapeHtml(text)}</p>
+        ${spamHinweis ? `<p class="spam-hinweis">${escapeHtml(t('spam_hinweis'))}</p>` : ''}
         <div class="confirm-actions">
           <button type="button" class="confirm-ja">OK</button>
         </div>
@@ -7464,7 +7507,7 @@ async function sendeRegistrierAnfrage() {
   // die der User selbst wegklickt (verschwindet nicht von allein).
   regFelderLeeren();
   schliesseRegistrierModal();
-  await zeigeHinweis(t('reg_erfolg'));
+  await zeigeHinweis(t('reg_erfolg'), true);
 }
 
 // Kein vorhandener Baum gefunden: neuen, leeren Stammbaum selbst anlegen (ohne
@@ -7555,7 +7598,7 @@ async function regNeueFamilieAnlegen() {
 
   regFelderLeeren();
   schliesseRegistrierModal();
-  await zeigeHinweis(t('reg_neue_erfolg'));
+  await zeigeHinweis(t('reg_neue_erfolg'), true);
 }
 
 // ============================================================
@@ -7956,6 +7999,7 @@ function wechselSprache(lang, speichern = true) {
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
     fuelleProfilSprache(document.getElementById('prof-sprache').value);
+    fuelleProfilDatumsformat(datumsFormat);   // Beispiel-Labels in neuer Sprache
     fuelleProfilZeitzone(document.getElementById('prof-zeitzone').value);
     renderProfilKopf();
     if (typeof renderMeinePersonBereich === 'function') renderMeinePersonBereich();   // "Meine Person" (nm/Texte)
@@ -8344,7 +8388,25 @@ function findeStammbaumWurzel(treeId) {
     return (fam.husband && imBaum(fam.husband)) || (fam.wife && imBaum(fam.wife));
   });
   const kandidaten = personen.filter(p => !hatElternImBaum(p));
-  const liste = kandidaten.length ? kandidaten : personen;
+  // Variante A: die Wurzel soll ein BLUT-Mitglied des Baums sein (Nachname/Mädchenname == Baumname
+  // ODER Vater trägt den Baumnamen) — NICHT ein eingeheirateter Ahne. Sonst gewinnt z. B. die
+  // elternlose Mutter einer eingeheirateten Ehefrau als „Kandidat mit den meisten Nachkommen" und
+  // zieht ihre fremde Herkunftsfamilie in den Baum (Bug: Zagorka Šarčević im Knežević-Baum).
+  // Fallback auf alle Kandidaten, wenn KEIN Blut-Kandidat existiert (Import/Altbestand).
+  const bTreeN = zweigNachnameNorm((stammbaeumeListe[treeId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
+  const istBlutBaum = (p) => {
+    if (!p || !bTreeN) return false;
+    if (zweigNachnameNorm(p.surname || '') === bTreeN) return true;
+    if (zweigNachnameNorm(p.ehename || '') === bTreeN) return true;   // Mädchenname (née)
+    for (const fid of (p.families_child || [])) {
+      const fam = aktuelleDaten.families[fid];
+      const vater = (fam && fam.husband) ? aktuelleDaten.persons[fam.husband] : null;
+      if (vater && zweigNachnameNorm(vater.surname || '') === bTreeN) return true;
+    }
+    return false;
+  };
+  const blutKand = kandidaten.filter(istBlutBaum);
+  const liste = blutKand.length ? blutKand : (kandidaten.length ? kandidaten : personen);
   function nachkommen(id, seen) {
     seen = seen || new Set(); if (seen.has(id)) return 0; seen.add(id);
     const p = aktuelleDaten.persons[id]; if (!p) return 0;
@@ -8752,7 +8814,22 @@ const KALENDER = {
   en: { monate: ['January','February','March','April','May','June','July','August','September','October','November','December'],
         wochentage: ['Su','Mo','Tu','We','Th','Fr','Sa'], wochenStart: 0, heute: 'Today', loeschen: 'Clear' }
 };
-const DATUM_PH = { de: 'TT.MM.JJJJ', sr: 'DD.MM.GGGG', hr: 'DD.MM.GGGG', ba: 'DD.MM.GGGG', en: 'MM/DD/YYYY' };
+// Datumsformat-Präferenz = REIHENFOLGE (Bugfix: früher an die Sprache gekoppelt, was en auf
+// US-„MM/DD" zwang, während der Parser nur Tag-zuerst verstand → Eingaben wurden abgelehnt).
+// 'tmj' = Tag zuerst (Standard), 'mtj' = Monat zuerst. Kontogebunden (profile.einstellungen.
+// datumsformat), browser-gespiegelt in localStorage. TRENNZEICHEN bleibt sprachüblich
+// (en '/', sonst '.'); der Parser akzeptiert . / - UND trennerlos (8 Ziffern).
+let datumsFormat = (localStorage.getItem('vidovic_datumsformat') === 'mtj') ? 'mtj' : 'tmj';
+function datumTrenner(lang) { return ((lang || aktuelleSprache) === 'en') ? '/' : '.'; }
+const DATUM_BUCHST = {
+  de: { t: 'TT', m: 'MM', j: 'JJJJ' }, sr: { t: 'DD', m: 'MM', j: 'GGGG' },
+  hr: { t: 'DD', m: 'MM', j: 'GGGG' }, ba: { t: 'DD', m: 'MM', j: 'GGGG' },
+  en: { t: 'DD', m: 'MM', j: 'YYYY' }
+};
+function datumPlatzhalter(lang) {
+  const b = DATUM_BUCHST[lang] || DATUM_BUCHST.de, sep = datumTrenner(lang);
+  return (datumsFormat === 'mtj') ? [b.m, b.t, b.j].join(sep) : [b.t, b.m, b.j].join(sep);
+}
 
 function dpZahl(n) { return String(n).padStart(2, '0'); }
 function isoVon(j, m, t) { return j + '-' + dpZahl(m) + '-' + dpZahl(t); }
@@ -8763,20 +8840,31 @@ function dpGueltig(j, m, t) {
   if (d.getFullYear() !== j || d.getMonth() !== m - 1 || d.getDate() !== t) return null;  // 31.02. etc. abfangen
   return isoVon(j, m, t);
 }
+// Zwei Positionen (a=erste, b=zweite) + Jahr gemäß Reihenfolge-Präferenz -> ISO.
+// AUTO-ERKENNUNG: ist eine Position > 12, MUSS sie der Tag sein (unabhängig von der Wahl) →
+// „Eingaben sollen erlaubt sein" auch bei US-/EU-Mischeingaben.
+function dpAusPaar(a, b, jahr) {
+  let tag, monat;
+  if (a > 12 && b <= 12)           { tag = a; monat = b; }
+  else if (b > 12 && a <= 12)      { tag = b; monat = a; }
+  else if (datumsFormat === 'mtj') { monat = a; tag = b; }
+  else                             { tag = a; monat = b; }
+  return dpGueltig(jahr, monat, tag);
+}
 // Beliebigen Text -> ISO 'YYYY-MM-DD' oder null (= Freitext/ungefähr, bleibt erhalten)
 function parseDatumZuIso(text) {
   const s = (text || '').trim(); if (!s) return null; let m;
-  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))  return dpGueltig(+m[1], +m[2], +m[3]);
-  // TT.MM.JJJJ — toleriert serbisch/kroatischen End-Punkt („08.07.1992.") + Leerzeichen nach den Punkten („8. 7. 1992.")
-  if ((m = s.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})\.?$/))) return dpGueltig(+m[3], +m[2], +m[1]);
-  // TT/MM/JJJJ (Tag zuerst, europäisch/Balkan) — Trenner „/" oder „-", Leerzeichen toleriert.
-  // ISO (YYYY-…) greift bereits oben, daher kein Konflikt mit dem Bindestrich.
-  if ((m = s.match(/^(\d{1,2})\s*[\/\-]\s*(\d{1,2})\s*[\/\-]\s*(\d{4})$/))) return dpGueltig(+m[3], +m[2], +m[1]);
+  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))  return dpGueltig(+m[1], +m[2], +m[3]);   // ISO
+  // Zwei Zahlen + 4-stelliges Jahr, Trenner . / - (Leerzeichen + serb./kroat. End-Punkt toleriert).
+  if ((m = s.match(/^(\d{1,2})\s*[.\/\-]\s*(\d{1,2})\s*[.\/\-]\s*(\d{4})\.?$/))) return dpAusPaar(+m[1], +m[2], +m[3]);
+  // Trennerlos: GENAU 8 Ziffern (TTMMJJJJ / MMTTJJJJ), z. B. „01011999".
+  if ((m = s.match(/^(\d{2})(\d{2})(\d{4})$/))) return dpAusPaar(+m[1], +m[2], +m[3]);
   return null;
 }
 function isoZuKurz(iso, lang) {
   const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return iso || '';
-  return (lang === 'en') ? (m[2] + '/' + m[3] + '/' + m[1]) : (m[3] + '.' + m[2] + '.' + m[1]);
+  const sep = datumTrenner(lang);
+  return (datumsFormat === 'mtj') ? (m[2] + sep + m[3] + sep + m[1]) : (m[3] + sep + m[2] + sep + m[1]);
 }
 function isoZuLang(iso, lang) {
   const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return iso || '';
@@ -8828,7 +8916,7 @@ function datumFeldUngueltig(id) {
   return !!roh && !istIsoDatum(roh) && !parseDatumZuIso(roh);
 }
 
-let dpPanel, dpAktivInput = null, dpJahr, dpMonat, dpRaf = null;
+let dpPanel, dpAktivInput = null, dpJahr, dpMonat, dpRaf = null, dpModus = 'tage';
 
 function dpInitPanel() {
   if (dpPanel) return;
@@ -8838,15 +8926,22 @@ function dpInitPanel() {
     '<div class="dp-head">' +
       '<button type="button" class="dp-nav" data-step="-12">«</button>' +
       '<button type="button" class="dp-nav" data-step="-1">‹</button>' +
-      '<span class="dp-title"></span>' +
+      '<button type="button" class="dp-title" title=""></button>' +
       '<button type="button" class="dp-nav" data-step="1">›</button>' +
       '<button type="button" class="dp-nav" data-step="12">»</button>' +
     '</div>' +
     '<div class="dp-weekdays"></div><div class="dp-grid"></div>' +
+    '<div class="dp-years" style="display:none"></div>' +
     '<div class="dp-foot"><button type="button" class="dp-today"></button><button type="button" class="dp-clear"></button></div>';
   document.body.appendChild(dpPanel);
   dpPanel.querySelectorAll('.dp-nav').forEach(b =>
     b.addEventListener('click', e => { e.preventDefault(); dpVerschiebe(+b.dataset.step); }));
+  // Klick auf den Titel (Monat Jahr) -> Jahres-Schnellauswahl ein/aus (2-Klick-Jahr).
+  dpPanel.querySelector('.dp-title').addEventListener('click', e => { e.preventDefault(); dpModusUmschalten(); });
+  // Klick auf ein Jahr in der Schnellauswahl -> Jahr übernehmen, zurück zur Tagesansicht.
+  dpPanel.querySelector('.dp-years').addEventListener('click', e => {
+    const y = e.target.closest('.dp-year[data-jahr]'); if (y) dpWaehleJahr(+y.dataset.jahr);
+  });
   dpPanel.querySelector('.dp-grid').addEventListener('click', e => {
     const d = e.target.closest('.dp-day[data-iso]'); if (d) dpWaehle(d.dataset.iso);
   });
@@ -8866,13 +8961,54 @@ function dpVerschiebe(monate) {
   dpRender();
 }
 
+// Jahres-Schnellauswahl: scrollbare Liste (neueste oben), aktives Jahr hervorgehoben.
+// Bereich = aktuelles Jahr +5 bis −120 (bei bereits gesetztem Alt-/Zukunftsjahr entsprechend erweitert).
+function dpRenderJahre() {
+  const cont = dpPanel.querySelector('.dp-years'); if (!cont) return;
+  const jetzt = new Date().getFullYear();
+  const hi = Math.max(jetzt + 5, dpJahr + 5);
+  const lo = Math.min(jetzt - 120, dpJahr - 5);
+  let html = '';
+  for (let y = hi; y >= lo; y--) {
+    html += '<button type="button" class="dp-year' + (y === dpJahr ? ' active' : '') + '" data-jahr="' + y + '">' + y + '</button>';
+  }
+  cont.innerHTML = html;
+}
+function dpScrolleZuJahr() {
+  const cont = dpPanel && dpPanel.querySelector('.dp-years'); if (!cont) return;
+  const act = cont.querySelector('.dp-year.active'); if (!act) return;
+  // Nur den Container scrollen (NICHT scrollIntoView -> würde bei fixem Panel den Viewport bewegen).
+  const cR = cont.getBoundingClientRect(), aR = act.getBoundingClientRect();
+  cont.scrollTop += (aR.top - cR.top) - (cont.clientHeight / 2) + (aR.height / 2);
+}
+function dpModusUmschalten() {
+  dpModus = (dpModus === 'jahre') ? 'tage' : 'jahre';
+  dpRender();
+  if (dpAktivInput) dpPositioniere(dpAktivInput._dpWrap || dpAktivInput);   // Höhe ändert sich -> neu andocken
+  if (dpModus === 'jahre') dpScrolleZuJahr();
+}
+function dpWaehleJahr(jahr) {
+  dpJahr = jahr; dpModus = 'tage';
+  dpRender();
+  if (dpAktivInput) dpPositioniere(dpAktivInput._dpWrap || dpAktivInput);
+}
+
 function dpRender() {
   if (!dpPanel) return;
   const kal = KALENDER[aktuelleSprache] || KALENDER.de;
-  dpPanel.querySelector('.dp-title').textContent = kal.monate[dpMonat] + ' ' + dpJahr;
-  dpPanel.querySelector('.dp-weekdays').innerHTML = kal.wochentage.map(d => '<span>' + escapeHtml(d) + '</span>').join('');
+  const jahrModus = (dpModus === 'jahre');
+  const titel = dpPanel.querySelector('.dp-title');
+  titel.textContent = jahrModus ? String(dpJahr) : (kal.monate[dpMonat] + ' ' + dpJahr);
+  titel.classList.toggle('dp-title-aktiv', jahrModus);
+  // Ansichten umschalten: Monats-Navigation/Wochentage/Tage <-> Jahresliste
+  dpPanel.querySelectorAll('.dp-nav').forEach(b => b.style.visibility = jahrModus ? 'hidden' : '');
+  dpPanel.querySelector('.dp-weekdays').style.display = jahrModus ? 'none' : '';
+  dpPanel.querySelector('.dp-grid').style.display = jahrModus ? 'none' : '';
+  dpPanel.querySelector('.dp-years').style.display = jahrModus ? '' : 'none';
   dpPanel.querySelector('.dp-today').textContent = kal.heute;
   dpPanel.querySelector('.dp-clear').textContent = kal.loeschen;
+  if (jahrModus) { dpRenderJahre(); return; }
+  dpPanel.querySelector('.dp-weekdays').innerHTML = kal.wochentage.map(d => '<span>' + escapeHtml(d) + '</span>').join('');
   const start = kal.wochenStart;                                       // 1=Mo, 0=So
   let offset = (new Date(dpJahr, dpMonat, 1).getDay() - start + 7) % 7;
   const tage = new Date(dpJahr, dpMonat + 1, 0).getDate();
@@ -8910,6 +9046,7 @@ function dpOeffne(input) {
   dpInitPanel();
   dpSchliesse();
   dpAktivInput = input;
+  dpModus = 'tage';   // immer in der Tagesansicht starten
   const iso = input.dataset.iso || parseDatumZuIso(input.value);
   const base = iso ? new Date(iso + 'T00:00:00') : new Date();
   dpJahr = base.getFullYear(); dpMonat = base.getMonth();
@@ -8954,7 +9091,7 @@ function macheDatumsfeld(input) {
   btn.type = 'button'; btn.className = 'dp-btn'; btn.setAttribute('aria-label', 'Kalender'); btn.textContent = '📅';
   wrap.appendChild(btn);
   input._dpWrap = wrap;
-  input.placeholder = DATUM_PH[aktuelleSprache] || DATUM_PH.de;
+  input.placeholder = datumPlatzhalter(aktuelleSprache);
   if (input.value) datumSetzen(input, input.value);   // evtl. vorbefüllten Wert normalisieren
   btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); (dpAktivInput === input) ? dpSchliesse() : dpOeffne(input); });
   input.addEventListener('blur', () => {
@@ -8969,11 +9106,11 @@ function macheAlleDatumsfelder(root) {
   (root || document).querySelectorAll('input.dp-input').forEach(el => { if (!el._dpReady) macheDatumsfeld(el); });
 }
 
-// Sprachwechsel: Platzhalter + Kurzformat-Anzeige anpassen, offenen Kalender neu rendern
+// Sprach-/Formatwechsel: Platzhalter + Kurzformat-Anzeige anpassen, offenen Kalender neu rendern
 function aktualisiereDatumsfelder() {
   document.querySelectorAll('input.dp-input').forEach(inp => {
     if (!inp._dpReady) return;
-    inp.placeholder = DATUM_PH[aktuelleSprache] || DATUM_PH.de;
+    inp.placeholder = datumPlatzhalter(aktuelleSprache);
     if (inp.dataset.iso) inp.value = isoZuKurz(inp.dataset.iso, aktuelleSprache);
   });
   if (dpAktivInput) dpRender();
@@ -17878,10 +18015,35 @@ async function speichereNeuePerson() {
     else setTimeout(() => schliessePersonAdd(), 800);
   }
 
-  // DUBLETTEN-FRÜHERKENNUNG: existiert dieselbe Person (Vor/Nach/Geburtsdatum/Geburtsland) bereits?
-  const { data: matches } = await sbClient.rpc('dubletten_check_global', {
-    p_vorname: vorname, p_nachname: nachname, p_birth_date: geb, p_land: land, p_exclude_person: null
-  });
+  // DUBLETTEN-FRÜHERKENNUNG (verbundweit): Haupt-Kriterien = Vorname + Nachname. Die frühere
+  // 4-Kriterien-Prüfung (dubletten_check_global) greift NUR bei zusätzlich passendem Geburts-
+  // datum UND Geburtsland → Namensgleiche ohne diese Felder rutschten durch (Bug: „Živko/Smilja
+  // Knežević" doppelt). Deshalb zusätzlich eine reine Namens-Prüfung über den GANZEN Verbund
+  // (personen_suche AND-et Vor-/Nachname). Ergebnis wird nur als HINWEIS gezeigt (Anlage bleibt
+  // möglich — Namen dürfen sich wiederholen, Nutzerwunsch).
+  let matches = [];
+  try {
+    const { data: g } = await sbClient.rpc('dubletten_check_global', {
+      p_vorname: vorname, p_nachname: nachname, p_birth_date: geb, p_land: land, p_exclude_person: null
+    });
+    matches = (g || []).slice();
+  } catch (e) { console.warn('dubletten_check_global:', e); }
+  if (vorname && nachname) {
+    try {
+      // Kyrillisch -> Latein (Daten liegen lateinisch; merge_norm transliteriert nicht).
+      const { data: ns } = await sbClient.rpc('personen_suche', {
+        p_vorname: srCyr2Lat(vorname), p_nachname: srCyr2Lat(nachname),
+        p_geburt: null, p_limit: 25, p_offset: 0
+      });
+      const gesehen = new Set(matches.map(m => m.match_id));
+      // gespiegelte Karten (gleiche identitaet_id) = EINE reale Person -> nur 1x anbieten.
+      entdoppeltePersonen(ns || []).forEach(rw => {
+        if (!rw || !rw.id || gesehen.has(rw.id)) return;
+        matches.push({ match_id: rw.id, name: rw.name, baum: rw.baum, sichtbar: true });
+        gesehen.add(rw.id);
+      });
+    } catch (e) { console.warn('namens-dublette:', e); }
+  }
   button.disabled = false; button.textContent = altText;
   if (matches && matches.length) {
     zeigeDublettenDialog(matches, {
@@ -19416,10 +19578,14 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
     if (!p || !p.families_child.length) return personId;
     const fam = aktuelleDaten.families[p.families_child[0]];
     if (!fam) return personId;
-    // Elternteil im selben Baum bevorzugen; gibt es keinen -> hier ist die Wurzel
+    // Elternteil im selben Baum bevorzugen; gibt es keinen -> hier ist die Wurzel.
+    // Variante A: bei gesetztem Baum NUR entlang der BLUTLINIE aufsteigen — NICHT in die
+    // Herkunftsfamilie eines eingeheirateten Elternteils klettern (sonst wurzelt der Baum z. B.
+    // bei der Mutter einer eingeheirateten Ehefrau und zieht deren fremde Familie herein).
+    const okElt = (id) => id && sameTree(id) && (!treeId || istBlutName(aktuelleDaten.persons[id]));
     let elternId = null;
-    if (fam.husband && sameTree(fam.husband)) elternId = fam.husband;
-    else if (fam.wife && sameTree(fam.wife)) elternId = fam.wife;
+    if (okElt(fam.husband)) elternId = fam.husband;
+    else if (okElt(fam.wife)) elternId = fam.wife;
     if (!elternId || !aktuelleDaten.persons[elternId]) return personId;
     return findeWurzel(elternId, tiefe - 1);
   }
@@ -20034,18 +20200,57 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   const childrenOf= c => [...(model.children.get(c) || [])].filter(vis);
   const partnersOf= c => [...(model.partners.get(c) || [])].filter(vis);
 
-  // ── NACHKOMMEN-Hierarchie (Fokus nach unten): Person + Partner(seitlich), Kinder darunter ──
+  // ── NACHKOMMEN-Hierarchie (Fokus nach unten), EHE-GRUPPIERT (ab v14.x) ──
+  // Statt alle Partner/Kinder EINER Person flach zu mischen (dann sieht man nicht, welches Kind
+  // aus welcher Ehe stammt), wird je Ehe (union aus baueGraphModell) ein eigener Block gebildet:
+  // Person → [Ehe-Knoten] → Kinder DIESER Ehe. d3.tree legt so die Kinder jeder Ehe überlappungs-
+  // frei UNTER den jeweiligen Partner (klare Zuordnung Kind↔Ehe, auch bei 2+ Partnern). Ehe-Knoten
+  // sind unsichtbar (nur Layout). Bei ≥2 Ehen (spread) reserviert ein SELF-Platzhalter in der Mitte
+  // einen kollisionsfreien Slot für die Personenkarte; bei genau 1 Ehe bleibt die klassische Optik
+  // (Partner rechts daneben, Kinder mittig unter der Person) unverändert.
+  const unionsByParent = new Map();
+  model.unions.forEach(u => u.parents.forEach(p => {
+    if (!unionsByParent.has(p)) unionsByParent.set(p, []);
+    unionsByParent.get(p).push(u);
+  }));
+  const nameOfCanon = (c) => { const n = model.nodes.get(c); return n ? (n.person.name || '') : ''; };
   const seen = new Set([focus]);
-  function descNode(c, depth) {
-    const partner = partnersOf(c).filter(p => !seen.has(p));
-    partner.forEach(p => seen.add(p));
-    const node = { canon: c, partners: partner, children: [] };
-    if (depth < downN) {
-      childrenOf(c).forEach(k => { if (!seen.has(k)) { seen.add(k); node.children.push(descNode(k, depth + 1)); } });
+  function descPerson(c, depth) {
+    const pnode = { type: 'person', canon: c, gen: depth, unions: [] };
+    // Ehen der Person, stabil nach Partnernamen sortiert (deterministische Links/Rechts-Folge)
+    const us = (unionsByParent.get(c) || []).slice().sort((a, b) => {
+      const pa = [...a.parents].find(x => x !== c) || '', pb = [...b.parents].find(x => x !== c) || '';
+      return nameOfCanon(pa).localeCompare(nameOfCanon(pb));
+    });
+    us.forEach(u => {
+      const kidsAll = [...u.children].filter(vis);
+      const exChildless = (u.partner_art === 'ex_ehe' || u.partner_art === 'ex_partner') && kidsAll.length === 0;
+      if (exChildless) return;   // Ex ohne gemeinsame Kinder nicht im Diagramm (wie baueGraphModell)
+      const partnerC = [...u.parents].find(x => x !== c && vis(x)) || null;
+      const showPartner = partnerC && !seen.has(partnerC);
+      if (showPartner) seen.add(partnerC);
+      let kidNodes = [];
+      if (depth < downN) {
+        const kids = kidsAll.filter(k => !seen.has(k));
+        kids.forEach(k => seen.add(k));
+        kidNodes = kids.map(k => descPerson(k, depth + 1));
+      }
+      if (!showPartner && !partnerC && !kidNodes.length) return;   // gänzlich leere Ehe überspringen
+      pnode.unions.push({ type: 'union', gen: depth, partner: showPartner ? partnerC : null, kids: kidNodes });
+    });
+    pnode.spread = pnode.unions.length >= 2;   // ≥2 Ehen → Blocklayout je Ehe (mit SELF-Mitte)
+    if (pnode.spread) {
+      const self = { type: 'self', gen: depth };
+      pnode.selfData = self;
+      const arr = pnode.unions.slice();
+      arr.splice(Math.round(arr.length / 2), 0, self);   // SELF ~mittig → Personenkarte in freiem Slot
+      pnode.hier = arr;
+    } else {
+      pnode.hier = pnode.unions;   // 0 oder 1 Ehe: Person zentriert über der (einzigen) Ehe
     }
-    return node;
+    return pnode;
   }
-  const descRoot = descNode(focus, 0);
+  const descRoot = descPerson(focus, 0);
 
   // ── VORFAHREN-Hierarchie (Fokus nach oben): Kind -> Eltern (rekursiv) ──
   const seenA = new Set([focus]);
@@ -20066,10 +20271,20 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   const HH = G2_HH * VZ, RH = G2_ROWH * VZ;
 
   // ── Tidy-Layout je Richtung (d3.tree); beide an der Fokusperson (0,0) ausgerichtet ──
-  const dh = d3.hierarchy(descRoot, d => d.children);
+  // Nachkommen-Hierarchie hat DREI Knotentypen: person → union (unsichtbar) → person. d3.tree
+  // spaced so jede Ehe (union) samt Kindern überlappungsfrei; die eingeschobene union-Ebene wird
+  // gleich per Generations-Y (d.data.gen) wieder eingeebnet, damit Personen einer Generation auf
+  // EINER Zeile liegen (keine Phantom-Zeile durch den union-Knoten).
+  const dh = d3.hierarchy(descRoot, d => (d.type === 'union' ? d.kids : (d.type === 'person' ? d.hier : null)));
   d3.tree().nodeSize([370, G2_ROWH]).separation((a, b) => a.parent === b.parent ? 1.0 : 1.35)(dh);
-  const dShift = -dh.x;
-  dh.each(d => { d.x += dShift; d.y *= VZ; });   // y: Nachkommen in Richtung VZ
+  const nodeByData = new Map();
+  dh.each(d => nodeByData.set(d.data, d));
+  // Kartenposition einer Person: bei ≥2 Ehen der reservierte SELF-Slot (freie Mitte), sonst der
+  // d3-Knoten selbst. Innerhalb der d3-zugeteilten Subtree-Spanne → nie Überlapp mit Fremd-Subtrees.
+  const cardXP = (pNode) => (pNode.data.spread && pNode.data.selfData && nodeByData.has(pNode.data.selfData))
+    ? nodeByData.get(pNode.data.selfData).x : pNode.x;
+  const dShift = -cardXP(dh);   // Fokuskarte auf x=0 (statt d3-Mittel) → mit Vorfahren ausgerichtet
+  dh.each(d => { d.x += dShift; d.y = (d.data.gen || 0) * G2_ROWH * VZ; });   // union-Ebene einebnen
 
   const ah = d3.hierarchy(ancRoot, d => d.children);
   // nodeSize[0]=162 → die zwei Eltern eines Kindes (gleicher Parent in der Hierarchie) stehen
@@ -20084,23 +20299,32 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
     .attr('transform', `rotate(45 ${x} ${y})`);
 
   // ── Kanten zuerst (unter den Karten) ──
-  // Nachkommen: Ehe-Linie Person↔Partner + T-Verbindung zu Kindern (Abstieg an der Person)
+  // Nachkommen: je EHE eine eigene Ehe-Linie + Abstiegs-T zu DEREN Kindern. Bei ≥2 Ehen sitzt der
+  // Partner am eigenen Ehe-Slot (union.x) und dessen Kinder hängen darunter → klare Zuordnung;
+  // bei genau 1 Ehe bleibt es klassisch (Partner rechts, Kinder mittig unter der Person).
   dh.each(d => {
-    const px = d.x, py = d.y;
-    (d.data.partners || []).forEach((pt, i) => {
-      const ox = px + G2_PAAR * (i + 1);
-      baumG.append('line').attr('class', 'ehe-linie')
-        .attr('x1', px + G2_HW).attr('y1', py).attr('x2', ox - G2_HW).attr('y2', py);
-      joint((px + G2_HW + ox - G2_HW) / 2, py);
+    if (d.data.type !== 'person') return;
+    const pcx = cardXP(d), py = d.y, spread = !!d.data.spread;
+    (d.children || []).forEach(uNode => {
+      if (!uNode.data || uNode.data.type !== 'union') return;
+      const sx = spread ? uNode.x : (pcx + G2_PAAR);   // Partnerkarten-Position
+      if (uNode.data.partner) {
+        const dir = sx >= pcx ? 1 : -1;
+        baumG.append('line').attr('class', 'ehe-linie')
+          .attr('x1', pcx + G2_HW * dir).attr('y1', py).attr('x2', sx - G2_HW * dir).attr('y2', py);
+        joint((pcx + sx) / 2, py);
+      }
+      const kids = uNode.children || [];
+      if (kids.length) {
+        const descX = spread ? uNode.x : pcx;   // Abstieg: unter der Ehe (≥2) bzw. unter der Person
+        const kidXs = kids.map(c => cardXP(c));
+        const childTop = Math.min(...kids.map(c => c.y)) - HH;
+        const midY = (py + HH + childTop) / 2;
+        baumG.append('line').attr('class', 'verbindung').attr('x1', descX).attr('y1', py + HH).attr('x2', descX).attr('y2', midY);
+        baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(descX, ...kidXs)).attr('y1', midY).attr('x2', Math.max(descX, ...kidXs)).attr('y2', midY);
+        kids.forEach((c, j) => baumG.append('line').attr('class', 'verbindung').attr('x1', kidXs[j]).attr('y1', midY).attr('x2', kidXs[j]).attr('y2', c.y - HH));
+      }
     });
-    if (d.children && d.children.length) {
-      const childTop = Math.min(...d.children.map(c => c.y)) - HH;
-      const midY = (py + HH + childTop) / 2;
-      const xs = d.children.map(c => c.x);
-      baumG.append('line').attr('class', 'verbindung').attr('x1', px).attr('y1', py + HH).attr('x2', px).attr('y2', midY);
-      baumG.append('line').attr('class', 'verbindung').attr('x1', Math.min(px, ...xs)).attr('y1', midY).attr('x2', Math.max(px, ...xs)).attr('y2', midY);
-      d.children.forEach(c => baumG.append('line').attr('class', 'verbindung').attr('x1', c.x).attr('y1', midY).attr('x2', c.x).attr('y2', c.y - HH));
-    }
   });
   // Vorfahren: Elternpaar (a.children) als Paar oben, Abstieg zur Kind-Person a
   ah.each(a => {
@@ -20130,7 +20354,10 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   if (ah.children && ah.children.length) {
     const elternNodes = ah.children;                 // Eltern-Karten der Fokusperson (oben)
     const gezeichnet = new Set([focus]);
-    dh.each(d => { gezeichnet.add(d.data.canon); (d.data.partners || []).forEach(p => gezeichnet.add(p)); });
+    dh.each(d => {
+      if (d.data.type === 'person') gezeichnet.add(d.data.canon);
+      else if (d.data.type === 'union' && d.data.partner) gezeichnet.add(d.data.partner);
+    });
     const sibCanons = [];
     elternNodes.forEach(pn => childrenOf(pn.data.canon).forEach(k => {
       if (!gezeichnet.has(k)) { gezeichnet.add(k); sibCanons.push(k); }
@@ -20144,7 +20371,13 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
       });
       // Fokus-Nachkommen-Spanne (Geschwister daneben → kein Überlapp mit eigenen Kindern)
       let minX = 0, maxX = 0;
-      dh.each(d => { minX = Math.min(minX, d.x); maxX = Math.max(maxX, d.x + G2_PAAR * ((d.data.partners || []).length)); });
+      dh.each(d => {
+        let x;
+        if (d.data.type === 'person') x = cardXP(d);
+        else if (d.data.type === 'union' && d.data.partner) x = (d.parent && d.parent.data.spread) ? d.x : (cardXP(d.parent) + G2_PAAR);
+        else return;
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      });
       const pm = elternNodes.reduce((s, c) => s + c.x, 0) / elternNodes.length;
       const py = elternNodes[0].y;
       const midY = (py + HH + (0 - HH)) / 2;
@@ -20204,8 +20437,12 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
     pts.push({ x, y });
   };
   dh.each(d => {
-    drawCard(d.data.canon, d.x, d.y);
-    (d.data.partners || []).forEach((pt, i) => drawCard(pt, d.x + G2_PAAR * (i + 1), d.y));
+    if (d.data.type === 'person') {
+      drawCard(d.data.canon, cardXP(d), d.y);
+    } else if (d.data.type === 'union' && d.data.partner) {
+      const sx = (d.parent && d.parent.data.spread) ? d.x : (cardXP(d.parent) + G2_PAAR);
+      drawCard(d.data.partner, sx, d.y);
+    }
   });
   ah.each(a => { if (a.data.canon !== focus) drawCard(a.data.canon, a.x, a.y); });
   sibs.forEach(sb => drawCard(sb.canon, sb.x, sb.y));
