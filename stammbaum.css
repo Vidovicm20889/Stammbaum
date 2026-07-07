@@ -1147,6 +1147,29 @@ footer {
   opacity: 0.5; font-size: 13px; font-style: italic;
   border-top: 1px solid var(--linie); margin-top: 60px;
 }
+/* App-Logo + App-Name im Footer (das App-Logo „wandert" nach unten zum App-Namen) */
+.footer-brand {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 14px; opacity: 1; font-style: normal;
+}
+.footer-brand .footer-logo { width: 40px; height: 40px; display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3)); }
+.footer-brand .footer-name { font-family: inherit; font-size: 22px; letter-spacing: 3px; color: var(--akzent); }
+/* Eigenes Baum-Logo (Bild) an der Kopf-Logo-Stelle: rund wie das App-SVG, aber DEUTLICH größer
+   als das kompakte App-SVG (76px), damit ein Foto/Wappen gut erkennbar ist. */
+header img.header-logo-img {
+  width: 270px; height: 270px; border-radius: 50%; object-fit: cover;
+  background: var(--akzent); box-shadow: 0 3px 16px rgba(0,0,0,0.32);
+}
+@media (max-width: 480px) { header img.header-logo-img { width: 180px; height: 180px; } }
+/* Kopf-Logo-Auswahl (Chips) in den Familieneinstellungen */
+.fe-logo-wahl .fe-logo-optionen { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.fe-logo-opt {
+  padding: 8px 14px; min-height: 40px; font-family: inherit; font-size: 14px; cursor: pointer;
+  color: inherit; background: rgba(156,124,60,0.10);
+  border: 1px solid var(--linie); border-radius: 8px; transition: background .15s, border-color .15s;
+}
+.fe-logo-opt.aktiv { background: var(--gold); color: var(--paper); border-color: var(--gold); }
+.fe-logo-opt:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 600px) {
   body { padding-top: 0; }

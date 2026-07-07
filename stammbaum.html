@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.32">
+<meta name="app-version" content="14.33">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.32">
+<link rel="stylesheet" href="stammbaum.css?v=14.33">
 </head>
 <body>
 
@@ -159,7 +159,10 @@
 </nav>
 
 <header>
-  <svg class="header-logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+  <!-- Kopf-Logo: Standard = App-Logo (SVG); hat der aktive Stammbaum ein eigenes Logo
+       (Familienfoto/Wappen als Kopf-Logo gewählt), zeigt aktualisiereKopfLogo() stattdessen
+       das Bild (#header-logo-img) und blendet das SVG aus. -->
+  <svg id="header-logo-svg" class="header-logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
     <circle cx="32" cy="32" r="32" fill="#722f37"/>
     <g fill="#e2c074">
       <circle cx="32" cy="19" r="9"/><circle cx="22" cy="24" r="6"/><circle cx="42" cy="24" r="6"/>
@@ -170,6 +173,7 @@
       <path d="M32 43 C 31 47, 30 50, 29 53"/><path d="M32 43 C 33 47, 34 50, 35 53"/>
     </g>
   </svg>
+  <img id="header-logo-img" class="header-logo header-logo-img" alt="" style="display:none" onerror="this.style.display='none';var s=document.getElementById('header-logo-svg');if(s)s.style.display='';">
   <h1>FamilyRoots</h1>
   <p class="untertitel" data-i18n="untertitel"></p>
   <p class="stats" id="header-stats"></p>
@@ -1700,6 +1704,17 @@
           </div>
         </div>
       </div>
+      <!-- Kopf-Logo: welches Bild oben neben dem Stammbaum-Namen erscheint. Standard = App-Logo;
+           Foto/Wappen nur wählbar, wenn hochgeladen (feLogoSyncUI). -->
+      <div class="login-label reg-feld-voll fe-logo-wahl">
+        <span data-i18n="fe_logo"></span>
+        <div class="fe-logo-optionen" id="fe-logo-optionen">
+          <button type="button" class="fe-logo-opt" data-logo="standard" onclick="feLogoWaehle('standard')"><span data-i18n="fe_logo_standard"></span></button>
+          <button type="button" class="fe-logo-opt" data-logo="foto"     onclick="feLogoWaehle('foto')"><span data-i18n="fe_foto"></span></button>
+          <button type="button" class="fe-logo-opt" data-logo="wappen"   onclick="feLogoWaehle('wappen')"><span data-i18n="fe_wappen"></span></button>
+        </div>
+        <span class="feld-hinweis" data-i18n="fe_logo_hint"></span>
+      </div>
 
       <!-- Kontaktinformationen -->
       <div class="reg-gruppe-titel" data-i18n="fe_sek_kontakt"></div>
@@ -2436,6 +2451,20 @@
 </div>
 
 <footer>
+  <div class="footer-brand">
+    <svg class="footer-logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <circle cx="32" cy="32" r="32" fill="#722f37"/>
+      <g fill="#e2c074">
+        <circle cx="32" cy="19" r="9"/><circle cx="22" cy="24" r="6"/><circle cx="42" cy="24" r="6"/>
+      </g>
+      <g fill="none" stroke="#e2c074" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M32 23 V41"/>
+        <path d="M32 41 C 28 45, 24 47, 20 51"/><path d="M32 41 C 36 45, 40 47, 44 51"/>
+        <path d="M32 43 C 31 47, 30 50, 29 53"/><path d="M32 43 C 33 47, 34 50, 35 53"/>
+      </g>
+    </svg>
+    <span class="footer-name">FamilyRoots</span>
+  </div>
   <p data-i18n="footer"></p>
   <p style="margin-top:8px;">
     <button type="button" onclick="zeigeRechtstext('impressum')" data-i18n="footer_impressum"
@@ -2563,14 +2592,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.32"></script>
+<script src="i18n.js?v=14.33"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.32"></script>
-<script src="chat.js?v=14.32"></script>
-<script src="rezepte_pool.js?v=14.32"></script>
+<script src="pdf_export.js?v=14.33"></script>
+<script src="chat.js?v=14.33"></script>
+<script src="rezepte_pool.js?v=14.33"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -6100,6 +6129,31 @@ function feldFehlerReset(container) {
 // ============================================================
 let feMedia = {};       // aktuelle Medien im Formular: {foto_url,foto_path,wappen_url,wappen_path}
 let feMediaOld = {};    // beim Laden gemerkte Pfade (Aufräumen ersetzter Dateien nach Save)
+let feLogoWahl = 'standard';   // Kopf-Logo-Auswahl im Formular: 'standard' | 'foto' | 'wappen'
+
+// Kopf-Logo-Auswahl: nur wählbar, wenn das Bild vorhanden ist; fehlt das gewählte Bild
+// (z. B. gerade entfernt), Fallback auf 'standard'. Aktiver Chip wird markiert.
+function feLogoSyncUI() {
+  const box = document.getElementById('fe-logo-optionen');
+  if (!box) return;
+  const roEl = document.getElementById('fe-readonly-hinweis');
+  const ro   = !!(roEl && roEl.style.display !== 'none');
+  const da   = { standard: true, foto: !!feMedia.foto_url, wappen: !!feMedia.wappen_url };
+  if (!da[feLogoWahl]) feLogoWahl = 'standard';   // gewähltes Bild weg -> Standard
+  box.querySelectorAll('.fe-logo-opt').forEach(btn => {
+    const v = btn.getAttribute('data-logo');
+    btn.classList.toggle('aktiv', v === feLogoWahl);
+    btn.disabled = !da[v] || ro;
+    btn.style.display = (v === 'standard' || da[v]) ? '' : 'none';   // nicht-hochgeladene ausblenden
+  });
+}
+function feLogoWaehle(v) {
+  if (v !== 'standard' && v !== 'foto' && v !== 'wappen') return;
+  if (v === 'foto'   && !feMedia.foto_url)   return;
+  if (v === 'wappen' && !feMedia.wappen_url) return;
+  feLogoWahl = v;
+  feLogoSyncUI();
+}
 
 // Reiche Zusatzfelder: jsonb-Schlüssel -> Input-id
 const FE_EINST_FELDER = {
@@ -6156,7 +6210,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   const fehlerEl = document.getElementById('fe-fehler');
   const erfolgEl = document.getElementById('fe-erfolg');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
-  feMedia = {}; feMediaOld = {};
+  feMedia = {}; feMediaOld = {}; feLogoWahl = 'standard'; feLogoSyncUI();
 
   // Felder leeren + Länder-Dropdown füllen
   fuelleLandSelect('fe-land');
@@ -6196,6 +6250,8 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
               wappen_url: e.wappen_url || '', wappen_path: e.wappen_path || '' };
   feMediaOld = { foto_path: e.foto_path || '', wappen_path: e.wappen_path || '' };
   ['foto','wappen'].forEach(a => feMediaPreview(a));
+  feLogoWahl = (e.logo === 'foto' || e.logo === 'wappen') ? e.logo : 'standard';
+  feLogoSyncUI();
 
   feSetReadonly(!d.can_edit);
   feFuelleOwnerSektion(stammbaumId);   // Familien-Owner-Verwaltung (NUR Super-Admin)
@@ -6469,6 +6525,7 @@ function feMediaPreview(art) {
   if (img) { img.src = url; img.style.display = url ? '' : 'none'; }
   const ro = document.getElementById('fe-readonly-hinweis').style.display !== 'none';
   if (del) del.style.display = (url && !ro) ? '' : 'none';
+  feLogoSyncUI();   // Logo-Chips (Foto/Wappen) je nach Bild-Verfügbarkeit aktualisieren
 }
 
 async function feMediaUpload(art, input) {
@@ -6518,6 +6575,10 @@ function feSammleEinstellungen() {
     if (feMedia[a + '_url'])  o[a + '_url']  = feMedia[a + '_url'];
     if (feMedia[a + '_path']) o[a + '_path'] = feMedia[a + '_path'];
   });
+  // Kopf-Logo-Auswahl: nur speichern, wenn ein Bild gewählt ist UND es (noch) existiert.
+  if (feLogoWahl === 'foto'   && feMedia.foto_url)   o.logo = 'foto';
+  else if (feLogoWahl === 'wappen' && feMedia.wappen_url) o.logo = 'wappen';
+  // sonst kein logo-Feld -> Standard (App-Logo)
   return o;
 }
 
@@ -7742,6 +7803,7 @@ let fokusVerlauf    = [];            // Verbund-Navigation: Stack vorher fokussi
 let aktuellerStammbaumId = null;
 let stammbaeumeListe = {};
 let stammbaeumeZusatz = {};    // stammbaum_id -> Zusatz/Unterscheidung (z. B. „Desa"); Anzeige via baumLabel()
+let stammbaumLogo = {};        // stammbaum_id -> Kopf-Logo-URL (aus einstellungen.logo -> foto_url/wappen_url); leer = App-Standard-Logo
 let stammbaumZuFamilie = {};   // stammbaum_id -> familie_id (für Podešavanje porodice)
 let meineRollenProFamilie = {};   // familie_id -> Rolle des aktuellen Users (Standard-Stammbaum-Priorität)
 let startBaumGewaehlt = false;    // Start-Stammbaum nach Login einmalig bestimmt?
@@ -8099,7 +8161,7 @@ async function ladeBaumAusSupabase() {
   const [pRes, bRes, sRes] = await Promise.all([
     sbClient.from('personen').select('id, externe_id, stammbaum_daten, pos_x, pos_y, stammbaum_id, user_id, identitaet_id, updated_at').is('geloescht_am', null),
     sbClient.from('beziehungen').select('person_a, person_b, typ, partner_art').is('geloescht_am', null),
-    sbClient.from('stammbaeume').select('id, name, zusatz, familie_id')
+    sbClient.from('stammbaeume').select('id, name, zusatz, familie_id, einstellungen')
   ]);
   if (pRes.error || bRes.error) {
     console.warn('Supabase-Baum: Ladefehler, nutze eingebettete Daten.', pRes.error || bRes.error);
@@ -8109,10 +8171,15 @@ async function ladeBaumAusSupabase() {
   stammbaeumeListe = {};
   stammbaeumeZusatz = {};
   stammbaumZuFamilie = {};
+  stammbaumLogo = {};
   (sRes.data || []).forEach(s => {
     stammbaeumeListe[s.id] = s.name;
     if (s.zusatz && String(s.zusatz).trim()) stammbaeumeZusatz[s.id] = String(s.zusatz).trim();
     if (s.familie_id) stammbaumZuFamilie[s.id] = s.familie_id;
+    // Kopf-Logo: gewählte Bild-URL aus den Einstellungen (Standard = App-Logo, kein Eintrag)
+    const e = s.einstellungen || {};
+    if (e.logo === 'foto'   && e.foto_url)   stammbaumLogo[s.id] = e.foto_url;
+    else if (e.logo === 'wappen' && e.wappen_url) stammbaumLogo[s.id] = e.wappen_url;
   });
   const rows = pRes.data || [];
   if (rows.length === 0) return null;   // nicht eingeloggt / keine Sichtbarkeit -> Fallback
@@ -9345,7 +9412,20 @@ function aktualisiereStats() {
 
 // Kopfbereich dynamisch: ausgeloggt = neutraler Titel ohne Zahlen; eingeloggt =
 // Nachname des aktuell angezeigten Stammbaums (folgt dem Fokus, z.B. Petrović).
+// Kopf-Logo (oberhalb des Familiennamens): zeigt das eigene Baum-Logo, falls der aktive
+// Stammbaum eines gewählt hat (stammbaumLogo), sonst das App-Standard-SVG. Wird bei jedem
+// aktualisiereKopf (Baumwechsel/Login/Reload) aufgerufen.
+function aktualisiereKopfLogo() {
+  const svg = document.getElementById('header-logo-svg');
+  const img = document.getElementById('header-logo-img');
+  if (!svg || !img) return;
+  const url = (aktuellerUser && aktuellerStammbaumId) ? (stammbaumLogo[aktuellerStammbaumId] || '') : '';
+  if (url) { img.src = url; img.style.display = ''; svg.style.display = 'none'; }
+  else     { img.removeAttribute('src'); img.style.display = 'none'; svg.style.display = ''; }
+}
+
 function aktualisiereKopf(rootId) {
+  aktualisiereKopfLogo();
   const h1    = document.querySelector('header h1');
   const sub   = document.querySelector('.untertitel');
   const stats = document.getElementById('header-stats');
