@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.28">
+<meta name="app-version" content="14.29">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.28">
+<link rel="stylesheet" href="stammbaum.css?v=14.29">
 </head>
 <body>
 
@@ -454,6 +454,14 @@
 </section>
 
 <section id="ansicht-baum">
+  <!-- Dokumentationsgrad-Linie (nur Bearbeiter): dünne Info-Zeile MIT Prozentbalken oberhalb des
+       Orientierungs-Banners; Klick öffnet die Detailanzeige (#vollst-modal). -->
+  <button type="button" id="baum-doku-linie" class="baum-doku-linie" style="display:none"
+          onclick="oeffneVollstModal()" data-i18n-title="vollst_baum_titel" data-i18n-aria="vollst_baum_titel">
+    <span class="bdl-label" data-i18n="vollst_baum_titel"></span>
+    <span class="bdl-bar"><span id="baum-doku-bar-fill"></span></span>
+    <span class="bdl-prozent" id="baum-doku-prozent"></span>
+  </button>
   <div id="baum-tree-hinweis" class="baum-tree-hinweis" style="display:none">
     <span id="baum-tree-hinweis-text"></span>
     <span id="baum-tree-hinweis-gen" class="baum-tree-hinweis-gen" style="display:none"></span>
@@ -1891,26 +1899,23 @@
   <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
     <button class="modal-schliessen" onclick="schliesseObavModal()">×</button>
     <h2 data-i18n="obav_zentral_titel"></h2>
-    <!-- Persönliche Benachrichtigungen (Event-/Zugriffs-Einladungen) — für ALLE Nutzer -->
-    <div class="obav-section-titel" data-i18n="obav_einladungen_titel"></div>
-    <div id="obav-benachr-liste" class="benachr-liste" style="margin-top:8px"></div>
+    <!-- EINE gemischte, chronologische Liste ALLER Benachrichtigungs-Arten (persönliche
+         Einladungen/Ergebnisse + anstehende Anlässe + Admin-Zugriffsanfragen) — neueste bzw.
+         anstehende oben, KEINE festen Abschnitte mehr. Container-id bleibt `obav-liste`, damit
+         der Inline-Genehmigungs-Guard (obavInlineAktion) unverändert greift. Der Doku-Grad ist
+         hier NICHT mehr — er liegt jetzt als Linie oberhalb des Orientierungs-Banners im Baum. -->
+    <div id="obav-liste" class="benachr-liste" style="margin-top:8px"></div>
     <button type="button" class="account-btn" id="obav-benachr-alle" style="margin-top:10px;display:none"
       data-i18n="benachr_alle_gelesen" onclick="benachrAlleGelesen()"></button>
-    <!-- Anstehende Anlässe (Geburtstage/Gedenktage des aktiven Baums, clientseitig) — für ALLE Nutzer -->
-    <div id="obav-anlaesse-wrap" style="display:none">
-      <div class="obav-section-titel" data-i18n="anl_titel" style="margin-top:22px"></div>
-      <div id="obav-anlaesse-liste" class="benachr-liste" style="margin-top:8px"></div>
-    </div>
-    <!-- Dokumentationsgrad des aktiven Baums + größte Lücken (rein lesend) — nur Bearbeiter -->
-    <div id="obav-vollst-wrap" style="display:none">
-      <div class="obav-section-titel" data-i18n="vollst_baum_titel" style="margin-top:22px"></div>
-      <div id="obav-vollst-inhalt" style="margin-top:8px"></div>
-    </div>
-    <!-- Admin: Zugriffsanfragen genehmigen/ablehnen — nur Admins/Owner/Super-Admin -->
-    <div id="obav-anfragen-wrap" style="display:none">
-      <div class="obav-section-titel" data-i18n="obav_anfragen_titel" style="margin-top:22px"></div>
-      <div id="obav-liste" style="margin-top:8px"></div>
-    </div>
+  </div>
+</div>
+
+<!-- Dokumentationsgrad-Detail (aus der Baum-Linie geöffnet) — schließt NUR per Button -->
+<div class="modal" id="vollst-modal" style="z-index:210">
+  <div class="modal-inhalt" style="max-width:560px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseVollstModal()">×</button>
+    <h2 data-i18n="vollst_baum_titel"></h2>
+    <div id="vollst-modal-inhalt" style="margin-top:8px"></div>
   </div>
 </div>
 
@@ -2553,14 +2558,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.28"></script>
+<script src="i18n.js?v=14.29"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.28"></script>
-<script src="chat.js?v=14.28"></script>
-<script src="rezepte_pool.js?v=14.28"></script>
+<script src="pdf_export.js?v=14.29"></script>
+<script src="chat.js?v=14.29"></script>
+<script src="rezepte_pool.js?v=14.29"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -4002,7 +4007,7 @@ async function obavLivePoll() {
   // Liste nur neu zeichnen, wenn das Overlay offen ist UND der Admin nicht gerade mitten in
   // einer Inline-Aktion steckt (Karten-Auswahl / „Neue Karte" beim Annehmen). Sonst würde das
   // 12-s-Polling die eingeblendete Auswahl zerstören → Anfrage nicht genehmigbar (Bug).
-  if (document.getElementById('obav-modal')?.classList.contains('aktiv') && !obavInlineAktion()) renderObavListe();
+  if (document.getElementById('obav-modal')?.classList.contains('aktiv')) renderObavZentral();
 }
 // True, solange im Obav-Overlay eine Inline-Aktion offen ist (Person-Auswahl oder Neue-Karte-
 // Formular) → Polling/Sprachwechsel dürfen die Liste dann NICHT neu aufbauen. Flag deckt auch
@@ -5576,36 +5581,54 @@ async function oeffneObavZentral() {
 // Alias für Deep-Link / Alt-Aufrufe.
 function zeigeObavModal() { oeffneObavZentral(); }
 
-// Rendert beide Abschnitte des kombinierten Modals (persönlich + ggf. Admin-Anfragen).
-function renderObavZentral() {
-  renderBenachrichtigungen();                  // persönliche Liste (#obav-benachr-liste)
-  // Anstehende Anlässe (Geburtstage/Gedenktage, clientseitig) — Sektion nur, wenn vorhanden.
-  const anlWrap = document.getElementById('obav-anlaesse-wrap');
-  const hatAnl = (typeof anlaesseCache !== 'undefined') && anlaesseCache.length > 0;
-  if (anlWrap) anlWrap.style.display = hatAnl ? '' : 'none';
-  if (hatAnl) renderAnlaesseListe(document.getElementById('obav-anlaesse-liste'));
-  // Dokumentationsgrad + größte Lücken des aktiven Baums — nur für Bearbeiter, rein lesend.
-  const vWrap = document.getElementById('obav-vollst-wrap');
-  const vDaten = istAdmin() ? baumVollstaendigkeitDaten() : null;
-  if (vWrap) vWrap.style.display = vDaten ? '' : 'none';
-  if (vDaten) renderVollstBaum(document.getElementById('obav-vollst-inhalt'));
-  const wrap = document.getElementById('obav-anfragen-wrap');
+// Rendert das zentrale Obavještenja als EINE gemischte, chronologische Liste: persönliche
+// Benachrichtigungen (alle Nutzer) + anstehende Anlässe (alle) + Admin-Zugriffsanfragen (Admins),
+// neueste bzw. anstehende oben — ohne feste Abschnitte. Jeder Eintrag behält seine eigene Karten-
+// Optik (Typ ist am Icon/Titel erkennbar). `force`=true baut auch während einer offenen Inline-
+// Admin-Aktion neu (Abbruch/Entscheidung); Auto-Refreshes (Polling/Sprachwechsel/Nachladen) lassen
+// eine offene Inline-Auswahl unangetastet (Guard `obavInlineAktion`).
+function renderObavZentral(force) {
+  const box = document.getElementById('obav-liste'); if (!box) return;
+  if (!force && obavInlineAktion()) return;
   const admin = istAdmin();
-  if (wrap) wrap.style.display = admin ? '' : 'none';
-  if (admin && !obavInlineAktion()) renderObavListe();   // Admin-Zugriffsanfragen (#obav-liste) — nicht während offener Inline-Auswahl
+  const jetzt = Date.now();
+  const items = [];
+  // 1) Persönliche Benachrichtigungen (Einladungen/Ergebnisse/RSVP …) — created_at.
+  (meineBenachrichtigungen || []).forEach(b =>
+    items.push({ ts: Date.parse(b.created_at || '') || 0, html: benachrItemHtml(b) }));
+  // 2) Anstehende Anlässe (Geburtstage/Gedenktage, clientseitig): je NÄHER der Anlass, desto
+  //    weiter oben (synthetischer Sortierwert wie eine ganz frische Meldung; wiederkehrend/ambient).
+  (typeof anlaesseCache !== 'undefined' ? anlaesseCache : []).forEach(a =>
+    items.push({ ts: jetzt - (a.tage || 0) * 86400000, html: anlItemHtml(a) }));
+  // 3) Admin-Zugriffs-/Verknüpfungs-/Kontakt-Anfragen — nur Admins.
+  if (admin) {
+    (offeneAnfragenCache || []).forEach(a =>
+      items.push({ ts: Date.parse(a.created_at || '') || 0, html: obavRegKarteHtml(a) }));
+    (vknAnfragenCache || []).forEach(v =>
+      items.push({ ts: Date.parse(v.created_at || '') || 0, html: vknKarteHtml(v) }));
+    (kontaktAnfragenCache || []).forEach(k =>
+      items.push({ ts: Date.parse(k.erstellt_am || '') || 0, html: kontaktKarteHtml(k) }));
+  }
+  const alleBtn = document.getElementById('obav-benachr-alle');
+  if (!items.length) {
+    box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('benachr_keine'))}</div>`;
+    if (alleBtn) alleBtn.style.display = 'none';
+    obavNeuIds.clear();
+    return;
+  }
+  items.sort((x, y) => y.ts - x.ts);   // neueste/anstehende oben
+  box.innerHTML = items.map(i => i.html).join('');
+  if (alleBtn) alleBtn.style.display = benachrUngelesen() > 0 ? '' : 'none';
+  obavNeuIds.clear();   // Highlight neuer Admin-Anfragen ist einmalig pro Eintreffen
 }
 function schliesseObavModal() { obavInlineOffen = false; document.getElementById('obav-modal').classList.remove('aktiv'); }
 
-function renderObavListe() {
-  const box = document.getElementById('obav-liste'); if (!box) return;
-  obavInlineOffen = false;   // expliziter Neuaufbau = keine Inline-Aktion mehr offen (Abbruch/Bestätigung/Neu öffnen)
-  if (!offeneAnfragenCache.length && !vknAnfragenCache.length && !kontaktAnfragenCache.length) {
-    box.innerHTML = `<div class="event-media-empty">${escapeHtml(t('obav_keine'))}</div>`; return;
-  }
-  const regHtml = offeneAnfragenCache.map(a => {
-    const name = ((a.vorname || '') + ' ' + (a.nachname || '')).trim() || a.email;
-    const neu = obavNeuIds.has('obav-' + a.id) ? ' obav-neu-anim' : '';
-    return `<div class="obav-karte${neu}" id="obav-${a.id}">
+// Baut das HTML EINER Admin-Zugangsanfrage-Karte (Registrierung). Aktionen bleiben unverändert
+// (Annehmen startet die Inline-Personenauswahl im selben Karten-Container).
+function obavRegKarteHtml(a) {
+  const name = ((a.vorname || '') + ' ' + (a.nachname || '')).trim() || a.email;
+  const neu = obavNeuIds.has('obav-' + a.id) ? ' obav-neu-anim' : '';
+  return `<div class="obav-karte${neu}" id="obav-${a.id}">
       <div class="obav-name">${escapeHtml(nm(name))}<span class="obav-neu-badge">${escapeHtml(t('obav_neu_badge'))}</span></div>
       <div class="obav-meta">
         ${a.geburtsdatum ? `<div><strong>${escapeHtml(t('reg_geburtsdatum'))}:</strong> ${escapeHtml(formatDatumLang(a.geburtsdatum))}</div>` : ''}
@@ -5618,10 +5641,10 @@ function renderObavListe() {
         <button class="mv-del" type="button" onclick="anfrageEntscheiden('${a.id}','ablehnen')">${escapeHtml(t('obav_ablehnen'))}</button>
       </div>
     </div>`;
-  }).join('');
-  box.innerHTML = regHtml + vknAnfragenCache.map(vknKarteHtml).join('') + kontaktAnfragenCache.map(kontaktKarteHtml).join('');
-  obavNeuIds.clear();   // Highlight ist einmalig pro Eintreffen
 }
+// Kompat-Alias: expliziter Neuaufbau der Liste (Abbruch/Entscheidung im Admin-Flow) — baut auch
+// über eine noch im DOM stehende Inline-Auswahl hinweg neu (force), Guard wird zurückgesetzt.
+function renderObavListe() { obavInlineOffen = false; renderObavZentral(true); }
 
 // Eine Kontakt-/Baumzugriff-Anfrage-Karte (für den Ziel-Familie-Admin).
 function kontaktKarteHtml(k) {
@@ -7925,6 +7948,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('event-teilnehmer-modal') && typeof renderEtnListe === 'function') renderEtnListe();   // Teilnehmer-Liste in neuer Sprache
   if (typeof aktualisiereBenachrBadge === 'function') aktualisiereBenachrBadge();   // Badge-Text (99+)
   if (offen('obav-modal') && typeof renderObavZentral === 'function') renderObavZentral();   // kombiniertes Obavještenja neu
+  if (offen('vollst-modal') && typeof renderVollstBaum === 'function') renderVollstBaum(document.getElementById('vollst-modal-inhalt'));   // Doku-Grad-Detail neu
   if (typeof chatSpracheUpdate === 'function') chatSpracheUpdate();   // offene Chat-Oberflächen (Liste/Konversation/Picker/Info) neu rendern
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget/-Modal in neuer Sprache neu beschriften
   if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Chips (Namen/SR-Transliteration) neu beschriften
@@ -8375,6 +8399,7 @@ function aktualisiereBaumHinweis() {
   const txt = document.getElementById('baum-tree-hinweis-text');
   const gen = document.getElementById('baum-tree-hinweis-gen');
   if (!el || !txt) return;
+  aktualisiereDokuLinie();   // Dokumentationsgrad-Linie oberhalb des Banners mitpflegen
   // Banner ist immer sichtbar, solange man eingeloggt in einem Stammbaum ist
   // (kein Schließen-Button mehr). Wichtig zur Orientierung.
   if (!aktuellerUser || !aktuellerStammbaumId) {
@@ -8399,6 +8424,26 @@ function aktualisiereBaumHinweis() {
   }
   el.style.display = 'flex';
 }
+
+// Dokumentationsgrad-Linie (oberhalb des Orientierungs-Banners) — nur Bearbeiter, rein lesend.
+// Dünne Zeile mit Prozentbalken; Klick öffnet die Detailanzeige (#vollst-modal). Wird aus
+// aktualisiereBaumHinweis() mitgezogen (Login/Baumwechsel/Reload/Sprachwechsel/Ansicht).
+function aktualisiereDokuLinie() {
+  const el = document.getElementById('baum-doku-linie'); if (!el) return;
+  const d = istAdmin() ? baumVollstaendigkeitDaten() : null;
+  if (!d) { el.style.display = 'none'; return; }
+  const fill = document.getElementById('baum-doku-bar-fill');
+  const proz = document.getElementById('baum-doku-prozent');
+  if (fill) fill.style.width = d.prozent + '%';
+  if (proz) proz.textContent = d.prozent + '%';
+  el.style.display = 'flex';
+}
+function oeffneVollstModal() {
+  const box = document.getElementById('vollst-modal-inhalt');
+  if (box) renderVollstBaum(box);
+  document.getElementById('vollst-modal').classList.add('aktiv');
+}
+function schliesseVollstModal() { document.getElementById('vollst-modal').classList.remove('aktiv'); }
 
 // ============================================================
 // SPRACH-DROPDOWN (Flaggen-Menü)
@@ -11752,61 +11797,53 @@ function aktualisiereBenachrBadge() {
   aktualisiereAvatarObavBadge();
 }
 
-function renderBenachrichtigungen() {
-  const box = document.getElementById('obav-benachr-liste');
-  if (!box) return;
-  const alleBtn = document.getElementById('obav-benachr-alle');
-  if (!meineBenachrichtigungen.length) {
-    box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('benachr_keine'))}</div>`;
-    if (alleBtn) alleBtn.style.display = 'none';
-    return;
+// Baut das HTML EINER persönlichen Benachrichtigung (für die gemischte Obav-Liste).
+function benachrItemHtml(b) {
+  let titel, text;
+  if (b.typ === 'event_einladung') {
+    titel = t('benachr_event_einladung');
+    text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
+  } else if (b.typ === 'anlass_geburtstag' || b.typ === 'anlass_gedenktag') {
+    // Anlass-Erinnerung (Stufe B): titel = Personenname, Typ liefert das Label.
+    const ic = b.typ === 'anlass_gedenktag' ? '🕯️ ' : '🎂 ';
+    titel = ic + t(b.typ === 'anlass_gedenktag' ? 'anl_gedenktag' : 'anl_geburtstag');
+    text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
+  } else if (b.typ === 'event_rsvp') {
+    // RSVP-Rückmeldung: titel = Antwortender (Name), text = Status (zusage/absage/vielleicht).
+    const ic = b.text === 'absage' ? '❌ ' : (b.text === 'vielleicht' ? '🤔 ' : '✅ ');
+    titel = ic + (b.titel ? nm(b.titel) : '');
+    text  = b.text ? t('rsvp_v_' + b.text) : '';
+  } else if (b.typ === 'termin_entschieden') {
+    // Terminfindung entschieden: titel = Umfrage-Titel, text = Datum (ISO).
+    titel = '🗳️ ' + t('benachr_termin_entschieden');
+    text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` + (b.text ? ' · ' + escapeHtml(formatDatumLang(b.text)) : '') : '';
+  } else if (b.typ === 'termin_einladung') {
+    // Terminfindung-Einladung: titel = Umfrage-Titel, text = terminfindung_id (Deep-Link).
+    titel = '🗳️ ' + t('benachr_termin_einladung');
+    text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
+  } else if (b.typ === 'kontakt_genehmigt' || b.typ === 'kontakt_abgelehnt'
+          || b.typ === 'baumzugriff_genehmigt' || b.typ === 'baumzugriff_abgelehnt') {
+    // Kontakt-/Baumzugriff-Ergebnis (3-Stufen-Feature): titel = Personen-/Baum-Name.
+    titel = t('benachr_' + b.typ);
+    text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
+  } else {
+    titel = escapeHtml(b.titel || '');
+    text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
   }
-  box.innerHTML = meineBenachrichtigungen.map(b => {
-    let titel, text;
-    if (b.typ === 'event_einladung') {
-      titel = t('benachr_event_einladung');
-      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
-    } else if (b.typ === 'anlass_geburtstag' || b.typ === 'anlass_gedenktag') {
-      // Anlass-Erinnerung (Stufe B): titel = Personenname, Typ liefert das Label.
-      const ic = b.typ === 'anlass_gedenktag' ? '🕯️ ' : '🎂 ';
-      titel = ic + t(b.typ === 'anlass_gedenktag' ? 'anl_gedenktag' : 'anl_geburtstag');
-      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
-    } else if (b.typ === 'event_rsvp') {
-      // RSVP-Rückmeldung: titel = Antwortender (Name), text = Status (zusage/absage/vielleicht).
-      const ic = b.text === 'absage' ? '❌ ' : (b.text === 'vielleicht' ? '🤔 ' : '✅ ');
-      titel = ic + (b.titel ? nm(b.titel) : '');
-      text  = b.text ? t('rsvp_v_' + b.text) : '';
-    } else if (b.typ === 'termin_entschieden') {
-      // Terminfindung entschieden: titel = Umfrage-Titel, text = Datum (ISO).
-      titel = '🗳️ ' + t('benachr_termin_entschieden');
-      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` + (b.text ? ' · ' + escapeHtml(formatDatumLang(b.text)) : '') : '';
-    } else if (b.typ === 'termin_einladung') {
-      // Terminfindung-Einladung: titel = Umfrage-Titel, text = terminfindung_id (Deep-Link).
-      titel = '🗳️ ' + t('benachr_termin_einladung');
-      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
-    } else if (b.typ === 'kontakt_genehmigt' || b.typ === 'kontakt_abgelehnt'
-            || b.typ === 'baumzugriff_genehmigt' || b.typ === 'baumzugriff_abgelehnt') {
-      // Kontakt-/Baumzugriff-Ergebnis (3-Stufen-Feature): titel = Personen-/Baum-Name.
-      titel = t('benachr_' + b.typ);
-      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : '';
-    } else {
-      titel = escapeHtml(b.titel || '');
-      text  = b.titel ? `« ${escapeHtml(nm(b.titel))} »` : escapeHtml(b.text || '');
-    }
-    const zeit  = b.created_at ? new Date(b.created_at).toLocaleString() : '';
-    return `<div class="benachr-item ${b.gelesen ? 'gelesen' : 'ungelesen'}" data-id="${escapeHtml(String(b.id))}"
-                 data-event="${escapeHtml(String(b.event_id || ''))}" data-person="${escapeHtml(String(b.ref_person || ''))}"
-                 data-tf="${b.typ === 'termin_einladung' ? escapeHtml(String(b.text || '')) : ''}" onclick="benachrOeffne(this)">
-      <span class="bi-dot"></span>
-      <span class="bi-body">
-        <div class="bi-titel">${escapeHtml(titel)}</div>
-        <div class="bi-text">${text}</div>
-        <div class="bi-zeit">${escapeHtml(zeit)}</div>
-      </span>
-    </div>`;
-  }).join('');
-  if (alleBtn) alleBtn.style.display = benachrUngelesen() > 0 ? '' : 'none';
+  const zeit  = b.created_at ? new Date(b.created_at).toLocaleString() : '';
+  return `<div class="benachr-item ${b.gelesen ? 'gelesen' : 'ungelesen'}" data-id="${escapeHtml(String(b.id))}"
+               data-event="${escapeHtml(String(b.event_id || ''))}" data-person="${escapeHtml(String(b.ref_person || ''))}"
+               data-tf="${b.typ === 'termin_einladung' ? escapeHtml(String(b.text || '')) : ''}" onclick="benachrOeffne(this)">
+    <span class="bi-dot"></span>
+    <span class="bi-body">
+      <div class="bi-titel">${escapeHtml(titel)}</div>
+      <div class="bi-text">${text}</div>
+      <div class="bi-zeit">${escapeHtml(zeit)}</div>
+    </span>
+  </div>`;
 }
+// Kompat-Alias: persönliche Benachrichtigungen sind Teil der gemischten Liste (renderObavZentral).
+function renderBenachrichtigungen() { renderObavZentral(); }
 
 async function benachrOeffne(el) {
   const id = el.dataset.id;
@@ -11930,27 +11967,29 @@ function anlWannText(tage) {
   return t('anl_in_tagen', { n: tage });
 }
 
-// Eine Anlass-Liste in eine Box rendern (gemeinsam: Widget-Modal + Obavještenja-Sektion).
-function renderAnlaesseListe(box) {
-  if (!box) return;
-  if (!anlaesseCache.length) {
-    box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('anl_keine'))}</div>`;
-    return;
-  }
-  box.innerHTML = anlaesseCache.map(a => {
-    const label  = t(a.typ === 'gedenktag' ? 'anl_gedenktag' : 'anl_geburtstag');
-    const zusatz = a.zahl > 0
-      ? (a.typ === 'gedenktag' ? t('anl_jahrestag', { n: a.zahl }) : t('anl_wird', { n: a.zahl }))
-      : '';
-    const meta = [anlWannText(a.tage), zusatz].filter(Boolean).join(' · ');
-    return `<div class="benachr-item anl-item anl-${a.typ}" data-person="${escapeHtml(String(a.personId))}" onclick="anlaesseOeffne(this)">
+// Baut das HTML EINES Anlass-Eintrags (gemeinsam: Widget-Modal + gemischte Obav-Liste).
+function anlItemHtml(a) {
+  const label  = t(a.typ === 'gedenktag' ? 'anl_gedenktag' : 'anl_geburtstag');
+  const zusatz = a.zahl > 0
+    ? (a.typ === 'gedenktag' ? t('anl_jahrestag', { n: a.zahl }) : t('anl_wird', { n: a.zahl }))
+    : '';
+  const meta = [anlWannText(a.tage), zusatz].filter(Boolean).join(' · ');
+  return `<div class="benachr-item anl-item anl-${a.typ}" data-person="${escapeHtml(String(a.personId))}" onclick="anlaesseOeffne(this)">
       <span class="anl-icon" aria-hidden="true">${a.typ === 'gedenktag' ? '🕯️' : '🎂'}</span>
       <span class="bi-body">
         <div class="bi-titel">${escapeHtml(label)} — « ${escapeHtml(nm(a.name || '?'))} »</div>
         <div class="bi-zeit">${escapeHtml(meta)}</div>
       </span>
     </div>`;
-  }).join('');
+}
+// Eine Anlass-Liste in eine Box rendern (nur noch das eigenständige Anlässe-Widget-Modal).
+function renderAnlaesseListe(box) {
+  if (!box) return;
+  if (!anlaesseCache.length) {
+    box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('anl_keine'))}</div>`;
+    return;
+  }
+  box.innerHTML = anlaesseCache.map(anlItemHtml).join('');
 }
 
 // Zentral neu berechnen + alle Oberflächen aktualisieren (Widget-Button + offene Modals).
@@ -11964,10 +12003,9 @@ function aktualisiereAnlaesse() {
   if (btn) btn.style.display = (aktuellerUser && aktuellerStammbaumId && n > 0) ? '' : 'none';
   if (document.getElementById('anlaesse-modal')?.classList.contains('aktiv'))
     renderAnlaesseListe(document.getElementById('anlaesse-liste'));
-  const wrap = document.getElementById('obav-anlaesse-wrap');
-  if (wrap) wrap.style.display = n > 0 ? '' : 'none';
-  if (document.getElementById('obav-modal')?.classList.contains('aktiv'))
-    renderAnlaesseListe(document.getElementById('obav-anlaesse-liste'));
+  // Anlässe sind Teil der gemischten Obav-Liste -> bei offenem Overlay komplett neu bauen.
+  if (document.getElementById('obav-modal')?.classList.contains('aktiv') && typeof renderObavZentral === 'function')
+    renderObavZentral();
 }
 
 // ============================================================
@@ -13652,7 +13690,7 @@ function renderVollstBaum(box) {
   }
   box.innerHTML = html;
 }
-function vollstOeffnePerson(id) { schliesseObavModal(); zeigeDetails(id); }
+function vollstOeffnePerson(id) { schliesseVollstModal(); zeigeDetails(id); }
 
 // ---- Gamification: eigene Beiträge + Abzeichen + Beitragende (verbund, KEINE Rangliste) ----
 let gamCache = null;

@@ -367,11 +367,13 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   (`deceased`/`death_date`) → **Gedenktag/Todestag**; über `identitaet_id`-Spiegelkarten entdoppelt,
   Platzhalter-Eltern übersprungen), `naechsterJahrestag` (nächstes Monat+Tag-Vorkommen ab heute aus
   **ISO**-Datum; Freitext/ungefähre Altwerte ohne Monat/Tag werden übersprungen; 29.02. rollt auf
-  01.03.). **Zwei Oberflächen, eine Render-Funktion** (`renderAnlaesseListe`, fügt sich ins
+  01.03.). **Zwei Oberflächen, gemeinsamer Item-Bau** (`anlItemHtml`, fügt sich ins
   Benachrichtigungs-Muster ein = gleiche `.benachr-liste`/`.benachr-item`-Optik): (1) **Dashboard-
   Widget** = schwebender Button oben rechts im `#baum-container` (`#anlaesse-btn`, Tortensymbol +
   Zähl-Badge, nur sichtbar bei eingeloggtem Nutzer + offenem Baum + ≥1 Anlass) → öffnet
-  `#anlaesse-modal`; (2) **Sektion im zentralen Obavještenja-Modal** (`#obav-anlaesse-wrap`, via
+  `#anlaesse-modal`; (2) **eingemischt in die vereinte Obavještenja-Liste** (ab v14.29 EINE chronologische Liste ohne feste
+  Abschnitte — persönliche Benachrichtigungen + Anlässe + Admin-Anfragen gemischt, neueste/anstehende
+  oben; Anlässe erhalten den synthetischen Sortierwert `jetzt − Tage`; Container `#obav-liste`, via
   `renderObavZentral`). **Klick auf einen Eintrag öffnet die Personenkarte** (`anlaesseOeffne` →
   `zeigeDetails`, schließt offene Modals). `aktualisiereAnlaesse` (zentrale Neuberechnung) wird in
   **`waehleStammbaum`** (Baumwechsel/Login/Realtime-Reload), **`wechselSprache`** (Neu-Beschriftung)

@@ -689,6 +689,25 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 .baum-tree-hinweis-x:hover { color: var(--akzent-hell); }
 
+/* Dokumentationsgrad-Linie (oberhalb des Orientierungs-Banners) — dünne Info-Zeile mit Balken */
+.baum-doku-linie {
+  max-width: 920px; margin: 12px auto 0; padding: 9px 14px; width: 100%; min-height: 42px;
+  background: var(--gold-hell); border: 1px solid var(--gold); border-radius: 10px;
+  color: var(--ink); font-family: inherit; font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; text-align: left;
+}
+.baum-doku-linie:hover { background: var(--gold); }
+.baum-doku-linie .bdl-label {
+  flex: 0 1 auto; min-width: 0; font-weight: bold; color: var(--akzent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.baum-doku-linie .bdl-bar {
+  flex: 1 1 auto; height: 8px; min-width: 50px;
+  background: rgba(0, 0, 0, 0.10); border-radius: 5px; overflow: hidden;
+}
+.baum-doku-linie .bdl-bar > span { display: block; height: 100%; background: var(--gold); border-radius: 5px; transition: width 0.3s; }
+.baum-doku-linie .bdl-prozent { flex: 0 0 auto; font-weight: bold; }
+
 .knoten rect { stroke-width: 1.8; cursor: pointer; transition: stroke 0.2s; }
 .knoten.male rect   { fill: rgba(221,234,243,0.92); stroke: #4a7fa8; }
 .knoten.female rect { fill: rgba(243,221,229,0.92); stroke: #9e4060; }
