@@ -40,9 +40,9 @@
 <nav class="top-nav">
   <div class="nav-controls">
     <div class="tab-gruppe">
-      <button class="tab" id="tab-mape" data-ansicht="mape" data-i18n="tab_mape"></button>
-      <button class="tab" id="tab-feed" data-ansicht="feed" data-i18n="tab_feed" style="display:none"></button>
-      <button class="tab" id="tab-shorts" data-ansicht="shorts" data-i18n="tab_shorts"></button>
+      <button class="tab" id="tab-mape" data-ansicht="mape"><span data-i18n="tab_mape"></span><span class="tab-badge obav-badge" id="tab-badge-mape" style="display:none"></span></button>
+      <button class="tab" id="tab-feed" data-ansicht="feed" style="display:none"><span data-i18n="tab_feed"></span><span class="tab-badge obav-badge" id="tab-badge-feed" style="display:none"></span></button>
+      <button class="tab" id="tab-shorts" data-ansicht="shorts"><span data-i18n="tab_shorts"></span><span class="tab-badge obav-badge" id="tab-badge-events" style="display:none"></span></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
     <input type="text" class="suche" id="suche" inputmode="search" enterkeyhint="search" autocomplete="off" data-i18n-placeholder="suche_placeholder">
@@ -296,6 +296,32 @@
                 data-i18n="rezept_quelle_kochbuch" onclick="rezeptQuelle('kochbuch')"></button>
         <button type="button" class="ev-modus-btn" id="rq-eigene" role="tab"
                 data-i18n="rezept_quelle_eigene" onclick="rezeptQuelle('eigene')"></button>
+        <button type="button" class="ev-modus-btn" id="rq-einkauf" role="tab"
+                data-i18n="ek_segment" onclick="rezeptQuelle('einkauf')"></button>
+      </div>
+
+      <!-- Einkaufsliste (verbund-gebunden, explizit geteilt; Realtime) -->
+      <div id="rezept-einkauf" style="display:none">
+        <div class="feed-composer-zeile" style="margin-bottom:12px;align-items:flex-end">
+          <label class="feed-tag-feld" style="flex:1"><span data-i18n="ek_liste"></span>
+            <select id="ek-liste" class="filter no-search" onchange="ekListeWaehlen(this.value)"></select>
+          </label>
+          <button type="button" class="mv-toggle" onclick="ekNeueListeOeffnen()" data-i18n="ek_neue"></button>
+          <button type="button" class="mv-toggle" id="ek-teilen-btn" onclick="ekTeilenOeffnen()" data-i18n="ek_teilen" style="display:none"></button>
+          <button type="button" class="mv-del" id="ek-loeschen-btn" onclick="ekListeLoeschen()" style="display:none">🗑</button>
+        </div>
+        <div id="ek-teilnehmer-info" class="pa-kontext" style="display:none"></div>
+        <div class="ev-modus" id="ek-tabs" role="tablist" style="margin:0 auto 12px;display:none">
+          <button type="button" class="ev-modus-btn aktiv" id="ek-tab-offen" onclick="ekTab('offen')" data-i18n="ek_offen"></button>
+          <button type="button" class="ev-modus-btn" id="ek-tab-gekauft" onclick="ekTab('gekauft')" data-i18n="ek_gekauft"></button>
+        </div>
+        <div id="ek-add-zeile" class="feed-composer-zeile" style="margin-bottom:12px;display:none">
+          <input type="text" id="ek-add-name" class="login-feld" style="flex:2" data-i18n-placeholder="ek_artikel_ph">
+          <input type="text" id="ek-add-menge" class="login-feld" style="flex:0 0 68px" inputmode="decimal" data-i18n-placeholder="ek_menge_ph">
+          <select id="ek-add-einheit" class="filter no-search" style="flex:0 0 92px"></select>
+          <button type="button" class="mv-toggle" onclick="ekArtikelAdd()" data-i18n="adr_hinzufuegen"></button>
+        </div>
+        <div class="feed-liste" id="ek-artikel-liste"></div>
       </div>
 
       <!-- Kochbuch (kuratierter Pool, rein clientseitig) — Standard-Ansicht -->
@@ -361,6 +387,49 @@
   </div>
 </div>
 
+<!-- Einkaufsliste: neue Liste (Name + Teilnehmer) -->
+<div class="modal" id="ek-neu-modal" style="z-index:214">
+  <div class="modal-inhalt" style="max-width:460px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseEkNeu()">×</button>
+    <h2 data-i18n="ek_neue_titel"></h2>
+    <label class="login-label"><span data-i18n="ek_name"></span>
+      <input type="text" id="ek-neu-name" class="login-feld" maxlength="80"></label>
+    <div class="login-label" style="margin-bottom:4px"><span data-i18n="ek_teilen_mit"></span></div>
+    <input type="text" id="ek-neu-such" class="login-feld ek-tn-such" data-i18n-placeholder="ek_person_suche" oninput="ekTnFilter('ek-neu-teilnehmer', this.value)">
+    <div id="ek-neu-teilnehmer" class="ek-teilnehmer-wahl"></div>
+    <div id="ek-neu-fehler" class="login-fehler"></div>
+    <button class="login-submit" onclick="ekListeAnlegen()" data-i18n="ek_anlegen"></button>
+  </div>
+</div>
+
+<!-- Einkaufsliste: teilen (Teilnehmer verwalten) -->
+<div class="modal" id="ek-teilen-modal" style="z-index:214">
+  <div class="modal-inhalt" style="max-width:460px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseEkTeilen()">×</button>
+    <h2 data-i18n="ek_teilen_titel"></h2>
+    <input type="text" id="ek-teilen-such" class="login-feld ek-tn-such" data-i18n-placeholder="ek_person_suche" oninput="ekTnFilter('ek-teilen-liste', this.value)">
+    <div id="ek-teilen-liste" class="ek-teilnehmer-wahl"></div>
+    <div id="ek-teilen-fehler" class="login-fehler"></div>
+    <button class="login-submit" onclick="ekTeilenSpeichern()" data-i18n="ek_speichern"></button>
+  </div>
+</div>
+
+<!-- Einkaufsliste: Zutaten eines Rezepts einer Liste hinzufügen (Ziel-Liste wählen) -->
+<div class="modal" id="ek-add-modal" style="z-index:214">
+  <div class="modal-inhalt" style="max-width:440px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseEkAdd()">×</button>
+    <h2 data-i18n="ek_add_titel"></h2>
+    <p class="mv-legende" id="ek-add-info"></p>
+    <label class="login-label"><span data-i18n="ek_liste"></span>
+      <select id="ek-add-ziel" class="filter no-search"></select></label>
+    <div id="ek-add-fehler" class="login-fehler"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+      <button class="login-submit" onclick="ekAddBestaetigen()" data-i18n="ek_hinzu"></button>
+      <button class="login-hinweis-btn sekundaer" onclick="ekNeueListeOeffnen(true)" data-i18n="ek_neue"></button>
+    </div>
+  </div>
+</div>
+
 <!-- EREIGNISSE: EIN Bereich, zwei Ansichten (Liste = Verwaltung | Zeitstrahl = rein lesend).
      Beide teilen DIESELBE Datenquelle (eventsCache aus events_fuer_mich); der Zeitstrahl
      ergänzt clientseitig abgeleitete Lebensdaten aus aktuelleDaten (keine neue RPC/Tabelle). -->
@@ -372,6 +441,8 @@
     <div class="ev-modus" id="ev-modus" role="tablist">
       <button type="button" class="ev-modus-btn aktiv" id="ev-modus-liste" data-ev-modus="liste"
               role="tab" data-i18n="ev_modus_liste" onclick="evSetModus('liste')"></button>
+      <button type="button" class="ev-modus-btn" id="ev-modus-alben" data-ev-modus="alben"
+              role="tab" data-i18n="ev_modus_alben" onclick="evSetModus('alben')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-zeit" data-ev-modus="zeit"
               role="tab" data-i18n="ev_modus_zeit" onclick="evSetModus('zeit')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-kalender" data-ev-modus="kalender"
@@ -386,6 +457,41 @@
   <!-- Ansicht A: Liste/Verwaltung (unverändert) -->
   <div id="ev-liste-wrap">
     <div class="shorts-grid" id="shorts-grid"></div>
+  </div>
+
+  <!-- Ansicht Albums: verbundweite Foto-/Video-Alben (kollaborativ) -->
+  <div id="ev-alben-wrap" style="display:none">
+    <!-- Übersicht: Album-Kacheln -->
+    <div id="alben-uebersicht">
+      <div style="text-align:center;margin-bottom:14px">
+        <button type="button" class="pa-add-btn" id="album-neu-btn" style="max-width:280px" onclick="albumNeuDialog()">＋ <span data-i18n="album_neu"></span></button>
+      </div>
+      <div class="alben-grid" id="alben-grid"></div>
+      <p class="alben-leer" id="alben-leer" style="display:none" data-i18n="album_keine"></p>
+    </div>
+    <!-- Detail: Medien eines geöffneten Albums -->
+    <div id="album-detail" style="display:none">
+      <div class="album-detail-kopf">
+        <button type="button" class="album-zurueck" onclick="albenZurueck()">‹ <span data-i18n="album_zurueck"></span></button>
+        <h3 id="album-detail-titel"></h3>
+        <div class="album-detail-actions">
+          <label class="pa-add-btn album-upload-btn" style="max-width:none">
+            ＋ <span data-i18n="album_medien_hinzu"></span>
+            <input type="file" id="album-upload-input" accept="image/*,video/*" multiple style="display:none" onchange="albumUpload(this)">
+          </label>
+          <button type="button" class="album-loeschen-btn" id="album-loeschen-btn" style="display:none" onclick="albumLoeschenAktuell()" data-i18n="album_loeschen"></button>
+        </div>
+      </div>
+      <p id="album-detail-beschr" class="album-detail-beschr"></p>
+      <div id="album-upload-status" class="album-upload-status" style="display:none"></div>
+      <div class="album-medien-grid" id="album-medien-grid"></div>
+      <p class="alben-leer" id="album-medien-leer" style="display:none" data-i18n="album_medien_keine"></p>
+    </div>
+    <!-- Album-Lightbox (Vollbild Foto/Video). Schließt per Hintergrund/Button (bewusst KEIN .modal). -->
+    <div class="lightbox" id="album-lightbox" onclick="if(event.target===this)albumLightboxZu()">
+      <button type="button" class="lightbox-schliessen" aria-label="×" onclick="albumLightboxZu()">×</button>
+      <div class="lightbox-inner" id="album-lightbox-inner"></div>
+    </div>
   </div>
 
   <!-- Ansicht B: Zeitstrahl (rein lesend, chronologisch) -->
@@ -795,6 +901,25 @@
   </div>
 </div>
 
+<!-- Neues Familien-Album anlegen — schließt NUR per Button (UI-Regel) -->
+<div class="modal" id="album-neu-modal">
+  <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseAlbumNeu()" aria-label="×">×</button>
+    <h2 data-i18n="album_neu"></h2>
+    <label class="login-label pflicht"><span data-i18n="album_neu_prompt"></span>
+      <input type="text" id="album-neu-titel" class="login-feld" maxlength="120" onkeydown="if(event.key==='Enter')albumNeuBestaetigen()">
+    </label>
+    <label class="login-label"><span data-i18n="album_beschr_label"></span>
+      <textarea id="album-neu-beschr" class="login-feld" rows="2" maxlength="500"></textarea>
+    </label>
+    <p class="login-fehler" id="album-neu-fehler" style="display:none"></p>
+    <div class="ansicht-aktionen">
+      <button type="button" class="login-hinweis-btn sekundaer" onclick="schliesseAlbumNeu()" data-i18n="abbrechen"></button>
+      <button type="button" class="login-hinweis-btn" onclick="albumNeuBestaetigen()" data-i18n="album_neu_anlegen"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Login Modal -->
 <div class="modal" id="login-modal">
   <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
@@ -824,7 +949,6 @@
       <strong data-i18n="reg_intro_titel"></strong>
       <span data-i18n="reg_intro_text"></span>
     </div>
-    <p class="spam-hinweis" data-i18n="spam_hinweis"></p>
 
     <div class="reg-grid">
       <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_email"></span>
@@ -870,6 +994,7 @@
       </div>
     </div>
 
+    <!-- Nur Name als Kerndatum; Geburtsdaten/Kontakt füllt der Nutzer später im Profil (ab v14.34). -->
     <div class="reg-gruppe-titel" data-i18n="reg_personendaten"></div>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="reg_vorname"></span>
@@ -877,37 +1002,6 @@
       </label>
       <label class="login-label"><span data-i18n="reg_nachname"></span>
         <input type="text" id="reg-nachname" class="login-feld">
-      </label>
-      <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
-        <input type="text" id="reg-geburtsdatum" class="login-feld dp-input">
-      </label>
-      <label class="login-label"><span data-i18n="reg_geburtsort"></span>
-        <input type="text" id="reg-geburtsort" class="login-feld">
-      </label>
-      <label class="login-label"><span data-i18n="reg_geburtsland"></span>
-        <select id="reg-geburtsland" class="login-feld land-select"></select>
-      </label>
-      <label class="login-label"><span data-i18n="reg_getauft"></span>
-        <input type="text" id="reg-getauft" class="login-feld dp-input">
-      </label>
-      <label class="login-label"><span data-i18n="reg_verheiratet"></span>
-        <input type="text" id="reg-verheiratet" class="login-feld dp-input">
-      </label>
-    </div>
-
-    <div class="reg-gruppe-titel" data-i18n="reg_kontakt"></div>
-    <div class="reg-grid">
-      <label class="login-label"><span data-i18n="reg_telefon"></span>
-        <input type="tel" id="reg-telefon" class="login-feld">
-      </label>
-      <label class="login-label"><span data-i18n="reg_kontakt_email"></span>
-        <input type="email" id="reg-kontakt-email" class="login-feld">
-      </label>
-      <label class="login-label"><span data-i18n="reg_facebook"></span>
-        <input type="text" id="reg-facebook" class="login-feld">
-      </label>
-      <label class="login-label"><span data-i18n="reg_instagram"></span>
-        <input type="text" id="reg-instagram" class="login-feld">
       </label>
     </div>
 
@@ -1234,25 +1328,21 @@
         <input type="text" id="pe-vorname" class="login-feld"></label>
       <label class="login-label pflicht"><span data-i18n="reg_nachname"></span>
         <input type="text" id="pe-nachname" class="login-feld"></label>
+      <label class="login-label" id="pe-ehename-label"><span data-i18n="pe_ehename"></span>
+        <input type="text" id="pe-ehename" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_titel"></span>
         <input type="text" id="pe-titel" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_namenszusatz"></span>
         <input type="text" id="pe-namenszusatz" class="login-feld"></label>
-      <label class="login-label" id="pe-ehename-label"><span data-i18n="pe_ehename"></span>
-        <input type="text" id="pe-ehename" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
         <input type="text" id="pe-geburtsdatum" class="login-feld dp-input"></label>
+      <!-- Geburtsort = geokodierte Adresssuche (enthält Land/Ort). Separate Felder Geburtsland/
+           Grad/Opština wurden entfernt (redundant zur Adresssuche; Wohnsitz über „prebivalište"). -->
       <label class="login-label reg-feld-voll"><span data-i18n="reg_geburtsort"></span>
         <div class="geoadr">
           <input type="text" id="pe-geburtsort" class="login-feld geoadr-suche" data-lat="" data-lng="" oninput="geoAdrInput(this)">
           <div class="geoadr-treffer"></div><div class="geoadr-status"></div>
         </div></label>
-      <label class="login-label"><span data-i18n="reg_geburtsland"></span>
-        <select id="pe-geburtsland" class="login-feld land-select"></select></label>
-      <label class="login-label"><span data-i18n="fe_grad"></span>
-        <input type="text" id="pe-stadt" class="login-feld"></label>
-      <label class="login-label"><span data-i18n="fe_opstina"></span>
-        <input type="text" id="pe-gemeinde" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_getauft"></span>
         <input type="text" id="pe-getauft" class="login-feld dp-input"></label>
       <label class="login-label reg-feld-voll"><span data-i18n="pe_beziehung"></span>
@@ -1466,6 +1556,8 @@
         <input type="text" id="pa-vorname" class="login-feld"></label>
       <label class="login-label pflicht"><span data-i18n="reg_nachname"></span>
         <input type="text" id="pa-nachname" class="login-feld"></label>
+      <label class="login-label" id="pa-ehename-label"><span data-i18n="pe_ehename"></span>
+        <input type="text" id="pa-ehename" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_geschlecht"></span>
         <select id="pa-geschlecht" class="login-feld" onchange="paPflichtMarkierung()">
           <option value="" data-i18n="unbekannt"></option>
@@ -1491,18 +1583,12 @@
           <input type="text" id="pa-geburtsort" class="login-feld geoadr-suche" data-lat="" data-lng="" oninput="geoAdrInput(this)">
           <div class="geoadr-treffer"></div><div class="geoadr-status"></div>
         </div></label>
-      <label class="login-label"><span data-i18n="reg_geburtsland"></span>
-        <select id="pa-geburtsland" class="login-feld land-select"></select></label>
-      <label class="login-label"><span data-i18n="fe_grad"></span>
-        <input type="text" id="pa-stadt" class="login-feld"></label>
-      <label class="login-label"><span data-i18n="fe_opstina"></span>
-        <input type="text" id="pa-gemeinde" class="login-feld"></label>
+      <!-- Geburtsort = geokodierte Adresssuche. Separate Felder Geburtsland/Grad/Opština entfernt
+           (redundant zur Adresssuche; Wohnsitz über „prebivalište"). -->
       <label class="login-label"><span data-i18n="pe_titel"></span>
         <input type="text" id="pa-titel" class="login-feld"></label>
       <label class="login-label"><span data-i18n="pe_namenszusatz"></span>
         <input type="text" id="pa-namenszusatz" class="login-feld"></label>
-      <label class="login-label" id="pa-ehename-label"><span data-i18n="pe_ehename"></span>
-        <input type="text" id="pa-ehename" class="login-feld"></label>
       <label class="login-label"><span data-i18n="reg_getauft"></span>
         <input type="text" id="pa-getauft" class="login-feld dp-input"></label>
       <label class="login-label reg-feld-voll"><span data-i18n="pe_beziehung"></span>
@@ -2354,7 +2440,6 @@
     <button class="modal-schliessen" onclick="schliesseMitgliedHinzufuegen()">×</button>
     <h2 data-i18n="mv_add_titel"></h2>
     <p class="mv-legende" data-i18n="ma_info"></p>
-    <p class="spam-hinweis" data-i18n="spam_hinweis"></p>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="reg_vorname"></span>
         <input type="text" id="ma-vorname" class="login-feld" autocomplete="given-name"></label>
@@ -2861,12 +2946,16 @@ async function setzeUser(user) {
 
   // Chat (1:1 + Gruppen, verbundweit): Nutzerliste/Chats laden + Realtime-Channel.
   startChat();
+  startEinkauf();   // Einkaufslisten-Realtime (geteilte Listen live)
 
   // Engagement (Reaktionen/Kommentare): Realtime-Channel für offene Detail-Widgets.
   startEngagementSync();
 
   // Familien-Feed: Realtime-Channel für neue/aktualisierte Beiträge.
   startFeedSync();
+
+  // Neuigkeiten-Badges (Feed/Events/Mapa) initial laden.
+  ladeTabNeuigkeiten();
 
   // Deep-Link aus der Event-Einladungs-Mail (?event=<id>) nach dem Login einlösen.
   verarbeiteEventDeepLink();
@@ -3202,10 +3291,13 @@ function loescheUser() {
   stopBenachrSync();     // Live-Benachrichtigungen beenden (ausgeloggt)
   stopPresence();        // Live-Indikator beenden (ausgeloggt)
   stopChat();            // Chat-Realtime + Zustand beenden (ausgeloggt)
+  stopEinkauf();         // Einkaufslisten-Realtime beenden (ausgeloggt)
   stopEngagementSync();  // Engagement-Realtime beenden (ausgeloggt)
   engagementUnmountAlle();
   stopFeedSync();        // Feed-Realtime beenden (ausgeloggt)
   feedCache = [];
+  tabNeu = { feed: 0, events: 0, mapa: 0 };   // Tab-Neuigkeiten-Badges leeren (ausgeloggt)
+  if (typeof renderTabBadges === 'function') renderTabBadges();
   if (typeof schliesseGedenkseite === 'function' && document.getElementById('gedenk-modal')) schliesseGedenkseite();  // Gedenkseite schließen (ausgeloggt)
   aktualisiereAuthUI();
   resetInaktivTimer();   // Inaktivitäts-Timer + Warnung stoppen (ausgeloggt)
@@ -5827,7 +5919,7 @@ async function dubVerknuepfen(matchId) {
   const { data, error } = await sbClient.rpc('verknuepfung_anfragen', {
     p_modus: k.modus, p_kontext: k.kontext, p_ziel: matchId, p_typ: k.typ || null, p_zweiter: k.zweiter || null
   });
-  if (error) { fehler.textContent = t('reg_fehler') + error.message; fehler.style.display = 'block'; return; }
+  if (error) { fehler.textContent = vbFehlerText(error.message, k.typ); fehler.style.display = 'block'; return; }
   dubKontext = null;
   schliesseDublettenModal();
   if (data === 'sofort') {
@@ -7468,12 +7560,8 @@ function zeigeHinweis(text, spamHinweis) {
 
 // Alle Registrier-Felder leeren (nach erfolgreichem Absenden / beim Öffnen).
 function regFelderLeeren() {
-  ['reg-email','reg-baum-name','reg-land','reg-stadt','reg-gemeinde','reg-geburtsort','reg-geburtsland',
-   'reg-vorname','reg-nachname','reg-geburtsdatum','reg-getauft','reg-verheiratet',
-   'reg-telefon','reg-kontakt-email','reg-facebook','reg-instagram']
+  ['reg-email','reg-baum-name','reg-land','reg-stadt','reg-gemeinde','reg-vorname','reg-nachname']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  ['reg-geburtsdatum','reg-getauft','reg-verheiratet']
-    .forEach(id => datumSetzen(document.getElementById(id), ''));   // Datumsfelder + iso zurücksetzen
   document.getElementById('reg-familie').value = '';
   const wahlBeitreten = document.querySelector('input[name="reg-match-wahl"][value="beitreten"]');
   if (wahlBeitreten) wahlBeitreten.checked = true;   // Standard-Auswahl zurücksetzen
@@ -7497,11 +7585,8 @@ async function sendeRegistrierAnfrage() {
   if (!val('reg-baum-name')) return feldFehler('reg-baum-name', t('feld_pflicht'));
   if (!val('reg-land'))      return feldFehler('reg-land', t('feld_pflicht'));
   if (!val('reg-gemeinde'))  return feldFehler('reg-gemeinde', t('feld_pflicht'));
-  // E-Mail-Format (Pflicht-E-Mail) + optionale Kontakt-E-Mail prüfen
+  // E-Mail-Format (Pflicht-E-Mail) prüfen
   if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('reg-email'), true); return feldFokus('reg-email'); }
-  if (!pruefeEmailFeld(document.getElementById('reg-kontakt-email'), false)) return feldFokus('reg-kontakt-email');
-  // Datumsfelder: Freitext wie „xx/xx/xxxx" abfangen (deckt auch den Selbst-Anlege-Pfad regNeueFamilieAnlegen ab).
-  if (!pruefeDatumFelder(['reg-geburtsdatum','reg-getauft','reg-verheiratet'])) return;
 
   // Aktuellen Match-Status sicherstellen (falls der User vor dem Debounce absendet).
   await pruefeBaumMatch();
@@ -7529,17 +7614,8 @@ async function sendeRegistrierAnfrage() {
     rolle,
     vorname:        val('reg-vorname')       || null,
     nachname:       val('reg-nachname')      || null,
-    geburtsdatum:   vald('reg-geburtsdatum')  || null,
-    geburtsort:     val('reg-geburtsort')    || null,
-    geburtsland:    val('reg-geburtsland')   || null,   // Geburtsland der Person
     stadt:          val('reg-stadt')         || null,   // Familien-Finder: Stadt
     gemeinde:       val('reg-gemeinde')      || null,   // Familien-Finder: Gemeinde
-    getauft_am:     vald('reg-getauft')       || null,
-    verheiratet_am: vald('reg-verheiratet')   || null,
-    telefon:        val('reg-telefon')       || null,
-    kontakt_email:  val('reg-kontakt-email') || null,
-    facebook:       val('reg-facebook')      || null,
-    instagram:      val('reg-instagram')     || null,
     sprache:        aktuelleSprache,   // E-Mail-Sprache = GUI-Sprache beim Absenden
     status:         'offen'
   };
@@ -7594,7 +7670,6 @@ async function regNeueFamilieAnlegen() {
   if (!familie_name) return feldFehler('reg-baum-name', t('feld_pflicht'));
   if (!istGueltigerBaumName(familie_name)) return feldFehler('reg-baum-name', t('name_nur_buchstaben'));
   if (!isValidEmail(email)) { markiereEmailFehler(document.getElementById('reg-email'), true); return feldFokus('reg-email'); }
-  if (!pruefeEmailFeld(document.getElementById('reg-kontakt-email'), false)) return feldFokus('reg-kontakt-email');
 
   const altText = button.textContent;
   button.disabled = true;
@@ -7610,17 +7685,8 @@ async function regNeueFamilieAnlegen() {
     gemeinde: srCyr2Lat(val('reg-gemeinde')) || null,
     sprache: aktuelleSprache,
     person: {
-      vorname:        val('reg-vorname')       || null,
-      nachname:       val('reg-nachname')      || familie_name,
-      geburtsdatum:   vald('reg-geburtsdatum')  || null,
-      geburtsort:     val('reg-geburtsort')    || null,
-      geburtsland:    val('reg-geburtsland')   || null,
-      getauft_am:     vald('reg-getauft')       || null,
-      verheiratet_am: vald('reg-verheiratet')   || null,
-      telefon:        val('reg-telefon')       || null,
-      kontakt_email:  val('reg-kontakt-email') || null,
-      facebook:       val('reg-facebook')      || null,
-      instagram:      val('reg-instagram')     || null
+      vorname:  val('reg-vorname')  || null,
+      nachname: val('reg-nachname') || familie_name
     }
   };
 
@@ -8058,6 +8124,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('obav-modal') && typeof renderObavZentral === 'function') renderObavZentral();   // kombiniertes Obavještenja neu
   if (offen('vollst-modal') && typeof renderVollstBaum === 'function') renderVollstBaum(document.getElementById('vollst-modal-inhalt'));   // Doku-Grad-Detail neu
   if (typeof chatSpracheUpdate === 'function') chatSpracheUpdate();   // offene Chat-Oberflächen (Liste/Konversation/Picker/Info) neu rendern
+  if (typeof einkaufSpracheUpdate === 'function') einkaufSpracheUpdate();   // Einkaufsliste (Einheiten/Artikel/Teilnehmer) neu beschriften
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget/-Modal in neuer Sprache neu beschriften
   if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Chips (Namen/SR-Transliteration) neu beschriften
   if (typeof aktualisiereErinnAnzeige === 'function') aktualisiereErinnAnzeige();   // „An diesem Tag"-Karten/-Liste in neuer Sprache neu rendern
@@ -8520,6 +8587,7 @@ function waehleStammbaum(treeId) {
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Geburtstags-/Gedenktag-Widget für den jetzt offenen Baum
   if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste für den jetzt offenen Baum
   if (typeof ladeErinnerungen === 'function') ladeErinnerungen();   // „An diesem Tag"-Widget (verbund-intern; nutzt Cache)
+  if (typeof ladeTabNeuigkeiten === 'function') ladeTabNeuigkeiten();   // Events/Mapa-Badges beziehen sich auf den jetzt offenen Baum
   // Ereignis-Ansicht (Liste/Zeitstrahl) zeigt Baum-bezogene Daten -> beim Baumwechsel neu laden,
   // da waehleStammbaum sonst nur die (versteckte) Baum-Ansicht neu zeichnet.
   if (aktuelleAnsicht === 'shorts') zeigeShorts();
@@ -8943,27 +9011,60 @@ function isoZuLang(iso, lang) {
   const tag = +m[3], monat = kal.monate[+m[2] - 1], jahr = m[1];
   return (lang === 'en') ? (monat + ' ' + tag + ', ' + jahr) : (tag + '. ' + monat + ' ' + jahr);
 }
-// Gespeicherten Wert benutzerfreundlich anzeigen (parsebar -> Langformat; sonst verbatim)
-function formatDatumLang(value) {
-  const iso = istIsoDatum(value) ? value : parseDatumZuIso(value);
-  return iso ? isoZuLang(iso, aktuelleSprache) : (value || '');
+// ── Präzisions-Datum (Option A): 'exakt' YYYY-MM-DD | 'jahr' YYYY | 'circa' ~YYYY ──
+// Für unbekannte/ungefähre Daten (Geburt/Taufe/Heirat/Tod). Der Speicherwert bleibt EIN String
+// im stammbaum_daten-jsonb (rückwärtskompatibel; bestehende ISO = 'exakt'). `iso` = Repräsentant
+// (Jahresmitte) für Sortierung/Zeitstrahl; Anlässe/Alter beachten den Modus zusätzlich.
+function datumMeta(v) {
+  const s = (v || '').trim(); if (!s) return null; let m;
+  if ((m = s.match(/^~(\d{4})$/))) return { modus: 'circa', jahr: +m[1], iso: m[1] + '-07-01' };
+  if ((m = s.match(/^(\d{4})$/)))  return { modus: 'jahr',  jahr: +m[1], iso: m[1] + '-07-01' };
+  const iso = istIsoDatum(s) ? s : parseDatumZuIso(s);
+  if (iso) { const p = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); return { modus: 'exakt', jahr: +p[1], monat: +p[2], tag: +p[3], iso }; }
+  return null;   // echter Freitext (nicht interpretierbar)
 }
-// Kanonischer Speicherwert eines Feldes: ISO falls parsebar, sonst Freitext
+// Getippten/übergebenen Text -> kanonischer Speicherwert (exakt/jahr/circa) oder Freitext.
+function datumKanon(roh) {
+  const s = (roh || '').trim(); if (!s) return ''; let m;
+  if (istIsoDatum(s)) return s;
+  if ((m = s.match(/^[≈~]\s*(\d{4})$/))) return '~' + m[1];   // „≈1890" / „~1890" -> circa
+  if ((m = s.match(/^(\d{4})$/)))        return m[1];          // „1890" -> nur Jahr
+  return parseDatumZuIso(s) || s;
+}
+// Kurzanzeige fürs Eingabefeld: Genau -> Kurzformat, Jahr -> „1890", Circa -> „≈ 1890".
+function datumKurz(canonical) {
+  const meta = datumMeta(canonical);
+  if (!meta) return canonical || '';
+  if (meta.modus === 'jahr')  return String(meta.jahr);
+  if (meta.modus === 'circa') return '≈ ' + meta.jahr;
+  return isoZuKurz(meta.iso, aktuelleSprache);
+}
+// Gespeicherten Wert benutzerfreundlich anzeigen (Langformat / „1890" / „≈ 1890" / Freitext verbatim)
+function formatDatumLang(value) {
+  const meta = datumMeta(value);
+  if (!meta) return value || '';
+  if (meta.modus === 'jahr')  return String(meta.jahr);
+  if (meta.modus === 'circa') return '≈ ' + meta.jahr;
+  return isoZuLang(meta.iso, aktuelleSprache);
+}
+// Kanonischer Speicherwert eines Feldes (exakt/jahr/circa/Freitext).
 function datumWert(input) {
   if (!input) return '';
   const roh = (input.value || '').trim();
-  // Unverändert seit dem Setzen (Kalenderwahl/Anzeige)? -> gemerktes ISO nehmen, damit die
-  // Anzeige-Sprache (z. B. en „MM/DD") beim Speichern keinen Reparse-Drift erzeugt.
-  if (input.dataset.iso && isoZuKurz(input.dataset.iso, aktuelleSprache) === roh) return input.dataset.iso;
-  return parseDatumZuIso(roh) || roh;
+  // Unverändert seit dem Setzen (Kalenderwahl/Anzeige)? -> gemerkten kanonischen Wert nehmen,
+  // damit die Anzeige-Sprache (z. B. en „MM/DD") beim Speichern keinen Reparse-Drift erzeugt.
+  if (input.dataset.dval && datumKurz(input.dataset.dval) === roh) return input.dataset.dval;
+  return datumKanon(roh);
 }
-// Feld setzen (ISO oder Freitext) -> Kurzformat anzeigen + iso merken
+// Feld setzen (exakt/jahr/circa/Freitext) -> Kurzformat anzeigen + kanonisch + Repräsentanten-ISO merken.
 function datumSetzen(input, value) {
   if (!input) return;
-  if (!value) { input.value = ''; delete input.dataset.iso; return; }
-  const iso = istIsoDatum(value) ? value : parseDatumZuIso(value);
-  if (iso) { input.dataset.iso = iso; input.value = isoZuKurz(iso, aktuelleSprache); }
-  else     { delete input.dataset.iso; input.value = value; }
+  if (!value) { input.value = ''; delete input.dataset.dval; delete input.dataset.iso; return; }
+  const kanon = datumKanon(value);
+  const meta = datumMeta(kanon);
+  input.dataset.dval = kanon;
+  if (meta) input.dataset.iso = meta.iso; else delete input.dataset.iso;   // Repräsentant fürs Kalender-Andocken
+  input.value = datumKurz(kanon);
 }
 // Validierung: alle übergebenen Datumsfelder müssen leer ODER parsebar sein (ISO / TT.MM.JJJJ /
 // TT/MM/JJJJ). Nicht-parsebarer Freitext (z. B. „xx/xx/xxxx") -> roter Feldfehler + Fokus,
@@ -8974,7 +9075,7 @@ function pruefeDatumFelder(felder) {
     if (!el) continue;
     const roh = (el.value || '').trim();
     if (!roh) continue;                                      // leer = ok (optionales Feld)
-    if (istIsoDatum(roh) || parseDatumZuIso(roh)) continue;  // parsebar = ok
+    if (datumMeta(datumKanon(roh))) continue;               // exakt/Jahr/Circa = ok
     return feldFehler(el, t('dat_ungueltig'));               // ungültig -> false (blockiert)
   }
   return true;
@@ -8984,16 +9085,22 @@ function pruefeDatumFelder(felder) {
 function datumFeldUngueltig(id) {
   const el = document.getElementById(id);
   const roh = (el && el.value || '').trim();
-  return !!roh && !istIsoDatum(roh) && !parseDatumZuIso(roh);
+  return !!roh && !datumMeta(datumKanon(roh));
 }
 
 let dpPanel, dpAktivInput = null, dpJahr, dpMonat, dpRaf = null, dpModus = 'tage';
+let dpPraezision = 'exakt';   // 'exakt' (TT.MM.JJJJ) | 'jahr' (nur Jahr) | 'circa' (≈ Jahr)
 
 function dpInitPanel() {
   if (dpPanel) return;
   dpPanel = document.createElement('div');
   dpPanel.className = 'dp-panel'; dpPanel.style.display = 'none';
   dpPanel.innerHTML =
+    '<div class="dp-praez">' +
+      '<button type="button" class="dp-praez-btn" data-praez="exakt"></button>' +
+      '<button type="button" class="dp-praez-btn" data-praez="jahr"></button>' +
+      '<button type="button" class="dp-praez-btn" data-praez="circa"></button>' +
+    '</div>' +
     '<div class="dp-head">' +
       '<button type="button" class="dp-nav" data-step="-12">«</button>' +
       '<button type="button" class="dp-nav" data-step="-1">‹</button>' +
@@ -9005,13 +9112,20 @@ function dpInitPanel() {
     '<div class="dp-years" style="display:none"></div>' +
     '<div class="dp-foot"><button type="button" class="dp-today"></button><button type="button" class="dp-clear"></button></div>';
   document.body.appendChild(dpPanel);
+  // Präzisions-Umschalter: Genaues Datum / Nur Jahr / Circa
+  dpPanel.querySelectorAll('.dp-praez-btn').forEach(b =>
+    b.addEventListener('click', e => { e.preventDefault(); dpSetzePraezision(b.dataset.praez); }));
   dpPanel.querySelectorAll('.dp-nav').forEach(b =>
     b.addEventListener('click', e => { e.preventDefault(); dpVerschiebe(+b.dataset.step); }));
   // Klick auf den Titel (Monat Jahr) -> Jahres-Schnellauswahl ein/aus (2-Klick-Jahr).
   dpPanel.querySelector('.dp-title').addEventListener('click', e => { e.preventDefault(); dpModusUmschalten(); });
   // Klick auf ein Jahr in der Schnellauswahl -> Jahr übernehmen, zurück zur Tagesansicht.
   dpPanel.querySelector('.dp-years').addEventListener('click', e => {
-    const y = e.target.closest('.dp-year[data-jahr]'); if (y) dpWaehleJahr(+y.dataset.jahr);
+    const y = e.target.closest('.dp-year[data-jahr]'); if (!y) return;
+    const jahr = +y.dataset.jahr;
+    if (dpPraezision === 'jahr')       dpWaehleKanon(String(jahr));   // nur Jahr -> „1890"
+    else if (dpPraezision === 'circa') dpWaehleKanon('~' + jahr);     // circa   -> „~1890"
+    else                               dpWaehleJahr(jahr);            // exakt: nur Jahr wechseln, Tagesansicht
   });
   dpPanel.querySelector('.dp-grid').addEventListener('click', e => {
     const d = e.target.closest('.dp-day[data-iso]'); if (d) dpWaehle(d.dataset.iso);
@@ -9067,16 +9181,23 @@ function dpWaehleJahr(jahr) {
 function dpRender() {
   if (!dpPanel) return;
   const kal = KALENDER[aktuelleSprache] || KALENDER.de;
-  const jahrModus = (dpModus === 'jahre');
+  // Präzisions-Leiste beschriften (i18n) + aktive Stufe markieren
+  dpPanel.querySelectorAll('.dp-praez-btn').forEach(b => {
+    b.textContent = t('dp_praez_' + b.dataset.praez);
+    b.classList.toggle('aktiv', b.dataset.praez === dpPraezision);
+  });
+  // Bei 'jahr'/'circa' IMMER die Jahresliste zeigen (kein Tag/Monat)
+  const jahrModus = (dpPraezision !== 'exakt') || (dpModus === 'jahre');
   const titel = dpPanel.querySelector('.dp-title');
   titel.textContent = jahrModus ? String(dpJahr) : (kal.monate[dpMonat] + ' ' + dpJahr);
-  titel.classList.toggle('dp-title-aktiv', jahrModus);
+  titel.classList.toggle('dp-title-aktiv', jahrModus && dpPraezision === 'exakt');
   // Ansichten umschalten: Monats-Navigation/Wochentage/Tage <-> Jahresliste
   dpPanel.querySelectorAll('.dp-nav').forEach(b => b.style.visibility = jahrModus ? 'hidden' : '');
   dpPanel.querySelector('.dp-weekdays').style.display = jahrModus ? 'none' : '';
   dpPanel.querySelector('.dp-grid').style.display = jahrModus ? 'none' : '';
   dpPanel.querySelector('.dp-years').style.display = jahrModus ? '' : 'none';
   dpPanel.querySelector('.dp-today').textContent = kal.heute;
+  dpPanel.querySelector('.dp-today').style.display = (dpPraezision === 'exakt') ? '' : 'none';   // „Heute" nur bei exaktem Datum
   dpPanel.querySelector('.dp-clear').textContent = kal.loeschen;
   if (jahrModus) { dpRenderJahre(); return; }
   dpPanel.querySelector('.dp-weekdays').innerHTML = kal.wochentage.map(d => '<span>' + escapeHtml(d) + '</span>').join('');
@@ -9117,8 +9238,11 @@ function dpOeffne(input) {
   dpInitPanel();
   dpSchliesse();
   dpAktivInput = input;
-  dpModus = 'tage';   // immer in der Tagesansicht starten
-  const iso = input.dataset.iso || parseDatumZuIso(input.value);
+  // Präzisionsstufe aus dem vorhandenen Wert übernehmen (exakt/Jahr/Circa)
+  const meta = datumMeta(input.dataset.dval || input.value);
+  dpPraezision = (meta && meta.modus !== 'exakt') ? meta.modus : 'exakt';
+  dpModus = (dpPraezision === 'exakt') ? 'tage' : 'jahre';
+  const iso = input.dataset.iso || (meta && meta.iso) || parseDatumZuIso(input.value);
   const base = iso ? new Date(iso + 'T00:00:00') : new Date();
   dpJahr = base.getFullYear(); dpMonat = base.getMonth();
   dpRender();
@@ -9150,6 +9274,22 @@ function dpWaehle(iso) {
   inp.dispatchEvent(new Event('input', { bubbles: true }));
   inp.dispatchEvent(new Event('change', { bubbles: true }));
 }
+// Nur-Jahr/Circa übernehmen (kanonisch „1890" bzw. „~1890").
+function dpWaehleKanon(kanon) {
+  const inp = dpAktivInput; if (!inp) return;
+  datumSetzen(inp, kanon);
+  dpSchliesse();
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  inp.dispatchEvent(new Event('change', { bubbles: true }));
+}
+// Präzisionsstufe umschalten: 'exakt' -> Tagesansicht; 'jahr'/'circa' -> Jahresliste.
+function dpSetzePraezision(p) {
+  dpPraezision = (p === 'jahr' || p === 'circa') ? p : 'exakt';
+  dpModus = (dpPraezision === 'exakt') ? 'tage' : 'jahre';
+  dpRender();
+  if (dpAktivInput) dpPositioniere(dpAktivInput._dpWrap || dpAktivInput);
+  if (dpModus === 'jahre') dpScrolleZuJahr();
+}
 
 function macheDatumsfeld(input) {
   if (input._dpReady) return;
@@ -9167,9 +9307,10 @@ function macheDatumsfeld(input) {
   btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); (dpAktivInput === input) ? dpSchliesse() : dpOeffne(input); });
   input.addEventListener('blur', () => {
     const roh = (input.value || '').trim();
-    const iso = parseDatumZuIso(input.value);
-    if (iso) { datumSetzen(input, iso); feldFehlerWeg(input); }      // gültig -> evtl. Fehler wegräumen
-    else { delete input.dataset.iso; if (!roh) feldFehlerWeg(input); } // leer -> auch ok
+    if (!roh) { datumSetzen(input, ''); feldFehlerWeg(input); return; }
+    const kanon = datumKanon(roh);
+    if (datumMeta(kanon)) { datumSetzen(input, kanon); feldFehlerWeg(input); }  // exakt/Jahr/Circa -> normalisieren
+    // sonst: nicht interpretierbarer Freitext bleibt stehen (Validierung greift beim Speichern)
   });
 }
 
@@ -9182,7 +9323,7 @@ function aktualisiereDatumsfelder() {
   document.querySelectorAll('input.dp-input').forEach(inp => {
     if (!inp._dpReady) return;
     inp.placeholder = datumPlatzhalter(aktuelleSprache);
-    if (inp.dataset.iso) inp.value = isoZuKurz(inp.dataset.iso, aktuelleSprache);
+    if (inp.dataset.dval) inp.value = datumKurz(inp.dataset.dval);
   });
   if (dpAktivInput) dpRender();
 }
@@ -10589,7 +10730,7 @@ const ZS_TYP_ICON = {
 
 // Beliebiges Datum -> ISO oder null (NUR datierte Marker erscheinen auf der Achse;
 // nicht-parsebare Freitext-Altwerte werden bewusst übersprungen).
-function zsIso(v) { return istIsoDatum(v) ? v : parseDatumZuIso(v); }
+function zsIso(v) { const m = datumMeta(v); return m ? m.iso : ''; }   // Repräsentant (Jahr/Circa -> Jahresmitte)
 function zsJahrAusIso(iso) { return iso ? +iso.slice(0, 4) : null; }
 // Anzeigename einer Modell-Person (sr -> Kyrillisch via nm()).
 function zsName(p) { return p ? nm(p.name || ((p.given || '') + ' ' + (p.surname || '')).trim()) : ''; }
@@ -10597,10 +10738,12 @@ function zsName(p) { return p ? nm(p.name || ((p.given || '') + ' ' + (p.surname
 // Umschalter Liste/Zeitstrahl (segmented control) ----------------------------
 function evApplyModusUI() {
   const lWrap = document.getElementById('ev-liste-wrap');
+  const aWrap = document.getElementById('ev-alben-wrap');
   const zWrap = document.getElementById('ev-zeit-wrap');
   const calWrap = document.getElementById('ev-kalender-wrap');
   const tWrap = document.getElementById('ev-termin-wrap');
   if (lWrap) lWrap.style.display = (evModus === 'liste') ? '' : 'none';
+  if (aWrap) aWrap.style.display = (evModus === 'alben') ? '' : 'none';
   if (zWrap) zWrap.style.display = (evModus === 'zeit')  ? '' : 'none';
   if (calWrap) calWrap.style.display = (evModus === 'kalender') ? '' : 'none';
   if (tWrap) tWrap.style.display = (evModus === 'termin') ? '' : 'none';
@@ -10608,14 +10751,229 @@ function evApplyModusUI() {
     b.classList.toggle('aktiv', b.dataset.evModus === evModus));
 }
 function evSetModus(m) {
-  if (!['liste', 'zeit', 'kalender', 'termin'].includes(m)) return;
+  if (!['liste', 'alben', 'zeit', 'kalender', 'termin'].includes(m)) return;
   evModus = m;
   evApplyModusUI();
   const btn = document.getElementById('event-neu-btn');
   if (btn) btn.style.display = (istAdmin() && aktuellerStammbaumId && evModus === 'liste') ? '' : 'none';
+  if (m === 'alben') zeigeAlben();
   if (m === 'zeit')  { zsFuelleFilter(); zsRender(); }
   if (m === 'kalender') kalRender();
   if (m === 'termin') tfRender();
+}
+
+// ============================================================
+// FAMILIEN-ALBEN (standalone, VERBUNDWEIT, kollaborativ) — „Albums"-Segment im Events-Tab.
+// Fotos+Videos in benannten Alben; RPCs alben_holen/album_* + Bucket 'alben' (privat, signiert).
+// Bilder werden clientseitig komprimiert (galerieKomprimiere -> Blob), Videos nur größenbegrenzt
+// (50 MB, Egress-Schutz). Lädt verbundweit (nicht baum-scoped) — dieselben Alben in jedem Baum.
+// ============================================================
+let albenCache = [];
+let albumMedienCache = [];
+let albumOffen = null;   // { id, verbund_id, titel, darf_aendern }
+const ALBUM_VIDEO_MAX = 50 * 1024 * 1024;   // 50 MB je Datei
+
+function albumMediumId() {
+  try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return 'm' + Date.now() + Math.floor(Math.random() * 1e6);
+}
+async function albenSigniereEins(pfad) {
+  if (!pfad || !sbClient) return '';
+  try { const { data } = await sbClient.storage.from('alben').createSignedUrl(pfad, 60 * 60 * 24); return (data && data.signedUrl) || ''; }
+  catch (e) { return ''; }
+}
+
+async function zeigeAlben() {
+  albenZurueck();
+  if (!aktuellerUser || !sbClient) { albenCache = []; albenRender(); return; }
+  try {
+    const { data, error } = await sbClient.rpc('alben_holen');
+    albenCache = (!error && data && data.ok && Array.isArray(data.alben)) ? data.alben : [];
+  } catch (e) { albenCache = []; }
+  albenRender();
+}
+async function zeigeAlbenLeise() {
+  try { const { data, error } = await sbClient.rpc('alben_holen'); if (!error && data && data.ok) albenCache = data.alben || []; } catch (e) {}
+}
+
+function albenRender() {
+  const grid = document.getElementById('alben-grid');
+  const leer = document.getElementById('alben-leer');
+  if (!grid) return;
+  if (!albenCache.length) { grid.innerHTML = ''; if (leer) leer.style.display = ''; return; }
+  if (leer) leer.style.display = 'none';
+  grid.innerHTML = albenCache.map(a => `
+    <button type="button" class="album-kachel" onclick="albumOeffnen('${escapeHtml(a.id)}')">
+      <div class="album-cover" id="album-cover-${escapeHtml(a.id)}"><span class="album-cover-ph">🖼️</span></div>
+      <div class="album-kachel-titel">${escapeHtml(a.titel || '')}</div>
+      <div class="album-kachel-meta">${a.anzahl || 0} · ${escapeHtml(nm(a.ersteller || ''))}</div>
+    </button>`).join('');
+  albenCache.forEach(async a => {
+    if (!a.cover_pfad) return;
+    const url = await albenSigniereEins(a.cover_pfad);
+    const el = document.getElementById('album-cover-' + a.id);
+    if (el && url) el.innerHTML = `<img src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<span class=\\'album-cover-ph\\'>🖼️</span>'">`;
+  });
+}
+
+function albumNeuDialog() {
+  if (!aktuellerUser) return;
+  const m = document.getElementById('album-neu-modal');
+  const titelEl = document.getElementById('album-neu-titel');
+  const beschrEl = document.getElementById('album-neu-beschr');
+  const fehler = document.getElementById('album-neu-fehler');
+  if (titelEl) titelEl.value = '';
+  if (beschrEl) beschrEl.value = '';
+  if (fehler) fehler.style.display = 'none';
+  if (m) m.classList.add('aktiv');
+  setTimeout(() => { if (titelEl) titelEl.focus(); }, 60);
+}
+function schliesseAlbumNeu() {
+  const m = document.getElementById('album-neu-modal');
+  if (m) m.classList.remove('aktiv');
+}
+async function albumNeuBestaetigen() {
+  const titelEl = document.getElementById('album-neu-titel');
+  const beschrEl = document.getElementById('album-neu-beschr');
+  const fehler = document.getElementById('album-neu-fehler');
+  const titel = (titelEl && titelEl.value || '').trim();
+  const beschr = (beschrEl && beschrEl.value || '').trim();
+  if (!titel) {
+    if (fehler) { fehler.textContent = t('album_titel_pflicht'); fehler.style.display = 'block'; }
+    if (titelEl) titelEl.focus();
+    return;
+  }
+  schliesseAlbumNeu();
+  await albumErstellen(titel, beschr || null);
+}
+async function albumErstellen(titel, beschreibung) {
+  try {
+    const { data, error } = await sbClient.rpc('album_erstellen', { p_titel: titel, p_beschreibung: beschreibung || null });
+    if (error || !data || !data.ok) { alert(t('album_fehler')); return; }
+    await zeigeAlben();
+    if (data.id) albumOeffnen(data.id);
+  } catch (e) { alert(t('album_fehler')); }
+}
+
+async function albumOeffnen(id) {
+  const a = albenCache.find(x => x.id === id) || null;
+  const ueber  = document.getElementById('alben-uebersicht');
+  const detail = document.getElementById('album-detail');
+  if (ueber)  ueber.style.display = 'none';
+  if (detail) detail.style.display = '';
+  document.getElementById('album-detail-titel').textContent = a ? (a.titel || '') : '';
+  document.getElementById('album-detail-beschr').textContent = a ? (a.beschreibung || '') : '';
+  albumOffen = a ? { id: a.id, verbund_id: a.verbund_id, titel: a.titel, darf_aendern: a.darf_aendern } : { id };
+  const delBtn = document.getElementById('album-loeschen-btn');
+  if (delBtn) delBtn.style.display = (a && a.darf_aendern) ? '' : 'none';
+  await albumMedienLaden(id);
+}
+function albenZurueck() {
+  const ueber  = document.getElementById('alben-uebersicht');
+  const detail = document.getElementById('album-detail');
+  if (detail) detail.style.display = 'none';
+  if (ueber)  ueber.style.display = '';
+  albumOffen = null;
+}
+
+async function albumMedienLaden(id) {
+  albumMedienCache = [];
+  try {
+    const { data, error } = await sbClient.rpc('album_medien_holen', { p_album: id });
+    if (!error && data && data.ok) {
+      albumMedienCache = Array.isArray(data.medien) ? data.medien : [];
+      if (albumOffen && data.verbund_id) albumOffen.verbund_id = data.verbund_id;
+    }
+  } catch (e) {}
+  albumMedienRender();
+}
+function albumMedienRender() {
+  const grid = document.getElementById('album-medien-grid');
+  const leer = document.getElementById('album-medien-leer');
+  if (!grid) return;
+  if (!albumMedienCache.length) { grid.innerHTML = ''; if (leer) leer.style.display = ''; return; }
+  if (leer) leer.style.display = 'none';
+  grid.innerHTML = albumMedienCache.map((m, i) => `
+    <div class="album-medium" id="album-medium-${escapeHtml(m.id)}">
+      <div class="album-medium-inhalt" onclick="albumLightbox(${i})"><span class="album-cover-ph">${(m.mime||'').startsWith('video/') ? '🎬' : '🖼️'}</span></div>
+      ${m.darf_loeschen ? `<button type="button" class="album-medium-del" title="${escapeHtml(t('album_medium_loeschen'))}" onclick="event.stopPropagation();albumMediumLoeschen('${escapeHtml(m.id)}')">×</button>` : ''}
+    </div>`).join('');
+  albumMedienCache.forEach(async m => {
+    const url = await albenSigniereEins(m.pfad);
+    if (!url) return;
+    m._url = url;
+    const el = document.querySelector('#album-medium-' + m.id + ' .album-medium-inhalt');
+    if (!el) return;
+    if ((m.mime||'').startsWith('video/')) el.innerHTML = `<video src="${escapeHtml(url)}#t=0.1" muted playsinline preload="metadata"></video><span class="album-play">▶</span>`;
+    else el.innerHTML = `<img src="${escapeHtml(url)}" alt="" loading="lazy">`;
+  });
+}
+
+async function albumUpload(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length || !albumOffen || !albumOffen.verbund_id) return;
+  const statusEl = document.getElementById('album-upload-status');
+  let ok = 0, fehler = 0;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (statusEl) { statusEl.style.display = ''; statusEl.textContent = t('album_upload_laeuft', { n: i + 1, gesamt: files.length }); }
+    try {
+      const istVideo = (f.type || '').startsWith('video/');
+      if (istVideo && f.size > ALBUM_VIDEO_MAX) { fehler++; continue; }
+      let blob = f, mime = f.type || 'application/octet-stream';
+      if (!istVideo) { try { blob = await galerieKomprimiere(f, 1600, 0.85); mime = blob.type || 'image/webp'; } catch (e) { blob = f; mime = f.type || 'image/jpeg'; } }
+      const ext = (mime.split('/')[1] || (istVideo ? 'mp4' : 'jpg')).split(';')[0];
+      const pfad = `${albumOffen.verbund_id}/${albumOffen.id}/${albumMediumId()}.${ext}`;
+      const up = await sbClient.storage.from('alben').upload(pfad, blob, { cacheControl: '3600', upsert: false, contentType: mime });
+      if (up.error) { fehler++; continue; }
+      const { data, error } = await sbClient.rpc('album_medium_anlegen', { p_album: albumOffen.id, p_pfad: pfad, p_mime: mime, p_beschriftung: null });
+      if (error || !data || !data.ok) { try { await sbClient.storage.from('alben').remove([pfad]); } catch (e) {} fehler++; continue; }
+      ok++;
+    } catch (e) { fehler++; }
+  }
+  if (statusEl) { statusEl.textContent = t('album_upload_fertig', { ok, fehler }); setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 2500); }
+  if (albumOffen) await albumMedienLaden(albumOffen.id);
+  zeigeAlbenLeise();
+}
+
+async function albumMediumLoeschen(id) {
+  if (!confirm(t('album_medium_loeschen_frage'))) return;
+  try {
+    const { data, error } = await sbClient.rpc('album_medium_loeschen', { p_id: id });
+    if (error || !data || !data.ok) { alert(t('album_fehler')); return; }
+    if (data.pfad) { try { await sbClient.storage.from('alben').remove([data.pfad]); } catch (e) {} }
+  } catch (e) {}
+  if (albumOffen) await albumMedienLaden(albumOffen.id);
+  zeigeAlbenLeise();
+}
+async function albumLoeschenAktuell() {
+  if (!albumOffen) return;
+  if (!confirm(t('album_loeschen_frage'))) return;
+  try {
+    const { data, error } = await sbClient.rpc('album_loeschen', { p_id: albumOffen.id });
+    if (error || !data || !data.ok) { alert(t('album_fehler')); return; }
+    const pfade = Array.isArray(data.pfade) ? data.pfade : [];
+    if (pfade.length) { try { await sbClient.storage.from('alben').remove(pfade); } catch (e) {} }
+  } catch (e) {}
+  albenZurueck();
+  zeigeAlben();
+}
+
+function albumLightbox(i) {
+  const m = albumMedienCache[i];
+  if (!m || !m._url) return;
+  const box = document.getElementById('album-lightbox');
+  const inner = document.getElementById('album-lightbox-inner');
+  if (!box || !inner) return;
+  inner.innerHTML = (m.mime||'').startsWith('video/')
+    ? `<video src="${escapeHtml(m._url)}" controls autoplay playsinline style="max-width:100%;max-height:100%"></video>`
+    : `<img src="${escapeHtml(m._url)}" alt="" style="max-width:100%;max-height:100%">`;
+  box.classList.add('aktiv');
+}
+function albumLightboxZu() {
+  const box = document.getElementById('album-lightbox');
+  if (box) { box.classList.remove('aktiv'); const inner = document.getElementById('album-lightbox-inner'); if (inner) inner.innerHTML = ''; }
 }
 
 // ============================================================
@@ -12147,9 +12505,9 @@ let anlaesseCache = [];
 // Liefert { tage, jahre } oder null (Freitext/ungefähre Altwerte werden übersprungen,
 // da Monat/Tag fehlen). 29.02. rollt in Nicht-Schaltjahren automatisch auf den 01.03.
 function naechsterJahrestag(value, heute, fenster) {
-  const iso = istIsoDatum(value) ? value : parseDatumZuIso(value);
-  if (!iso) return null;
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return null;
+  const meta = datumMeta(value);
+  if (!meta || meta.modus !== 'exakt') return null;   // ungefähre/Nur-Jahr-Daten -> kein exakter Jahrestag
+  const m = meta.iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return null;
   const jahr0 = +m[1], monat = +m[2], tag = +m[3];
   let ziel = new Date(heute.getFullYear(), monat - 1, tag); ziel.setHours(0, 0, 0, 0);
   if (ziel < heute) ziel = new Date(heute.getFullYear() + 1, monat - 1, tag);
@@ -14076,7 +14434,7 @@ function verwandtschaftBtnHtml(p) {
   if (!p || p.platzhalter) return '';
   const meId = meineKarteImBaum();
   if (!meId || _vwKanon(meId) === _vwKanon(p.id)) return '';
-  return `<button class="baum-zeigen" style="margin-left:10px" onclick="verwandtschaftZeigen('${p.id}')">👪 ${t('vw_btn')}</button>`;
+  return `<button class="baum-zeigen" onclick="verwandtschaftZeigen('${p.id}')">👪 ${t('vw_btn')}</button>`;
 }
 function verwandtschaftZeigen(zielId) {
   const box = document.getElementById('detail-verwandt');
@@ -14239,13 +14597,15 @@ function zeigeDetails(personId) {
     <!-- Reaktionen & Kommentare (verbund-gebunden) — per JS nach dem Öffnen befüllt -->
     <div id="detail-engagement"></div>
 
+    <div class="detail-aktionen">
     ${((p.deceased || p.death_date) && p._uuid && !p.platzhalter)
       ? `<button class="baum-zeigen gedenk-oeffnen-btn" onclick="oeffneGedenkseite('${p.id}')">🕯 ${t('gedenk_oeffnen')}</button>` : ''}
     <button class="baum-zeigen" onclick="schliesseModalUndZeigeBaum('${p.id}')">${t('baum_zeigen')}</button>
-    ${!p.platzhalter ? `<button class="baum-zeigen" style="margin-left:10px" onclick="fokusAufPerson('${p.id}')">⌖ ${t('nav_von_hier')}</button>` : ''}
+    ${!p.platzhalter ? `<button class="baum-zeigen" onclick="fokusAufPerson('${p.id}')">⌖ ${t('nav_von_hier')}</button>` : ''}
     ${verwandtschaftBtnHtml(p)}
-    ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
-    ${istAdmin() ? `<button class="baum-zeigen" style="margin-left:10px" onclick="oeffneMoveBaum('${p.id}')">↪ ${t('move_karte_btn')}</button>` : ''}
+    ${istAdmin() ? `<button class="baum-zeigen" onclick="zeigePersonBearbeiten('${p.id}')">${t('event_edit')}</button>` : ''}
+    ${istAdmin() ? `<button class="baum-zeigen" onclick="oeffneMoveBaum('${p.id}')">↪ ${t('move_karte_btn')}</button>` : ''}
+    </div>
     ${istAdmin() ? `
       <div class="pa-aktionen">
         <button class="pa-add-btn" onclick="personPlus('${p.id}')">＋ ${t('person_hinzufuegen')}</button>
@@ -14667,8 +15027,6 @@ async function zeigePersonBearbeiten(personId) {
   set('pe-ehename', p.ehename);      setD('pe-geburtsdatum', p.birth_date);
   geoAdrSetze(document.getElementById('pe-geburtsort'), p.birth_place, p.birth_lat, p.birth_lng);
   geoAdrSetze(document.getElementById('pe-sterbeort'), p.death_place, p.death_lat, p.death_lng);
-  setLandSelect('pe-geburtsland', p.geburtsland);
-  set('pe-stadt', p.stadt);          set('pe-gemeinde', p.gemeinde);
   setD('pe-getauft', p.getauft);
   setD('pe-sterbedatum', p.death_date);
   set('pe-hochzeitsort', p.hochzeitsort);
@@ -15835,7 +16193,19 @@ function feedAktivitaetHtml(a) {
     if (a.person_id) klick = `onclick="feedOeffnePerson('${escapeHtml(String(a.person_id))}')"`;
   } else if (a.typ === 'erinnerung') {
     icon = '🔔'; txt = t('akt_erinnerung');
+  } else if (a.typ === 'event_foto_neu') {
+    // Bucket 'event-album' ist NICHT public (signierte URLs) -> kein Inline-Bild; Klick öffnet das Event (dort lädt das Album).
+    icon = '📷'; txt = t('akt_event_foto_neu', { titel: titel });
+    if (a.ziel_event) klick = `onclick="feedOeffneEvent('${escapeHtml(String(a.ziel_event))}')"`;
+  } else if (a.typ === 'rezept_neu') {
+    icon = '🍲'; txt = t('akt_rezept_neu', { titel: titel });
+    klick = `onclick="feedSetModus('rezepte')"`;
+  } else if (a.typ === 'familie_geaendert') {
+    icon = '⚙️'; txt = t('akt_familie_geaendert');
   }
+  // Admin/Moderator darf den Feed-Eintrag entfernen (Objekt bleibt) — RPC prüft die Rechte erneut.
+  const delBtn = a.darf_eintrag_loeschen
+    ? `<button type="button" class="eng-link eng-del" onclick="feedEintragLoeschen('${id}')">${escapeHtml(t('akt_eintrag_loeschen'))}</button>` : '';
   return `<div class="feed-beitrag feed-akt-karte" id="feed-b-${id}">
     <div class="feed-kopf">
       ${entAvatar(a.akteur_name, a.akteur_avatar)}
@@ -15847,11 +16217,25 @@ function feedAktivitaetHtml(a) {
     <div class="feed-akt-text"${klick ? ' ' + klick + ' style="cursor:pointer"' : ''}>${txt}</div>
     ${medien}
     ${engId ? `<div class="feed-eng" id="${engId}"></div>` : ''}
+    ${delBtn ? `<div class="feed-akt-aktionen" style="text-align:right;margin-top:4px">${delBtn}</div>` : ''}
   </div>`;
 }
 
 function feedOeffneEvent(id) {
   if (typeof zeigeEventDetail === 'function') zeigeEventDetail(id);
+}
+
+// Admin/Moderator: einen protokollierten Feed-Eintrag entfernen (nur die Aktivität,
+// das dahinterliegende Foto/Rezept/Event bleibt). Rechte prüft aktivitaet_loeschen serverseitig.
+async function feedEintragLoeschen(id) {
+  const ok = await zeigeBestaetigung(t('akt_eintrag_loeschen_frage'), { gefahr: true, jaText: t('akt_eintrag_loeschen') });
+  if (!ok) return;
+  const { data, error } = await sbClient.rpc('aktivitaet_loeschen', { p_id: id });
+  if (error || !data || !data.ok) {
+    await zeigeHinweis(t('reg_fehler') + (error ? error.message : ((data && data.grund) || '')));
+    return;
+  }
+  if (typeof feedLaden === 'function') await feedLaden();
 }
 
 function feedBeitragHtml(b) {
@@ -16008,6 +16392,7 @@ function rezeptRender() {
       <div class="rezept-fuss">
         <span class="rezept-autor">${escapeHtml([autor, datum].filter(Boolean).join(' · '))}</span>
         <span class="rezept-aktionen">
+          <button type="button" class="rezept-edit" onclick="rezeptZuEinkaufVon('${r.id}')">🛒 ${escapeHtml(t('ek_zur_liste_kurz'))}</button>
           ${r.darf_bearbeiten ? `<button type="button" class="rezept-edit" onclick="rezeptEditStart('${r.id}')">${escapeHtml(t('eng_bearbeiten'))}</button>` : ''}
           ${r.darf_loeschen ? `<button type="button" class="rezept-del" onclick="rezeptLoeschen('${r.id}')">${escapeHtml(t('eng_loeschen'))}</button>` : ''}
         </span>
@@ -16091,14 +16476,18 @@ let kbDetailId = null;
 const KB_POOL = (typeof REZEPT_POOL !== 'undefined' && Array.isArray(REZEPT_POOL)) ? REZEPT_POOL : [];
 
 function rezeptQuelle(q) {
-  rezeptQuelleAktiv = (q === 'kochbuch') ? 'kochbuch' : 'eigene';
+  rezeptQuelleAktiv = (q === 'kochbuch' || q === 'einkauf') ? q : 'eigene';
   const e = document.getElementById('rezept-eigene');
   const k = document.getElementById('rezept-kochbuch');
-  if (e) e.style.display = rezeptQuelleAktiv === 'eigene' ? '' : 'none';
-  if (k) k.style.display = rezeptQuelleAktiv === 'kochbuch' ? '' : 'none';
+  const ek = document.getElementById('rezept-einkauf');
+  if (e)  e.style.display  = rezeptQuelleAktiv === 'eigene'   ? '' : 'none';
+  if (k)  k.style.display  = rezeptQuelleAktiv === 'kochbuch' ? '' : 'none';
+  if (ek) ek.style.display = rezeptQuelleAktiv === 'einkauf'  ? '' : 'none';
   document.getElementById('rq-eigene')?.classList.toggle('aktiv', rezeptQuelleAktiv === 'eigene');
   document.getElementById('rq-kochbuch')?.classList.toggle('aktiv', rezeptQuelleAktiv === 'kochbuch');
+  document.getElementById('rq-einkauf')?.classList.toggle('aktiv', rezeptQuelleAktiv === 'einkauf');
   if (rezeptQuelleAktiv === 'kochbuch') kochbuchInit();
+  if (rezeptQuelleAktiv === 'einkauf')  einkaufInit();
 }
 
 // Wert aus einem {de,sr,hr,ba,en}-Objekt in der aktuellen Sprache (mit Fallback).
@@ -16161,6 +16550,7 @@ function kbVollHtml(r) {
     <div class="kb-meta">${kbMetaHtml(r)}</div>
     ${kochbuchSterneHtml(r.id)}
     ${kbZutatenHtml(r)}
+    <button type="button" class="mv-toggle ek-add-rezept-btn" onclick="kbZuEinkauf('${escapeHtml(r.id)}')">🛒 ${escapeHtml(t('ek_zur_liste'))}</button>
     ${kbSchritteHtml(r)}`;
 }
 
@@ -16247,6 +16637,291 @@ function kochbuchSpracheUpdate() {
     const r = KB_POOL.find(x => x.id === kbDetailId);
     if (r) document.getElementById('kb-detail-inhalt').innerHTML = kbVollHtml(r);
   }
+}
+
+// ============================================================
+// EINKAUFSLISTE (Rezepte-Bereich, drittes Segment) — mehrere Listen je Verbund, EXPLIZIT
+// geteilt (Teilnehmer), Artikel aus Kochbuch/Eigene/manuell mit Mengen-MERGE, „gekauft"-Toggle,
+// separater Gekauft-Reiter, Realtime (Channel 'einkauf-sync'). Alles über SECURITY-DEFINER-RPCs.
+// ============================================================
+const EK_EINHEITEN = ['', 'g', 'kg', 'ml', 'l', 'stk', 'el', 'tl', 'prise', 'kopf', 'bund', 'zehe', 'ng'];
+let ekListen = [];           // [{id,name,ist_ersteller,offen_zahl,gekauft_zahl,...}]
+let ekAktiv = null;          // aktive Liste
+let ekArtikel = [];          // Artikel der aktiven Liste (offen + gekauft)
+let ekTabAktiv = 'offen';    // 'offen' | 'gekauft'
+let ekVerbundNutzer = [];    // verbund_nutzer()-Cache
+let ekAddZutaten = null;     // Zutaten, die (per Rezept) einer Liste hinzugefügt werden sollen
+let ekAddInfo = '';          // Info-Text im Ziel-Wahl-Modal
+let ekAddQuelle = 'manuell'; // 'kochbuch' | 'eigene' | 'manuell'
+let ekNeuAusAdd = false;     // „Neue Liste" aus dem Ziel-Wahl-Flow -> danach Zutaten übernehmen
+let ekChannel = null, ekRealtimeTimer = null, ekReloadPending = false;
+
+async function einkaufInit() { ekEinheitFuellen(); await ekListenLaden(); }
+
+function ekEinheitFuellen() {
+  const sel = document.getElementById('ek-add-einheit'); if (!sel) return;
+  const v = sel.value;
+  sel.innerHTML = EK_EINHEITEN.map(c => `<option value="${c}">${c ? escapeHtml(t('einheit_' + c)) : '—'}</option>`).join('');
+  sel.value = v;
+}
+
+async function ekListenLaden() {
+  try {
+    const { data, error } = await sbClient.rpc('einkauf_listen_holen');
+    if (error) throw error;
+    ekListen = Array.isArray(data) ? data : [];
+  } catch (e) { console.warn('einkauf_listen_holen:', e); ekListen = []; }
+  const sel = document.getElementById('ek-liste'); if (!sel) return;
+  if (!ekListen.length) {
+    sel.innerHTML = `<option value="">${escapeHtml(t('ek_keine_listen'))}</option>`;
+    ekAktiv = null; ekRenderLeer(); return;
+  }
+  if (!ekAktiv || !ekListen.some(l => l.id === ekAktiv)) ekAktiv = ekListen[0].id;
+  sel.innerHTML = ekListen.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)} (${l.offen_zahl})</option>`).join('');
+  sel.value = ekAktiv;
+  await ekArtikelLaden();
+}
+function ekListeWaehlen(id) { ekAktiv = id || null; ekArtikelLaden(); }
+
+function ekRenderLeer() {
+  ['ek-tabs', 'ek-add-zeile', 'ek-teilen-btn', 'ek-loeschen-btn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  const info = document.getElementById('ek-teilnehmer-info'); if (info) info.style.display = 'none';
+  const box = document.getElementById('ek-artikel-liste');
+  if (box) box.innerHTML = `<div class="feed-leer">${escapeHtml(t('ek_leer_liste'))}</div>`;
+}
+
+async function ekArtikelLaden() {
+  if (!ekAktiv) { ekRenderLeer(); return; }
+  const akt = ekListen.find(l => l.id === ekAktiv);
+  document.getElementById('ek-tabs').style.display = '';
+  document.getElementById('ek-teilen-btn').style.display = '';
+  document.getElementById('ek-loeschen-btn').style.display = (akt && akt.ist_ersteller) ? '' : 'none';
+  try {
+    const { data, error } = await sbClient.rpc('einkauf_artikel_holen', { p_liste: ekAktiv });
+    if (error) throw error;
+    ekArtikel = Array.isArray(data) ? data : [];
+  } catch (e) { console.warn('einkauf_artikel_holen:', e); ekArtikel = []; }
+  ekTeilnehmerInfo();
+  ekRender();
+}
+
+function ekMengeText(a) {
+  if (a.menge == null || a.menge === '') return a.einheit ? t('einheit_' + a.einheit) : '';
+  const m = Math.round(Number(a.menge) * 100) / 100;
+  return (Number.isFinite(m) ? m : a.menge) + (a.einheit ? ' ' + t('einheit_' + a.einheit) : '');
+}
+function ekRender() {
+  const box = document.getElementById('ek-artikel-liste'); if (!box) return;
+  document.getElementById('ek-tab-offen')?.classList.toggle('aktiv', ekTabAktiv === 'offen');
+  document.getElementById('ek-tab-gekauft')?.classList.toggle('aktiv', ekTabAktiv === 'gekauft');
+  const addZeile = document.getElementById('ek-add-zeile'); if (addZeile) addZeile.style.display = (ekTabAktiv === 'offen') ? '' : 'none';
+  const gekauft = ekTabAktiv === 'gekauft';
+  const items = ekArtikel.filter(a => !!a.gekauft === gekauft);
+  if (!items.length) { box.innerHTML = `<div class="feed-leer">${escapeHtml(t(gekauft ? 'ek_keine_gekauft' : 'ek_keine_offen'))}</div>`; return; }
+  box.innerHTML = items.map(a => {
+    const menge = ekMengeText(a);
+    return `<div class="ek-item${gekauft ? ' ek-item-gekauft' : ''}">
+      <button type="button" class="ek-check" title="${escapeHtml(t(gekauft ? 'ek_zurueck' : 'ek_gekauft_setzen'))}" onclick="ekToggle('${a.id}')">${gekauft ? '↩' : '○'}</button>
+      <span class="ek-name">${escapeHtml(a.name)}</span>
+      ${menge ? `<span class="ek-menge">${escapeHtml(menge)}</span>` : ''}
+      <button type="button" class="ek-del" title="${escapeHtml(t('event_delete'))}" onclick="ekArtikelLoeschen('${a.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+function ekTab(m) { ekTabAktiv = (m === 'gekauft') ? 'gekauft' : 'offen'; ekRender(); }
+
+async function ekArtikelAdd() {
+  if (!ekAktiv) return;
+  const nameEl = document.getElementById('ek-add-name'), mengeEl = document.getElementById('ek-add-menge'), einheitEl = document.getElementById('ek-add-einheit');
+  const name = (nameEl.value || '').trim();
+  if (!name) { nameEl.focus(); return; }
+  const roh = (mengeEl.value || '').trim().replace(',', '.');
+  const menge = /^-?\d+(\.\d+)?$/.test(roh) ? Number(roh) : null;
+  try {
+    const { error } = await sbClient.rpc('einkauf_artikel_add', { p_liste: ekAktiv, p_name: name, p_menge: menge, p_einheit: einheitEl.value || null, p_quelle: 'manuell' });
+    if (error) throw error;
+    nameEl.value = ''; mengeEl.value = ''; einheitEl.value = ''; nameEl.focus();
+    await ekArtikelLaden();
+  } catch (e) { console.warn('einkauf_artikel_add:', e); await zeigeHinweis(socialFehler(e)); }
+}
+async function ekToggle(id) {
+  try { const { error } = await sbClient.rpc('einkauf_artikel_toggle', { p_artikel: id }); if (error) throw error; await ekArtikelLaden(); }
+  catch (e) { console.warn('einkauf_artikel_toggle:', e); }
+}
+async function ekArtikelLoeschen(id) {
+  try { const { error } = await sbClient.rpc('einkauf_artikel_loeschen', { p_artikel: id }); if (error) throw error; await ekArtikelLaden(); }
+  catch (e) { console.warn('einkauf_artikel_loeschen:', e); }
+}
+
+async function ekTeilnehmerInfo() {
+  const info = document.getElementById('ek-teilnehmer-info'); if (!info) return;
+  if (!ekAktiv) { info.style.display = 'none'; return; }
+  try {
+    const { data } = await sbClient.rpc('einkauf_teilnehmer_holen', { p_liste: ekAktiv });
+    const namen = (data || []).map(x => nm(x.anzeigename || '?'));
+    info.textContent = t('ek_geteilt_mit') + ': ' + (namen.join(', ') || '—');
+    info.style.display = '';
+  } catch (e) { info.style.display = 'none'; }
+}
+
+// ── Teilnehmer-Picker (Verbund-Nutzer) ──
+async function ekVerbundNutzerLaden() {
+  try { const { data } = await sbClient.rpc('verbund_nutzer'); ekVerbundNutzer = Array.isArray(data) ? data : []; }
+  catch (e) { ekVerbundNutzer = []; }
+  return ekVerbundNutzer;
+}
+function ekTeilnehmerCheckboxes(containerId, vorausgewaehlt, deaktiviert) {
+  const cont = document.getElementById(containerId); if (!cont) return;
+  const sel = new Set(vorausgewaehlt || []), dis = new Set(deaktiviert || []);
+  const meId = aktuellerUser && aktuellerUser.id;
+  const rows = ekVerbundNutzer.filter(u => u.user_id !== meId).map(u => {
+    const roh = u.anzeigename || '?';
+    const anz = nm(roh);
+    // Suche schrift- UND diakritik-insensitiv (ssFold: Kyrillisch->Latein, ć č š ž đ -> c c s z d)
+    const such = ssFold(roh + ' ' + anz);
+    return `<label class="ek-tn-row" data-such="${escapeHtml(such)}"><input type="checkbox" value="${escapeHtml(u.user_id)}" ${sel.has(u.user_id) ? 'checked' : ''} ${dis.has(u.user_id) ? 'disabled' : ''}> ${escapeHtml(anz)}</label>`;
+  }).join('');
+  cont.innerHTML = rows || `<div class="feed-leer">${escapeHtml(t('ek_keine_nutzer'))}</div>`;
+  // Suchfeld zuruecksetzen (falls von vorheriger Nutzung gefuellt)
+  const such = document.getElementById(containerId === 'ek-neu-teilnehmer' ? 'ek-neu-such' : 'ek-teilen-such');
+  if (such) such.value = '';
+}
+// Client-seitige Personensuche: filtert die Teilnehmer-Zeilen (Auswahl bleibt erhalten, auch wenn ausgeblendet)
+function ekTnFilter(containerId, q) {
+  const cont = document.getElementById(containerId); if (!cont) return;
+  const term = ssFold((q || '').trim());
+  cont.querySelectorAll('.ek-tn-row').forEach(row => {
+    const treffer = !term || (row.getAttribute('data-such') || '').indexOf(term) !== -1;
+    row.style.display = treffer ? '' : 'none';
+  });
+}
+function ekCheckboxWerte(containerId) {
+  return [...document.querySelectorAll('#' + containerId + ' input[type=checkbox]:checked:not([disabled])')].map(c => c.value);
+}
+
+// ── Neue Liste ──
+async function ekNeueListeOeffnen(ausAdd) {
+  await ekVerbundNutzerLaden();
+  document.getElementById('ek-neu-name').value = '';
+  const f = document.getElementById('ek-neu-fehler'); f.style.display = 'none';
+  ekTeilnehmerCheckboxes('ek-neu-teilnehmer', [], []);
+  ekNeuAusAdd = ausAdd === true;
+  document.getElementById('ek-neu-modal').classList.add('aktiv');
+}
+function schliesseEkNeu() { document.getElementById('ek-neu-modal').classList.remove('aktiv'); }
+async function ekListeAnlegen() {
+  const name = (document.getElementById('ek-neu-name').value || '').trim();
+  const fehler = document.getElementById('ek-neu-fehler');
+  if (!name) { fehler.textContent = t('ek_name_pflicht'); fehler.style.display = 'block'; return; }
+  const teilnehmer = ekCheckboxWerte('ek-neu-teilnehmer');
+  try {
+    const { data, error } = await sbClient.rpc('einkauf_liste_anlegen', { p_name: name, p_teilnehmer: teilnehmer });
+    if (error) throw error;
+    schliesseEkNeu();
+    ekAktiv = data;
+    await ekListenLaden();
+    if (ekNeuAusAdd && ekAddZutaten) { ekNeuAusAdd = false; await ekZutatenInListe(ekAktiv); schliesseEkAdd(); }
+  } catch (e) { fehler.textContent = socialFehler(e); fehler.style.display = 'block'; }
+}
+
+// ── Teilen (Teilnehmer verwalten) ──
+async function ekTeilenOeffnen() {
+  if (!ekAktiv) return;
+  await ekVerbundNutzerLaden();
+  let aktuell = [];
+  try { const { data } = await sbClient.rpc('einkauf_teilnehmer_holen', { p_liste: ekAktiv }); aktuell = (data || []).map(x => x.user_id); } catch (e) {}
+  document.getElementById('ek-teilen-fehler').style.display = 'none';
+  ekTeilnehmerCheckboxes('ek-teilen-liste', aktuell, aktuell);   // bereits geteilte = markiert + gesperrt
+  document.getElementById('ek-teilen-modal').classList.add('aktiv');
+}
+function schliesseEkTeilen() { document.getElementById('ek-teilen-modal').classList.remove('aktiv'); }
+async function ekTeilenSpeichern() {
+  if (!ekAktiv) return;
+  const neu = ekCheckboxWerte('ek-teilen-liste');
+  if (!neu.length) { schliesseEkTeilen(); return; }
+  try { const { error } = await sbClient.rpc('einkauf_liste_teilen', { p_liste: ekAktiv, p_user_ids: neu }); if (error) throw error; schliesseEkTeilen(); await ekArtikelLaden(); }
+  catch (e) { const f = document.getElementById('ek-teilen-fehler'); f.textContent = socialFehler(e); f.style.display = 'block'; }
+}
+
+// ── Liste löschen (nur Ersteller) ──
+async function ekListeLoeschen() {
+  if (!ekAktiv) return;
+  const akt = ekListen.find(l => l.id === ekAktiv);
+  if (!(await zeigeBestaetigung(t('ek_loeschen_frage', { name: (akt && akt.name) || '' }), { gefahr: true, jaText: t('ek_loeschen_ja') }))) return;
+  try { const { error } = await sbClient.rpc('einkauf_liste_loeschen', { p_liste: ekAktiv }); if (error) throw error; ekAktiv = null; await ekListenLaden(); }
+  catch (e) { await zeigeHinweis(socialFehler(e)); }
+}
+
+// ── Aus Rezept in eine Liste übernehmen ──
+async function kbZuEinkauf(rezeptId) {
+  const r = KB_POOL.find(x => x.id === rezeptId); if (!r) return;
+  ekAddZutaten = (r.zutaten || []).map(z => ({ name: rzLang(z.name), menge: (z.menge == null ? null : z.menge), einheit: z.einheit || null }));
+  ekAddQuelle = 'kochbuch';
+  ekAddInfo = t('ek_add_rezept', { titel: rzLang(r.titel), n: ekAddZutaten.length });
+  await ekAddOeffnen();
+}
+async function rezeptZuEinkauf(titel) {
+  ekAddZutaten = [{ name: titel, menge: null, einheit: null }];
+  ekAddQuelle = 'eigene';
+  ekAddInfo = t('ek_add_eigene', { titel });
+  await ekAddOeffnen();
+}
+function rezeptZuEinkaufVon(id) {
+  const r = (typeof rezeptCache !== 'undefined' ? rezeptCache : []).find(x => x.id === id);
+  if (r) rezeptZuEinkauf(r.titel || '');
+}
+async function ekAddOeffnen() {
+  await ekListenLaden();
+  const sel = document.getElementById('ek-add-ziel'), info = document.getElementById('ek-add-info');
+  if (info) info.textContent = ekAddInfo || '';
+  document.getElementById('ek-add-fehler').style.display = 'none';
+  sel.innerHTML = ekListen.length
+    ? ekListen.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`).join('')
+    : `<option value="">${escapeHtml(t('ek_keine_listen'))}</option>`;
+  document.getElementById('ek-add-modal').classList.add('aktiv');
+}
+function schliesseEkAdd() { document.getElementById('ek-add-modal').classList.remove('aktiv'); ekAddZutaten = null; }
+async function ekAddBestaetigen() {
+  const ziel = document.getElementById('ek-add-ziel').value;
+  const fehler = document.getElementById('ek-add-fehler');
+  if (!ziel) { fehler.textContent = t('ek_liste_pflicht'); fehler.style.display = 'block'; return; }
+  await ekZutatenInListe(ziel);
+  schliesseEkAdd();
+}
+async function ekZutatenInListe(listeId) {
+  if (!ekAddZutaten || !ekAddZutaten.length) return;
+  try {
+    const { error } = await sbClient.rpc('einkauf_artikel_add_viele', { p_liste: listeId, p_artikel: ekAddZutaten, p_quelle: ekAddQuelle });
+    if (error) throw error;
+    await zeigeHinweis(t('ek_hinzugefuegt'));
+    if (rezeptQuelleAktiv === 'einkauf') { ekAktiv = listeId; await ekListenLaden(); }
+  } catch (e) { await zeigeHinweis(socialFehler(e)); }
+}
+
+// ── Realtime (wie Chat): reload bei Änderungen; NIE den Inaktiv-Timer zurücksetzen ──
+function startEinkauf() {
+  stopEinkauf();
+  if (!sbClient || !aktuellerUser) return;
+  ekChannel = sbClient.channel('einkauf-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'einkauf_artikel' }, ekRealtime)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'einkauf_teilnehmer' }, ekRealtime)
+    .subscribe();
+  document.addEventListener('visibilitychange', ekVisFlush);
+}
+function stopEinkauf() {
+  if (ekChannel) { try { sbClient.removeChannel(ekChannel); } catch (e) {} ekChannel = null; }
+  document.removeEventListener('visibilitychange', ekVisFlush);
+  ekListen = []; ekAktiv = null; ekArtikel = []; ekVerbundNutzer = [];
+}
+function ekVisFlush() { if (!document.hidden && ekReloadPending) { ekReloadPending = false; ekRealtime(); } }
+function ekRealtime() {
+  if (document.hidden) { ekReloadPending = true; return; }          // bei verstecktem Tab aufschieben
+  clearTimeout(ekRealtimeTimer);
+  ekRealtimeTimer = setTimeout(() => { if (rezeptQuelleAktiv === 'einkauf' && aktuellerUser) ekListenLaden(); }, 500);
+}
+function einkaufSpracheUpdate() {
+  ekEinheitFuellen();
+  if (rezeptQuelleAktiv === 'einkauf') { ekRender(); ekTeilnehmerInfo(); }
 }
 
 function feedBearbeitenStart(id) { feedEditId = id; feedRender(); }
@@ -16411,9 +17086,9 @@ function startFeedSync() {
   if (!aktuellerUser) return;
   try {
     feedChannel = sbClient.channel('feed-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'beitraege' }, () => feedLiveAnstossen())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'aktivitaeten' }, () => feedLiveAnstossen())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'familien_fragen' }, () => feedLiveAnstossen())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'beitraege' }, () => { feedLiveAnstossen(); tabNeuAnstossen(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'aktivitaeten' }, () => { feedLiveAnstossen(); tabNeuAnstossen(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'familien_fragen' }, () => { feedLiveAnstossen(); tabNeuAnstossen(); })
       .subscribe();
   } catch (e) { console.warn('Feed-Realtime nicht verfügbar:', e); feedChannel = null; }
 }
@@ -17271,7 +17946,10 @@ function pruefeNamePflicht(prefix, vorname, nachname, sex, ehename) {
 function pflichtMarkierung(geschlechtId, ehenameLabelId) {
   const sel = document.getElementById(geschlechtId);
   const lab = document.getElementById(ehenameLabelId);
-  if (lab) lab.classList.toggle('pflicht', !!sel && sel.value === 'F');
+  if (!lab) return;
+  const frau = !!sel && sel.value === 'F';
+  lab.classList.toggle('pflicht', frau);         // roter „*" nur bei Frauen
+  lab.style.display = frau ? '' : 'none';        // Mädchenname-Feld NUR bei Frauen einblenden
 }
 function pePflichtMarkierung() { pflichtMarkierung('pe-geschlecht', 'pe-ehename-label'); }
 function paPflichtMarkierung() { pflichtMarkierung('pa-geschlecht', 'pa-ehename-label'); }
@@ -17319,8 +17997,8 @@ async function speicherePerson(force) {
     given: v('pe-vorname'), surname: v('pe-nachname'),
     titel: v('pe-titel'), namenszusatz: v('pe-namenszusatz'), ehename: v('pe-ehename'),
     birth_date: vd('pe-geburtsdatum'), birth_place: v('pe-geburtsort'), birth_lat: gebK.lat, birth_lng: gebK.lng,
-    geburtsland: v('pe-geburtsland'),
-    stadt: v('pe-stadt'), gemeinde: v('pe-gemeinde'),
+    // geburtsland/stadt/gemeinde NICHT mehr aus dem Formular (Felder entfernt) -> bestehende
+    // Werte bleiben über ...sd erhalten (kein Datenverlust); der Geburtsort deckt Land/Ort ab.
     getauft: vd('pe-getauft'),
     hochzeitsort: v('pe-hochzeitsort'),
     hochzeit_standesamt: vd('pe-hochzeit-standesamt'),
@@ -17659,11 +18337,16 @@ function vbErgebnisHtml(r) {
     <button class="mv-toggle" type="button" onclick="vbVerknuepfe('${r.id}')">${escapeHtml(t('vb_verknuepfen'))}</button>
   </div>`;
 }
-function vbFehlerText(msg) {
+function vbFehlerText(msg, typ) {
   msg = msg || '';
   if (/vkn_selbst/.test(msg))          return t('vkn_selbst');
   if (/vkn_zyklus/.test(msg))          return t('vkn_zyklus');
-  if (/vkn_kante_existiert/.test(msg)) return t('vkn_kante_existiert');
+  if (/vkn_kante_existiert/.test(msg)) {
+    // Sprechende Meldung mit Beziehung, wenn der versuchte Typ bekannt ist.
+    const bezKey = { eltern:'beztyp_elternteil', elternteil:'beztyp_elternteil',
+                     kind:'beztyp_kind', partner:'beztyp_partner', geschwister:'beztyp_geschwister' }[typ];
+    return bezKey ? t('vkn_kante_existiert_typ', { bez: t(bezKey) }) : t('vkn_kante_existiert');
+  }
   return t('reg_fehler') + msg;
 }
 // Bestehende Person als gewählten Beziehungstyp verknüpfen (Cycle/Dup prüft die RPC).
@@ -17703,7 +18386,7 @@ async function vbVerknuepfe(zielId) {
   const { data, error } = await sbClient.rpc('verknuepfung_anfragen', {
     p_modus: 'beziehung', p_kontext: kontext, p_ziel: zielId, p_typ: typ, p_zweiter: zweiter
   });
-  if (error) { fehler.textContent = vbFehlerText(error.message); fehler.style.display = 'block'; return; }
+  if (error) { fehler.textContent = vbFehlerText(error.message, vbKontext.typ); fehler.style.display = 'block'; return; }
   // Kind in alle Bäume beider Eltern spiegeln (Kind = ziel bei "kind", = kontext bei "elternteil").
   const childId = (typ === 'kind') ? zielId : (typ === 'elternteil') ? kontext : null;
   const fokus = vbKontext.personId;
@@ -17729,8 +18412,7 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
   // Kopf wird nach dem Setzen des Beziehungstyps über paAktualisiereKontext() (in
   // paPruefeFelder) befüllt — er zeigt die GEWÄHLTE Beziehung deutlich an.
   // Alle Eingabefelder leeren
-  ['pa-vorname','pa-nachname','pa-geburtsdatum','pa-geburtsort','pa-geburtsland','pa-sterbedatum',
-   'pa-stadt','pa-gemeinde',
+  ['pa-vorname','pa-nachname','pa-geburtsdatum','pa-geburtsort','pa-sterbedatum',
    'pa-titel','pa-namenszusatz','pa-ehename','pa-getauft','pa-hochzeitsort',
    'pa-hochzeit-standesamt','pa-hochzeit-kirchlich','pa-beziehung-sonstige',
    'pa-email','pa-telefon','pa-facebook','pa-instagram',
@@ -17965,7 +18647,7 @@ async function speichereNeuePerson() {
   const ehe = document.getElementById('pa-beziehung').value;
   const externeId = 'I' + Date.now();
   const name = (vorname + ' ' + nachname).trim();
-  const land = v('pa-geburtsland');
+  const land = '';   // Geburtsland-Feld entfernt (Adresssuche/Geburtsort deckt Ort+Land ab)
   const geb  = vd('pa-geburtsdatum');
   const gebK = geoAdrKoord(document.getElementById('pa-geburtsort'));
   const todK = geoAdrKoord(document.getElementById('pa-sterbeort'));
@@ -17973,7 +18655,6 @@ async function speichereNeuePerson() {
     id: externeId, given: vorname, surname: nachname, name, sex,
     titel: v('pa-titel'), namenszusatz: v('pa-namenszusatz'), ehename: v('pa-ehename'),
     birth_date: geb, birth_place: v('pa-geburtsort'), birth_lat: gebK.lat, birth_lng: gebK.lng,
-    geburtsland: land, stadt: v('pa-stadt'), gemeinde: v('pa-gemeinde'),
     getauft: vd('pa-getauft'),
     hochzeitsort: v('pa-hochzeitsort'),
     hochzeit_standesamt: vd('pa-hochzeit-standesamt'),
@@ -19070,6 +19751,10 @@ function wechselAnsicht(name) {
 
   aktualisiereSucheZustand(name);   // Suchfeld kontextabhängig aktivieren/deaktivieren
 
+  // Neuigkeiten-Badge des geöffneten Tabs als „gesehen" markieren (feed/shorts/mape -> feed/events/mapa)
+  { const _tm = { feed: 'feed', shorts: 'events', mape: 'mapa' };
+    if (_tm[name] && aktuellerUser && typeof markiereTabGesehen === 'function') markiereTabGesehen(_tm[name]); }
+
   if (name === 'baum') {
     const suche = document.getElementById('suche').value.trim();
     if (suche) {
@@ -19089,6 +19774,57 @@ function wechselAnsicht(name) {
     zeigeMape();
   }
 }
+
+// ============================================================
+// TAB-NEUIGKEITEN-BADGES (Feed / Events / Mapa) — „ungelesen"-Zähler je Tab
+// Quelle: RPC tab_neuigkeiten (verbund-/baum-scoped: feed=neue Aktivitäten im Verbund,
+// events=neue Events+Terminumfragen des Baums, mapa=neue Events MIT Ort). „Gesehen" liegt
+// GERÄTEÜBERGREIFEND in tab_gelesen (RPC tab_gesehen). Aktualisierung bei Login, feed-sync-
+// Realtime, visibilitychange, Baumwechsel; Reset beim Öffnen des Tabs. Setzt den Inaktivitäts-/
+// Auto-Logout-Timer NICHT zurück (rein lesend, wie Obav-Polling).
+// ============================================================
+let tabNeu = { feed: 0, events: 0, mapa: 0 };
+
+function renderTabBadges() {
+  [['feed','tab-badge-feed'], ['events','tab-badge-events'], ['mapa','tab-badge-mape']].forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const n = tabNeu[k] || 0;
+    if (n > 0) { el.textContent = n > 99 ? '99+' : String(n); el.style.display = ''; }
+    else       { el.textContent = ''; el.style.display = 'none'; }
+  });
+}
+
+async function ladeTabNeuigkeiten() {
+  if (!aktuellerUser || !sbClient) { tabNeu = { feed: 0, events: 0, mapa: 0 }; renderTabBadges(); return; }
+  try {
+    const { data, error } = await sbClient.rpc('tab_neuigkeiten', { p_tree: aktuellerStammbaumId || null });
+    if (error) return;   // nicht stören; nächster Trigger versucht erneut
+    tabNeu = { feed: (data && data.feed) || 0, events: (data && data.events) || 0, mapa: (data && data.mapa) || 0 };
+    renderTabBadges();
+  } catch (e) { /* Netz/Abbruch -> Badges unverändert lassen */ }
+}
+
+async function markiereTabGesehen(tab) {
+  if (!aktuellerUser || !sbClient) return;
+  if (tab !== 'feed' && tab !== 'events' && tab !== 'mapa') return;
+  tabNeu[tab] = 0; renderTabBadges();                       // sofort optimistisch leeren
+  try { await sbClient.rpc('tab_gesehen', { p_tab: tab }); } catch (e) {}
+  ladeTabNeuigkeiten();                                      // Server-Stand nachziehen
+}
+
+// Vom feed-sync-Realtime-Callback angestoßen (neue Beiträge/Aktivitäten -> auch neue Events
+// via aktivitaeten 'event_neu'). Aktualisiert die Badges AUCH bei geschlossenem Tab; bei
+// verstecktem Tab aufschieben (visibilitychange holt nach). Setzt den Inaktiv-Timer NICHT zurück.
+let tabNeuPending = false;
+function tabNeuAnstossen() {
+  if (!aktuellerUser) return;
+  if (document.visibilityState !== 'visible') { tabNeuPending = true; return; }
+  ladeTabNeuigkeiten();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && aktuellerUser) { tabNeuPending = false; ladeTabNeuigkeiten(); }
+});
 
 // MAPE-Tab: Ereignis-/Migrationskarte als Vollbild-Ansicht (aus dem Events-Bereich
 // herausgelöst). Lädt die Events des aktiven Baums (eventsCache, wie zeigeShorts) und

@@ -283,6 +283,46 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     im File). Speichert NUR Feature-Namen + eigene user_id (keine Inhalte). `analytik_nutzer_liste` liest
     zusätzlich `auth.users` (E-Mail/Login) + `profile` (Name) — bewusst nur Super-Admin.
     (Voraussetzung: `ist_super_admin` aus 3, `mein_verbund` aus 62, `profile` aus 37)
+74. `supabase_tab_neuigkeiten.sql` — **Neuigkeiten-Badges auf den Tabs Feed/Events/Mapa**: Tabelle
+    `tab_gelesen` (user_id, tab ∈ {feed,events,mapa}, gelesen_am; **RLS = nur eigene Zeile**, gerät-
+    übergreifend) + SECURITY-DEFINER-RPCs `tab_gesehen(p_tab)` (beim Tab-Öffnen gelesen_am=now()) und
+    `tab_neuigkeiten(p_tree)` (liefert 3 Zähler: feed=neue `aktivitaeten` im Verbund, events=neue
+    `events`+`terminfindung` des Baums, mapa=neue `events` MIT Koordinaten; lazy-init now() beim
+    Erststart → kein Altbestand-Blitz). Frontend aktualisiert bei Login/feed-sync-Realtime/
+    visibilitychange/Baumwechsel, Reset beim Tab-Öffnen; **kein** Auto-Logout-Timer-Reset.
+    (Voraussetzung: `ist_in_verbund`/`sieht_familie`/`ist_super_admin`, `events`, `terminfindung`,
+    `aktivitaeten` aus 63) **VOR Frontend-Deploy ausführen.**
+75. `supabase_alben.sql` — **Familien-Alben (standalone, VERBUNDWEIT, kollaborativ)** — „Albums"-Segment
+    im Events-Tab. Tabellen `alben` (Container) + `album_medien` (Fotos/Videos); **RLS AN ohne Tabellen-
+    Policies → Zugriff nur über DEFINER-RPCs**. Privater Bucket `alben` (signierte URLs) + Storage-Policies
+    (erstes Pfad-Segment = `verbund_id`: SELECT/INSERT/DELETE = Verbund-Mitglied — DELETE bewusst
+    mitgliedschaftsbasiert, damit der Album-Ersteller beim Album-Löschen auch fremde Uploads mit-
+    abräumt = keine Storage-Waisen; Per-Datei-Recht bleibt in der RPC `album_medium_loeschen`).
+    RPCs `album_erstellen`/`album_bearbeiten`/`album_loeschen`/`alben_holen`/`album_medien_holen`/
+    `album_medium_anlegen`/`album_medium_loeschen`. Jedes Mitglied legt an + lädt hoch; Löschen = eigener
+    Upload ODER `darf_verbund_moderieren`. Videos clientseitig auf 50 MB begrenzt (Egress).
+    (Voraussetzung: `ist_in_verbund`/`mein_verbund`/`darf_verbund_moderieren`, `familien`, `profile`)
+    **VOR Frontend-Deploy ausführen.**
+76. `supabase_aktivitaeten_erweitert.sql` — **Feed-Aktivitäten erweitern + Admin-Löschung** — neue
+    Typen `event_foto_neu`/`rezept_neu`/`familie_geaendert` via DB-Trigger (Anti-Spam: nur bei echter
+    Nutzer-Aktion, `auth.uid()` gesetzt) + RPC `aktivitaet_loeschen` (Moderator via
+    `darf_verbund_moderieren`); `aktivitaeten_holen` um die neuen Quellen (event_album_fotos/
+    familien_rezepte) erweitert (gelöschte Ziele ausgeblendet). (Voraussetzung: **63**
+    `supabase_aktivitaeten.sql`, **70** `supabase_event_album.sql` UND `supabase_familien_rezepte.sql`
+    — Letztere definiert `familien_rezepte`; muss VOR dieser Datei existieren.) **VOR Frontend-Deploy.**
+77. `supabase_einkaufsliste.sql` — **Einkaufslisten (Rezepte-Bereich)** — Tabellen `einkaufslisten`/
+    `einkauf_teilnehmer`/`einkauf_artikel`; **RLS = nur Teilnehmer (SELECT), Schreiben nur über DEFINER-
+    RPCs** (Helfer `ist_einkauf_teilnehmer`). Mehrere Listen je Verbund, explizit geteilt; Artikel aus
+    Kochbuch/eigenen Rezepten/manuell mit Mengen-Merge; „gekauft"-Toggle; Realtime (`einkauf_artikel`/
+    `einkauf_teilnehmer` in Publication). RPCs `einkauf_liste_anlegen`/`_listen_holen`/`_teilnehmer_holen`/
+    `_liste_teilen`/`_teilnehmer_entfernen`/`_liste_loeschen`/`_artikel_holen`/`_artikel_add`/
+    `_artikel_add_viele`/`_artikel_toggle`/`_artikel_loeschen`. (Voraussetzung: `verbund_nutzer()` aus
+    **56** `supabase_chat.sql` + `mein_verbund()` aus **62** `supabase_beitraege.sql`.) **VOR Frontend-Deploy.**
+78. `supabase_approx_datum_alter.sql` — **Ungefähre Daten (Option A)** — redefiniert `_alter_jahre(text)`
+    (aus **57** `supabase_auffindbarkeit.sql`), damit die Volljährigkeits-/Discovery-Prüfung neben
+    exaktem ISO auch „nur Jahr" (`YYYY`) und „circa" (`~YYYY`) versteht — konservativ (Mindestalter =
+    31.12. des Jahres → Minderjährigenschutz bleibt streng). (Voraussetzung: **57** vorher ausgeführt.)
+    **VOR Frontend-Deploy.**
 
 ---
 

@@ -906,6 +906,10 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
   background: var(--linie); color: var(--text-dim); cursor: not-allowed; opacity: 0.6;
 }
 .modal .baum-zeigen.button-disabled:hover { background: var(--linie); }
+/* Aktionsbuttons der Detailkarte: ordentliches 2-Spalten-Raster (gleiche Breite/Höhe) */
+.modal .detail-aktionen { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
+.modal .detail-aktionen .baum-zeigen { width: 100%; margin: 0; padding: 12px 12px; letter-spacing: 1px; }
+.modal .detail-aktionen .baum-zeigen:last-child:nth-child(odd) { grid-column: 1 / -1; }   /* ungerade Anzahl -> letzter volle Breite */
 .media-delete-btn {
   position: absolute; top: 8px; right: 8px; background: var(--akzent);
   color: var(--paper); border: none; width: 28px; height: 28px;
@@ -1090,6 +1094,14 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
 }
 .nav-menu-toggle { position: relative; }
 .nav-menu-toggle .obav-badge { position: absolute; top: -5px; right: -6px; margin: 0; }
+/* Neuigkeiten-Badge auf den Tabs (Feed/Events/Mapa): kleine Info-Zahl oben rechts am Tab */
+.tab { position: relative; }
+.tab-badge {
+  position: absolute; top: 2px; right: 3px; margin: 0;
+  min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3); pointer-events: none;
+}
+@media (max-width: 600px) { .tab-badge { top: 0; right: 0; min-width: 15px; height: 15px; font-size: 9px; } }
 .obav-karte {
   background: var(--paper-soft); border: 1px solid var(--linie); border-radius: 12px;
   padding: 14px 16px; margin-bottom: 12px; transition: opacity .2s;
@@ -1457,6 +1469,15 @@ header img.header-logo-img {
   background: var(--paper); border: 1px solid var(--gold);
   box-shadow: 0 10px 26px rgba(44,36,24,0.28); padding: 10px; box-sizing: border-box;
 }
+/* Präzisions-Umschalter: Genaues Datum / Nur Jahr / Circa (segmentiert) */
+.dp-praez { display: flex; gap: 4px; margin-bottom: 8px; }
+.dp-praez-btn {
+  flex: 1; padding: 6px 4px; font-size: 12px; line-height: 1.15; cursor: pointer;
+  background: var(--paper); color: var(--akzent);
+  border: 1px solid var(--gold); border-radius: 6px;
+}
+.dp-praez-btn:hover { background: var(--gold-hell); }
+.dp-praez-btn.aktiv { background: var(--akzent); color: var(--paper); border-color: var(--akzent); font-weight: bold; }
 .dp-head { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
 .dp-title {
   flex: 1; text-align: center; font-weight: bold; color: var(--akzent); font-size: 15px; letter-spacing: .5px;
@@ -2222,6 +2243,27 @@ video.aufn-player { max-height: 320px; border-radius: 4px; background: #000; }
 /* ============================================================
    REZEPTE & TRADITIONEN (Feed-Modus C)
    ============================================================ */
+/* ── Einkaufsliste ── */
+.ek-add-rezept-btn { margin: 8px 0 4px; }
+.ek-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--linie);
+  border-radius: 10px; background: var(--paper); }
+.ek-item + .ek-item { margin-top: 8px; }
+.ek-check { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--gold);
+  background: var(--paper); color: var(--akzent); cursor: pointer; font-size: 15px; line-height: 1; }
+.ek-check:hover { background: var(--gold-hell); }
+.ek-name { flex: 1; min-width: 0; word-break: break-word; }
+.ek-menge { flex: 0 0 auto; color: var(--gold); font-size: 13px; white-space: nowrap; }
+.ek-del { flex: 0 0 auto; width: 26px; height: 26px; border: none; background: none; color: var(--text-dim);
+  cursor: pointer; font-size: 14px; }
+.ek-del:hover { color: #9b2226; }
+.ek-item-gekauft { opacity: .6; }
+.ek-item-gekauft .ek-name { text-decoration: line-through; }
+.ek-item-gekauft .ek-check { border-color: var(--linie); color: var(--gold); }
+.ek-tn-such { margin: 4px 0 0; }
+.ek-teilnehmer-wahl { max-height: 220px; overflow-y: auto; overscroll-behavior: contain; margin: 6px 0 12px;
+  border: 1px solid var(--linie); border-radius: 8px; padding: 8px; }
+.ek-tn-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; cursor: pointer; }
+.ek-tn-row input { width: 18px; height: 18px; }
 .rezept-karte { border: 1px solid var(--linie); border-radius: 12px; padding: 16px; margin-bottom: 14px; background: var(--paper); }
 .rezept-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .rezept-kat { font-size: 11px; letter-spacing: .5px; text-transform: uppercase; padding: 3px 8px;
@@ -2842,6 +2884,34 @@ video.lightbox-img { max-width: 96vw; max-height: 78vh; }
 .pk-meta { font-size: 12px; color: var(--text-dim); }
 .pk-meta2 { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
 .pk-aktionen { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
+/* ---- Familien-Alben (Events-Tab „Albums") ---- */
+.alben-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.album-kachel { background: var(--bg-card); border: 1px solid var(--linie); border-radius: 10px; overflow: hidden;
+  cursor: pointer; padding: 0; text-align: left; font-family: inherit; color: var(--ink); transition: box-shadow .15s, transform .1s; }
+.album-kachel:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.15); transform: translateY(-2px); }
+.album-cover { aspect-ratio: 4/3; background: var(--bg-soft); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.album-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-cover-ph { font-size: 34px; opacity: 0.5; }
+.album-kachel-titel { font-weight: bold; color: var(--akzent); padding: 8px 10px 2px; font-size: 15px; }
+.album-kachel-meta { padding: 0 10px 10px; font-size: 12px; color: var(--text-dim); }
+.alben-leer { text-align: center; color: var(--text-dim); font-style: italic; padding: 24px; }
+.album-detail-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.album-detail-kopf h3 { color: var(--akzent); font-weight: normal; flex: 1 1 auto; min-width: 120px; }
+.album-zurueck { background: none; border: none; color: var(--gold); cursor: pointer; font-family: inherit; font-size: 15px; padding: 6px 4px; }
+.album-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.album-upload-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.album-loeschen-btn { background: none; border: 1px solid var(--linie); color: var(--akzent-hell); border-radius: 8px;
+  padding: 8px 12px; min-height: 40px; cursor: pointer; font-family: inherit; font-size: 13px; }
+.album-detail-beschr { color: var(--text-dim); font-size: 13px; margin-bottom: 10px; }
+.album-upload-status { text-align: center; color: var(--text-dim); font-size: 13px; padding: 6px; }
+.album-medien-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.album-medium { position: relative; aspect-ratio: 1/1; border-radius: 8px; overflow: hidden; background: var(--bg-soft); border: 1px solid var(--linie); }
+.album-medium-inhalt { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+.album-medium-inhalt img, .album-medium-inhalt video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-play { position: absolute; color: #fff; font-size: 26px; text-shadow: 0 1px 4px rgba(0,0,0,0.6); pointer-events: none; }
+.album-medium-del { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); color: #fff; border: none; cursor: pointer; font-size: 16px; line-height: 1; }
 
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks
