@@ -14,6 +14,21 @@ const ANON_KEY       = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@familyroots.club>";
+
+// HTML -> lesbarer Klartext für den text/plain-Teil (Links als "Text: URL").
+// multipart/alternative statt HTML-only -> besseres Zustell-/Spamverhalten.
+function htmlZuText(html: string): string {
+  return html
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gis, "$2: $1")
+    .replace(/<\/(p|div|h[1-6]|tr|li)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+/g, " ")
+    .split("\n").map((z) => z.trim()).join("\n")
+    .trim();
+}
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://familyroots.club/stammbaum.html";
 
 const CORS = {
@@ -97,7 +112,7 @@ async function sendMail(to: string, subject: string, html: string) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: MAIL_FROM, to: empfaenger, subject, html }),
+    body: JSON.stringify({ from: MAIL_FROM, to: empfaenger, subject, html, text: htmlZuText(html) }),
   });
   if (!r.ok) console.error("Resend-Fehler:", await r.text());
 }

@@ -27,6 +27,21 @@ const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const MAIL_FROM      = Deno.env.get("MAIL_FROM") ?? "FamilyRoots <support@familyroots.club>";
+
+// HTML -> lesbarer Klartext für den text/plain-Teil (Links als "Text: URL").
+// multipart/alternative statt HTML-only -> besseres Zustell-/Spamverhalten.
+function htmlZuText(html: string): string {
+  return html
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gis, "$2: $1")
+    .replace(/<\/(p|div|h[1-6]|tr|li)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+/g, " ")
+    .split("\n").map((z) => z.trim()).join("\n")
+    .trim();
+}
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://familyroots.club/stammbaum.html";
 const CRON_SECRET    = Deno.env.get("CRON_SECRET") ?? "";
 
@@ -124,7 +139,7 @@ const json = (obj: unknown, status = 200) =>
   });
 
 // Resend-Batch: bis zu 100 Mails in EINEM API-Call (rate-limit-schonend).
-async function resendBatch(mails: Array<{ from: string; to: string[]; subject: string; html: string }>) {
+async function resendBatch(mails: Array<{ from: string; to: string[]; subject: string; html: string; text: string }>) {
   const r = await fetch("https://api.resend.com/emails/batch", {
     method: "POST",
     headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
@@ -158,6 +173,7 @@ Deno.serve(async (req) => {
       const res = await resendBatch([{
         from: MAIL_FROM, to: [testEmail],
         subject: "[TEST] FamilyRoots – neue Web-Adresse (alle 5 Sprachen)", html,
+        text: htmlZuText(html),
       }]);
       return json({ ok: res.ok, modus: "test", mails: 1, sprachen: SPRACHEN.length, an: testEmail,
                     fehler: res.ok ? undefined : res.text });
@@ -180,7 +196,7 @@ Deno.serve(async (req) => {
         const m = baueMail(e.sprache ?? "de", e.name);
         // Echtlauf geht IMMER an die echte Adresse (Vorschau nur über {"test":true} an TEST_EMAIL)
         // -> kein Footgun, dass bei gesetztem TEST_EMAIL alle als "gesendet" markiert werden.
-        return { from: MAIL_FROM, to: [e.email], subject: m.subject, html: m.html };
+        return { from: MAIL_FROM, to: [e.email], subject: m.subject, html: m.html, text: htmlZuText(m.html) };
       });
       const res = await resendBatch(mails);
       if (res.ok) {
