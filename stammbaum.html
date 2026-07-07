@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.27">
+<meta name="app-version" content="14.28">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.27">
+<link rel="stylesheet" href="stammbaum.css?v=14.28">
 </head>
 <body>
 
@@ -2553,14 +2553,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.27"></script>
+<script src="i18n.js?v=14.28"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.27"></script>
-<script src="chat.js?v=14.27"></script>
-<script src="rezepte_pool.js?v=14.27"></script>
+<script src="pdf_export.js?v=14.28"></script>
+<script src="chat.js?v=14.28"></script>
+<script src="rezepte_pool.js?v=14.28"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -8657,7 +8657,17 @@ function tippAuswahl(container, selector, handler) {
   });
   container.addEventListener('pointerup', (e) => {
     const ziel = e.target.closest(selector);
-    if (item && ziel === item && !moved) { e.preventDefault(); handler(item); }
+    if (item && ziel === item && !moved) {
+      e.preventDefault();
+      // Ghost-Click unterdrücken: der ~300 ms später synthetisierte click landet sonst HINTER
+      // dem (durch handler bereits geschlossenen) Panel/Sheet und triggert z. B. zeigeDetails
+      // einer fremden Personenkarte darunter (nur mobil sichtbar). Genau EINEN folgenden click
+      // kapern; Fallback-Timeout entfernt den Wächter, falls gar kein click kommt (Maus/Abbruch).
+      const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      document.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 500);
+      handler(item);
+    }
     item = null;
   });
   container.addEventListener('pointercancel', () => { item = null; });   // Scroll-Übernahme -> kein Select
