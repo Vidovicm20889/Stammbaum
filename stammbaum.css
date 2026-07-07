@@ -264,6 +264,13 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .login-hinweis-btn.sekundaer:hover { background: var(--gold); color: var(--paper); }
 /* Dezenter Hilfetext unter einem Formularfeld (z. B. Stammbaum-Zusatz-Erklärung) */
 .feld-hinweis { display: block; margin-top: 4px; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+/* Spam-Ordner-Hinweis bei E-Mail-Versand (Registrierung, Passwort-Reset, Einladungen, Bestätigungs-Dialoge) */
+.spam-hinweis {
+  display: block; margin-top: 8px; padding: 7px 10px;
+  font-size: 12.5px; line-height: 1.45; color: var(--text-dim);
+  background: rgba(156,124,60,0.10);
+  border: 1px solid var(--gold); border-radius: 6px;
+}
 /* Zwei nebeneinanderliegende Felder (z. B. Name + Zusatz): Beschriftung auf 2 Zeilen
    reservieren, damit die Eingabefelder auf GLEICHER Höhe starten, auch wenn ein Label
    umbricht und das andere nicht. Nur im 2-spaltigen Desktop-Layout. */
