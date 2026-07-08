@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.35">
+<meta name="app-version" content="14.36">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.35">
+<link rel="stylesheet" href="stammbaum.css?v=14.36">
 </head>
 <body>
 
@@ -2683,13 +2683,13 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.35"></script>
+<script src="i18n.js?v=14.36"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.35"></script>
-<script src="chat.js?v=14.35"></script>
+<script src="pdf_export.js?v=14.36"></script>
+<script src="chat.js?v=14.36"></script>
 <script src="rezepte_pool.js?v=14.34"></script>
 <script>
 // ============================================================
@@ -9099,6 +9099,7 @@ function datumFeldUngueltig(id) {
 }
 
 let dpPanel, dpAktivInput = null, dpJahr, dpMonat, dpRaf = null, dpModus = 'tage';
+const DP_MIN_JAHR = 1000;     // Untergrenze der Kalender-Jahresliste (Genealogie reicht weit zurück)
 let dpPraezision = 'exakt';   // 'exakt' (TT.MM.JJJJ) | 'jahr' (nur Jahr) | 'circa' (≈ Jahr)
 
 function dpInitPanel() {
@@ -9112,11 +9113,11 @@ function dpInitPanel() {
       '<button type="button" class="dp-praez-btn" data-praez="circa"></button>' +
     '</div>' +
     '<div class="dp-head">' +
-      '<button type="button" class="dp-nav" data-step="-12">«</button>' +
-      '<button type="button" class="dp-nav" data-step="-1">‹</button>' +
+      '<button type="button" class="dp-nav" data-step="-12" data-yjump="-100">«</button>' +
+      '<button type="button" class="dp-nav" data-step="-1" data-yjump="-10">‹</button>' +
       '<button type="button" class="dp-title" title=""></button>' +
-      '<button type="button" class="dp-nav" data-step="1">›</button>' +
-      '<button type="button" class="dp-nav" data-step="12">»</button>' +
+      '<button type="button" class="dp-nav" data-step="1" data-yjump="10">›</button>' +
+      '<button type="button" class="dp-nav" data-step="12" data-yjump="100">»</button>' +
     '</div>' +
     '<div class="dp-weekdays"></div><div class="dp-grid"></div>' +
     '<div class="dp-years" style="display:none"></div>' +
@@ -9126,7 +9127,13 @@ function dpInitPanel() {
   dpPanel.querySelectorAll('.dp-praez-btn').forEach(b =>
     b.addEventListener('click', e => { e.preventDefault(); dpSetzePraezision(b.dataset.praez); }));
   dpPanel.querySelectorAll('.dp-nav').forEach(b =>
-    b.addEventListener('click', e => { e.preventDefault(); dpVerschiebe(+b.dataset.step); }));
+    b.addEventListener('click', e => {
+      e.preventDefault();
+      // Jahresmodus (nur Jahr / circa / 2-Klick-Jahr): Pfeile springen Jahre; sonst Monate.
+      const jahrModus = (dpPraezision !== 'exakt') || (dpModus === 'jahre');
+      if (jahrModus) dpJahrSprung(+b.dataset.yjump);
+      else dpVerschiebe(+b.dataset.step);
+    }));
   // Klick auf den Titel (Monat Jahr) -> Jahres-Schnellauswahl ein/aus (2-Klick-Jahr).
   dpPanel.querySelector('.dp-title').addEventListener('click', e => { e.preventDefault(); dpModusUmschalten(); });
   // Klick auf ein Jahr in der Schnellauswahl -> Jahr übernehmen, zurück zur Tagesansicht.
@@ -9156,13 +9163,24 @@ function dpVerschiebe(monate) {
   dpRender();
 }
 
+// Jahres-Sprung im Jahresmodus (Kopf-Pfeile −100/−10/+10/+100): bewegt nur den Jahres-Cursor
+// (Auswahl erst per Klick auf ein Jahr). Untergrenze 100 (JS-Date-2-stellig-Falle), Obergrenze heute+5.
+function dpJahrSprung(delta) {
+  const maxJ = new Date().getFullYear() + 5;
+  dpJahr = Math.max(100, Math.min(dpJahr + delta, maxJ));
+  const titel = dpPanel && dpPanel.querySelector('.dp-title'); if (titel) titel.textContent = String(dpJahr);
+  dpRenderJahre();      // Liste neu (erweitert Untergrenze bei Bedarf), aktives Jahr = Cursor
+  dpScrolleZuJahr();    // zum Cursor scrollen (nur den Listen-Container, nicht den Viewport)
+}
+
 // Jahres-Schnellauswahl: scrollbare Liste (neueste oben), aktives Jahr hervorgehoben.
-// Bereich = aktuelles Jahr +5 bis −120 (bei bereits gesetztem Alt-/Zukunftsjahr entsprechend erweitert).
+// Bereich = aktuelles Jahr +5 bis hinunter zu DP_MIN_JAHR (1000) — genealogische Bäume reichen
+// weit zurück (Nutzer bis ~1600); ein bereits gesetztes noch älteres Jahr erweitert den Bereich.
 function dpRenderJahre() {
   const cont = dpPanel.querySelector('.dp-years'); if (!cont) return;
   const jetzt = new Date().getFullYear();
   const hi = Math.max(jetzt + 5, dpJahr + 5);
-  const lo = Math.min(jetzt - 120, dpJahr - 5);
+  const lo = Math.min(DP_MIN_JAHR, dpJahr - 5);
   let html = '';
   for (let y = hi; y >= lo; y--) {
     html += '<button type="button" class="dp-year' + (y === dpJahr ? ' active' : '') + '" data-jahr="' + y + '">' + y + '</button>';
@@ -9201,8 +9219,12 @@ function dpRender() {
   const titel = dpPanel.querySelector('.dp-title');
   titel.textContent = jahrModus ? String(dpJahr) : (kal.monate[dpMonat] + ' ' + dpJahr);
   titel.classList.toggle('dp-title-aktiv', jahrModus && dpPraezision === 'exakt');
-  // Ansichten umschalten: Monats-Navigation/Wochentage/Tage <-> Jahresliste
-  dpPanel.querySelectorAll('.dp-nav').forEach(b => b.style.visibility = jahrModus ? 'hidden' : '');
+  // Ansichten umschalten: Monats-Navigation/Wochentage/Tage <-> Jahresliste.
+  // Kopf-Pfeile bleiben in BEIDEN Modi sichtbar: im Jahresmodus springen sie Jahre (Tooltip = ±Jahre).
+  dpPanel.querySelectorAll('.dp-nav').forEach(b => {
+    b.style.visibility = '';
+    b.title = jahrModus ? ((+b.dataset.yjump > 0 ? '+' : '') + b.dataset.yjump) : '';
+  });
   dpPanel.querySelector('.dp-weekdays').style.display = jahrModus ? 'none' : '';
   dpPanel.querySelector('.dp-grid').style.display = jahrModus ? 'none' : '';
   dpPanel.querySelector('.dp-years').style.display = jahrModus ? '' : 'none';
