@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.36">
+<meta name="app-version" content="14.37">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.22">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.22">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.37">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.37">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.36">
+<link rel="stylesheet" href="stammbaum.css?v=14.37">
 </head>
 <body>
 
@@ -1000,7 +1000,9 @@
       </div>
     </div>
 
-    <!-- Nur Name als Kerndatum; Geburtsdaten/Kontakt füllt der Nutzer später im Profil (ab v14.34). -->
+    <!-- Name + Geburtsdatum als Kerndaten. Geburtsdatum (optional, „nur Jahr" reicht) macht die
+         eigene Karte bei fremden Familien auffindbar (Discovery verlangt beweisbare Volljaehrigkeit,
+         Kinderschutz); leer = spaeter im Profil nachtragbar. Weitere Kontaktdaten kommen ins Profil. -->
     <div class="reg-gruppe-titel" data-i18n="reg_personendaten"></div>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="reg_vorname"></span>
@@ -1008,6 +1010,9 @@
       </label>
       <label class="login-label"><span data-i18n="reg_nachname"></span>
         <input type="text" id="reg-nachname" class="login-feld">
+      </label>
+      <label class="login-label"><span data-i18n="reg_geburtsdatum"></span>
+        <input type="text" id="reg-geburtsdatum" class="login-feld dp-input" autocomplete="off">
       </label>
     </div>
 
@@ -1806,6 +1811,12 @@
           <button type="button" class="fe-logo-opt" data-logo="wappen"   onclick="feLogoWaehle('wappen')"><span data-i18n="fe_wappen"></span></button>
         </div>
         <span class="feld-hinweis" data-i18n="fe_logo_hint"></span>
+      </div>
+      <!-- Karten-Felder: welche Personendaten auf den Baumkarten dieses Stammbaums erscheinen -->
+      <div class="login-label reg-feld-voll">
+        <span data-i18n="prof_kartenfelder"></span>
+        <span class="feld-hinweis" data-i18n="prof_kartenfelder_hint"></span>
+        <div class="kartenfelder-liste" id="fe-kartenfelder"></div>
       </div>
 
       <!-- Kontaktinformationen -->
@@ -2683,14 +2694,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.36"></script>
+<script src="i18n.js?v=14.37"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.36"></script>
-<script src="chat.js?v=14.36"></script>
-<script src="rezepte_pool.js?v=14.34"></script>
+<script src="pdf_export.js?v=14.37"></script>
+<script src="chat.js?v=14.37"></script>
+<script src="rezepte_pool.js?v=14.37"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -6313,6 +6324,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   const erfolgEl = document.getElementById('fe-erfolg');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
   feMedia = {}; feMediaOld = {}; feLogoWahl = 'standard'; feLogoSyncUI();
+  fuelleFeKartenfelder(null, false);   // Karten-Feldwahl zurücksetzen (Default), bis geladen
 
   // Felder leeren + Länder-Dropdown füllen
   fuelleLandSelect('fe-land');
@@ -6354,6 +6366,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   ['foto','wappen'].forEach(a => feMediaPreview(a));
   feLogoWahl = (e.logo === 'foto' || e.logo === 'wappen') ? e.logo : 'standard';
   feLogoSyncUI();
+  fuelleFeKartenfelder(e.kartenfelder, !d.can_edit);   // Karten-Feldwahl des Baums
 
   feSetReadonly(!d.can_edit);
   feFuelleOwnerSektion(stammbaumId);   // Familien-Owner-Verwaltung (NUR Super-Admin)
@@ -6669,6 +6682,21 @@ async function feMediaCleanup() {
   if (weg.length) { try { await sbClient.storage.from('familien').remove(weg); } catch (e) { console.warn('feMediaCleanup:', e); } }
 }
 
+// Karten-Feldwahl des Baums als Checkbox-Liste (Vor-/Nachname immer an, nicht wählbar).
+// aktivArr = gespeicherte Keys (undefined -> Standard-Set); readonly blendet die Bedienung aus.
+function fuelleFeKartenfelder(aktivArr, readonly) {
+  const box = document.getElementById('fe-kartenfelder');
+  if (!box) return;
+  const set = Array.isArray(aktivArr) ? new Set(aktivArr) : kartenfelderStandardSet();
+  const dis = readonly ? 'disabled' : '';
+  const fest = `<label class="kf-opt kf-fest"><input type="checkbox" checked disabled><span data-i18n="kf_name">${escapeHtml(t('kf_name'))}</span></label>`;
+  const rest = KARTEN_FELDER.map(f => {
+    const an = set.has(f.key) ? 'checked' : '';
+    return `<label class="kf-opt"><input type="checkbox" data-kf="${f.key}" ${an} ${dis}><span data-i18n="kf_${f.key}">${escapeHtml(t('kf_' + f.key))}</span></label>`;
+  }).join('');
+  box.innerHTML = fest + rest;
+}
+
 function feSammleEinstellungen() {
   const v = id => (document.getElementById(id).value || '').trim();
   const o = {};
@@ -6681,6 +6709,10 @@ function feSammleEinstellungen() {
   if (feLogoWahl === 'foto'   && feMedia.foto_url)   o.logo = 'foto';
   else if (feLogoWahl === 'wappen' && feMedia.wappen_url) o.logo = 'wappen';
   // sonst kein logo-Feld -> Standard (App-Logo)
+  // Karten-Feldwahl (immer schreiben, auch leer = „nur Name" -> unterscheidbar vom Default)
+  const kf = [];
+  document.querySelectorAll('#fe-kartenfelder input[data-kf]:checked').forEach(el => kf.push(el.getAttribute('data-kf')));
+  o.kartenfelder = kf;
   return o;
 }
 
@@ -7572,6 +7604,8 @@ function zeigeHinweis(text, spamHinweis) {
 function regFelderLeeren() {
   ['reg-email','reg-baum-name','reg-land','reg-stadt','reg-gemeinde','reg-vorname','reg-nachname']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const geb = document.getElementById('reg-geburtsdatum');   // dp-input sauber leeren (inkl. dataset)
+  if (geb) datumSetzen(geb, '');
   document.getElementById('reg-familie').value = '';
   const wahlBeitreten = document.querySelector('input[name="reg-match-wahl"][value="beitreten"]');
   if (wahlBeitreten) wahlBeitreten.checked = true;   // Standard-Auswahl zurücksetzen
@@ -7696,7 +7730,10 @@ async function regNeueFamilieAnlegen() {
     sprache: aktuelleSprache,
     person: {
       vorname:  val('reg-vorname')  || null,
-      nachname: val('reg-nachname') || familie_name
+      nachname: val('reg-nachname') || familie_name,
+      // Geburtsdatum optional (kanonisch: ISO / „JJJJ" / „~JJJJ"). Macht die eigene Karte bei
+      // fremden Familien auffindbar (Discovery-Volljaehrigkeitspruefung). Leer = null.
+      geburtsdatum: datumWert(document.getElementById('reg-geburtsdatum')) || null
     }
   };
 
@@ -8249,6 +8286,7 @@ async function ladeBaumAusSupabase() {
   stammbaeumeZusatz = {};
   stammbaumZuFamilie = {};
   stammbaumLogo = {};
+  stammbaumKartenfelder = {};
   (sRes.data || []).forEach(s => {
     stammbaeumeListe[s.id] = s.name;
     if (s.zusatz && String(s.zusatz).trim()) stammbaeumeZusatz[s.id] = String(s.zusatz).trim();
@@ -8257,6 +8295,8 @@ async function ladeBaumAusSupabase() {
     const e = s.einstellungen || {};
     if (e.logo === 'foto'   && e.foto_url)   stammbaumLogo[s.id] = e.foto_url;
     else if (e.logo === 'wappen' && e.wappen_url) stammbaumLogo[s.id] = e.wappen_url;
+    // Karten-Feldwahl des Baums (welche Personendaten auf den Karten erscheinen)
+    if (Array.isArray(e.kartenfelder)) stammbaumKartenfelder[s.id] = e.kartenfelder;
   });
   const rows = pRes.data || [];
   if (rows.length === 0) return null;   // nicht eingeloggt / keine Sichtbarkeit -> Fallback
@@ -8970,6 +9010,52 @@ const KALENDER = {
 // (en '/', sonst '.'); der Parser akzeptiert . / - UND trennerlos (8 Ziffern).
 let datumsFormat = (localStorage.getItem('vidovic_datumsformat') === 'mtj') ? 'mtj' : 'tmj';
 function datumTrenner(lang) { return ((lang || aktuelleSprache) === 'en') ? '/' : '.'; }
+
+// ============================================================
+// KONFIGURIERBARE KARTEN-FELDER (PER STAMMBAUM): welche Personendaten auf den Baumkarten erscheinen.
+// Vorname + Nachname immer; die übrigen Felder wählbar in den Familieneinstellungen (nur Bearbeiter),
+// gilt für ALLE Karten des Baums. Speicherung in stammbaeume.einstellungen.kartenfelder. Reine
+// Anzeige-Wahl — kein neuer Datenzugriff (alle Felder sind in der Detailkarte ohnehin sichtbar).
+// Zeilen-Text sprachneutral über Symbole → nur die Setting-Checkboxen brauchen i18n (kf_*).
+// ============================================================
+const KARTEN_FELDER = [
+  { key: 'ehename',      standard: true,  wert: p => { const mn = nm((p.ehename || '').trim()); return mn ? '(' + (mn.length > 16 ? mn.substring(0, 15) + '…' : mn) + ')' : null; }, klasse: 'maiden-text' },
+  { key: 'geburtsdatum', standard: true,  wert: p => p.birth_date ? '* ' + formatDatumLang(p.birth_date) : null, klasse: 'daten-text' },
+  { key: 'sterbedatum',  standard: true,  wert: p => (p.deceased || p.death_date) ? '† ' + (formatDatumLang(p.death_date) || '?') : null, klasse: 'daten-text' },
+  { key: 'geschlecht',   standard: false, wert: p => p.sex === 'M' ? '♂' : (p.sex === 'F' ? '♀' : null), klasse: 'daten-text' },
+  { key: 'geburtsort',   standard: false, wert: p => p.birth_place ? '📍 ' + nm(String(p.birth_place)) : null, klasse: 'daten-text' },
+  { key: 'sterbeort',    standard: false, wert: p => p.death_place ? '🪦 ' + nm(String(p.death_place)) : null, klasse: 'daten-text' },
+  { key: 'hochzeit',     standard: false, wert: p => { const h = p.hochzeit_standesamt || p.hochzeit_kirchlich; return h ? '💍 ' + formatDatumLang(h) : null; }, klasse: 'daten-text' },
+  { key: 'hochzeitsort', standard: false, wert: p => p.hochzeitsort ? '💒 ' + nm(String(p.hochzeitsort)) : null, klasse: 'daten-text' },
+  { key: 'beruf',        standard: false, wert: p => p.beruf ? '💼 ' + nm(String(p.beruf)) : null, klasse: 'daten-text' },
+  { key: 'telefon',      standard: false, wert: p => p.telefon ? '📞 ' + String(p.telefon) : null, klasse: 'daten-text' },
+  { key: 'email',        standard: false, wert: p => p.email ? '✉ ' + String(p.email) : null, klasse: 'daten-text' },
+];
+function kartenfelderStandardSet() { return new Set(KARTEN_FELDER.filter(f => f.standard).map(f => f.key)); }
+// PER STAMMBAUM (nicht per Nutzer): die Feldwahl liegt in stammbaeume.einstellungen.kartenfelder
+// und gilt für ALLE Karten des Baums. stammbaumKartenfelder (treeId -> Array Keys) wird in
+// ladeBaumAusSupabase aus den Einstellungen befüllt (analog stammbaumLogo). Bearbeitbar in den
+// Familieneinstellungen (nur can_edit). Kein localStorage/Profil mehr.
+let stammbaumKartenfelder = {};
+function aktiveKartenfelder() {
+  const arr = aktuellerStammbaumId && stammbaumKartenfelder[aktuellerStammbaumId];
+  return Array.isArray(arr) ? new Set(arr) : kartenfelderStandardSet();
+}
+
+// Globale, aus der Feldwahl des AKTIVEN Baums abgeleitete Kartengeometrie (per Render einmal
+// berechnet — die Wahl gilt für alle Karten des Baums gleich, also EINHEITLICHE Höhe).
+const KARTE_LH = 15;               // Zeilenhöhe
+let KARTE_HALB = 38;               // halbe Kartenhöhe (dynamisch)
+let KARTE_ROWH_EXTRA = 0;          // Aufschlag auf den Reihenabstand, wenn die Karte höher wird
+let KARTE_FELDER_AKTIV = kartenfelderStandardSet();   // im Render genutztes Set (aus aktiveKartenfelder)
+function aktualisiereKartenGeometrie() {
+  KARTE_FELDER_AKTIV = aktiveKartenfelder();
+  const zusatz = KARTEN_FELDER.filter(f => KARTE_FELDER_AKTIV.has(f.key)).length;   // aktivierte Zusatzzeilen
+  const zeilen = 2 + zusatz;         // Vorname + Nachname + je aktiviertem Feld eine Zeile
+  const h = Math.max(76, zeilen * KARTE_LH + 16);
+  KARTE_HALB = Math.round(h / 2);
+  KARTE_ROWH_EXTRA = Math.max(0, 2 * KARTE_HALB - 76);
+}
 const DATUM_BUCHST = {
   de: { t: 'TT', m: 'MM', j: 'JJJJ' }, sr: { t: 'DD', m: 'MM', j: 'GGGG' },
   hr: { t: 'DD', m: 'MM', j: 'GGGG' }, ba: { t: 'DD', m: 'MM', j: 'GGGG' },
@@ -20055,6 +20141,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
   // (zeigeStandardAnsicht/zeigeErweitertAnsicht/voll/zweig → zeichneGraph2), NICHT mehr hier.
   // Der frühere `zeichneGraph`-Pfad (v12.7, fehlerhafte Darstellung) wird bewusst nicht mehr
   // aufgerufen.
+  aktualisiereKartenGeometrie();   // Kartenhöhe/Reihenabstand aus der aktuellen Feldwahl
   baumG.selectAll('*').remove();
 
   const wurzel = baueBaumDaten(rootPersonId, tiefeUnten, tiefeOben, opts);
@@ -20072,9 +20159,9 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
   
   // Reingold-Tilford via d3.tree().
   // nodeSize[0]=370: Pärchen-Breite (2×152 + Versatz ≈ 310) + Puffer → kein Überlapp.
-  // nodeSize[1]=170: vertikaler Abstand passend zur höheren Karte (76px).
+  // nodeSize[1]: vertikaler Abstand passend zur (dynamischen) Kartenhöhe (Basis 170 bei 76px-Karte).
   const treeLayout = d3.tree()
-    .nodeSize([370, 170])
+    .nodeSize([370, 170 + KARTE_ROWH_EXTRA])
     .separation((a, b) => a.parent === b.parent ? 1.0 : 1.4);
   const wurzelNode = d3.hierarchy(wurzel);
   treeLayout(wurzelNode);
@@ -20189,7 +20276,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
 
 // Orthogonale T-Verbindungen: Eltern → Sammellinie → Kinder (kein Bezier, keine Diagonalen).
 function zeichneVerbindungen(wurzelNode) {
-  const HH = 38; // halbe Kartenhöhe (Box 76px)
+  const HH = KARTE_HALB; // halbe Kartenhöhe (dynamisch nach Feldwahl)
 
   // Links nach (Eltern-ID + FamilienIndex) gruppieren
   const gruppen = new Map();
@@ -20308,27 +20395,25 @@ function zeichneKnotenBox(g, p, xOffset, istFokus, istBlutlinie) {
     .style('cursor', 'pointer')
     .on('click', () => zeigeDetails(p.id));
 
-  // Karte: 130×60 px
-  // Karte: 152×76 px (Mitte = 0,0)
+  // Karte: 152 px breit, HÖHE dynamisch (2*KARTE_HALB) nach der Nutzer-Feldwahl (Mitte = 0,0).
+  const HALB = KARTE_HALB;
   box.append('rect')
-    .attr('x', -76).attr('y', -38)
-    .attr('width', 152).attr('height', 76)
+    .attr('x', -76).attr('y', -HALB)
+    .attr('width', 152).attr('height', 2 * HALB)
     .attr('rx', 6);
 
-  // Zeilen aufbauen: Vorname (umbruchfähig), Nachname (umbruchfähig), Mädchenname (eigene
-  // Zeile, kursiv), Geburts-/Sterbedatum. Boxfeste Schrift -> sinnvolle Umbrüche statt "…".
+  // Zeilen: Vorname + Nachname (immer, umbruchfähig), dann die AKTIVIERTEN Zusatzfelder in
+  // Katalog-Reihenfolge (leere Werte werden übersprungen). Boxfeste Schrift -> Umbrüche statt "…".
   const zeilen = [];
   umbrucheNamen(nm(p.given || '?'), 17).forEach(l => zeilen.push({ t: l, c: 'name-text' }));
   const sn = nm(p.surname || '');
   if (sn) umbrucheNamen(sn, 18).forEach(l => zeilen.push({ t: l, c: 'name-text' }));
-  const mn = nm((p.ehename || '').trim());   // Mädchenname (Djevojačko prezime), optional
-  if (mn) zeilen.push({ t: '(' + (mn.length > 16 ? mn.substring(0, 15) + '…' : mn) + ')', c: 'maiden-text' });
-  if (p.birth_date || p.death_date) {
-    let dat = p.birth_date ? '* ' + formatDatumLang(p.birth_date) : '';
-    if (p.deceased || p.death_date) dat += (dat ? '  ' : '') + '† ' + (formatDatumLang(p.death_date) || '?');
-    zeilen.push({ t: dat, c: 'daten-text' });
-  }
-  const LH = 15;
+  KARTEN_FELDER.forEach(f => {
+    if (!KARTE_FELDER_AKTIV.has(f.key)) return;
+    const val = f.wert(p);
+    if (val) zeilen.push({ t: val, c: f.klasse });
+  });
+  const LH = KARTE_LH;
   const startY = -((zeilen.length - 1) * LH) / 2;
   zeilen.forEach((z, i) => {
     box.append('text').attr('class', z.c)
@@ -20349,10 +20434,10 @@ function zeichneKnotenBox(g, p, xOffset, istFokus, istBlutlinie) {
 // zeichneBaumNeu aktualisiert die Tooltips.
 function karteRandPlus(box, p) {
   const punkte = [
-    { x: 0,   y: -38, typ: 'elternteil',  pos: 'oben'   },
-    { x: 0,   y: 38,  typ: 'kind',        pos: 'unten'  },
-    { x: 76,  y: 0,   typ: 'partner',     pos: 'rechts' },
-    { x: -76, y: 0,   typ: 'geschwister', pos: 'links'  },
+    { x: 0,   y: -KARTE_HALB, typ: 'elternteil',  pos: 'oben'   },
+    { x: 0,   y: KARTE_HALB,  typ: 'kind',        pos: 'unten'  },
+    { x: 76,  y: 0,           typ: 'partner',     pos: 'rechts' },
+    { x: -76, y: 0,           typ: 'geschwister', pos: 'links'  },
   ];
   const grp = box.append('g').attr('class', 'knoten-plus-gruppe');
   punkte.forEach(pt => {
@@ -21066,6 +21151,7 @@ function graphBlutScope(model, treeId, startCanon) {
 }
 
 function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
+  aktualisiereKartenGeometrie();   // Kartenhöhe/Reihenabstand aus der aktuellen Feldwahl
   baumG.selectAll('*').remove();
   if (!aktuelleDaten.persons[rootPersonId]) return;
 
@@ -21168,18 +21254,19 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   // Kanten-Offsets HH/RH) werden mit VZ multipliziert → die gesamte Zeichnung wird konsistent
   // gespiegelt (Karten bleiben aufrecht, Verbindungen bleiben verbunden).
   const VZ = (baumOrient === 'oben') ? 1 : -1;
-  const HH = G2_HH * VZ, RH = G2_ROWH * VZ;
+  // Halbe Kartenhöhe + Reihenabstand DYNAMISCH nach der Nutzer-Feldwahl (aktualisiereKartenGeometrie).
+  const HH = KARTE_HALB * VZ, ROWH_DYN = G2_ROWH + KARTE_ROWH_EXTRA, RH = ROWH_DYN * VZ;
 
   // ── Tidy-Layout je Richtung (d3.tree); beide an der Fokusperson (0,0) ausgerichtet ──
   const dh = d3.hierarchy(descRoot, d => d.children);
-  d3.tree().nodeSize([370, G2_ROWH]).separation((a, b) => a.parent === b.parent ? 1.0 : 1.35)(dh);
+  d3.tree().nodeSize([370, ROWH_DYN]).separation((a, b) => a.parent === b.parent ? 1.0 : 1.35)(dh);
   const dShift = -dh.x;
   dh.each(d => { d.x += dShift; d.y *= VZ; });   // y: Nachkommen in Richtung VZ
 
   const ah = d3.hierarchy(ancRoot, d => d.children);
   // nodeSize[0]=162 → die zwei Eltern eines Kindes (gleicher Parent in der Hierarchie) stehen
   // als Paar ENG (≈ Partner-Versatz); verschiedene Elternpaare großzügig getrennt (separation).
-  d3.tree().nodeSize([162, G2_ROWH]).separation((a, b) => a.parent === b.parent ? 1.0 : 2.2)(ah);
+  d3.tree().nodeSize([162, ROWH_DYN]).separation((a, b) => a.parent === b.parent ? 1.0 : 2.2)(ah);
   const aShift = -ah.x;
   ah.each(a => { a.x += aShift; a.y = -a.y * VZ; });   // Vorfahren entgegen VZ; Wurzel(Fokus) bei 0
 
