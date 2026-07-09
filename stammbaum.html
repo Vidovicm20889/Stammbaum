@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.39">
+<meta name="app-version" content="14.40">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.39">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.39">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.40">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.40">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.39">
+<link rel="stylesheet" href="stammbaum.css?v=14.40">
 </head>
 <body>
 
@@ -1522,7 +1522,7 @@
 
     <div class="reg-gruppe-titel" data-i18n="pa_beziehung_titel"></div>
     <label class="login-label reg-feld-voll pflicht"><span data-i18n="pa_beziehungstyp"></span>
-      <select id="pa-beziehungstyp" class="login-feld" onchange="paPruefeFelder()">
+      <select id="pa-beziehungstyp" class="login-feld" onchange="paTypGewechselt()">
         <option value="" data-i18n="bzt_waehlen"></option>
         <option value="kind" data-i18n="bzt_kind"></option>
         <option value="elternteil" data-i18n="bzt_elternteil"></option>
@@ -2047,16 +2047,9 @@
     <button class="modal-schliessen" onclick="schliesseEntdecken()">×</button>
     <h2 data-i18n="ent_titel"></h2>
     <p class="sub-name" data-i18n="ent_untertitel"></p>
-    <!-- Umschalter: eigener Verbund (normale Suche) vs. andere Familien (Discovery) -->
-    <div class="ent-modus" style="display:flex;gap:8px;margin:10px 0">
-      <button type="button" class="mv-toggle ent-modus-btn aktiv" id="ent-modus-verbund"
-              data-i18n="ent_modus_verbund" onclick="entdeckenModusSetzen('verbund')"></button>
-      <button type="button" class="mv-toggle ent-modus-btn" id="ent-modus-extern"
-              data-i18n="ent_modus_extern" onclick="entdeckenModusSetzen('extern')"></button>
-    </div>
     <input type="text" class="login-feld" id="ent-suche" inputmode="search" autocomplete="off"
-           data-i18n-placeholder="ent_suche_ph" oninput="entdeckenSucheDebounce()">
-    <p class="mv-legende" id="ent-hinweis" style="margin-top:6px"></p>
+           data-i18n-placeholder="ent_suche_ph" oninput="entdeckenSucheDebounce()" style="margin-top:10px">
+    <p class="mv-legende" id="ent-hinweis" data-i18n="ent_hint_alle" style="margin-top:6px"></p>
     <div id="ent-liste" class="benachr-liste" style="margin-top:8px"></div>
   </div>
 </div>
@@ -2694,14 +2687,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.39"></script>
+<script src="i18n.js?v=14.40"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.39"></script>
-<script src="chat.js?v=14.39"></script>
-<script src="rezepte_pool.js?v=14.39"></script>
+<script src="pdf_export.js?v=14.40"></script>
+<script src="chat.js?v=14.40"></script>
+<script src="rezepte_pool.js?v=14.40"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -5189,71 +5182,82 @@ function schliessePrivatnost() { document.getElementById('privatnost-modal').cla
 //  Modus 'extern'  = Discovery in ANDEREN Familien (personen_entdecken, 4 Minimalfelder)
 //                    + Kontakt-/Baumzugriff-Anfragen (Instagram-Prinzip).
 // ============================================================
-let entdeckenModus = 'verbund';
 let entdeckenTimer = null;
 
 function oeffneEntdecken() {
   if (!aktuellerUser) return;
   track('entdecken_offnen');   // Analytik
   const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
-  entdeckenModus = 'verbund';
-  entdeckenModusUI();
   const inp = document.getElementById('ent-suche'); if (inp) inp.value = '';
   const liste = document.getElementById('ent-liste'); if (liste) liste.innerHTML = '';
-  entdeckenHinweis();
   document.getElementById('entdecken-modal').classList.add('aktiv');
   setTimeout(() => { try { inp && inp.focus(); } catch (e) {} }, 60);
 }
 function schliesseEntdecken() { document.getElementById('entdecken-modal').classList.remove('aktiv'); }
-
-function entdeckenModusSetzen(modus) {
-  entdeckenModus = (modus === 'extern') ? 'extern' : 'verbund';
-  entdeckenModusUI();
-  entdeckenHinweis();
-  entdeckenSuche();
-}
-function entdeckenModusUI() {
-  const a = document.getElementById('ent-modus-verbund');
-  const b = document.getElementById('ent-modus-extern');
-  if (a) a.classList.toggle('aktiv', entdeckenModus === 'verbund');
-  if (b) b.classList.toggle('aktiv', entdeckenModus === 'extern');
-}
-function entdeckenHinweis() {
-  const el = document.getElementById('ent-hinweis'); if (!el) return;
-  el.textContent = t(entdeckenModus === 'extern' ? 'ent_hint_extern' : 'ent_hint_verbund');
-}
 
 function entdeckenSucheDebounce() {
   clearTimeout(entdeckenTimer);
   entdeckenTimer = setTimeout(entdeckenSuche, 300);
 }
 
+// Sucht IMMER beides parallel: eigener Verbund (personen_suche, volle Daten) UND fremde Familien
+// (personen_entdecken, 4 Minimalfelder). Fehlertolerant je RPC — fällt eine aus, bleibt die andere.
 async function entdeckenSuche() {
   const q = (document.getElementById('ent-suche')?.value || '').trim();
   const box = document.getElementById('ent-liste'); if (!box) return;
   if (q.length < 2) { box.innerHTML = ''; return; }
   box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_laeuft'))}</div>`;
-  try {
-    if (entdeckenModus === 'extern') {
-      const { data, error } = await sbClient.rpc('personen_entdecken', { p_query: q, p_limit: 30 });
-      if (error) throw error;
-      entdeckenRenderExtern(data || []);
-    } else {
-      // eigener Verbund: zwei Präfix-Suchen (Vor-/Nachname) mergen — wie die bestehende Suche.
-      // Kyrillisch -> Latein, sonst kein Treffer (Daten lateinisch, merge_norm transliteriert nicht).
-      const qL = srCyr2Lat(q);
-      const [r1, r2] = await Promise.all([
-        sbClient.rpc('personen_suche', { p_vorname: qL, p_limit: 30 }),
-        sbClient.rpc('personen_suche', { p_nachname: qL, p_limit: 30 })
-      ]);
-      const seen = {}, merged = [];
-      [...(r1.data || []), ...(r2.data || [])].forEach(p => { if (!seen[p.id]) { seen[p.id] = 1; merged.push(p); } });
-      entdeckenRenderVerbund(merged);
-    }
-  } catch (e) {
-    console.warn('entdecken:', e);
-    box.innerHTML = `<div class="benachr-empty">${escapeHtml(socialFehler(e))}</div>`;
+  // Kyrillisch -> Latein (Daten lateinisch; merge_norm transliteriert nicht).
+  const qL = srCyr2Lat(q);
+  const fehl = e => ({ error: e });   // pro RPC abfangen, damit ein Fehler nicht die andere killt
+  const [r1, r2, rx] = await Promise.all([
+    sbClient.rpc('personen_suche', { p_vorname: qL, p_limit: 30 }).catch(fehl),
+    sbClient.rpc('personen_suche', { p_nachname: qL, p_limit: 30 }).catch(fehl),
+    sbClient.rpc('personen_entdecken', { p_query: q, p_limit: 30 }).catch(fehl)
+  ]);
+  const seen = {}, verbund = [];
+  [...(r1.data || []), ...(r2.data || [])].forEach(p => { if (!seen[p.id]) { seen[p.id] = 1; verbund.push(p); } });
+  entdeckenRenderKombiniert(verbund, rx.data || []);
+}
+
+// Gemischte Trefferliste: eigener Verbund zuerst (direkt öffnenbar), dann andere Familien
+// (nur Minimalfelder, Kontakt-/Baumzugriff-Anfrage). Kleine Gruppen-Überschriften trennen beide,
+// da sie sich unterschiedlich verhalten.
+function entdeckenRenderKombiniert(verbund, extern) {
+  const box = document.getElementById('ent-liste'); if (!box) return;
+  if (!verbund.length && !extern.length) { box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_keine'))}</div>`; return; }
+  let html = '';
+  if (verbund.length) {
+    html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_verbund'))}</div>`;
+    html += verbund.map(r => {
+      const jahr = r.birth_date ? (String(r.birth_date).match(/\d{4}/) || [''])[0] : '';
+      const sub = [r.baum ? nm(r.baum) : '', jahr ? '* ' + jahr : ''].filter(Boolean).join(' · ');
+      return `<div class="benachr-item gelesen" style="cursor:pointer"
+                   onclick="entdeckenOeffnePerson('${r.id}','${escapeHtml(String(r.baum_id || ''))}')">
+        ${entAvatar(r.name)}
+        <span class="bi-body">
+          <div class="bi-titel">${escapeHtml(nm(r.name || '—'))}</div>
+          <div class="bi-text">${escapeHtml(sub)}</div>
+        </span>
+      </div>`;
+    }).join('');
   }
+  if (extern.length) {
+    html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_extern'))}</div>`;
+    html += extern.map(r => `
+      <div class="benachr-item gelesen" style="cursor:default">
+        ${entAvatar(r.name, r.avatar_url)}
+        <span class="bi-body">
+          <div class="bi-titel">${escapeHtml(nm(r.name || '—'))}</div>
+          <div class="bi-text">${escapeHtml(nm(r.familienname || ''))}</div>
+          <div class="obav-aktionen" style="margin-top:8px">
+            <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','kontakt')">${escapeHtml(t('ent_btn_kontakt'))}</button>
+            <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','baumzugriff')">${escapeHtml(t('ent_btn_baum'))}</button>
+          </div>
+        </span>
+      </div>`).join('');
+  }
+  box.innerHTML = html;
 }
 
 // kleines Avatar-/Initialen-Element für eine Trefferzeile
@@ -5265,39 +5269,6 @@ function entAvatar(name, url) {
   return `<span class="ent-av">${init}</span>`;
 }
 
-function entdeckenRenderExtern(rows) {
-  const box = document.getElementById('ent-liste');
-  if (!rows.length) { box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_keine'))}</div>`; return; }
-  box.innerHTML = rows.map(r => `
-    <div class="benachr-item gelesen" style="cursor:default">
-      ${entAvatar(r.name, r.avatar_url)}
-      <span class="bi-body">
-        <div class="bi-titel">${escapeHtml(nm(r.name || '—'))}</div>
-        <div class="bi-text">${escapeHtml(nm(r.familienname || ''))}</div>
-        <div class="obav-aktionen" style="margin-top:8px">
-          <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','kontakt')">${escapeHtml(t('ent_btn_kontakt'))}</button>
-          <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','baumzugriff')">${escapeHtml(t('ent_btn_baum'))}</button>
-        </div>
-      </span>
-    </div>`).join('');
-}
-
-function entdeckenRenderVerbund(rows) {
-  const box = document.getElementById('ent-liste');
-  if (!rows.length) { box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_keine'))}</div>`; return; }
-  box.innerHTML = rows.map(r => {
-    const jahr = r.birth_date ? (String(r.birth_date).match(/\d{4}/) || [''])[0] : '';
-    const sub = [r.baum ? nm(r.baum) : '', jahr ? '* ' + jahr : ''].filter(Boolean).join(' · ');
-    return `<div class="benachr-item gelesen" style="cursor:pointer"
-                 onclick="entdeckenOeffnePerson('${r.id}','${escapeHtml(String(r.baum_id || ''))}')">
-      ${entAvatar(r.name)}
-      <span class="bi-body">
-        <div class="bi-titel">${escapeHtml(nm(r.name || '—'))}</div>
-        <div class="bi-text">${escapeHtml(sub)}</div>
-      </span>
-    </div>`;
-  }).join('');
-}
 
 // Treffer im eigenen Verbund öffnen: ggf. Baum wechseln, dann auf die Person zentrieren.
 async function entdeckenOeffnePerson(personId, baumId) {
@@ -5331,9 +5302,7 @@ async function entdeckenAnfrage(personId, typ) {
 
 function entdeckenSpracheUpdate() {
   if (!document.getElementById('entdecken-modal')?.classList.contains('aktiv')) return;
-  entdeckenModusUI();
-  entdeckenHinweis();
-  entdeckenSuche();
+  entdeckenSuche();   // Treffer in neuer Sprache neu rendern (Hinweis/Placeholder via data-i18n)
 }
 
 async function speicherePrivatnost() {
@@ -18627,7 +18596,7 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
    'pa-email','pa-telefon','pa-facebook','pa-instagram',
    'pa-beruf','pa-ausbildung','pa-beschreibung']
     .forEach(id => document.getElementById(id).value = '');
-  wohnortRender('pa', []);   // Wohnorte-Liste leeren
+  wohnortRender('pa', paLaufendeAdresse(p));   // laufende Wohnadresse der Ursprungsperson vorbelegen (editier-/entfernbar)
   geoAdrSetze(document.getElementById('pa-geburtsort'), '', null, null);   // Geo-Felder (Koord/Status) zurücksetzen
   geoAdrSetze(document.getElementById('pa-sterbeort'), '', null, null);
   ['pa-geburtsdatum','pa-sterbedatum','pa-getauft','pa-hochzeit-standesamt','pa-hochzeit-kirchlich']
@@ -18641,6 +18610,11 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
   // -> LEER lassen, damit der Nutzer die Beziehung AKTIV wählen muss (kein stiller "Kind"-Default).
   document.getElementById('pa-beziehungstyp').value =
     ['kind','elternteil','partner','geschwister'].includes(vorTyp) ? vorTyp : '';
+  // Vorbelegung aus der Ursprungsperson: Nachname immer (editierbar; bei eingeheirateten Personen
+  // einfach aendern). Partner-Spezifika (Geschlecht-Gegenteil, Status verheiratet, Hochzeitstage)
+  // beim Oeffnen NUR wenn schon als Partner geoeffnet; im generischen Weg uebernimmt paTypGewechselt.
+  document.getElementById('pa-nachname').value = p.surname || p.nachname || '';
+  if (document.getElementById('pa-beziehungstyp').value === 'partner') paPartnerVorbelegen(p);
 
   // Ehepartner der aktiven Person ermitteln (für die Eltern-Vorbelegung bei "Kind")
   paSpouses = [];
@@ -18669,6 +18643,46 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
   try { gesehen = localStorage.getItem('hasSeenTreeHelp') === 'true'; } catch (e) {}
   document.getElementById('pa-hilfe').style.display = gesehen ? 'none' : 'block';
   document.getElementById('person-add-modal').classList.add('aktiv');
+}
+
+// Beziehungstyp im Dropdown gewechselt (generischer „＋ Person"-Weg): bei „Partner" die
+// Partner-Vorbelegung nachziehen (nur solange die Felder unangetastet sind), dann Felder prüfen.
+function paTypGewechselt() {
+  if (document.getElementById('pa-beziehungstyp').value === 'partner') {
+    const p = aktuelleDaten.persons[document.getElementById('pa-context-id').value];
+    if (p) paPartnerVorbelegen(p);
+  }
+  paPruefeFelder();
+}
+
+// Partner-Vorbelegung aus der Ursprungsperson — jeweils NUR, wenn das Zielfeld noch unberührt ist
+// (keine Nutzereingaben überschreiben): Geschlecht = Gegenteil, Status = verheiratet, Hochzeitstage kopiert.
+function paPartnerVorbelegen(p) {
+  const gsel = document.getElementById('pa-geschlecht');
+  if (gsel && !gsel.value) {
+    const src = (p.sex || '').toUpperCase();
+    if (src === 'M' || src === 'F') { gsel.value = (src === 'M') ? 'F' : 'M'; paPflichtMarkierung(); }
+  }
+  const bsel = document.getElementById('pa-beziehung');
+  if (bsel && bsel.value === 'unbekannt') bsel.value = 'verheiratet';   // Default für Ehepartner
+  [['pa-hochzeit-standesamt', 'hochzeit_standesamt'], ['pa-hochzeit-kirchlich', 'hochzeit_kirchlich']]
+    .forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el && !datumWert(el) && p[key]) datumSetzen(el, p[key]);   // nur wenn Zielfeld leer + Quelle vorhanden
+    });
+}
+
+// Laufende Wohnadresse der Ursprungsperson als Vorbelegung (Adresse/Koordinaten übernehmen, aber
+// NICHT den Zeitraum von/bis — der gilt der Ursprungsperson). „laufend" = Eintrag ohne Enddatum (bis),
+// sonst der letzte. Rückgabe = Array (leer, wenn keine Adresse) für wohnortRender('pa', …).
+function paLaufendeAdresse(p) {
+  const liste = (typeof wohnortAusPerson === 'function') ? (wohnortAusPerson(p) || [])
+              : (Array.isArray(p && p.wohnadressen) ? p.wohnadressen : []);
+  const mitAdr = liste.filter(a => a && String(a.adresse || '').trim());
+  if (!mitAdr.length) return [];
+  const laufend = mitAdr.filter(a => !String(a.bis || '').trim());
+  const q = laufend.length ? laufend[laufend.length - 1] : mitAdr[mitAdr.length - 1];
+  return [{ adresse: q.adresse, lat: q.lat ?? null, lng: q.lng ?? null, von: '', bis: '' }];
 }
 
 function paPruefeFelder() {
