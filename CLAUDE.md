@@ -39,6 +39,13 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Technisch: Schlüssel in ALLEN 5 `TEXTE`-Blöcken pflegen; Zugriff über `t(key, vars)`;
   Personennamen über `nm()` (wird bei 'sr' nach Kyrillisch transliteriert).
 - Bei der Umsetzung immer sicherstellen, dass alle sichtbaren Inhalte korrekt in alle Sprachen übersetzt werden
+- **UX-Perspektive IMMER aktiv mitdenken (verbindlich):** Jede Umsetzung (neu ODER Änderung) wird aus
+  Nutzersicht bewertet, nicht nur „funktioniert es". Konkret: **visuelle Ordnung** (saubere Ausrichtung/
+  Raster statt ragged wrap, gleichmäßige Abstände), **logische Gruppierung + sinnvolle Reihenfolge**
+  zusammengehöriger Elemente, **verständliche Beschriftung/Hinweise**, ausreichend **Kontrast + Tap-
+  Targets** (≥16px/Touch), keine gedrängten/„technisch korrekt aber unaufgeräumt"-Ergebnisse. Wirkt ein
+  Ergebnis unübersichtlich/unordentlich, wird es VOR dem Abschluss aufgeräumt (Layout/Gruppierung/
+  Sortierung) — auch ohne expliziten Auftrag. Im Zweifel eine kurze, aufgeräumte Variante vorschlagen.
 
 ## Frontend-Komponenten & UI-Konventionen (IMMER einhalten)
 - **Styleguide-Pflicht — KEINE nativen Browser-Dialoge (ab v14.34):** Jede UI eines neuen oder

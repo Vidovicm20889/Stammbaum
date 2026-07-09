@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.37">
+<meta name="app-version" content="14.38">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.37">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.37">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.38">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.38">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.37">
+<link rel="stylesheet" href="stammbaum.css?v=14.38">
 </head>
 <body>
 
@@ -2694,14 +2694,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.37"></script>
+<script src="i18n.js?v=14.38"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.37"></script>
-<script src="chat.js?v=14.37"></script>
-<script src="rezepte_pool.js?v=14.37"></script>
+<script src="pdf_export.js?v=14.38"></script>
+<script src="chat.js?v=14.38"></script>
+<script src="rezepte_pool.js?v=14.38"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -9018,15 +9018,18 @@ function datumTrenner(lang) { return ((lang || aktuelleSprache) === 'en') ? '/' 
 // Anzeige-Wahl — kein neuer Datenzugriff (alle Felder sind in der Detailkarte ohnehin sichtbar).
 // Zeilen-Text sprachneutral über Symbole → nur die Setting-Checkboxen brauchen i18n (kf_*).
 // ============================================================
+// Reihenfolge = logische Gruppen (auch die Reihenfolge auf der Karte): Name → Geburts-/Sterbedatum
+// → Geburts-/Sterbeort → Hochzeit + -ort → Geschlecht/Beruf → Kontakt. So bleibt die Checkbox-Liste
+// UND die Kartenanzeige aufgeräumt/gruppiert.
 const KARTEN_FELDER = [
   { key: 'ehename',      standard: true,  wert: p => { const mn = nm((p.ehename || '').trim()); return mn ? '(' + (mn.length > 16 ? mn.substring(0, 15) + '…' : mn) + ')' : null; }, klasse: 'maiden-text' },
   { key: 'geburtsdatum', standard: true,  wert: p => p.birth_date ? '* ' + formatDatumLang(p.birth_date) : null, klasse: 'daten-text' },
   { key: 'sterbedatum',  standard: true,  wert: p => (p.deceased || p.death_date) ? '† ' + (formatDatumLang(p.death_date) || '?') : null, klasse: 'daten-text' },
-  { key: 'geschlecht',   standard: false, wert: p => p.sex === 'M' ? '♂' : (p.sex === 'F' ? '♀' : null), klasse: 'daten-text' },
   { key: 'geburtsort',   standard: false, wert: p => p.birth_place ? '📍 ' + nm(String(p.birth_place)) : null, klasse: 'daten-text' },
   { key: 'sterbeort',    standard: false, wert: p => p.death_place ? '🪦 ' + nm(String(p.death_place)) : null, klasse: 'daten-text' },
   { key: 'hochzeit',     standard: false, wert: p => { const h = p.hochzeit_standesamt || p.hochzeit_kirchlich; return h ? '💍 ' + formatDatumLang(h) : null; }, klasse: 'daten-text' },
   { key: 'hochzeitsort', standard: false, wert: p => p.hochzeitsort ? '💒 ' + nm(String(p.hochzeitsort)) : null, klasse: 'daten-text' },
+  { key: 'geschlecht',   standard: false, wert: p => p.sex === 'M' ? '♂' : (p.sex === 'F' ? '♀' : null), klasse: 'daten-text' },
   { key: 'beruf',        standard: false, wert: p => p.beruf ? '💼 ' + nm(String(p.beruf)) : null, klasse: 'daten-text' },
   { key: 'telefon',      standard: false, wert: p => p.telefon ? '📞 ' + String(p.telefon) : null, klasse: 'daten-text' },
   { key: 'email',        standard: false, wert: p => p.email ? '✉ ' + String(p.email) : null, klasse: 'daten-text' },

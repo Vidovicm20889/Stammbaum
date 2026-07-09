@@ -2917,11 +2917,17 @@ video.lightbox-img { max-width: 96vw; max-height: 78vh; }
   border-radius: 50%; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 18px; cursor: pointer; }
 .album-slide-btn:hover { background: rgba(0,0,0,0.72); }
 
-/* Karten-Feld-Auswahl im Profil (Checkbox-Liste) */
-.kartenfelder-liste { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 6px; }
-.kf-opt { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
-.kf-opt input { width: 16px; height: 16px; flex: none; }
-.kf-opt.kf-fest { opacity: 0.6; cursor: default; }
+/* Karten-Feld-Auswahl (Familieneinstellungen): sauberes Raster gleich breiter Toggle-Boxen,
+   aktive Felder hervorgehoben → auf einen Blick erkennbar, ordentlich ausgerichtet. */
+.kartenfelder-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 8px; margin-top: 8px; }
+.kf-opt { display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;
+  padding: 8px 10px; border: 1px solid var(--linie); border-radius: 8px; background: rgba(156,124,60,0.06);
+  transition: background .12s, border-color .12s; }
+.kf-opt:hover { background: rgba(156,124,60,0.12); }
+.kf-opt input { width: 16px; height: 16px; flex: none; accent-color: var(--gold); }
+.kf-opt:has(input:checked) { background: rgba(156,124,60,0.18); border-color: var(--gold); }
+.kf-opt.kf-fest { opacity: 0.6; cursor: default; background: transparent; }
+.kf-opt.kf-fest:hover { background: transparent; }
 
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks
