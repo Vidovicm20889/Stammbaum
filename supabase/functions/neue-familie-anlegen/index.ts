@@ -209,6 +209,16 @@ Deno.serve(async (req) => {
     });
     if (mErr) throw mErr;
 
+    // 5b) Karte mit dem Konto verknuepfen (personen.user_id). MUSS gesetzt werden, sonst ist die
+    //     eigene Karte unverknuepft -> "Meine Person" leer, Discovery (personen_entdecken) schlaegt
+    //     fehl (Bedingung user_id NOT NULL) und die Blutlinien-Auto-Rechte feuern nie.
+    //     Bewusst NACH der owner-Mitgliedschaft: das Setzen von user_id triggert die additive
+    //     Blutlinien-Rechteberechnung; die bereits vorhandene owner-Rolle (auto=false) bleibt
+    //     dadurch geschuetzt und es entsteht keine kollidierende Doppel-Mitgliedschaft.
+    const { error: verknErr } = await admin.from("personen")
+      .update({ user_id: userId }).eq("id", pers.id);
+    if (verknErr) throw verknErr;
+
     // 6) Einladungs-Mail
     const inner = `
       <p>${esc(T(sprache, "body"))}</p>
