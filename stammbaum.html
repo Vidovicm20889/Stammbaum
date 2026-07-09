@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.38">
+<meta name="app-version" content="14.39">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.38">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.38">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.39">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.39">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.38">
+<link rel="stylesheet" href="stammbaum.css?v=14.39">
 </head>
 <body>
 
@@ -2230,11 +2230,11 @@
     <button class="modal-schliessen" onclick="schliesseDublettenModal()">×</button>
     <h2 data-i18n="dub_titel"></h2>
     <p class="mv-legende" data-i18n="dub_intro"></p>
-    <div id="dub-liste"></div>
+    <div id="dub-liste" class="dub-liste"></div>
     <div id="dub-fehler" class="login-fehler"></div>
-    <div class="merge-btn-zeile">
+    <div class="ansicht-aktionen dub-aktionen">
       <button class="login-hinweis-btn sekundaer" type="button" data-i18n="dub_abbrechen" onclick="schliesseDublettenModal()"></button>
-      <button class="login-submit merge-btn-inline" type="button" data-i18n="dub_trotzdem" onclick="dubTrotzdem()"></button>
+      <button class="login-hinweis-btn" type="button" data-i18n="dub_trotzdem" onclick="dubTrotzdem()"></button>
     </div>
   </div>
 </div>
@@ -2694,14 +2694,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.38"></script>
+<script src="i18n.js?v=14.39"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.38"></script>
-<script src="chat.js?v=14.38"></script>
-<script src="rezepte_pool.js?v=14.38"></script>
+<script src="pdf_export.js?v=14.39"></script>
+<script src="chat.js?v=14.39"></script>
+<script src="rezepte_pool.js?v=14.39"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -5917,12 +5917,13 @@ function zeigeDublettenDialog(matches, kontext) {
   const fehler = document.getElementById('dub-fehler'); fehler.style.display = 'none'; fehler.textContent = '';
   const box = document.getElementById('dub-liste');
   box.innerHTML = (matches || []).map(m => {
-    const wo = m.sichtbar
-      ? `${escapeHtml(nm(m.name || ''))}${m.baum ? ` — ${escapeHtml(t('merge_info_baum'))}: ${escapeHtml(nm(m.baum))}` : ''}`
-      : `${escapeHtml(nm(m.name || ''))} — ${escapeHtml(t('dub_fremde_familie'))}`;
-    return `<div class="mg-kandidat">
-      <div class="mg-person"><span class="mg-namen">${wo}</span></div>
-      <button class="mv-toggle" type="button" onclick="dubVerknuepfen('${m.match_id}')">${escapeHtml(t('dub_verknuepfen'))}</button>
+    const name = escapeHtml(nm(m.name || ''));
+    const sub = m.sichtbar
+      ? (m.baum ? `${escapeHtml(t('merge_info_baum'))}: ${escapeHtml(nm(m.baum))}` : '')
+      : escapeHtml(t('dub_fremde_familie'));
+    return `<div class="dub-item">
+      <div class="dub-info"><span class="dub-name">${name}</span>${sub ? `<span class="dub-baum">${sub}</span>` : ''}</div>
+      <button class="dub-link-btn" type="button" onclick="dubVerknuepfen('${m.match_id}')">${escapeHtml(t('dub_verknuepfen'))}</button>
     </div>`;
   }).join('');
   document.getElementById('dubletten-modal').classList.add('aktiv');

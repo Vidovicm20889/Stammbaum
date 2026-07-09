@@ -2929,6 +2929,25 @@ video.lightbox-img { max-width: 96vw; max-height: 78vh; }
 .kf-opt.kf-fest { opacity: 0.6; cursor: default; background: transparent; }
 .kf-opt.kf-fest:hover { background: transparent; }
 
+/* Dubletten-Dialog: aufgeräumte Kandidatenliste (Name + Baum links, „Verknüpfen" rechts) */
+.dub-liste { margin: 6px 0 4px; }
+.dub-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 14px; border: 1px solid var(--linie); border-radius: 10px;
+  background: rgba(156,124,60,0.06); margin-bottom: 10px;
+}
+.dub-item:last-child { margin-bottom: 0; }
+.dub-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dub-name { font-weight: bold; color: var(--akzent); font-size: 15px; }
+.dub-baum { font-size: 12.5px; color: var(--text-dim); }
+.dub-link-btn {
+  flex: none; padding: 9px 16px; min-height: 40px; white-space: nowrap; cursor: pointer;
+  font-family: inherit; font-size: 13px; border: 1px solid var(--gold); border-radius: 8px;
+  background: var(--gold); color: var(--paper);
+}
+.dub-link-btn:hover { background: var(--gold-hell); border-color: var(--gold-hell); }
+@media (max-width: 480px) { .dub-item .dub-link-btn { width: 100%; } }
+
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks
    platziert, damit diese Regel (gleiche Spezifität) die früheren .login-feld/
