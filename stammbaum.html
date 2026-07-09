@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.41">
+<meta name="app-version" content="14.42">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.41">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.41">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.42">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.41">
+<link rel="stylesheet" href="stammbaum.css?v=14.42">
 </head>
 <body>
 
@@ -2682,14 +2682,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.41"></script>
+<script src="i18n.js?v=14.42"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.41"></script>
-<script src="chat.js?v=14.41"></script>
-<script src="rezepte_pool.js?v=14.41"></script>
+<script src="pdf_export.js?v=14.42"></script>
+<script src="chat.js?v=14.42"></script>
+<script src="rezepte_pool.js?v=14.42"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -9566,7 +9566,10 @@ function init() {
     if (e.key !== 'Enter') return;
     e.preventDefault();
     const wert = document.getElementById('suche').value.trim();
-    if (wert && aktuelleAnsicht === 'baum') { e.target.blur(); suchImBaum(wert, true); }
+    // Kein alter „Mehrere Personen"-Auswahldialog mehr — die vereinte Personensuche zeigt die
+    // Treffer live als Liste (navSuchPanel). Enter aktualisiert nur die Liste; im Baum zusätzlich
+    // dezente Hervorhebung (interaktiv=false -> KEIN Vollbild-Modal).
+    if (wert) { navSuchPanel(wert); if (aktuelleAnsicht === 'baum') suchImBaum(wert, false); }
   });
   document.getElementById('gedcom-input').addEventListener('change', handleGedcomUpload);
   // Tipp/Klick außerhalb schließt offene Dropdowns. pointerdown (nicht click!) feuert
@@ -9775,11 +9778,13 @@ async function navSuchPanel(q) {
   p.style.display = 'block'; navSuchPanelPos();
   p.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_laeuft'))}</div>`;
   const qL = srCyr2Lat(q);
-  const fehl = e => ({ error: e });
+  // WICHTIG: den Supabase-Query-Builder mit await abfangen (er ist nur thenable, hat KEIN .catch —
+  // .catch() darauf würde synchron werfen und das Panel bliebe bei „Searching…" hängen).
+  const rpcSafe = async (name, args) => { try { return await sbClient.rpc(name, args); } catch (e) { return { data: null, error: e }; } };
   const [r1, r2, rx] = await Promise.all([
-    sbClient.rpc('personen_suche', { p_vorname: qL, p_limit: 30 }).catch(fehl),
-    sbClient.rpc('personen_suche', { p_nachname: qL, p_limit: 30 }).catch(fehl),
-    sbClient.rpc('personen_entdecken', { p_query: q, p_limit: 30 }).catch(fehl)
+    rpcSafe('personen_suche', { p_vorname: qL, p_limit: 30 }),
+    rpcSafe('personen_suche', { p_nachname: qL, p_limit: 30 }),
+    rpcSafe('personen_entdecken', { p_query: q, p_limit: 30 })
   ]);
   if (mein !== navSuchToken) return;   // veraltete Antwort verwerfen
   const seen = {}, verbund = [];
@@ -19499,7 +19504,7 @@ function pruefeAbweichenderNachname(extId, nachname, defaultTyp) {
   // Phase 1: abweichender Nachname OHNE bestehenden gleichnamigen Baum -> automatisch eigenen
   // Baum anlegen (kein Dialog). Bei bereits vorhandenem gleichnamigem Baum vorerst der
   // bestehende Flow (schlanker „Einordnen/Separat"-Dialog folgt als Phase 1b).
-  if (FLOW_NACHNAMENBAUM && !sameName) { abwAutoBaum(); return true; }
+  if (FLOW_NACHNAMENBAUM) { if (sameName) abwSameNameFlow(); else abwAutoBaum(); return true; }
   oeffneAbwNachname();
   return true;
 }
@@ -19515,6 +19520,58 @@ async function abwAutoBaum() {
   if (error) { console.warn('abwAutoBaum:', error.message); await zeigeHinweis(t('reg_fehler') + (error.message || '—')); return; }
   if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
   await zeigeHinweis(t('abw_erstellt', { name: nm(nachname) }));
+}
+
+// Phase 1b: gleichnamiger Baum existiert -> schlanke Wahl „Einordnen / Separat".
+// Einordnen = lose Spiegelung in den bestehenden Baum (dort manuell verknüpfen).
+// Separat   = weiterer eigener Baum, Unterscheidung als laufende Nummer im zusatz-Feld.
+async function abwSameNameFlow() {
+  if (!abwKontext) return;
+  const { uuid, nachname } = abwKontext;
+  const norm = zweigNachnameNorm(nachname);
+  let zielId = null, count = 0;
+  Object.entries(stammbaeumeListe || {}).forEach(([id, name]) => {
+    if (zweigNachnameNorm(name) === norm) { count++; if (!zielId) zielId = id; }
+  });
+  const wahl = await abwWahlDialog(nm(nachname));
+  abwKontext = null;
+  if (!wahl) return;   // abgebrochen -> Person bleibt wie gespeichert (im aktuellen Baum)
+  if (wahl === 'separat') {
+    const nummer = String(count + 1);   // Xerri, Xerri (2), Xerri (3)…
+    const { error } = await sbClient.rpc('stammbaum_zweig_aus_person',
+      { p_wurzel: uuid, p_name: nachname, p_force: true, p_zusatz: nummer });
+    if (error) { console.warn('abw separat:', error.message); await zeigeHinweis(t('reg_fehler') + (error.message || '—')); return; }
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+    await zeigeHinweis(t('abw_erstellt', { name: baumLabelNZ(nachname, nummer) }));
+  } else {   // einordnen
+    if (!zielId) { await zeigeHinweis(t('reg_fehler') + '—'); return; }
+    const { data, error } = await sbClient.rpc('stammbaum_person_einordnen', { p_person: uuid, p_zielbaum: zielId });
+    if (error || !data || !data.ok) { console.warn('abw einordnen:', error && error.message); await zeigeHinweis(t('reg_fehler') + (error ? error.message : '—')); return; }
+    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+    await zeigeHinweis(t('abw_eingeordnet', { name: nm(nachname) }));
+  }
+}
+
+// Schlanker 2-Wege-Dialog im App-Stil (kein natives confirm). Promise<'einordnen'|'separat'|null>.
+function abwWahlDialog(name) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <p class="confirm-text">${escapeHtml(t('abw_exist_text', { name }))}</p>
+        <div class="confirm-actions" style="flex-direction:column;gap:8px">
+          <button type="button" class="confirm-ja" data-w="einordnen">${escapeHtml(t('abw_btn_einordnen'))}</button>
+          <button type="button" class="confirm-ja" data-w="separat">${escapeHtml(t('abw_btn_separat'))}</button>
+          <button type="button" class="confirm-nein" data-w="">${escapeHtml(t('abbrechen'))}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const fertig = (w) => { overlay.remove(); resolve(w || null); };
+    overlay.querySelectorAll('button[data-w]').forEach(b =>
+      b.addEventListener('click', () => fertig(b.getAttribute('data-w'))));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) fertig(null); });
+  });
 }
 
 function oeffneAbwNachname() {
