@@ -2948,10 +2948,17 @@ video.lightbox-img { max-width: 96vw; max-height: 78vh; }
 .dub-link-btn:hover { background: var(--gold-hell); border-color: var(--gold-hell); }
 @media (max-width: 480px) { .dub-item .dub-link-btn { width: 100%; } }
 
-/* Personensuche „Pronađi osobe": Gruppen-Überschrift (eigener Verbund vs. andere Familien) */
+/* Personensuche: Gruppen-Überschrift (Konto im Verbund / Namenskarte / andere Familien) */
 .ent-gruppe-titel { font-size: 11.5px; font-weight: bold; letter-spacing: 0.6px; text-transform: uppercase;
   color: var(--text-dim); margin: 14px 0 6px; }
 .ent-gruppe-titel:first-child { margin-top: 4px; }
+/* Ergebnis-Panel der vereinten Personensuche unter dem Nav-Suchfeld (fixed positioniert) */
+.such-panel {
+  position: fixed; z-index: 240; max-height: 62vh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--paper); border: 1px solid var(--linie); border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.28); padding: 8px;
+}
+.such-panel .ent-gruppe-titel:first-child { margin-top: 2px; }
 
 /* iOS Safari zoomt bei Fokus auf Felder mit < 16px hinein und zoomt nicht zurück.
    16px verhindert den ungewollten Auto-Zoom. Bewusst am Ende des <style>-Blocks

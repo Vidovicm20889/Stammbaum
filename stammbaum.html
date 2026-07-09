@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.40">
+<meta name="app-version" content="14.41">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.40">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.40">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.41">
+<link rel="apple-touch-icon" href="favicon.svg?v=14.41">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.40">
+<link rel="stylesheet" href="stammbaum.css?v=14.41">
 </head>
 <body>
 
@@ -46,15 +46,6 @@
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
     </div>
     <input type="text" class="suche" id="suche" inputmode="search" enterkeyhint="search" autocomplete="off" data-i18n-placeholder="suche_placeholder">
-    <!-- Verbundübergreifende Personensuche (andere Familien entdecken) — nur eingeloggt -->
-    <button class="chat-nav-btn" id="entdecken-btn" type="button" onclick="oeffneEntdecken()"
-            data-i18n-title="ent_menu" data-i18n-aria="ent_menu" aria-label="Entdecken" style="display:none">
-      <svg class="chat-nav-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
-        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M3 12h18M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9z"
-              fill="none" stroke="var(--gold)" stroke-width="1.4"/>
-      </svg>
-    </button>
     <select class="filter" id="tree-select" title="Stammbaum wählen" onchange="waehleStammbaum(this.value)"></select>
 
     <!-- Chat — Icon-Button direkt in der Leiste (zwischen Stammbaum-Dropdown und Benutzer).
@@ -157,6 +148,10 @@
     </div>
   </div>
 </nav>
+
+<!-- Vereinte Personensuche: Ergebnis-Panel unter dem Nav-Suchfeld (fixed positioniert).
+     Zeigt 3 Kategorien: Konto im Verbund / nur Namenskarte im Verbund / andere Familie (Anfrage). -->
+<div id="such-panel" class="such-panel" style="display:none"></div>
 
 <header>
   <!-- Kopf-Logo: Standard = App-Logo (SVG); hat der aktive Stammbaum ein eigenes Logo
@@ -2687,14 +2682,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.40"></script>
+<script src="i18n.js?v=14.41"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.40"></script>
-<script src="chat.js?v=14.40"></script>
-<script src="rezepte_pool.js?v=14.40"></script>
+<script src="pdf_export.js?v=14.41"></script>
+<script src="chat.js?v=14.41"></script>
+<script src="rezepte_pool.js?v=14.41"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -9742,6 +9737,7 @@ function handleSucheDebounce() {
 
 function handleSuche() {
   const suche = document.getElementById('suche').value.trim();
+  navSuchPanel(suche);   // vereinte Personensuche (Konto im Verbund / Namenskarte / andere Familie)
   if (aktuelleAnsicht === 'karten') {
     zeigeKarten();
   } else if (aktuelleAnsicht === 'shorts') {
@@ -9750,6 +9746,96 @@ function handleSuche() {
     suchImBaum(suche);
   }
 }
+
+// ===== Vereinte Personensuche: Ergebnis-Panel unter dem Nav-Suchfeld =====
+// Drei Kategorien: Konto im Verbund / nur Namenskarte im Verbund / andere Familie (Anfrage).
+// Läuft PARALLEL zur Baum-Hervorhebung (suchImBaum); fehlertolerant je RPC; veraltete Antworten
+// (Token) werden verworfen. Panel ist fixed unter dem Feld, schließt touch-sicher per pointerdown.
+let navSuchToken = 0;
+function navSuchPanelSchliessen() {
+  const p = document.getElementById('such-panel');
+  if (p) { p.style.display = 'none'; p.innerHTML = ''; }
+}
+function navSuchPanelPos() {
+  const inp = document.getElementById('suche'); const p = document.getElementById('such-panel');
+  if (!inp || !p || p.style.display === 'none') return;
+  const r = inp.getBoundingClientRect();
+  const w = Math.min(Math.max(r.width, 300), window.innerWidth - 16);
+  let left = r.left;
+  if (left + w > window.innerWidth - 8) left = window.innerWidth - 8 - w;
+  if (left < 8) left = 8;
+  p.style.left = Math.round(left) + 'px';
+  p.style.top = Math.round(r.bottom + 4) + 'px';
+  p.style.width = Math.round(w) + 'px';
+}
+async function navSuchPanel(q) {
+  const p = document.getElementById('such-panel'); if (!p) return;
+  if (!aktuellerUser || !sbClient || (q || '').length < 2) { navSuchPanelSchliessen(); return; }
+  const mein = ++navSuchToken;
+  p.style.display = 'block'; navSuchPanelPos();
+  p.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_laeuft'))}</div>`;
+  const qL = srCyr2Lat(q);
+  const fehl = e => ({ error: e });
+  const [r1, r2, rx] = await Promise.all([
+    sbClient.rpc('personen_suche', { p_vorname: qL, p_limit: 30 }).catch(fehl),
+    sbClient.rpc('personen_suche', { p_nachname: qL, p_limit: 30 }).catch(fehl),
+    sbClient.rpc('personen_entdecken', { p_query: q, p_limit: 30 }).catch(fehl)
+  ]);
+  if (mein !== navSuchToken) return;   // veraltete Antwort verwerfen
+  const seen = {}, verbund = [];
+  [...(r1.data || []), ...(r2.data || [])].forEach(x => { if (!seen[x.id]) { seen[x.id] = 1; verbund.push(x); } });
+  navSuchPanelRender(verbund, rx.data || []);
+}
+function navSuchVerbundItem(r) {
+  const jahr = r.birth_date ? (String(r.birth_date).match(/\d{4}/) || [''])[0] : '';
+  const sub = [r.baum ? nm(r.baum) : '', jahr ? '* ' + jahr : ''].filter(Boolean).join(' · ');
+  return `<div class="benachr-item gelesen" style="cursor:pointer"
+               onclick="navSuchOeffne('${r.id}','${escapeHtml(String(r.baum_id || ''))}')">
+    ${entAvatar(r.name)}
+    <span class="bi-body"><div class="bi-titel">${escapeHtml(nm(r.name || '—'))}</div>
+      <div class="bi-text">${escapeHtml(sub)}</div></span>
+  </div>`;
+}
+function navSuchPanelRender(verbund, extern) {
+  const p = document.getElementById('such-panel'); if (!p) return;
+  const konten = verbund.filter(r => r.hat_konto);
+  const karten = verbund.filter(r => !r.hat_konto);
+  if (!konten.length && !karten.length && !extern.length) {
+    p.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_keine'))}</div>`; return;
+  }
+  let html = '';
+  if (konten.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_konto'))}</div>` + konten.map(navSuchVerbundItem).join('');
+  if (karten.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_namenskarte'))}</div>` + karten.map(navSuchVerbundItem).join('');
+  if (extern.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_extern'))}</div>` + extern.map(r => `
+    <div class="benachr-item gelesen" style="cursor:default">
+      ${entAvatar(r.name, r.avatar_url)}
+      <span class="bi-body"><div class="bi-titel">${escapeHtml(nm(r.name || '—'))}</div>
+        <div class="bi-text">${escapeHtml(nm(r.familienname || ''))}</div>
+        <div class="obav-aktionen" style="margin-top:8px">
+          <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','kontakt')">${escapeHtml(t('ent_btn_kontakt'))}</button>
+          <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','baumzugriff')">${escapeHtml(t('ent_btn_baum'))}</button>
+        </div></span>
+    </div>`).join('');
+  p.innerHTML = html;
+}
+async function navSuchOeffne(personId, baumId) {
+  navSuchPanelSchliessen();
+  if (typeof entdeckenOeffnePerson === 'function') await entdeckenOeffnePerson(personId, baumId);
+}
+// Touch-sicher schließen (pointerdown außerhalb, nicht auf dem Suchfeld) + Reposition bei Scroll/Resize.
+document.addEventListener('pointerdown', (e) => {
+  const p = document.getElementById('such-panel');
+  if (!p || p.style.display === 'none') return;
+  if (p.contains(e.target) || e.target.id === 'suche') return;
+  navSuchPanelSchliessen();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const p = document.getElementById('such-panel');
+  if (p && p.style.display !== 'none') navSuchPanelSchliessen();
+});
+window.addEventListener('scroll', navSuchPanelPos, true);
+window.addEventListener('resize', navSuchPanelPos);
 
 // interaktiv=true  -> Nutzer hat die Suche explizit bestätigt (Enter / Such-Taste):
 //                     bei mehreren Treffern darf das Auswahl-Modal öffnen.
@@ -19385,6 +19471,12 @@ async function pruefeHeiratsZweig(partnerUuid, ehePerson, partnerNachname) {
 // ============================================================
 let abwKontext = null;
 
+// ── Neuer Nachnamen-Baum-Flow (Phase 1) ──────────────────────────────────────
+// SOFORT-SCHALTER für schnelle Rücknahme: false = altes 3-Options-Overlay (der komplette
+// Fallback unten bleibt erhalten). true = neuer Auto-Flow (abweichender Nachname ohne
+// bestehenden gleichnamigen Baum -> automatisch eigener Baum, KEIN Entscheidungs-Dialog).
+const FLOW_NACHNAMENBAUM = true;
+
 // Gate + Overlay öffnen. Gibt true zurück, wenn das Overlay gezeigt wird (Aufrufer
 // schließt dann sein Add-/Edit-Overlay), sonst false.
 function pruefeAbweichenderNachname(extId, nachname, defaultTyp) {
@@ -19404,8 +19496,25 @@ function pruefeAbweichenderNachname(extId, nachname, defaultTyp) {
     .some(n => zweigNachnameNorm(n) === zweigNachnameNorm(nn));
   abwKontext = { extId, uuid: p._uuid, nachname: nn,
     defaultTyp: BEZTYP_GUELTIG.includes(defaultTyp) ? defaultTyp : 'partner', sameName };
+  // Phase 1: abweichender Nachname OHNE bestehenden gleichnamigen Baum -> automatisch eigenen
+  // Baum anlegen (kein Dialog). Bei bereits vorhandenem gleichnamigem Baum vorerst der
+  // bestehende Flow (schlanker „Einordnen/Separat"-Dialog folgt als Phase 1b).
+  if (FLOW_NACHNAMENBAUM && !sameName) { abwAutoBaum(); return true; }
   oeffneAbwNachname();
   return true;
+}
+
+// Phase 1: eigenen Nachnamen-Baum ohne Entscheidungs-Dialog anlegen. Aktueller Baum bleibt
+// (CLAUDE.md), Dropdown wird aktualisiert. Die Person ist bereits im aktuellen Baum gespeichert
+// -> bei Fehler bleibt sie dort (wie „ohne Verknüpfung"), nur mit Hinweis.
+async function abwAutoBaum() {
+  if (!abwKontext) return;
+  const { uuid, nachname } = abwKontext;
+  abwKontext = null;
+  const { error } = await sbClient.rpc('stammbaum_zweig_aus_person', { p_wurzel: uuid, p_name: nachname, p_force: false });
+  if (error) { console.warn('abwAutoBaum:', error.message); await zeigeHinweis(t('reg_fehler') + (error.message || '—')); return; }
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+  await zeigeHinweis(t('abw_erstellt', { name: nm(nachname) }));
 }
 
 function oeffneAbwNachname() {
