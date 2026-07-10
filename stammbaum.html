@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.43">
+<meta name="app-version" content="14.44">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.43">
+<link rel="stylesheet" href="stammbaum.css?v=14.44">
 </head>
 <body>
 
@@ -131,6 +131,7 @@
           <button class="account-btn" type="button" id="menu-backup-btn" data-i18n="bk_menu" onclick="oeffneBackup()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-analytik-btn" data-i18n="analytik_menu" onclick="oeffneAnalytik()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-nnaus-btn" data-i18n="nnaus_menu" onclick="oeffneNachnamenTool()" style="display:none"></button>
+          <button class="account-btn" type="button" id="menu-zwei-btn" data-i18n="zwei_menu" onclick="oeffneZweiModal()" style="display:none"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
         </div>
 
@@ -2663,6 +2664,21 @@
   </div>
 </div>
 
+<!-- Phase 4a: Zwei Bäume/Familien verbinden — Verbindungsweg (inkl. Brückenfamilie) finden. -->
+<div class="modal" id="zwei-modal" style="z-index:215">
+  <div class="modal-inhalt" style="max-width:600px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseZweiModal()">×</button>
+    <h2 data-i18n="zwei_titel"></h2>
+    <p class="login-label" data-i18n="zwei_info" style="margin-top:0"></p>
+    <label class="login-label reg-feld-voll"><span data-i18n="zwei_baum_a"></span>
+      <select id="zwei-baum-a" class="login-feld"></select></label>
+    <label class="login-label reg-feld-voll"><span data-i18n="zwei_baum_b"></span>
+      <select id="zwei-baum-b" class="login-feld"></select></label>
+    <button class="login-submit" data-i18n="zwei_finden" onclick="zweiVerbindungFinden()"></button>
+    <div id="zwei-ergebnis" class="integ-ergebnis"></div>
+  </div>
+</div>
+
 <!-- Papierkorb (Soft-Delete) — Bearbeiter. Gelöschte Personen 30 Tage wiederherstellbar.
      Schließt nur per Button (UI-Regel). -->
 <div class="modal" id="papierkorb-modal" style="z-index:216">
@@ -2718,14 +2734,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.43"></script>
+<script src="i18n.js?v=14.44"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.43"></script>
-<script src="chat.js?v=14.43"></script>
-<script src="rezepte_pool.js?v=14.43"></script>
+<script src="pdf_export.js?v=14.44"></script>
+<script src="chat.js?v=14.44"></script>
+<script src="rezepte_pool.js?v=14.44"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -3417,6 +3433,9 @@ function aktualisiereAuthUI() {
     // Phase 5b: „Bestehende Nachnamen auslagern" — nur super_admin + hinter dem Flag.
     const nnausBtn = document.getElementById('menu-nnaus-btn');
     if (nnausBtn) nnausBtn.style.display = (FLOW_NACHNAMENBAUM && istSuperAdmin()) ? '' : 'none';
+    // Phase 4a: „Zwei Bäume verbinden" — für ALLE eingeloggten Nutzer, hinter dem Flag.
+    const zweiBtn = document.getElementById('menu-zwei-btn');
+    if (zweiBtn) zweiBtn.style.display = FLOW_NACHNAMENBAUM ? '' : 'none';
     // Papierkorb im Avatar-Menü (unter „Profil bearbeiten") — nur für Bearbeiter.
     const avPkBtn = document.getElementById('avatar-papierkorb-btn');
     if (avPkBtn) avPkBtn.style.display = istAdmin() ? '' : 'none';
@@ -19263,6 +19282,66 @@ function oeffneNachnamenTool() {
   document.getElementById('nnaus-modal').classList.add('aktiv');
 }
 function schliesseNachnamenTool() { document.getElementById('nnaus-modal').classList.remove('aktiv'); }
+
+// ── Phase 4a: Zwei Bäume verbinden — kürzesten Verbindungsweg (inkl. Brückenfamilie) finden ──
+function oeffneZweiModal() {
+  if (!aktuellerUser) return;
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  zweiFuelleBaeume();
+  const box = document.getElementById('zwei-ergebnis'); if (box) box.innerHTML = '';
+  document.getElementById('zwei-modal').classList.add('aktiv');
+}
+function schliesseZweiModal() { document.getElementById('zwei-modal').classList.remove('aktiv'); }
+function zweiFuelleBaeume() {
+  const opts = Object.keys(stammbaeumeListe || {})
+    .map(id => ({ id, label: baumLabel(id) }))
+    .sort((x, y) => x.label.localeCompare(y.label))
+    .map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join('');
+  ['zwei-baum-a', 'zwei-baum-b'].forEach(sid => { const s = document.getElementById(sid); if (s) s.innerHTML = opts; });
+  const sb = document.getElementById('zwei-baum-b'); if (sb && sb.options.length > 1) sb.selectedIndex = 1;
+  if (typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(document.getElementById('zwei-modal'));
+}
+// Nachbarn im Verbund-Personengraph: Eltern + Kinder + Partner + Identitäts-Zwillinge (Baum-Brücke).
+function zweiNachbarn(extId, identG) {
+  const p = aktuelleDaten.persons[extId]; if (!p) return [];
+  const out = new Set();
+  (p.families_child || []).forEach(fid => { const f = aktuelleDaten.families[fid]; if (f) { if (f.husband) out.add(f.husband); if (f.wife) out.add(f.wife); } });
+  (p.families_spouse || []).forEach(fid => { const f = aktuelleDaten.families[fid]; if (f) { if (f.husband) out.add(f.husband); if (f.wife) out.add(f.wife); (f.children || []).forEach(c => out.add(c)); } });
+  if (p._ident && identG[p._ident]) identG[p._ident].forEach(id => out.add(id));
+  out.delete(extId);
+  return [...out];
+}
+function zweiVerbindungFinden() {
+  const a = document.getElementById('zwei-baum-a').value, b = document.getElementById('zwei-baum-b').value;
+  const box = document.getElementById('zwei-ergebnis');
+  if (!a || !b || a === b) { box.innerHTML = `<div class="integ-hinweis warn">${escapeHtml(t('zwei_gleich'))}</div>`; return; }
+  const identG = {};
+  Object.values(aktuelleDaten.persons || {}).forEach(p => { if (p && p._ident) (identG[p._ident] = identG[p._ident] || []).push(p.id); });
+  const startSet = new Set(), zielSet = new Set();
+  Object.values(aktuelleDaten.persons || {}).forEach(p => {
+    if (!p || p.platzhalter) return;
+    if (p._tree === a) startSet.add(p.id);
+    if (p._tree === b) zielSet.add(p.id);
+  });
+  if (!startSet.size || !zielSet.size) { box.innerHTML = `<div class="integ-hinweis warn">${escapeHtml(t('zwei_keine'))}</div>`; return; }
+  const prev = new Map(); const queue = []; startSet.forEach(s => { prev.set(s, null); queue.push(s); });
+  let ziel = null;
+  while (queue.length) {
+    const cur = queue.shift();
+    if (zielSet.has(cur)) { ziel = cur; break; }
+    for (const nb of zweiNachbarn(cur, identG)) if (!prev.has(nb)) { prev.set(nb, cur); queue.push(nb); }
+  }
+  if (!ziel) { box.innerHTML = `<div class="integ-hinweis warn">${escapeHtml(t('zwei_keine'))}</div>`; return; }
+  const path = []; let c = ziel; while (c !== null && c !== undefined) { path.unshift(c); c = prev.get(c); }
+  const chip = (id) => {
+    const p = aktuelleDaten.persons[id]; if (!p) return '';
+    const bnm = p._tree ? baumLabel(p._tree) : '';
+    const nam = nm(((p.given || '') + ' ' + (p.surname || '')).trim()) || nm(p.name || '?');
+    return `<button class="mv-toggle" type="button" style="display:block;width:100%;text-align:left;margin:4px 0"
+      onclick="schliesseZweiModal();zeigeDetails('${escapeHtml(String(id))}')">${escapeHtml(nam)} <span style="opacity:.7">— ${escapeHtml(bnm)}</span></button>`;
+  };
+  box.innerHTML = `<div class="integ-hinweis">${escapeHtml(t('zwei_gefunden', { n: path.length }))}</div>` + path.map(chip).join('');
+}
 async function ladeNachnamenKandidaten() {
   const box = document.getElementById('nnaus-ergebnis');
   box.innerHTML = `<div class="integ-hinweis">…</div>`;
@@ -20912,20 +20991,40 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
     return null;
   };
 
+  // Namenloser Platzhalter-Elternteil („Unbekannt", angelegt für Geschwister OHNE bekannte Eltern)
+  // mit ≥1 Blutlinien-Kind: über ihn aufsteigen, damit die Blutlinien-GESCHWISTER der Wurzel sichtbar
+  // werden (analog graphBlutScope). VORWÄRTS-Suche über families.children — robust gegen eine fehlende
+  // families_child-Rückreferenz (Bug: frau Teststablozwei hatte keine Eltern-Kante zurück zum Platzhalter).
+  const platzhalterBlutElternteil = (personId) => {
+    if (!treeId) return null;
+    for (const fam of Object.values(aktuelleDaten.families)) {
+      if (!(fam.children || []).includes(personId)) continue;
+      if (!(fam.children || []).some(cid => istBlutName(aktuelleDaten.persons[cid]))) continue;
+      for (const par of [fam.husband, fam.wife]) {
+        const pp = par && aktuelleDaten.persons[par];
+        if (pp && pp.platzhalter && sameTree(par)) return par;
+      }
+    }
+    return null;
+  };
+
   function findeWurzel(personId, tiefe) {
     if (tiefe <= 0) return personId;
     const p = aktuelleDaten.persons[personId];
-    if (!p || !p.families_child.length) return personId;
-    const fam = aktuelleDaten.families[p.families_child[0]];
-    if (!fam) return personId;
-    // Elternteil im selben Baum bevorzugen; gibt es keinen -> hier ist die Wurzel.
-    // Variante A: bei gesetztem Baum NUR entlang der BLUTLINIE aufsteigen — NICHT in die
-    // Herkunftsfamilie eines eingeheirateten Elternteils klettern (sonst wurzelt der Baum z. B.
-    // bei der Mutter einer eingeheirateten Ehefrau und zieht deren fremde Familie herein).
-    const okElt = (id) => id && sameTree(id) && (!treeId || istBlutName(aktuelleDaten.persons[id]));
+    if (!p) return personId;
+    // Blut-Elternteil im selben Baum bevorzugen. Variante A: bei gesetztem Baum NUR entlang der
+    // BLUTLINIE aufsteigen — NICHT in die Herkunftsfamilie eines eingeheirateten Elternteils klettern
+    // (sonst wurzelt der Baum z. B. bei der Mutter einer eingeheirateten Ehefrau und zieht deren
+    // fremde Familie herein).
     let elternId = null;
-    if (okElt(fam.husband)) elternId = fam.husband;
-    else if (okElt(fam.wife)) elternId = fam.wife;
+    const fam = (p.families_child && p.families_child.length) ? aktuelleDaten.families[p.families_child[0]] : null;
+    if (fam) {
+      const okElt = (id) => id && sameTree(id) && (!treeId || istBlutName(aktuelleDaten.persons[id]));
+      if (okElt(fam.husband)) elternId = fam.husband;
+      else if (okElt(fam.wife)) elternId = fam.wife;
+    }
+    // Kein Blut-Elternteil gefunden → über einen blut-tragenden Platzhalter aufsteigen (Wurzel-Geschwister!).
+    if (!elternId) elternId = platzhalterBlutElternteil(personId);
     if (!elternId || !aktuelleDaten.persons[elternId]) return personId;
     return findeWurzel(elternId, tiefe - 1);
   }
@@ -20943,7 +21042,9 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
     // Auswärts-Tiefe für die Blutlinien-Kappung (Variante B): ist diese Person UND ihr
     // Elternteil bereits auswärtig (2. Generation in Folge) und existiert ein Ziel-Baum ihres
     // Nachnamens → nur die Karte als Blatt zeigen (KEINE Partner/Nachkommen), Badge „→{Baum}".
-    const selbstAuswaerts = cutAn && !istBlutName(p);
+    // Platzhalter zählt nie als „auswärts" (blut-neutraler Unbekannt-Knoten) → sonst würden die
+    // darunter hängenden Blutlinien-Geschwister fälschlich als 2. auswärtige Generation gekappt.
+    const selbstAuswaerts = cutAn && !istBlutName(p) && !p.platzhalter;
     if (selbstAuswaerts && elternAuswaerts) {
       const ziel = zielBaumFuer(zweigNachnameNorm(p.surname || ''));
       if (ziel) {
