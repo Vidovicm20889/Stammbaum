@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.42">
+<meta name="app-version" content="14.43">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.42">
+<link rel="stylesheet" href="stammbaum.css?v=14.43">
 </head>
 <body>
 
@@ -130,6 +130,7 @@
           <button class="account-btn" type="button" id="menu-integ-btn" data-i18n="integ_menu" onclick="oeffneIntegritaet()"></button>
           <button class="account-btn" type="button" id="menu-backup-btn" data-i18n="bk_menu" onclick="oeffneBackup()" style="display:none"></button>
           <button class="account-btn" type="button" id="menu-analytik-btn" data-i18n="analytik_menu" onclick="oeffneAnalytik()" style="display:none"></button>
+          <button class="account-btn" type="button" id="menu-nnaus-btn" data-i18n="nnaus_menu" onclick="oeffneNachnamenTool()" style="display:none"></button>
           <button class="account-btn admin-bald" type="button" disabled data-i18n="admin_weitere"></button>
         </div>
 
@@ -2049,6 +2050,30 @@
   </div>
 </div>
 
+<!-- Kontakt zu entdeckter Person (fremder Verbund): Anschreiben (frei) / Baumzugriff (Genehmigung) -->
+<div class="modal" id="ent-kontakt-modal" style="z-index:216">
+  <div class="modal-inhalt" style="max-width:440px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="entKontaktSchliessen()">×</button>
+    <h2 data-i18n="entk_titel"></h2>
+    <p class="sub-name" id="ent-kontakt-name" style="color:var(--gold)"></p>
+    <button type="button" class="login-submit" style="width:100%;margin-top:12px"
+            onclick="entKontaktAnschreiben()">💬 <span data-i18n="entk_anschreiben"></span></button>
+    <p class="mv-legende" data-i18n="entk_anschreiben_hint" style="margin-top:6px"></p>
+    <div style="border-top:1px solid var(--linie);margin:16px 0 12px"></div>
+    <label class="login-label reg-feld-voll"><span data-i18n="entk_baum_nachricht"></span>
+      <textarea id="ent-kontakt-nachricht" class="login-feld" rows="2"
+                data-i18n-placeholder="entk_baum_ph"></textarea>
+    </label>
+    <button type="button" class="account-btn" style="width:100%;margin-top:8px"
+            onclick="entKontaktBaumzugriff()">🌳 <span data-i18n="entk_baum"></span></button>
+    <p class="mv-legende" data-i18n="entk_baum_hint" style="margin-top:6px"></p>
+    <p class="login-fehler" id="ent-kontakt-fehler" style="display:none;margin-top:8px"></p>
+    <div class="fe-actions" style="margin-top:14px">
+      <button type="button" class="login-submit fe-abbrechen" onclick="entKontaktSchliessen()" data-i18n="chat_abbrechen"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Familien-Frage lösen (nur Bearbeiter): identifizierte Person wählen / Karte bearbeiten -->
 <div class="modal" id="frage-loesen-modal" style="z-index:214">
   <div class="modal-inhalt" style="max-width:480px" onclick="event.stopPropagation()">
@@ -2627,6 +2652,17 @@
   </div>
 </div>
 
+<!-- Phase 5b: Bestehende abweichende Nachnamen in eigene Bäume auslagern (super_admin). -->
+<div class="modal" id="nnaus-modal" style="z-index:215">
+  <div class="modal-inhalt" style="max-width:600px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="schliesseNachnamenTool()">×</button>
+    <h2 data-i18n="nnaus_titel"></h2>
+    <p class="login-label" data-i18n="nnaus_info" style="margin-top:0"></p>
+    <button class="login-submit" id="nnaus-laden-btn" data-i18n="nnaus_laden" onclick="ladeNachnamenKandidaten()"></button>
+    <div id="nnaus-ergebnis" class="integ-ergebnis"></div>
+  </div>
+</div>
+
 <!-- Papierkorb (Soft-Delete) — Bearbeiter. Gelöschte Personen 30 Tage wiederherstellbar.
      Schließt nur per Button (UI-Regel). -->
 <div class="modal" id="papierkorb-modal" style="z-index:216">
@@ -2682,14 +2718,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.42"></script>
+<script src="i18n.js?v=14.43"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.42"></script>
-<script src="chat.js?v=14.42"></script>
-<script src="rezepte_pool.js?v=14.42"></script>
+<script src="pdf_export.js?v=14.43"></script>
+<script src="chat.js?v=14.43"></script>
+<script src="rezepte_pool.js?v=14.43"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -3378,6 +3414,9 @@ function aktualisiereAuthUI() {
     // Analytik/Nutzungs-Statistik: NUR super_admin (Betreiber-Kennzahlen, für normale Nutzer unsichtbar)
     const analytikBtn = document.getElementById('menu-analytik-btn');
     if (analytikBtn) analytikBtn.style.display = istSuperAdmin() ? '' : 'none';
+    // Phase 5b: „Bestehende Nachnamen auslagern" — nur super_admin + hinter dem Flag.
+    const nnausBtn = document.getElementById('menu-nnaus-btn');
+    if (nnausBtn) nnausBtn.style.display = (FLOW_NACHNAMENBAUM && istSuperAdmin()) ? '' : 'none';
     // Papierkorb im Avatar-Menü (unter „Profil bearbeiten") — nur für Bearbeiter.
     const avPkBtn = document.getElementById('avatar-papierkorb-btn');
     if (avPkBtn) avPkBtn.style.display = istAdmin() ? '' : 'none';
@@ -9812,16 +9851,79 @@ function navSuchPanelRender(verbund, extern) {
   if (konten.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_konto'))}</div>` + konten.map(navSuchVerbundItem).join('');
   if (karten.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_namenskarte'))}</div>` + karten.map(navSuchVerbundItem).join('');
   if (extern.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_extern'))}</div>` + extern.map(r => `
-    <div class="benachr-item gelesen" style="cursor:default">
+    <div class="benachr-item gelesen ent-extern-item" style="cursor:pointer"
+         data-pid="${escapeHtml(String(r.person_id || ''))}" data-name="${escapeHtml(nm(r.name || ''))}"
+         onclick="entKontaktDialogVon(this)">
       ${entAvatar(r.name, r.avatar_url)}
       <span class="bi-body"><div class="bi-titel">${escapeHtml(nm(r.name || '—'))}</div>
         <div class="bi-text">${escapeHtml(nm(r.familienname || ''))}</div>
-        <div class="obav-aktionen" style="margin-top:8px">
-          <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','kontakt')">${escapeHtml(t('ent_btn_kontakt'))}</button>
-          <button class="mv-toggle" type="button" onclick="entdeckenAnfrage('${r.person_id}','baumzugriff')">${escapeHtml(t('ent_btn_baum'))}</button>
-        </div></span>
+        <div class="bi-text" style="color:var(--gold);margin-top:4px">${escapeHtml(t('entk_aktion'))} ›</div>
+      </span>
     </div>`).join('');
   p.innerHTML = html;
+}
+// --- Kontakt-Dialog für entdeckte Person (fremder Verbund): Anschreiben (frei) / Baumzugriff (Genehmigung)
+let entKontaktPerson = null;
+function entKontaktDialogVon(el) {
+  if (!el) return;
+  entKontaktDialog(el.dataset.pid, el.dataset.name || '');
+}
+function entKontaktDialog(personId, name) {
+  entKontaktPerson = personId;
+  navSuchPanelSchliessen();
+  const nmEl = document.getElementById('ent-kontakt-name'); if (nmEl) nmEl.textContent = nm(name || '');
+  const msg = document.getElementById('ent-kontakt-nachricht'); if (msg) msg.value = '';
+  const fe = document.getElementById('ent-kontakt-fehler'); if (fe) fe.style.display = 'none';
+  const m = document.getElementById('ent-kontakt-modal'); if (m) m.style.display = 'flex';
+}
+function entKontaktSchliessen() {
+  const m = document.getElementById('ent-kontakt-modal'); if (m) m.style.display = 'none';
+  entKontaktPerson = null;
+}
+function entKontaktFehler(txt) {
+  const fe = document.getElementById('ent-kontakt-fehler');
+  if (fe) { fe.textContent = txt; fe.style.display = 'block'; }
+}
+// Anschreiben = Regel gelockert: Verbindung anlegen + 1:1-Chat sofort öffnen (keine Genehmigung).
+async function entKontaktAnschreiben() {
+  const pid = entKontaktPerson; if (!pid || !sbClient) return;
+  try {
+    const { data, error } = await sbClient.rpc('entdeckte_person_anschreiben', { p_ziel_person: pid });
+    if (error) throw error;
+    if (!data || !data.ok) { entKontaktFehler(t('entk_fehler')); return; }
+    const zielUser = data.ziel_user;
+    // Chat ERST auflösen (Fehler bleiben im Dialog sichtbar), dann UI umschalten.
+    const { data: cid, error: cErr } = await sbClient.rpc('direkt_chat_finden_oder_anlegen', { p_user2: zielUser });
+    if (cErr) throw cErr;
+    if (!cid) { entKontaktFehler(t('entk_fehler')); return; }
+    entKontaktSchliessen();
+    navSuchPanelSchliessen();
+    if (typeof oeffneChat === 'function') await oeffneChat();
+    if (typeof chatLadeListe === 'function') await chatLadeListe();
+    if (typeof chatOeffneKonversation === 'function') await chatOeffneKonversation(cid);
+  } catch (e) {
+    console.warn('entKontaktAnschreiben:', e);
+    entKontaktFehler((e && e.message) ? e.message : t('entk_fehler'));
+  }
+}
+// Baumzugriff = weiterhin genehmigungspflichtig, optionale Nachricht.
+async function entKontaktBaumzugriff() {
+  const pid = entKontaktPerson; if (!pid || !sbClient) return;
+  const msg = (document.getElementById('ent-kontakt-nachricht') || {}).value || '';
+  try {
+    const { data, error } = await sbClient.rpc('kontakt_anfrage_stellen',
+      { p_ziel_person: pid, p_typ: 'baumzugriff', p_nachricht: msg });
+    if (error) throw error;
+    if (!data || !data.ok) {
+      const g = (data && data.grund) || 'fehler';
+      entKontaktFehler(g === 'schon_offen' ? t('entk_schon_offen')
+        : g === 'schon_freigegeben' ? t('entk_schon_frei') : t('entk_fehler'));
+      return;
+    }
+    entKontaktSchliessen();
+    navSuchPanelSchliessen();
+    if (typeof zeigeHinweis === 'function') await zeigeHinweis(t('entk_baum_gesendet'));
+  } catch (e) { console.warn('entKontaktBaumzugriff:', e); entKontaktFehler(t('entk_fehler')); }
 }
 async function navSuchOeffne(personId, baumId) {
   navSuchPanelSchliessen();
@@ -12879,6 +12981,11 @@ function berechneLoseKarten() {
   const lose = [];
   Object.values(persons).forEach(p => {
     if (!p || p._tree !== treeId || p.platzhalter) return;
+    // Phase 2: bewusst „lose eingeordnete" Karte (Marker lose_zuordnen aus stammbaum_person_einordnen)
+    // gehört in die Zuordnen-Leiste, SOLANGE sie in DIESEM Baum noch keine eigene Kante hat —
+    // auch wenn ihr Zwilling in einem anderen Baum verbunden ist (sonst unsichtbar). Kein Fluten
+    // anderer Spiegel: nur markierte Karten bekommen diese Sonderbehandlung.
+    if (p.lose_zuordnen) { if (!hatKante.has(p.id)) lose.push(p); return; }
     if (gruppeHatKante(p.id)) return;   // real vernetzt (evtl. nur in anderem Baum) -> nicht lose
     lose.push(p);
   });
@@ -14760,7 +14867,23 @@ function zeigeDetails(personId) {
       ? `<button class="rel-move-btn" type="button" title="${escapeHtml(t('bezv_titel'))}" onclick="event.stopPropagation();bezAendernOeffnen('${typ}','${v.id}')">⇄</button>`
         + `<button class="rel-del-btn" type="button" title="${escapeHtml(t('rel_loesen_titel'))}" onclick="event.stopPropagation();beziehungLoesen('${typ}','${v.id}')">✕</button>`
       : '';
-    return `<span class="verwandter${x ? ' mit-x' : ''}" role="button" tabindex="0" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${x}</span>`;
+    // Phase 3: hat diese Person einen Zwilling (identitaet_id) in einem ANDEREN Baum, hängen dort
+    // i. d. R. weitere Verwandte -> klickbares 🔗-Badge, das in den Zielbaum springt.
+    let cross = '';
+    if (FLOW_NACHNAMENBAUM && v) {
+      // Bloodline-Nachname (Mädchenname/née bei Frauen, sonst Nachname) ≠ Baumname UND es existiert
+      // ein Baum dieses Nachnamens -> Sprung-Badge (gleiche Logik wie im Diagramm).
+      const treeN = zweigNachnameNorm((stammbaeumeListe[aktuellerStammbaumId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
+      const blutN = (v.sex === 'F' && v.ehename) ? zweigNachnameNorm(v.ehename) : zweigNachnameNorm(v.surname || '');
+      let zielBaum = null;
+      if (blutN && blutN !== treeN) {
+        for (const tid in stammbaeumeListe) {
+          if (tid !== aktuellerStammbaumId && zweigNachnameNorm(stammbaeumeListe[tid]) === blutN) { zielBaum = tid; break; }
+        }
+      }
+      if (zielBaum) cross = `<button class="rel-cross-btn" type="button" title="${escapeHtml(t('cross_tree_titel', { baum: baumLabel(zielBaum) }))}" onclick="event.stopPropagation();waehleStammbaum('${zielBaum}')">🔗</button>`;
+    }
+    return `<span class="verwandter${x ? ' mit-x' : ''}" role="button" tabindex="0" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${cross}${x}</span>`;
   };
   const buildVerwandte = (liste, typ) => liste.map(v => relChip(v, typ)).join('');
 
@@ -19131,6 +19254,42 @@ function schliesseIntegritaet() {
   document.getElementById('integ-modal').classList.remove('aktiv');
 }
 
+// ── Phase 5b: Bestehende abweichende Nachnamen auslagern (super_admin, hinter FLOW_NACHNAMENBAUM) ──
+let nnausRows = [];
+function oeffneNachnamenTool() {
+  if (!istSuperAdmin()) return;
+  const m = document.getElementById('avatar-menu'); if (m) m.classList.remove('offen');
+  document.getElementById('nnaus-ergebnis').innerHTML = '';
+  document.getElementById('nnaus-modal').classList.add('aktiv');
+}
+function schliesseNachnamenTool() { document.getElementById('nnaus-modal').classList.remove('aktiv'); }
+async function ladeNachnamenKandidaten() {
+  const box = document.getElementById('nnaus-ergebnis');
+  box.innerHTML = `<div class="integ-hinweis">…</div>`;
+  const { data, error } = await sbClient.rpc('nachnamen_migration_report');
+  if (error) { box.innerHTML = `<div class="integ-hinweis warn">${escapeHtml(t('reg_fehler') + error.message)}</div>`; return; }
+  nnausRows = data || [];
+  if (!nnausRows.length) { box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('nnaus_keine'))}</div>`; return; }
+  box.innerHTML = nnausRows.map(r => `
+    <div class="integ-block" id="nnaus-${escapeHtml(String(r.person_id))}">
+      <div><strong>${escapeHtml(nm(r.person_name || '?'))}</strong> — ${escapeHtml(nm(r.nachname || ''))}
+        <span style="opacity:.7"> (${escapeHtml(t('nnaus_in_baum'))}: ${escapeHtml(nm(r.baum_name || ''))})</span></div>
+      <button class="mv-toggle" type="button" onclick="nnausAuslagern('${escapeHtml(String(r.person_id))}')">${escapeHtml(t('nnaus_auslagern'))}</button>
+    </div>`).join('');
+}
+async function nnausAuslagern(personId) {
+  const r = nnausRows.find(x => String(x.person_id) === String(personId)); if (!r) return;
+  const zeile = document.getElementById('nnaus-' + personId);
+  const { error } = await sbClient.rpc('stammbaum_zweig_aus_person', { p_wurzel: personId, p_name: r.nachname, p_force: false });
+  if (error) {
+    const msg = /zweig_existiert/.test(error.message || '') ? t('zweig_existiert') : (t('reg_fehler') + (error.message || '—'));
+    if (zeile) zeile.insertAdjacentHTML('beforeend', `<div class="integ-hinweis warn">${escapeHtml(msg)}</div>`);
+    return;
+  }
+  if (zeile) zeile.innerHTML = `<div class="integ-hinweis" style="color:#3a7a3a">✓ ${escapeHtml(t('nnaus_erfolg', { name: nm(r.nachname || '') }))}</div>`;
+  if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+}
+
 async function ladeIntegritaet() {
   const out = document.getElementById('integ-ergebnis');
   if (!out) return;
@@ -21309,10 +21468,18 @@ function graphBlutScope(model, treeId, startCanon) {
     }
     return null;   // kein Ziel-Baum -> NICHT kappen (sonst verschwänden Nachkommen nirgends)
   };
-  // 1) hoch zur Blut-Wurzel (solange ein Blut-Elternteil existiert) — analog findeWurzel.
+  // Ein namenloser Platzhalter-Elternteil („Unbekannt", angelegt für Geschwister OHNE bekannte
+  // Eltern) ist selbst NICHT istBlut. Ohne Sonderfall würde der Blut-Aufstieg an ihm stoppen →
+  // die Geschwister der Wurzel (echte Blutlinien-Geschwister!) blieben unerreichbar/unsichtbar
+  // (Bug: fraudrei + frau Teststablozwei teilen sich einen Platzhalter → nur eine wurde gezeigt).
+  // Deshalb AUCH über einen Platzhalter aufsteigen, WENN er ≥1 Blutlinien-Kind hat. Ein Platzhalter
+  // hat selbst keine Eltern → der Aufstieg endet dort → KEIN Bleed aus einer fremden Familie.
+  const istPlatz = (c) => { const p = persOf(c); return !!(p && p.platzhalter); };
+  const platzMitBlut = (c) => istPlatz(c) && [...(model.children.get(c) || [])].some(istBlut);
+  // 1) hoch zur Blut-Wurzel (solange ein Blut- ODER blut-tragender Platzhalter-Elternteil existiert).
   let wurzel = startCanon, guard = 0;
   while (guard++ < 200) {
-    const be = [...(model.parents.get(wurzel) || [])].filter(istBlut);
+    const be = [...(model.parents.get(wurzel) || [])].filter(c => istBlut(c) || platzMitBlut(c));
     if (!be.length) break;
     wurzel = be[0];
   }
@@ -21322,7 +21489,9 @@ function graphBlutScope(model, treeId, startCanon) {
   while (stack.length) {
     const [c, elternAus] = stack.pop();
     if (seen.has(c)) continue; seen.add(c);
-    const selbstAus = !istBlut(c);
+    // Platzhalter zählen NIE als „auswärts" (blut-neutraler Unbekannt-Knoten) → sonst würden
+    // die darunter hängenden Blutlinien-Geschwister fälschlich als 2. auswärtige Generation gekappt.
+    const selbstAus = !istBlut(c) && !istPlatz(c);
     if (selbstAus && elternAus) {
       const ziel = zielBaumFuer(zweigNachnameNorm((persOf(c) || {}).surname || ''));
       if (ziel) { visible.add(c); cut.set(c, ziel); continue; }   // Übergangs-Blatt (keine Partner/Kinder)
@@ -21608,6 +21777,33 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
       badge.append('title').text(t('bl_uebergang_titel', { baum: bnm }));
       badge.append('text').attr('class', 'uebergang-text').attr('text-anchor', 'middle').attr('y', 0)
         .text(t('bl_uebergang', { baum: bnm }));
+    }
+    // Phase 3: Cross-Tree-Badge — Person hat einen Zwilling (identitaet_id) in einem ANDEREN Baum
+    // (andere Blutlinie) -> „🔗 {Baum}" unter der Karte, klickbar, springt dorthin. Nicht doppelt an
+    // Übergangs-Blättern (die haben schon ihr →{Baum}-Badge).
+    else if (FLOW_NACHNAMENBAUM) {
+      const pp = personOf(canon);
+      if (pp) {
+        // Bloodline-Nachname (Mädchenname/née bei Frauen, sonst Nachname) ≠ Baumname UND es
+        // existiert ein Baum dieses Nachnamens im Verbund -> Sprung-Badge in diesen Zielbaum.
+        const treeN = zweigNachnameNorm((stammbaeumeListe[aktuellerStammbaumId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
+        const blutN = (pp.sex === 'F' && pp.ehename) ? zweigNachnameNorm(pp.ehename) : zweigNachnameNorm(pp.surname || '');
+        let zb = null;
+        if (blutN && blutN !== treeN) {
+          for (const tid in stammbaeumeListe) {
+            if (tid !== aktuellerStammbaumId && zweigNachnameNorm(stammbaeumeListe[tid]) === blutN) { zb = tid; break; }
+          }
+        }
+        if (zb) {
+          const bnm2 = baumLabel(zb);
+          const cbadge = g.append('g').attr('class', 'uebergang-badge cross-tree-badge').attr('transform', 'translate(0,50)')
+            .style('cursor', 'pointer')
+            .on('click', (ev) => { if (ev) ev.stopPropagation(); waehleStammbaum(zb); });
+          cbadge.append('title').text(t('cross_tree_titel', { baum: bnm2 }));
+          cbadge.append('text').attr('class', 'uebergang-text').attr('text-anchor', 'middle').attr('y', 0)
+            .text('🔗 ' + bnm2);
+        }
+      }
     }
     pts.push({ x, y });
   };
