@@ -170,7 +170,11 @@
       <path d="M32 43 C 31 47, 30 50, 29 53"/><path d="M32 43 C 33 47, 34 50, 35 53"/>
     </g>
   </svg>
-  <img id="header-logo-img" class="header-logo header-logo-img" alt="" style="display:none" onerror="this.style.display='none';var s=document.getElementById('header-logo-svg');if(s)s.style.display='';">
+  <!-- Bild-Logo im runden, clippenden Wrapper; aktualisiereKopfLogo() setzt src + Rahmung (transform)
+       und blendet Wrapper/SVG passend ein/aus. Der Wrapper klippt das per Zoom/Pan skalierte Bild. -->
+  <span id="header-logo-wrap" class="header-logo-wrap" style="display:none">
+    <img id="header-logo-img" class="header-logo-img" alt="" onerror="var w=document.getElementById('header-logo-wrap');if(w)w.style.display='none';var s=document.getElementById('header-logo-svg');if(s)s.style.display='';">
+  </span>
   <h1>FamilyRoots</h1>
   <p class="untertitel" data-i18n="untertitel"></p>
   <p class="stats" id="header-stats"></p>
@@ -800,6 +804,21 @@
         <input type="radio" name="ansicht-modus" value="voll" onchange="ansichtModusWahl()">
         <span><b data-i18n="ansicht_opt_voll"></b><small data-i18n="ansicht_opt_voll_sub"></small></span>
       </label>
+
+      <!-- Preset 5 (NEU): Zwei Stammbaeume verbinden -->
+      <label class="ansicht-radio" id="ansicht-radio-verbund">
+        <input type="radio" name="ansicht-modus" value="verbund" onchange="ansichtModusWahl()">
+        <span><b data-i18n="ansicht_opt_verbund"></b><small data-i18n="ansicht_opt_verbund_sub"></small></span>
+      </label>
+    </div>
+
+    <!-- Unterbereich fuer „verbund": zwei Baeume waehlen -->
+    <div class="ansicht-unter" id="ansicht-unter-verbund">
+      <label class="login-label"><span data-i18n="ansicht_verbund_baum_a"></span>
+        <select id="ansicht-baum-a" class="login-feld"></select></label>
+      <label class="login-label" style="margin-top:8px"><span data-i18n="ansicht_verbund_baum_b"></span>
+        <select id="ansicht-baum-b" class="login-feld"></select></label>
+      <p class="pdf-sub" id="ansicht-verbund-hinweis" style="display:none;color:var(--akzent)"></p>
     </div>
 
     <!-- Vertikale Ausrichtung (gilt für ALLE Ansichten; sofort wirksam) -->
@@ -1022,7 +1041,7 @@
 </div>
 
 <!-- Passwort festlegen (nach Bestätigung via Invite-/Recovery-Link) -->
-<div class="modal" id="setpw-modal">
+<div class="modal" id="setpw-modal" style="z-index:240">
   <div class="modal-inhalt" style="max-width:420px" onclick="event.stopPropagation()">
     <h2 data-i18n="setpw_titel"></h2>
     <p class="sub-name">FamilyRoots</p>
@@ -1731,6 +1750,28 @@
   </div>
 </div>
 
+<!-- Logo-Ausschnitt: Bild im runden Kopf-Logo-Rahmen verschieben/zoomen (nur Rahmung gespeichert,
+     Originalbild bleibt unberührt). Schließt nur per Button (UI-Regel). z-index über den Einstellungen. -->
+<div class="modal" id="logo-crop-modal" style="z-index:330">
+  <div class="modal-inhalt" style="max-width:360px" onclick="event.stopPropagation()">
+    <button class="modal-schliessen" onclick="logoCropAbbrechen()">×</button>
+    <h2 data-i18n="fe_logo_ausschnitt"></h2>
+    <p class="feld-hinweis" data-i18n="fe_logo_ausschnitt_hint"></p>
+    <div class="lc-viewport" id="lc-viewport">
+      <img id="lc-img" class="lc-img" alt="" draggable="false">
+    </div>
+    <div class="lc-zoom-row">
+      <span class="lc-zoom-lbl" data-i18n="fe_logo_zoom"></span>
+      <input type="range" id="lc-zoom" min="0.3" max="4" step="0.01" value="1" oninput="logoCropZoomSlider(this.value)">
+      <button type="button" class="lc-reset" data-i18n="fe_logo_reset" onclick="logoCropReset()"></button>
+    </div>
+    <div class="lc-actions">
+      <button type="button" class="login-submit" data-i18n="fe_logo_uebernehmen" onclick="logoCropUebernehmen()"></button>
+      <button type="button" class="lc-abbrechen" data-i18n="fe_logo_abbrechen" onclick="logoCropAbbrechen()"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Podešavanje porodice: Stammbaum-Stammdaten bearbeiten -->
 <div class="modal" id="familie-einst-modal">
   <div class="modal-inhalt fe-inhalt" onclick="event.stopPropagation()">
@@ -1778,36 +1819,30 @@
           <input type="text" id="fe-motto" class="login-feld"></label>
       </div>
 
-      <!-- Medien -->
+      <!-- Medien: GENAU zwei Bild-Slots (Logo + Hintergrundbild). Je Slot EIN Bild (erneuter Upload
+           ersetzt), plus „Standard"-Button (setzt auf die App-Voreinstellung zurück = Bild entfernen).
+           Der Logo-Slot behält den Zuschnitt-/Zoom-Editor (Prompt 5). -->
       <div class="reg-gruppe-titel" data-i18n="fe_sek_medien"></div>
       <div class="reg-grid">
         <div class="login-label fe-media">
-          <span data-i18n="fe_foto"></span>
+          <span data-i18n="fe_logo"></span>
+          <span class="feld-hinweis" data-i18n="fe_logo_hint"></span>
           <div class="fe-media-row">
-            <img id="fe-foto-preview" class="fe-media-preview" alt="" style="display:none">
-            <input type="file" id="fe-foto-input" accept="image/*" class="fe-file" onchange="feMediaUpload('foto', this)">
-            <button type="button" id="fe-foto-del" class="fe-media-del" data-i18n="fe_entfernen" onclick="feMediaEntfernen('foto')" style="display:none"></button>
+            <img id="fe-logo-preview" class="fe-media-preview" alt="" style="display:none">
+            <input type="file" id="fe-logo-input" accept="image/*" class="fe-file" onchange="feMediaUpload('logo', this)">
+            <button type="button" id="fe-logo-crop" class="fe-media-crop" data-i18n="fe_logo_ausschnitt" onclick="logoCropOeffne('logo')" style="display:none"></button>
+            <button type="button" id="fe-logo-std" class="fe-media-del" data-i18n="fe_standard_logo" onclick="feMediaStandard('logo')" style="display:none"></button>
           </div>
         </div>
         <div class="login-label fe-media">
-          <span data-i18n="fe_wappen"></span>
+          <span data-i18n="fe_hintergrundbild"></span>
+          <span class="feld-hinweis" data-i18n="fe_hintergrundbild_hint"></span>
           <div class="fe-media-row">
-            <img id="fe-wappen-preview" class="fe-media-preview" alt="" style="display:none">
-            <input type="file" id="fe-wappen-input" accept="image/*" class="fe-file" onchange="feMediaUpload('wappen', this)">
-            <button type="button" id="fe-wappen-del" class="fe-media-del" data-i18n="fe_entfernen" onclick="feMediaEntfernen('wappen')" style="display:none"></button>
+            <img id="fe-hintergrundbild-preview" class="fe-media-preview" alt="" style="display:none">
+            <input type="file" id="fe-hintergrundbild-input" accept="image/*" class="fe-file" onchange="feMediaUpload('hintergrundbild', this)">
+            <button type="button" id="fe-hintergrundbild-std" class="fe-media-del" data-i18n="fe_standard_hintergrund" onclick="feMediaStandard('hintergrundbild')" style="display:none"></button>
           </div>
         </div>
-      </div>
-      <!-- Kopf-Logo: welches Bild oben neben dem Stammbaum-Namen erscheint. Standard = App-Logo;
-           Foto/Wappen nur wählbar, wenn hochgeladen (feLogoSyncUI). -->
-      <div class="login-label reg-feld-voll fe-logo-wahl">
-        <span data-i18n="fe_logo"></span>
-        <div class="fe-logo-optionen" id="fe-logo-optionen">
-          <button type="button" class="fe-logo-opt" data-logo="standard" onclick="feLogoWaehle('standard')"><span data-i18n="fe_logo_standard"></span></button>
-          <button type="button" class="fe-logo-opt" data-logo="foto"     onclick="feLogoWaehle('foto')"><span data-i18n="fe_foto"></span></button>
-          <button type="button" class="fe-logo-opt" data-logo="wappen"   onclick="feLogoWaehle('wappen')"><span data-i18n="fe_wappen"></span></button>
-        </div>
-        <span class="feld-hinweis" data-i18n="fe_logo_hint"></span>
       </div>
       <!-- Karten-Felder: welche Personendaten auf den Baumkarten dieses Stammbaums erscheinen -->
       <div class="login-label reg-feld-voll">
@@ -6263,32 +6298,26 @@ function feldFehlerReset(container) {
 // Owner/Admin/Super dürfen bearbeiten; Mitglieder sehen alles schreibgeschützt.
 // Felder: Allgemein (Kern auf familien) + reiche Zusatzdaten (stammbaeume.einstellungen).
 // ============================================================
-let feMedia = {};       // aktuelle Medien im Formular: {foto_url,foto_path,wappen_url,wappen_path}
+let feMedia = {};       // aktuelle Medien im Formular: {logo_url,logo_path,hintergrundbild_url,hintergrundbild_path}
 let feMediaOld = {};    // beim Laden gemerkte Pfade (Aufräumen ersetzter Dateien nach Save)
-let feLogoWahl = 'standard';   // Kopf-Logo-Auswahl im Formular: 'standard' | 'foto' | 'wappen'
-
-// Kopf-Logo-Auswahl: nur wählbar, wenn das Bild vorhanden ist; fehlt das gewählte Bild
-// (z. B. gerade entfernt), Fallback auf 'standard'. Aktiver Chip wird markiert.
-function feLogoSyncUI() {
-  const box = document.getElementById('fe-logo-optionen');
-  if (!box) return;
-  const roEl = document.getElementById('fe-readonly-hinweis');
-  const ro   = !!(roEl && roEl.style.display !== 'none');
-  const da   = { standard: true, foto: !!feMedia.foto_url, wappen: !!feMedia.wappen_url };
-  if (!da[feLogoWahl]) feLogoWahl = 'standard';   // gewähltes Bild weg -> Standard
-  box.querySelectorAll('.fe-logo-opt').forEach(btn => {
-    const v = btn.getAttribute('data-logo');
-    btn.classList.toggle('aktiv', v === feLogoWahl);
-    btn.disabled = !da[v] || ro;
-    btn.style.display = (v === 'standard' || da[v]) ? '' : 'none';   // nicht-hochgeladene ausblenden
-  });
+let feFrames = { logo: null };   // Rahmung des Logo-Bilds: {zoom,x,y} (null = Default zentriert). Nur das Logo hat einen Zuschnitt.
+const FE_MEDIA_ARTEN = ['logo', 'hintergrundbild'];   // GENAU zwei Bild-Slots im Medien-Abschnitt
+// Rahmung einer Quelle aus dem einstellungen-Objekt lesen (Felder <art>_zoom/_x/_y); null = keine gespeichert.
+function feFrameAusEinst(e, art) {
+  if (!e) return null;
+  const z = e[art + '_zoom'], x = e[art + '_x'], y = e[art + '_y'];
+  if (z == null && x == null && y == null) return null;
+  return { zoom: z, x: x, y: y };
 }
-function feLogoWaehle(v) {
-  if (v !== 'standard' && v !== 'foto' && v !== 'wappen') return;
-  if (v === 'foto'   && !feMedia.foto_url)   return;
-  if (v === 'wappen' && !feMedia.wappen_url) return;
-  feLogoWahl = v;
-  feLogoSyncUI();
+// MIGRATION Alt->Neu: liefert das Logo-Bild {url,path,frame} eines Baums aus dem einstellungen-Objekt.
+// NEU: logo_url/logo_path (+ logo_zoom/x/y). ALT: logo='foto'|'wappen' + foto_url/wappen_url (+ deren Rahmung).
+// So behalten bestehende Bäume ihr bisher als Kopf-Logo gewähltes Bild nach dem Medien-Umbau.
+function feLogoAusEinst(e) {
+  e = e || {};
+  if (e.logo_url) return { url: e.logo_url, path: e.logo_path || '', frame: feFrameAusEinst(e, 'logo') };
+  if (e.logo === 'foto'   && e.foto_url)   return { url: e.foto_url,   path: e.foto_path || '',   frame: feFrameAusEinst(e, 'foto') };
+  if (e.logo === 'wappen' && e.wappen_url) return { url: e.wappen_url, path: e.wappen_path || '', frame: feFrameAusEinst(e, 'wappen') };
+  return { url: '', path: '', frame: null };
 }
 
 // Reiche Zusatzfelder: jsonb-Schlüssel -> Input-id
@@ -6335,9 +6364,9 @@ function feSetReadonly(ro) {
   });
   document.getElementById('fe-readonly-hinweis').style.display = ro ? 'block' : 'none';
   document.getElementById('fe-submit').style.display = ro ? 'none' : '';
-  ['foto','wappen'].forEach(a => {
-    const del = document.getElementById('fe-' + a + '-del');
-    if (del && ro) del.style.display = 'none';
+  FE_MEDIA_ARTEN.forEach(a => {
+    if (!ro) return;
+    ['-std', '-crop'].forEach(suf => { const b = document.getElementById('fe-' + a + suf); if (b) b.style.display = 'none'; });
   });
 }
 
@@ -6346,7 +6375,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   const fehlerEl = document.getElementById('fe-fehler');
   const erfolgEl = document.getElementById('fe-erfolg');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
-  feMedia = {}; feMediaOld = {}; feLogoWahl = 'standard'; feLogoSyncUI();
+  feMedia = {}; feMediaOld = {}; feFrames = { logo: null };
   fuelleFeKartenfelder(null, false);   // Karten-Feldwahl zurücksetzen (Default), bis geladen
 
   // Felder leeren + Länder-Dropdown füllen
@@ -6354,9 +6383,9 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   document.getElementById('fe-land').value = '';
   ['fe-name','fe-zusatz','fe-opis','fe-stadt','fe-gemeinde', ...Object.values(FE_EINST_FELDER)]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  ['foto','wappen'].forEach(a => {
+  FE_MEDIA_ARTEN.forEach(a => {
     const img = document.getElementById('fe-' + a + '-preview'); if (img) { img.src = ''; img.style.display = 'none'; }
-    const del = document.getElementById('fe-' + a + '-del'); if (del) del.style.display = 'none';
+    const std = document.getElementById('fe-' + a + '-std'); if (std) std.style.display = 'none';
     const inp = document.getElementById('fe-' + a + '-input'); if (inp) inp.value = '';
   });
   document.getElementById('fe-stammbaum-id').value = stammbaumId || '';
@@ -6382,13 +6411,13 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   Object.entries(FE_EINST_FELDER).forEach(([key, id]) => {
     const el = document.getElementById(id); if (el) el.value = e[key] || '';
   });
-  // Medien
-  feMedia = { foto_url: e.foto_url || '', foto_path: e.foto_path || '',
-              wappen_url: e.wappen_url || '', wappen_path: e.wappen_path || '' };
-  feMediaOld = { foto_path: e.foto_path || '', wappen_path: e.wappen_path || '' };
-  ['foto','wappen'].forEach(a => feMediaPreview(a));
-  feLogoWahl = (e.logo === 'foto' || e.logo === 'wappen') ? e.logo : 'standard';
-  feLogoSyncUI();
+  // Medien: Logo (mit Migration Alt->Neu) + Hintergrundbild in die zwei Slots laden
+  const lg = feLogoAusEinst(e);
+  feMedia = { logo_url: lg.url, logo_path: lg.path,
+              hintergrundbild_url: e.hintergrund_url || '', hintergrundbild_path: e.hintergrund_path || '' };
+  feMediaOld = { logo_path: lg.path, hintergrundbild_path: e.hintergrund_path || '' };
+  feFrames = { logo: lg.frame };
+  FE_MEDIA_ARTEN.forEach(a => feMediaPreview(a));
   fuelleFeKartenfelder(e.kartenfelder, !d.can_edit);   // Karten-Feldwahl des Baums
 
   feSetReadonly(!d.can_edit);
@@ -6655,15 +6684,16 @@ async function bestaetigeOwnerWechsel() {
   setTimeout(() => schliesseOwnerWechsel(), 900);
 }
 
-// Vorschau + Entfernen-Button gemäß feMedia setzen
+// Vorschau + „Standard"-Button (nur bei Bild) + Ausschnitt-Button (nur Logo) je Slot setzen
 function feMediaPreview(art) {
   const url = feMedia[art + '_url'] || '';
   const img = document.getElementById('fe-' + art + '-preview');
-  const del = document.getElementById('fe-' + art + '-del');
+  const std = document.getElementById('fe-' + art + '-std');
+  const crop = document.getElementById('fe-' + art + '-crop');   // nur der Logo-Slot hat einen Crop-Button
   if (img) { img.src = url; img.style.display = url ? '' : 'none'; }
   const ro = document.getElementById('fe-readonly-hinweis').style.display !== 'none';
-  if (del) del.style.display = (url && !ro) ? '' : 'none';
-  feLogoSyncUI();   // Logo-Chips (Foto/Wappen) je nach Bild-Verfügbarkeit aktualisieren
+  if (std)  std.style.display  = (url && !ro) ? '' : 'none';   // „Standard-…" nur, wenn ein eigenes Bild gesetzt ist
+  if (crop) crop.style.display = (url && !ro) ? '' : 'none';   // Ausschnitt nur für Bearbeiter mit Logo-Bild
 }
 
 async function feMediaUpload(art, input) {
@@ -6683,22 +6713,157 @@ async function feMediaUpload(art, input) {
     feMedia[art + '_url']  = (pub && pub.data && pub.data.publicUrl) || '';
     feMedia[art + '_path'] = p;
     feMediaPreview(art);
+    if (art === 'logo') {        // nur das Logo hat einen runden Zuschnitt
+      feFrames.logo = null;      // neues Bild -> Rahmung zurück auf Default (zentriert)
+      logoCropOeffne('logo');    // gleich den sichtbaren Ausschnitt einstellen lassen (Button erlaubt späteres Nachjustieren)
+    }
   } catch (e) {
     fehlerEl.textContent = t('reg_fehler') + (e.message || e); fehlerEl.style.display = 'block';
   }
 }
 
-function feMediaEntfernen(art) {
-  // Datei wird erst beim Speichern endgültig aufgeräumt (siehe feMediaCleanup).
+// „Standard-…"-Button: Bild dieses Slots entfernen -> App-Voreinstellung (Logo = App-SVG,
+// Hintergrund = Default-Hintergrund des #baum-container). Datei wird erst beim Speichern aufgeräumt.
+function feMediaStandard(art) {
   feMedia[art + '_url'] = ''; feMedia[art + '_path'] = '';
+  if (art === 'logo') feFrames.logo = null;   // Rahmung verwerfen
   const inp = document.getElementById('fe-' + art + '-input'); if (inp) inp.value = '';
   feMediaPreview(art);
+}
+
+// ============================================================
+// LOGO-AUSSCHNITT-EDITOR (Pan/Zoom im runden Kopf-Logo-Rahmen)
+// Speichert NUR die Rahmung {zoom,x,y} je Quelle in feFrames — Originalbild bleibt unberührt.
+// Rendering identisch zum Kopf über logoFrameStyleAnwenden() -> WYSIWYG. Touch-sicher (Pointer Events).
+// ============================================================
+let logoCrop = null;                 // { art, zoom, x, y }
+const logoCropPtr = new Map();       // aktive Pointer (pan/pinch)
+let logoCropPinch = null;            // { startDist, startZoom }
+
+function logoCropOeffne(art) {
+  if (art !== 'logo') return;   // nur der Logo-Slot hat einen runden Zuschnitt
+  const url = feMedia[art + '_url'] || '';
+  if (!url) return;
+  // Nur Bearbeiter (readonly-Hinweis sichtbar = kein Recht)
+  const roEl = document.getElementById('fe-readonly-hinweis');
+  if (roEl && roEl.style.display !== 'none') return;
+  const f = logoFrameNorm(feFrames[art]);   // gespeicherte oder Default-Rahmung
+  logoCrop = { art, zoom: f.zoom, x: f.x, y: f.y };
+  const img = document.getElementById('lc-img');
+  if (img) { img.onload = () => logoCropRender(); if (img.src !== url) img.src = url; }
+  document.getElementById('logo-crop-modal').classList.add('aktiv');   // erst sichtbar -> Viewport hat Breite
+  logoCropRender();                                                    // sofort (falls Bild gecacht)
+  logoCropBinde();
+}
+function schliesseLogoCrop() {
+  document.getElementById('logo-crop-modal').classList.remove('aktiv');
+  logoCropLoese();
+  logoCrop = null; logoCropPtr.clear(); logoCropPinch = null;
+}
+function logoCropAbbrechen() { schliesseLogoCrop(); }
+function logoCropUebernehmen() {
+  if (logoCrop) {
+    const n = logoFrameNorm(logoCrop);
+    feFrames.logo = n;
+    // Bearbeiteter Baum = aktiver Baum -> Rahmung sofort im Kopf spiegeln (sonst nach Speichern+Reload).
+    const sid = document.getElementById('fe-stammbaum-id') ? document.getElementById('fe-stammbaum-id').value : '';
+    if (sid && sid === aktuellerStammbaumId) {
+      stammbaumLogoFrame[sid] = n; aktualisiereKopfLogo();
+    }
+  }
+  schliesseLogoCrop();
+}
+function logoCropReset() {
+  if (!logoCrop) return;
+  logoCrop.zoom = 1; logoCrop.x = 0.5; logoCrop.y = 0.5;
+  logoCropRender();
+}
+function logoCropRender() {
+  if (!logoCrop) return;
+  const img = document.getElementById('lc-img');
+  const vp  = document.getElementById('lc-viewport');
+  logoFrameStyleAnwenden(img, vp, logoCrop);
+  const slider = document.getElementById('lc-zoom');
+  if (slider && Math.abs(parseFloat(slider.value) - logoCrop.zoom) > 0.001) slider.value = logoCrop.zoom;
+}
+function logoCropZoomSlider(v) {
+  if (!logoCrop) return;
+  logoCrop.zoom = Math.max(0.3, Math.min(4, parseFloat(v) || 1));
+  logoCropRender();
+}
+// Pan: Pixel-Delta / Überstand (nW*S − D bzw. nH*S − D) -> x,y in [0,1]. Funktioniert für Über- UND
+// Unterstand (zoom<1); Achsen mit vernachlässigbarem Überstand werden nicht bewegt.
+function logoCropPan(dpx, dpy) {
+  if (!logoCrop) return;
+  const vp = document.getElementById('lc-viewport');
+  const img = document.getElementById('lc-img');
+  const D = vp ? vp.clientWidth : 240;
+  const nW = img ? img.naturalWidth : 0, nH = img ? img.naturalHeight : 0;
+  if (!nW || !nH || !D) return;
+  const S = (D / Math.min(nW, nH)) * logoFrameNorm(logoCrop).zoom;
+  const spanX = nW * S - D, spanY = nH * S - D;
+  if (Math.abs(spanX) > 1) logoCrop.x = Math.max(0, Math.min(1, logoCrop.x - dpx / spanX));
+  if (Math.abs(spanY) > 1) logoCrop.y = Math.max(0, Math.min(1, logoCrop.y - dpy / spanY));
+  logoCropRender();
+}
+function logoCropZoomBy(delta) {
+  if (!logoCrop) return;
+  logoCrop.zoom = Math.max(0.3, Math.min(4, logoCrop.zoom + delta));
+  logoCropRender();
+}
+// --- Pointer-Bindung (touch-sicher, wie galerieDrag-Muster) ---
+function logoCropBinde() {
+  const vp = document.getElementById('lc-viewport'); if (!vp) return;
+  vp.addEventListener('pointerdown', logoCropDown);
+  vp.addEventListener('pointermove', logoCropMove);
+  vp.addEventListener('pointerup', logoCropUp);
+  vp.addEventListener('pointercancel', logoCropUp);
+  vp.addEventListener('wheel', logoCropWheel, { passive: false });
+}
+function logoCropLoese() {
+  const vp = document.getElementById('lc-viewport'); if (!vp) return;
+  vp.removeEventListener('pointerdown', logoCropDown);
+  vp.removeEventListener('pointermove', logoCropMove);
+  vp.removeEventListener('pointerup', logoCropUp);
+  vp.removeEventListener('pointercancel', logoCropUp);
+  vp.removeEventListener('wheel', logoCropWheel);
+}
+function logoCropDown(ev) {
+  ev.preventDefault();
+  logoCropPtr.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  try { ev.target.setPointerCapture(ev.pointerId); } catch (e) {}
+  if (logoCropPtr.size === 2) {
+    const p = [...logoCropPtr.values()];
+    logoCropPinch = { startDist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1, startZoom: logoCrop ? logoCrop.zoom : 1 };
+  }
+}
+function logoCropMove(ev) {
+  if (!logoCropPtr.has(ev.pointerId)) return;
+  const prev = logoCropPtr.get(ev.pointerId);
+  const cur = { x: ev.clientX, y: ev.clientY };
+  logoCropPtr.set(ev.pointerId, cur);
+  if (logoCropPtr.size >= 2 && logoCropPinch) {
+    const p = [...logoCropPtr.values()];
+    const dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+    logoCrop.zoom = Math.max(1, Math.min(3, logoCropPinch.startZoom * (dist / logoCropPinch.startDist)));
+    logoCropRender();
+  } else if (logoCropPtr.size === 1) {
+    logoCropPan(cur.x - prev.x, cur.y - prev.y);
+  }
+}
+function logoCropUp(ev) {
+  logoCropPtr.delete(ev.pointerId);
+  if (logoCropPtr.size < 2) logoCropPinch = null;
+}
+function logoCropWheel(ev) {
+  ev.preventDefault();
+  logoCropZoomBy(ev.deltaY < 0 ? 0.08 : -0.08);
 }
 
 // Ersetzte/entfernte Storage-Dateien nach erfolgreichem Speichern abräumen (keine Waisen)
 async function feMediaCleanup() {
   const weg = [];
-  ['foto','wappen'].forEach(a => {
+  FE_MEDIA_ARTEN.forEach(a => {
     const alt = feMediaOld[a + '_path'];
     if (alt && alt !== feMedia[a + '_path']) weg.push(alt);
   });
@@ -6724,14 +6889,18 @@ function feSammleEinstellungen() {
   const v = id => (document.getElementById(id).value || '').trim();
   const o = {};
   Object.entries(FE_EINST_FELDER).forEach(([key, id]) => { const w = v(id); if (w) o[key] = w; });
-  ['foto','wappen'].forEach(a => {
-    if (feMedia[a + '_url'])  o[a + '_url']  = feMedia[a + '_url'];
-    if (feMedia[a + '_path']) o[a + '_path'] = feMedia[a + '_path'];
-  });
-  // Kopf-Logo-Auswahl: nur speichern, wenn ein Bild gewählt ist UND es (noch) existiert.
-  if (feLogoWahl === 'foto'   && feMedia.foto_url)   o.logo = 'foto';
-  else if (feLogoWahl === 'wappen' && feMedia.wappen_url) o.logo = 'wappen';
-  // sonst kein logo-Feld -> Standard (App-Logo)
+  // LOGO-Bild (= Kopf-Logo direkt): logo_url/logo_path + Rahmung logo_zoom/x/y. Leer -> App-SVG.
+  if (feMedia.logo_url) {
+    o.logo_url = feMedia.logo_url;
+    if (feMedia.logo_path) o.logo_path = feMedia.logo_path;
+    if (feFrames.logo) { const n = logoFrameNorm(feFrames.logo); o.logo_zoom = n.zoom; o.logo_x = n.x; o.logo_y = n.y; }
+  }
+  // HINTERGRUNDBILD des #baum-container: hintergrund_url/hintergrund_path. Leer -> Default-Hintergrund.
+  if (feMedia.hintergrundbild_url) {
+    o.hintergrund_url = feMedia.hintergrundbild_url;
+    if (feMedia.hintergrundbild_path) o.hintergrund_path = feMedia.hintergrundbild_path;
+  }
+  // (Altes 3-fach o.logo + foto_/wappen_-Felder werden nicht mehr geschrieben; feLogoAusEinst migriert Altbestand.)
   // Karten-Feldwahl (immer schreiben, auch leer = „nur Name" -> unterscheidbar vom Default)
   const kf = [];
   document.querySelectorAll('#fe-kartenfelder input[data-kf]:checked').forEach(el => kf.push(el.getAttribute('data-kf')));
@@ -7482,6 +7651,7 @@ function schliesseRegistrierModal() {
 function pruefePasswortSetzen() {
   const hash = window.location.hash || '';
   if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+    passwortSetzenAktiv = true;   // unterdrückt das Standard-Baum-Overlay bis das PW gesetzt ist
     document.getElementById('setpw-modal').classList.add('aktiv');
     setTimeout(() => document.getElementById('setpw-passwort').focus(), 60);
   }
@@ -7528,8 +7698,16 @@ async function setzePasswort() {
   document.getElementById('setpw-passwort').value = '';
   document.getElementById('setpw-passwort2').value = '';
   const { data: { session: s2 } } = await sbClient.auth.getSession();
-  if (s2) await setzeUser(s2.user);   // meldet den User in der Oberfläche an
-  setTimeout(() => document.getElementById('setpw-modal').classList.remove('aktiv'), 1500);
+  if (s2) await setzeUser(s2.user);   // meldet den User in der Oberfläche an (Baum lädt im Hintergrund, ohne Overlay)
+  // Passwort ist gesetzt -> Sperre für das Standard-Baum-Overlay aufheben und die Wahl
+  // JETZT in der richtigen Reihenfolge nachholen (nach dem Schließen von #setpw-modal).
+  // waehleStartStammbaum() öffnet das Overlay nur, wenn wirklich nötig (mehrere Bäume,
+  // kein gespeicherter Standard); sonst wählt es still den passenden Baum.
+  passwortSetzenAktiv = false;
+  setTimeout(() => {
+    document.getElementById('setpw-modal').classList.remove('aktiv');
+    waehleStartStammbaum();
+  }, 1500);
 }
 
 // ---- Hintergrund-Prüfung: existiert dieser Stammbaum schon? -------------------
@@ -7921,6 +8099,7 @@ let aktuelleAnsicht = 'baum';
 // modus: null (Such-/Fokus-Altlogik) | 'standard' | 'voll' | 'zweig' | 'erweitert'
 let ansichtModus    = null;
 let ansichtFokusId  = null;          // Person, um die der Ausschnitt zentriert ist
+let ansichtVerbundA = null, ansichtVerbundB = null;   // Modus „verbund": die zwei gewaehlten Baeume
 let ansichtGen      = 0;             // 'zweig': AKTIVE Generationen nach unten (0 = unbegrenzt, Default)
 let ansichtGenAuf   = 2;             // 'zweig': AKTIVE Generationen nach oben (0 = unbegrenzt; Default 2 = nahe Vorfahren)
 // Vertikale Ausrichtung des Baums (orthogonal zum ansichtModus, gilt für ALLE Modi):
@@ -7940,9 +8119,16 @@ let aktuellerStammbaumId = null;
 let stammbaeumeListe = {};
 let stammbaeumeZusatz = {};    // stammbaum_id -> Zusatz/Unterscheidung (z. B. „Desa"); Anzeige via baumLabel()
 let stammbaumLogo = {};        // stammbaum_id -> Kopf-Logo-URL (aus einstellungen.logo -> foto_url/wappen_url); leer = App-Standard-Logo
+let stammbaumLogoFrame = {};   // stammbaum_id -> {zoom,x,y} Rahmung des gewählten Kopf-Logos (Default: zoom=1, zentriert)
+let stammbaumHintergrund = {}; // stammbaum_id -> Hintergrundbild-URL des #baum-container (leer = Default-Hintergrund)
 let stammbaumZuFamilie = {};   // stammbaum_id -> familie_id (für Podešavanje porodice)
 let meineRollenProFamilie = {};   // familie_id -> Rolle des aktuellen Users (Standard-Stammbaum-Priorität)
 let startBaumGewaehlt = false;    // Start-Stammbaum nach Login einmalig bestimmt?
+// Läuft gerade ein Passwort-Setzen (Recovery/Invite aus der Mail)? Dann darf das
+// Willkommens-Overlay „Standard-Stammbaum wählen" NICHT aufgehen (es würde das
+// #setpw-modal verdecken). Wird früh anhand des URL-Hash gesetzt (siehe init/
+// pruefePasswortSetzen) und in setzePasswort nach Erfolg wieder auf false gesetzt.
+let passwortSetzenAktiv = false;
 let modalVerlauf = [];
 let aktuelleModalPersonId = null;
 
@@ -8309,15 +8495,19 @@ async function ladeBaumAusSupabase() {
   stammbaeumeZusatz = {};
   stammbaumZuFamilie = {};
   stammbaumLogo = {};
+  stammbaumLogoFrame = {};
+  stammbaumHintergrund = {};
   stammbaumKartenfelder = {};
   (sRes.data || []).forEach(s => {
     stammbaeumeListe[s.id] = s.name;
     if (s.zusatz && String(s.zusatz).trim()) stammbaeumeZusatz[s.id] = String(s.zusatz).trim();
     if (s.familie_id) stammbaumZuFamilie[s.id] = s.familie_id;
-    // Kopf-Logo: gewählte Bild-URL aus den Einstellungen (Standard = App-Logo, kein Eintrag)
     const e = s.einstellungen || {};
-    if (e.logo === 'foto'   && e.foto_url)   stammbaumLogo[s.id] = e.foto_url;
-    else if (e.logo === 'wappen' && e.wappen_url) stammbaumLogo[s.id] = e.wappen_url;
+    // Kopf-Logo: Bild-URL + Rahmung (neues logo_url ODER Migration aus altem logo='foto'/'wappen')
+    const lg = feLogoAusEinst(e);
+    if (lg.url) { stammbaumLogo[s.id] = lg.url; stammbaumLogoFrame[s.id] = lg.frame; }
+    // Hintergrundbild des #baum-container (leer -> Default-Hintergrund)
+    if (e.hintergrund_url) stammbaumHintergrund[s.id] = e.hintergrund_url;
     // Karten-Feldwahl des Baums (welche Personendaten auf den Karten erscheinen)
     if (Array.isArray(e.kartenfelder)) stammbaumKartenfelder[s.id] = e.kartenfelder;
   });
@@ -8429,6 +8619,7 @@ async function ladeBaumDaten() {
   // Sonst würden Konten ohne diese Wurzel (eigene/andere Stammbäume) fälschlich
   // auf das eingebettete FAMILY_DATA zurückfallen und ihre echten Daten nicht sehen.
   aktuelleDaten = daten;
+  if (typeof blutNameCacheLeeren === 'function') blutNameCacheLeeren();   // Blutname-Cache nach Daten-Reload verwerfen
   console.log('Baum aus Supabase geladen:', Object.keys(daten.persons).length, 'Personen,',
     Object.keys(daten.families).length, 'Familien,', Object.keys(stammbaeumeListe).length, 'Stammbäume.');
   // Multi-Tree (B2): Auswahl befüllen.
@@ -8489,7 +8680,10 @@ function waehleStartStammbaum() {
   const kandidaten = owner.length ? owner : admin;   // Owner vor Admin
 
   if (kandidaten.length === 1) { waehleStammbaum(kandidaten[0]); return; }
-  if (verantwortlich.length > 1) { zeigeStandardWahl(verantwortlich); return; }
+  // Während des Passwort-Setzens (Recovery/Invite) NICHT das Willkommens-Overlay öffnen —
+  // erst PW setzen, danach wird die Standard-Wahl aus setzePasswort() nachgeholt. Solange
+  // still einen Hintergrund-Baum wählen (Fallback unten).
+  if (verantwortlich.length > 1 && !passwortSetzenAktiv) { zeigeStandardWahl(verantwortlich); return; }
 
   // Keine (eindeutige) Owner/Admin-Verantwortung -> zuletzt geöffneter / größter Baum
   let standard = null;
@@ -8502,6 +8696,8 @@ function waehleStartStammbaum() {
 // Willkommen-Overlay: einmalige Wahl des Standard-Stammbaums (mehrere Verantwortlichkeiten)
 function zeigeStandardWahl(ids) {
   if (!ids || !ids.length) { const g = groessterStammbaum(); if (g) waehleStammbaum(g); return; }
+  // Defensiv: während des Passwort-Setzens KEIN Overlay — nur still einen Baum rendern.
+  if (passwortSetzenAktiv) { waehleStammbaum(ids[0]); return; }
   waehleStammbaum(ids[0]);   // im Hintergrund schon etwas anzeigen, während der Nutzer wählt
   const sel = document.getElementById('sw-baum');
   if (!sel) return;
@@ -8604,7 +8800,7 @@ function findeStammbaumWurzel(treeId) {
   // elternlose Mutter einer eingeheirateten Ehefrau als „Kandidat mit den meisten Nachkommen" und
   // zieht ihre fremde Herkunftsfamilie in den Baum (Bug: Zagorka Šarčević im Knežević-Baum).
   // Fallback auf alle Kandidaten, wenn KEIN Blut-Kandidat existiert (Import/Altbestand).
-  const bTreeN = zweigNachnameNorm((stammbaeumeListe[treeId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
+  const bTreeN = baumBlutName(treeId);   // Blutname AUS DEN DATEN (nicht aus dem Anzeigenamen geraten)
   const istBlutBaum = (p) => {
     if (!p || !bTreeN) return false;
     if (zweigNachnameNorm(p.surname || '') === bTreeN) return true;
@@ -9685,6 +9881,11 @@ function init() {
   bindeEmailLiveCheck(document);   // globale E-Mail-Live-Validierung (alle E-Mail-Felder)
   wechselSprache(aktuelleSprache, false);   // nur anwenden, NICHT speichern (sonst Willkommen-Overlay nur einmal)
   wechselAnsicht('baum');
+  // WICHTIG (Race): Flag VOR ladeAuth() setzen. Der Recovery-/Invite-Link stellt eine
+  // Session her -> ladeAuth() startet den Login-Flow (setzeUser -> ladeBaumDaten ->
+  // waehleStartStammbaum), der sonst das Standard-Baum-Overlay öffnen würde, bevor
+  // pruefePasswortSetzen() liefe. Deshalb hier schon anhand des Hash entscheiden.
+  passwortSetzenAktiv = /type=(invite|recovery)/.test(window.location.hash || '');
   ladeAuth();
   pruefePasswortSetzen();
   aktualisiereInhaltSichtbarkeit();   // Standard: ohne Login kein Baum, nur Hinweis
@@ -9703,17 +9904,72 @@ function aktualisiereStats() {
 // Kopf-Logo (oberhalb des Familiennamens): zeigt das eigene Baum-Logo, falls der aktive
 // Stammbaum eines gewählt hat (stammbaumLogo), sonst das App-Standard-SVG. Wird bei jedem
 // aktualisiereKopf (Baumwechsel/Login/Reload) aufgerufen.
+// Normalisiert eine Rahmung (Default: zoom=1 = „cover"/heutiges Verhalten, zentriert).
+// zoom < 1 = weiter rauszoomen als cover (ganzes Bild sichtbar, mit Rand); zoom > 1 = reinzoomen.
+function logoFrameNorm(f) {
+  f = f || {};
+  const cl = (v, lo, hi, d) => { v = (v == null || isNaN(v)) ? d : +v; return Math.max(lo, Math.min(hi, v)); };
+  return { zoom: cl(f.zoom, 0.3, 4, 1), x: cl(f.x, 0, 1, 0.5), y: cl(f.y, 0, 1, 0.5) };
+}
+// EINZIGE Render-Quelle (Editor + Kopf, WYSIWYG). Bild in NATÜRLICHER Größe; Basis-Scale = „cover"
+// (kleinste Seite = Kreis-Durchmesser D) -> zoom=1 füllt den Kreis wie bisher. S = cover*zoom.
+// Position: mittig + Pan; x,y in [0,1] wählen den sichtbaren Ausschnitt entlang des Überstands.
+// Bei zoom<1 (Bild kleiner als Kreis) erscheint bewusst Rand (ganzes Wappen sichtbar). Größenunabhängig,
+// da D je Anzeigeort (Kopf 270 / Editor 240) eingeht. Wirkt erst, wenn das Bild geladen ist (naturalWidth).
+function logoFrameStyleAnwenden(img, container, f) {
+  if (!img || !container) return false;
+  const n = logoFrameNorm(f);
+  const nW = img.naturalWidth, nH = img.naturalHeight;
+  const D = container.clientWidth || container.offsetWidth || 0;
+  if (!nW || !nH || !D) return false;   // noch nicht geladen -> onload wendet erneut an
+  const cover = D / Math.min(nW, nH);
+  const S = cover * n.zoom;
+  const left = (D - nW * S) / 2 + (0.5 - n.x) * (nW * S - D);
+  const top  = (D - nH * S) / 2 + (0.5 - n.y) * (nH * S - D);
+  img.style.transformOrigin = '0 0';
+  img.style.transform = `translate(${left}px, ${top}px) scale(${S})`;
+  return true;
+}
+
 function aktualisiereKopfLogo() {
-  const svg = document.getElementById('header-logo-svg');
-  const img = document.getElementById('header-logo-img');
-  if (!svg || !img) return;
+  const svg  = document.getElementById('header-logo-svg');
+  const wrap = document.getElementById('header-logo-wrap');
+  const img  = document.getElementById('header-logo-img');
+  if (!svg || !img || !wrap) return;
   const url = (aktuellerUser && aktuellerStammbaumId) ? (stammbaumLogo[aktuellerStammbaumId] || '') : '';
-  if (url) { img.src = url; img.style.display = ''; svg.style.display = 'none'; }
-  else     { img.removeAttribute('src'); img.style.display = 'none'; svg.style.display = ''; }
+  if (url) {
+    const frame = stammbaumLogoFrame[aktuellerStammbaumId];
+    // Rahmung nach dem Laden anwenden (naturalWidth verfügbar); bei Resize (Breakpoint) neu berechnen.
+    img.onload = () => logoFrameStyleAnwenden(img, wrap, frame);
+    if (img.src !== url) img.src = url;
+    logoFrameStyleAnwenden(img, wrap, frame);   // sofort, falls Bild bereits geladen/gecacht
+    wrap.style.display = ''; svg.style.display = 'none';
+  } else {
+    img.removeAttribute('src'); img.onload = null; wrap.style.display = 'none'; svg.style.display = '';
+  }
+}
+
+// Hintergrundbild des #baum-container: eigenes Baum-Bild (stammbaumHintergrund) als cover, sonst
+// Inline-Style entfernen -> CSS-Default (Hintergrundbilder/Bild4.jpg) greift wie bisher.
+function aktualisiereBaumHintergrund() {
+  const el = document.getElementById('baum-container');
+  if (!el) return;
+  const url = (aktuellerUser && aktuellerStammbaumId) ? (stammbaumHintergrund[aktuellerStammbaumId] || '') : '';
+  if (url) {
+    el.style.backgroundImage    = `url("${String(url).replace(/["\\]/g, '\\$&')}")`;
+    el.style.backgroundSize     = 'cover';
+    el.style.backgroundPosition = 'center center';
+    el.style.backgroundRepeat   = 'no-repeat';
+  } else {
+    // Inline-Hintergrund entfernen -> CSS-Default (Bild4.jpg) übernimmt wieder
+    el.style.backgroundImage = ''; el.style.backgroundSize = '';
+    el.style.backgroundPosition = ''; el.style.backgroundRepeat = '';
+  }
 }
 
 function aktualisiereKopf(rootId) {
   aktualisiereKopfLogo();
+  aktualisiereBaumHintergrund();
   const h1    = document.querySelector('header h1');
   const sub   = document.querySelector('.untertitel');
   const stats = document.getElementById('header-stats');
@@ -9962,6 +10218,13 @@ document.addEventListener('keydown', (e) => {
 });
 window.addEventListener('scroll', navSuchPanelPos, true);
 window.addEventListener('resize', navSuchPanelPos);
+// Kopf-Logo-Rahmung ist px-basiert (Kreis-Durchmesser geht ein) -> beim Breakpoint-Wechsel (270<->180) neu berechnen.
+window.addEventListener('resize', () => {
+  const img = document.getElementById('header-logo-img');
+  const wrap = document.getElementById('header-logo-wrap');
+  if (img && wrap && wrap.style.display !== 'none' && aktuellerStammbaumId)
+    logoFrameStyleAnwenden(img, wrap, stammbaumLogoFrame[aktuellerStammbaumId]);
+});
 
 // interaktiv=true  -> Nutzer hat die Suche explizit bestätigt (Enter / Such-Taste):
 //                     bei mehreren Treffern darf das Auswahl-Modal öffnen.
@@ -10147,6 +10410,27 @@ function zeigVollenBaum() {
   ansichtModus = null;
   vollGraphRender();
 }
+
+// ── Netz-/„Alle Verwandten"-Ansicht (Multi-Root, ab v14.43) ─────────────────────────────
+// Zeigt JEDE Person des AKTUELLEN Baums (+ deren Ehepartner als Blätter) als rang-basiertes
+// Netz über den vorhandenen Multi-Root-Renderer `zeichneGraph` (graphRaenge/graphLayout) —
+// OHNE Blutlinien-Kappung. So werden auch Geschwister ECHT eingeheirateter Personen (Nachname ≠
+// Baum) und lose Inseln sichtbar, die die fokus-zentrierte Blutlinien-Ansicht bewusst weglässt.
+// Baum-BEGRENZT (nur _tree === aktueller Baum + direkte Partner) → KEIN Cross-Tree-Bleed in fremde
+// Verbünde (Isolation bleibt). Opt-in über das Ansicht-Overlay; pro Nutzer gemerkt.
+function netzErlaubtSet(treeId) {
+  const set = new Set(), P = aktuelleDaten.persons || {}, F = aktuelleDaten.families || {};
+  Object.values(P).forEach(p => {
+    if (!p || p._tree !== treeId) return;
+    set.add(p.id);
+    (p.families_spouse || []).forEach(fid => {
+      const fam = F[fid]; if (!fam) return;
+      [fam.husband, fam.wife].forEach(x => { if (x && P[x]) set.add(x); });   // Ehepartner (auch fremd-Baum) als Blatt
+    });
+  });
+  return set;
+}
+// (zeigeNetzAnsicht entfernt — Modus „Svi rođaci / Netz" auf Nutzerwunsch gelöscht)
 
 // ============================================================
 // PERSONALISIERTE STANDARD-/AUSSCHNITTS-ANSICHT (große Bäume)
@@ -10376,6 +10660,8 @@ function rendereAktuelleAnsicht() {
     case 'zweig':
       if (ansichtFokusId && aktuelleDaten.persons[ansichtFokusId]) { zeigeZweigAbPerson(ansichtFokusId, ansichtGen, ansichtGenAuf, true); return; }
       break;
+    case 'verbund':
+      if (ansichtVerbundA && ansichtVerbundB && zeigeVerbundAnsicht(ansichtVerbundA, ansichtVerbundB, true)) return; break;
     case 'voll': vollGraphRender(); aktualisiereBaumHinweis(); return;
   }
   // Fallback: frühere Such-/Fokuslogik
@@ -10473,7 +10759,7 @@ function oeffneAnsichtModal() {
   document.getElementById('ansicht-keine-karte').style.display = hatKarte ? 'none' : '';
 
   // Aktiven internen Modus auf den passenden Radio-Wert abbilden, sonst sinnvoller Default.
-  const modusZuRadio = { standard: 'standard', erweitert: 'kreis', zweig: 'zweig', voll: 'voll' };
+  const modusZuRadio = { standard: 'standard', erweitert: 'kreis', zweig: 'zweig', voll: 'voll', verbund: 'verbund' };
   let vorwahl = modusZuRadio[ansichtModus] || (hatKarte ? 'standard' : 'voll');
   if ((vorwahl === 'standard' || vorwahl === 'kreis') && !hatKarte) vorwahl = 'voll';
   document.querySelectorAll('input[name="ansicht-modus"]').forEach(r => { r.checked = (r.value === vorwahl); });
@@ -10494,6 +10780,7 @@ function oeffneAnsichtModal() {
   } else if (sf) { sf.value = ''; }
   document.getElementById('ansicht-pick-list').innerHTML = '';
   familienListeFuellen();   // „Zu einer Familie springen" (Verbund-Familien des aktuellen Datenstands)
+  verbundFuelleBaeume();   // Baum-Auswahl fuer den „verbund"-Modus fuellen
   // Erweiterte Optionen nur aufklappen, wenn der Zweig-Modus aktiv ist.
   ansichtErwOeffnen(vorwahl === 'zweig');
   ansichtModusWahl();
@@ -10515,7 +10802,8 @@ function schliesseAnsichtModal() {
 function ansichtModusWahl() {
   const val = (document.querySelector('input[name="ansicht-modus"]:checked') || {}).value;
   document.getElementById('ansicht-unter-zweig').classList.toggle('offen', val === 'zweig');
-  ['standard', 'kreis', 'voll', 'zweig'].forEach(v => {
+  document.getElementById('ansicht-unter-verbund').classList.toggle('offen', val === 'verbund');
+  ['standard', 'kreis', 'voll', 'zweig', 'verbund'].forEach(v => {
     const r = document.getElementById('ansicht-radio-' + v);
     if (r) r.classList.toggle('aktiv', v === val);
   });
@@ -10609,6 +10897,10 @@ function wendeGespeicherteAnsichtAn() {
     if (zeigeErweitertAnsicht(Object.assign({}, ANSICHT_KREIS_KAT))) return true;
     return zeigeStandardAnsicht();
   }
+  if (v === 'verbund' && pref.a && pref.b) {
+    if (zeigeVerbundAnsicht(pref.a, pref.b)) return true;
+    return zeigeStandardAnsicht();
+  }
   if (v === 'zweig' && pref.tree === aktuellerStammbaumId && pref.person && aktuelleDaten.persons[pref.person]) {
     return zeigeZweigAbPerson(pref.person, pref.gen, pref.genAuf);
   }
@@ -10629,6 +10921,17 @@ function ansichtAnwenden() {
     return;
   }
 
+  if (val === 'verbund') {
+    const va = (document.getElementById('ansicht-baum-a') || {}).value;
+    const vb = (document.getElementById('ansicht-baum-b') || {}).value;
+    const hw = document.getElementById('ansicht-verbund-hinweis');
+    if (!va || !vb || va === vb) { if (hw) { hw.style.display = ''; hw.textContent = t('ansicht_verbund_gleich'); } return; }
+    if (!zeigeVerbundAnsicht(va, vb)) { if (hw) { hw.style.display = ''; hw.textContent = t('ansicht_verbund_keine'); } return; }
+    if (hw) hw.style.display = 'none';
+    speichereAnsichtPref('verbund', { a: va, b: vb });
+    schliesseAnsichtModal();
+    return;
+  }
   if (val === 'zweig') {
     if (!ansichtPickSel || !aktuelleDaten.persons[ansichtPickSel]) {
       // Keine Person gewählt -> Hinweis im Picker, Modal bleibt offen.
@@ -14889,18 +15192,9 @@ function zeigeDetails(personId) {
     // Phase 3: hat diese Person einen Zwilling (identitaet_id) in einem ANDEREN Baum, hängen dort
     // i. d. R. weitere Verwandte -> klickbares 🔗-Badge, das in den Zielbaum springt.
     let cross = '';
-    if (FLOW_NACHNAMENBAUM && v) {
-      // Bloodline-Nachname (Mädchenname/née bei Frauen, sonst Nachname) ≠ Baumname UND es existiert
-      // ein Baum dieses Nachnamens -> Sprung-Badge (gleiche Logik wie im Diagramm).
-      const treeN = zweigNachnameNorm((stammbaeumeListe[aktuellerStammbaumId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
-      const blutN = (v.sex === 'F' && v.ehename) ? zweigNachnameNorm(v.ehename) : zweigNachnameNorm(v.surname || '');
-      let zielBaum = null;
-      if (blutN && blutN !== treeN) {
-        for (const tid in stammbaeumeListe) {
-          if (tid !== aktuellerStammbaumId && zweigNachnameNorm(stammbaeumeListe[tid]) === blutN) { zielBaum = tid; break; }
-        }
-      }
-      if (zielBaum) cross = `<button class="rel-cross-btn" type="button" title="${escapeHtml(t('cross_tree_titel', { baum: baumLabel(zielBaum) }))}" onclick="event.stopPropagation();waehleStammbaum('${zielBaum}')">🔗</button>`;
+    if (FLOW_NACHNAMENBAUM && v && crossTreeBaeume(v).length > 1) {
+      // Person in mehreren Stammbäumen zu finden (Zwilling ODER Baum ihres Blutlinien-Nachnamens).
+      cross = `<button class="rel-cross-btn" type="button" title="${escapeHtml(t('cross_weitere'))}" onclick="event.stopPropagation();crossTreeOeffnen('${escapeHtml(String(v.id))}')">🔗</button>`;
     }
     return `<span class="verwandter${x ? ' mit-x' : ''}" role="button" tabindex="0" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${cross}${x}</span>`;
   };
@@ -19292,6 +19586,183 @@ function oeffneZweiModal() {
   document.getElementById('zwei-modal').classList.add('aktiv');
 }
 function schliesseZweiModal() { document.getElementById('zwei-modal').classList.remove('aktiv'); }
+// Alle Bäume, in denen diese Person vorkommt ODER (per Blutlinien-Nachname) vorkommen könnte:
+//  1) eigener Baum, 2) echte Identitäts-Zwillinge (gespiegelte gleiche Person),
+//  3) Bäume, deren Name dem Bloodline-Nachnamen entspricht (Mädchenname bei Frauen, sonst Nachname).
+// >1 Eintrag = die Person ist in mehreren Stammbäumen zu finden -> Badge/Dialog.
+// Ist `person` Blutlinie des Baums `tid`? (exakt wie der Renderer: Nachname ODER Mädchenname ODER
+// Vater trägt den Baumnamen) — nur dann rendert die Person dort tatsächlich als Blutlinien-Mitglied.
+function istBlutInBaum(person, tid) {
+  if (!person || !tid) return false;
+  const bn = baumBlutName(tid);
+  if (!bn) return false;
+  if (zweigNachnameNorm(person.surname || '') === bn) return true;
+  if (zweigNachnameNorm(person.ehename || '') === bn) return true;   // Mädchenname (née)
+  for (const fid of (person.families_child || [])) {                 // Vater-Fallback
+    const f = aktuelleDaten.families[fid];
+    const vater = (f && f.husband) ? aktuelleDaten.persons[f.husband] : null;
+    if (vater && zweigNachnameNorm(vater.surname || '') === bn) return true;
+  }
+  return false;
+}
+// Bäume, in denen diese Person WIRKLICH als Karte rendert (nicht nur als DB-Datensatz existiert):
+//  (a) eigene/gespiegelte Karte, die in IHREM Baum Blutlinie ist,
+//  (b) Baum eines EHEPARTNERS, DER dort Blutlinie ist -> Person erscheint als Partner-Blatt,
+//  (c) Baum eines ELTERNTEILS, DER dort Blutlinie ist -> Person erscheint als deren Kind.
+// Der Blutlinien-Gate (istBlutInBaum) ist entscheidend: eine bloße gespiegelte Karte ODER ein
+// Angehöriger, der im Zielbaum NICHT Blutlinie ist, wird dort NICHT gezeichnet -> darf auch kein
+// Chip-Ziel sein. Fix für „Zagorka Šarčević": Knežević enthält nur ihre TOCHTER, nicht sie selbst.
+// PRAEZISE Vorkommen-Karte: statt Angehoerige zu RATEN, simulieren wir den RENDERER. Fuer JEDEN Baum
+// bestimmen wir seine sichtbaren Knoten (graphBlutScope.visible = Blutlinie + Partner-Blaetter +
+// Uebergangs-Blaetter, exakt wie gezeichnet) und tragen jede darin sichtbare reale Person ein. So
+// enthaelt crossTreeBaeume(p) GENAU die Baeume, in denen p wirklich auf dem Bildschirm steht -
+// inkl. mehrstufiger Faelle (z. B. Dana Parandilovic in Vidovic ueber ihren Dusanic-Mann).
+// EINMALIG gebaut + gecacht; Invalidation bei Baum-Load (blutNameCacheLeeren -> _vorkommenCache=null).
+let _vorkommenCache = null;
+function baueVorkommenMap() {
+  const map = new Map();   // ext-Personen-ID -> Set<treeId>
+  if (typeof baueGraphModell !== 'function' || typeof graphBlutScope !== 'function'
+      || typeof findeStammbaumWurzel !== 'function') return map;
+  let model;
+  try { model = baueGraphModell(); } catch (e) { return map; }
+  for (const tid in (stammbaeumeListe || {})) {
+    let w = null;
+    try { w = findeStammbaumWurzel(tid); } catch (e) { w = null; }
+    if (!w) continue;
+    const startCanon = model.canonOf(w);
+    if (!model.nodes.has(startCanon)) continue;
+    let bs;
+    try { bs = graphBlutScope(model, tid, startCanon); } catch (e) { continue; }
+    (bs.visible || new Set()).forEach(canon => {
+      const n = model.nodes.get(canon); if (!n) return;
+      (n.exts || []).forEach(extId => {
+        let set = map.get(extId); if (!set) { set = new Set(); map.set(extId, set); }
+        set.add(tid);
+      });
+    });
+  }
+  return map;
+}
+// Baeume, in denen diese Person WIRKLICH gezeichnet wird (aus der simulierten Vorkommen-Karte).
+function crossTreeBaeume(p) {
+  if (!p) return [];
+  if (!_vorkommenCache) { try { _vorkommenCache = baueVorkommenMap(); } catch (e) { _vorkommenCache = new Map(); } }
+  const set = _vorkommenCache.get(p.id);
+  if (set && set.size) return [...set];
+  return p._tree ? [p._tree] : [];
+}
+// Zwillingskarte derselben realen Person im Zielbaum (nur bei echter identitaet_id-Verknüpfung).
+// Bei reinen Blut-Nachnamen-Zielen (ohne Spiegel) gibt es keine bestimmte Zielkarte -> null.
+function crossTreeZielKarte(p, zielId) {
+  if (p && p._ident) {
+    const tw = Object.values(aktuelleDaten.persons || {}).find(q => q && q._ident === p._ident && q._tree === zielId);
+    if (tw) return tw.id;
+  }
+  return null;
+}
+// Einheitlicher Klick-Handler fürs 🔗-Element (Karte im Baum UND Verwandten-Chip):
+//  - genau EIN Zielbaum (außer dem aktuellen) -> DIREKTER Sprung + Zwillingskarte im Zielbaum öffnen
+//  - MEHRERE Zielbäume -> bestehendes Auswahl-Overlay (crossTreeDialog, öffnet danach ebenfalls den Zwilling)
+function crossTreeOeffnen(extId) {
+  // IMMER das Auswahl-Overlay zeigen (KEIN Auto-Sprung, auch nicht bei nur einem Zielbaum) — der
+  // Nutzer soll ALLE Bäume sehen und selbst wählen, statt überraschend umgeschaltet zu werden.
+  // (crossTreeDialog listet alle Bäume inkl. dem aktuellen [markiert] und öffnet nach der Wahl die
+  //  Zwillingskarte im Zielbaum, falls vorhanden.)
+  crossTreeDialog(extId);
+}
+function crossTreeDialog(extId) {
+  const p = aktuelleDaten.persons[extId]; if (!p) return;
+  // IMMER die Auswahl aller Bäume zeigen (kein Auto-Sprung), inkl. dem aktuellen (markiert).
+  const alle = crossTreeBaeume(p);
+  if (alle.length <= 1) return;
+  const nam = nm(((p.given || '') + ' ' + (p.surname || '')).trim()) || nm(p.name || '?');
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.innerHTML = `<div class="confirm-box">
+    <p class="confirm-text">${escapeHtml(t('cross_dialog_titel', { name: nam }))}</p>
+    <div class="confirm-actions" style="flex-direction:column;gap:8px">
+      ${alle.map(tid => { const cur = tid === aktuellerStammbaumId; return `<button type="button" class="confirm-ja" data-t="${cur ? '' : escapeHtml(String(tid))}"${cur ? ' style="opacity:.6"' : ''}>${escapeHtml(baumLabel(tid))}${cur ? ' ' + escapeHtml(t('cross_aktuell')) : ''}</button>`; }).join('')}
+      <button type="button" class="confirm-nein" data-t="">${escapeHtml(t('abbrechen'))}</button>
+    </div></div>`;
+  document.body.appendChild(overlay);
+  // NUR den Baum wechseln — KEINE Detailkarte automatisch öffnen (Nutzerwunsch: nicht erst Namenskarte).
+  const fertig = (tid) => { overlay.remove(); if (tid) waehleStammbaum(tid); };
+  overlay.querySelectorAll('button[data-t]').forEach(b => b.addEventListener('click', () => fertig(b.getAttribute('data-t'))));
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) fertig(''); });
+}
+let zweiLetzterPfad = [];
+// Beide verbundene Familien ZUSAMMEN zeigen: zentriert auf eine Person MITTEN im Verbindungsweg
+// und nutzt den baumübergreifenden „Familienzweig"-Renderer (unbegrenzte Tiefe naviše + naniže) —
+// zeichnet beide Familien um die Verbindungsstelle, ohne Eingriff in den Kern-Renderer.
+function zweiZusammenAnzeigen() {
+  const p = zweiLetzterPfad; if (!p || !p.length) return;
+  const mitte = p[Math.floor(p.length / 2)];
+  schliesseZweiModal();
+  if (typeof wechselAnsicht === 'function') wechselAnsicht('baum');
+  if (typeof zeigeZweigAbPerson === 'function') zeigeZweigAbPerson(mitte, 0, 0);
+}
+// Kuerzesten Verbindungsweg Baum A -> B im Verbund-Personengraph (BFS wie zweiVerbindungFinden),
+// + relevante Baeume (A, B, Bruecken) + Verbindungspersonen (in Brueckenbaeumen bzw. am Baumwechsel).
+function verbundPfadFinden(a, b) {
+  if (!a || !b || a === b) return null;
+  const P = aktuelleDaten.persons || {};
+  const identG = {};
+  Object.values(P).forEach(p => { if (p && p._ident) (identG[p._ident] = identG[p._ident] || []).push(p.id); });
+  const startSet = new Set(), zielSet = new Set();
+  Object.values(P).forEach(p => { if (!p || p.platzhalter) return; if (p._tree === a) startSet.add(p.id); if (p._tree === b) zielSet.add(p.id); });
+  if (!startSet.size || !zielSet.size) return null;
+  const prev = new Map(), queue = [];
+  startSet.forEach(sx => { prev.set(sx, null); queue.push(sx); });
+  let ziel = null;
+  while (queue.length) {
+    const cur = queue.shift();
+    if (zielSet.has(cur)) { ziel = cur; break; }
+    for (const nb of zweiNachbarn(cur, identG)) if (!prev.has(nb)) { prev.set(nb, cur); queue.push(nb); }
+  }
+  if (!ziel) return null;
+  const path = []; let c = ziel; while (c !== null && c !== undefined) { path.unshift(c); c = prev.get(c); }
+  const trees = new Set([a, b]);
+  const verbindung = new Set();
+  path.forEach(id => { const p = P[id]; if (p && p._tree) { trees.add(p._tree); if (p._tree !== a && p._tree !== b) verbindung.add(id); } });
+  if (!verbindung.size) { for (let i = 1; i < path.length; i++) { const pa = P[path[i-1]], pb = P[path[i]]; if (pa && pb && pa._tree !== pb._tree) { verbindung.add(path[i-1]); verbindung.add(path[i]); } } }
+  // Fokus = ein GEMEINSAMER Nachkomme der Verbindungsstelle, damit die Vorfahren in BEIDE Baeume
+  // auffaechern (zeichneGraph2 zeigt von einem Nachkommen aus beide Elternzweige). Sonst bliebe ein
+  // eingeheirateter Partner ein Blatt OHNE seine Ahnenlinie -> nur EIN Baum sichtbar.
+  const ahnenBaeume = (startId) => {
+    const tr = new Set(), sn = new Set(), st = [[startId, 0]];
+    while (st.length) { const [id, d] = st.pop(); if (sn.has(id)) continue; sn.add(id);
+      const pp = P[id]; if (!pp) continue; if (pp._tree) tr.add(pp._tree);
+      if (d < 40) (pp.families_child || []).forEach(fid => { const f = aktuelleDaten.families[fid]; if (f) { if (f.husband) st.push([f.husband, d+1]); if (f.wife) st.push([f.wife, d+1]); } }); }
+    return tr;
+  };
+  const kandidaten = [];
+  verbindung.forEach(cp => { const pcp = P[cp]; if (!pcp) return; (pcp.families_spouse || []).forEach(fid => { const f = aktuelleDaten.families[fid]; if (f) (f.children || []).forEach(k => { if (P[k] && !P[k].platzhalter) kandidaten.push(k); }); }); });
+  let mitte = path[Math.floor(path.length / 2)];
+  for (const k of kandidaten) { const tr = ahnenBaeume(k); if (tr.has(a) && tr.has(b)) { mitte = k; break; } }
+  return { path, trees, verbindung, mitte, a, b };
+}
+// Modus „Zwei Stammbaeume verbinden": beide Baeume (+ Bruecken) gemeinsam ueber den Cross-Tree-
+// Renderer zeichneGraph2, gefiltert (nurBaeume) mit markierter Verbindungsstelle (verbindung).
+function zeigeVerbundAnsicht(a, b, behalteZoom) {
+  const info = verbundPfadFinden(a, b);
+  if (!info) return false;
+  ansichtModus = 'verbund'; ansichtFokusId = info.mitte; fokusPersonId = null;
+  ansichtVerbundA = a; ansichtVerbundB = b;
+  zeichneGraph2(info.mitte, 99, 99, { fokusId: info.mitte, upN: 99, downN: 99, nurBaeume: info.trees, verbindung: info.verbindung, verbundLabel: { a: baumLabel(a), b: baumLabel(b) } });
+  aktualisiereBaumHinweis();
+  return true;
+}
+// Baum-Auswahlfelder des „verbund"-Modus im Ansicht-Overlay fuellen (wie zweiFuelleBaeume).
+function verbundFuelleBaeume() {
+  const opts = Object.keys(stammbaeumeListe || {}).map(id => ({ id, label: baumLabel(id) }))
+    .sort((x, y) => x.label.localeCompare(y.label))
+    .map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join('');
+  const sa = document.getElementById('ansicht-baum-a'), sb = document.getElementById('ansicht-baum-b');
+  if (sa) { sa.innerHTML = opts; if (aktuellerStammbaumId) sa.value = aktuellerStammbaumId; }
+  if (sb) { sb.innerHTML = opts; let g = false; for (const o of sb.options) { if (o.value !== aktuellerStammbaumId) { sb.value = o.value; g = true; break; } } if (!g && sb.options.length) sb.selectedIndex = 0; }
+  const m = document.getElementById('ansicht-modal');
+  if (m && typeof macheAlleSelectsSuchbar === 'function') macheAlleSelectsSuchbar(m);
+}
 function zweiFuelleBaeume() {
   const opts = Object.keys(stammbaeumeListe || {})
     .map(id => ({ id, label: baumLabel(id) }))
@@ -19333,14 +19804,24 @@ function zweiVerbindungFinden() {
   }
   if (!ziel) { box.innerHTML = `<div class="integ-hinweis warn">${escapeHtml(t('zwei_keine'))}</div>`; return; }
   const path = []; let c = ziel; while (c !== null && c !== undefined) { path.unshift(c); c = prev.get(c); }
-  const chip = (id) => {
+  // Visuelle Karten-Kette: Person -> Person -> … ; verbindende Familien (Brücke, weder a noch b)
+  // dunkelrot + 🔗 hervorgehoben. Klick öffnet die Detailkarte. Umbruch mobil (flex-wrap).
+  const chip = (id, i) => {
     const p = aktuelleDaten.persons[id]; if (!p) return '';
     const bnm = p._tree ? baumLabel(p._tree) : '';
     const nam = nm(((p.given || '') + ' ' + (p.surname || '')).trim()) || nm(p.name || '?');
-    return `<button class="mv-toggle" type="button" style="display:block;width:100%;text-align:left;margin:4px 0"
-      onclick="schliesseZweiModal();zeigeDetails('${escapeHtml(String(id))}')">${escapeHtml(nam)} <span style="opacity:.7">— ${escapeHtml(bnm)}</span></button>`;
+    const bruecke = p._tree && p._tree !== a && p._tree !== b;   // verbindende Familie
+    const rand = bruecke ? '#722f37' : '#9c7c3c';
+    const conn = i > 0 ? `<span style="align-self:center;color:#9c7c3c;font-size:22px;padding:0 2px">→</span>` : '';
+    return `${conn}<button type="button" onclick="schliesseZweiModal();zeigeDetails('${escapeHtml(String(id))}')"
+      style="border:2px solid ${rand};border-radius:10px;background:#f6f1e7;color:#2c2418;padding:8px 12px;cursor:pointer;min-width:120px;max-width:190px;text-align:center;font-family:inherit;line-height:1.25">
+      <div style="font-weight:bold">${escapeHtml(nam)}</div>
+      <div style="font-size:12px;opacity:.75">${escapeHtml(bnm)}${bruecke ? ' 🔗' : ''}</div></button>`;
   };
-  box.innerHTML = `<div class="integ-hinweis">${escapeHtml(t('zwei_gefunden', { n: path.length }))}</div>` + path.map(chip).join('');
+  zweiLetzterPfad = path.slice();
+  box.innerHTML = `<div class="integ-hinweis">${escapeHtml(t('zwei_gefunden', { n: path.length }))}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:stretch;margin-top:10px">${path.map((id, i) => chip(id, i)).join('')}</div>
+    <button class="login-submit" type="button" style="margin-top:12px" onclick="zweiZusammenAnzeigen()">${escapeHtml(t('zwei_zusammen'))}</button>`;
 }
 async function ladeNachnamenKandidaten() {
   const box = document.getElementById('nnaus-ergebnis');
@@ -19633,6 +20114,17 @@ function zweigNachnameNorm(s) {
   return toks.length ? toks[toks.length - 1] : '';
 }
 
+// Blutlinien-Nachname eines Baums = normalisierter BAUM-NAME (Klammer-Zusatz ignoriert) — EXAKT wie
+// Produktion. ⚠️ Der frühere Versuch (v14.43), ihn aus den DATEN abzuleiten (häufigster Nachname),
+// hat Bäume zerstört, die überwiegend GESPIEGELTE Fremd-Nachnamen enthalten: z. B. der Šarčević-Baum
+// ist voller Knežević-Spiegelkarten → „häufigster Nachname" = „knezevic" statt „sarcevic" → falsche
+// Blutlinie/Wurzel/Kappung. Deshalb zurück auf das reine Namens-Kriterium (= Produktions-Renderer).
+function baumBlutName(treeId) {
+  if (!treeId) return '';
+  return zweigNachnameNorm((stammbaeumeListe[treeId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
+}
+function blutNameCacheLeeren() { _vorkommenCache = null; /* Vorkommen-Karte nach Daten-Reload verwerfen */ }
+
 // Anzeige-Label eines Stammbaums: „Name (Zusatz)" — der Name ist nur der Nachname,
 // der optionale Zusatz (eigenes Feld, z. B. „Desa") unterscheidet gleichnamige Familien
 // und erscheint NUR in der Anzeige/Suche, nie im Blutlinien-Vergleich. nm() transliteriert
@@ -19682,8 +20174,9 @@ async function pruefeHeiratsZweig(partnerUuid, ehePerson, partnerNachname) {
   // Gleicher Nachname wie der/die Ehepartner:in -> kein neuer Zweig nötig
   if (zweigNachnameNorm(neuName) === zweigNachnameNorm(ehePerson && ehePerson.surname)) return;
   // Existiert im Verbund (geladene Baumliste) bereits ein Baum dieses Nachnamens? -> nicht anbieten
-  const vorhanden = Object.values(stammbaeumeListe || {})
-    .some(n => zweigNachnameNorm(n) === zweigNachnameNorm(neuName));
+  // (Baum-Blutname aus Daten, damit beschreibende Anzeigenamen den Abgleich nicht verfälschen)
+  const vorhanden = Object.keys(stammbaeumeListe || {})
+    .some(tid => baumBlutName(tid) === zweigNachnameNorm(neuName));
   if (vorhanden) return;
 
   const ok = await zeigeBestaetigung(t('zweig_frage', { name: nm(neuName) }));
@@ -19720,6 +20213,18 @@ let abwKontext = null;
 // bestehenden gleichnamigen Baum -> automatisch eigener Baum, KEIN Entscheidungs-Dialog).
 const FLOW_NACHNAMENBAUM = true;
 
+// SOFORT-SCHALTER: Blut-AUFSTIEG baum-ID-bewusst machen (NUR der Aufstieg, nicht Partner/Nachkommen).
+// Zweck: der Sonderfall „ZWEI Bäume mit GLEICHEM Blutliniennamen" (z. B. „Vidović" + „Vidović
+// (Stephen)"), verbunden über eine rohe baumübergreifende Eltern-Kante (Cyrilo→Zorica). OHNE Guard
+// steigt der Aufstieg über diese Kante in den gleichnamigen Fremdbaum und zieht dessen ganze Linie
+// herein („Vidović (Stephen)" zeigt den ganzen Vidović-Baum). MIT Guard stoppt der Aufstieg an einem
+// Blut-Elternteil, der KEINE Karte im aktuell offenen Baum hat.
+// WICHTIG (Historie): Der frühere „Šarčević/Tadić kaputt"-Effekt kam NICHT von diesem Guard, sondern
+// von baumBlutName (data-abgeleitet → falscher Blutname). Das ist behoben (baumBlutName = Baum-Name).
+// Bei Bäumen mit ABWEICHENDEM Namen stoppt der Aufstieg ohnehin am Namen → der Guard ändert dort
+// NICHTS; er greift ausschließlich im Gleichnamigkeits-Fall. true = Guard aktiv. false = altes Verhalten.
+const FIX_BAUM_ISOLATION = true;
+
 // Gate + Overlay öffnen. Gibt true zurück, wenn das Overlay gezeigt wird (Aufrufer
 // schließt dann sein Add-/Edit-Overlay), sonst false.
 function pruefeAbweichenderNachname(extId, nachname, defaultTyp) {
@@ -19728,15 +20233,14 @@ function pruefeAbweichenderNachname(extId, nachname, defaultTyp) {
   if (!p || !p._uuid) return false;
   const nn = (nachname || '').trim();
   if (!nn) return false;
-  // Name des Baums, in dem die Person liegt
-  const treeName = (p._tree && stammbaeumeListe[p._tree]) ? stammbaeumeListe[p._tree] : '';
-  // Nachname == Baumname -> passt, kein Overlay
-  if (zweigNachnameNorm(nn) === zweigNachnameNorm(treeName)) return false;
+  // Nachname == Baum-BLUTNAME (aus den Daten abgeleitet, NICHT aus dem Anzeigenamen geraten) ->
+  // passt, kein Overlay. So löst „Scicluna" im Baum „The Scicluna Family" NICHT fälschlich aus.
+  if (zweigNachnameNorm(nn) === baumBlutName(p._tree)) return false;
   // Bereits baumübergreifend verknüpft (identitaet_id) = bestehende Zuordnung -> kein Overlay
   if (p._ident) return false;
   // Existiert im Verbund schon ein Baum dieses Nachnamens? -> Option 1 (neuer Baum) ausblenden
-  const sameName = Object.values(stammbaeumeListe || {})
-    .some(n => zweigNachnameNorm(n) === zweigNachnameNorm(nn));
+  const sameName = Object.keys(stammbaeumeListe || {})
+    .some(tid => baumBlutName(tid) === zweigNachnameNorm(nn));
   abwKontext = { extId, uuid: p._uuid, nachname: nn,
     defaultTyp: BEZTYP_GUELTIG.includes(defaultTyp) ? defaultTyp : 'partner', sameName };
   // Phase 1: abweichender Nachname OHNE bestehenden gleichnamigen Baum -> automatisch eigenen
@@ -19768,8 +20272,8 @@ async function abwSameNameFlow() {
   const { uuid, nachname } = abwKontext;
   const norm = zweigNachnameNorm(nachname);
   let zielId = null, count = 0;
-  Object.entries(stammbaeumeListe || {}).forEach(([id, name]) => {
-    if (zweigNachnameNorm(name) === norm) { count++; if (!zielId) zielId = id; }
+  Object.keys(stammbaeumeListe || {}).forEach((id) => {
+    if (baumBlutName(id) === norm) { count++; if (!zielId) zielId = id; }   // Baum-Blutname aus Daten
   });
   const wahl = await abwWahlDialog(nm(nachname));
   abwKontext = null;
@@ -20617,7 +21121,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
         .attr('x1', -6).attr('y1', 0).attr('x2', -156).attr('y2', 0);
       if (wife2) g.append('line').attr('class', 'ehe-linie')
         .attr('x1', 6).attr('y1', 0).attr('x2', 156).attr('y2', 0);
-      zeichneKnotenBox(g, p, 0, p.id === fokusKarte, istBl);
+      zeichneKnotenBox(g, p, 0, p.id === fokusKarte, istBl, !!d.data.uebergang);
       if (wife1) zeichneKnotenBox(g, wife1, -162, false, false);
       if (wife2) zeichneKnotenBox(g, wife2, 162, false, false);
     } else {
@@ -20629,7 +21133,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
           .attr('x1', offset(i) + 76).attr('y1', 0)
           .attr('x2', offset(i + 1) - 76).attr('y2', 0);
       }
-      zeichneKnotenBox(g, p, offset(0), p.id === fokusKarte, istBl);
+      zeichneKnotenBox(g, p, offset(0), p.id === fokusKarte, istBl, !!d.data.uebergang);
       partners.forEach((partner, i) => {
         zeichneKnotenBox(g, partner, offset(i + 1), false, false);
       });
@@ -20638,7 +21142,9 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
     // Übergangspunkt (Blutlinien-Kappung): kleines klickbares Badge „→ {Baum}" unter der
     // Karte — Fortsetzung der Blutlinie im Ziel-Baum (Klick = dorthin wechseln). Übergangs-
     // knoten haben nie Partner, die Hauptkarte liegt daher immer bei x=0.
-    if (d.data.uebergang) {
+    // „→{Baum}"-Badge nur, wenn die Person in NICHT mehr als „aktueller + Zielbaum" (<=2) vorkommt;
+    // sonst übernimmt das 🔗-„weitere Stammbäume"-Chip (zeichneKnotenBox) mit der vollen Liste.
+    if (d.data.uebergang && !((typeof crossTreeBaeume === 'function') && p && crossTreeBaeume(p).length > 2)) {
       const bnm = nm(d.data.uebergangBaum || '');
       const badge = g.append('g')
         .attr('class', 'uebergang-badge')
@@ -20653,6 +21159,7 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
         .attr('text-anchor', 'middle').attr('y', 0)
         .text(t('bl_uebergang', { baum: bnm }));
     }
+
   });
 
   // Bounding Box: halbe Kartenbreite (76) + max. Partner-Versatz (81) ≈ 157 -> Puffer 170
@@ -20806,7 +21313,7 @@ function applyMehrZeilen(node) {
 }
 
 // Zeichnet eine Personen-Box an xOffset relativ zum Gruppen-Ursprung.
-function zeichneKnotenBox(g, p, xOffset, istFokus, istBlutlinie) {
+function zeichneKnotenBox(g, p, xOffset, istFokus, istBlutlinie, istUebergang) {
   const sex = p.sex;
   const klasse = sex === 'M' ? 'male' : (sex === 'F' ? 'female' : 'unknown');
   const extra = (istFokus ? ' fokus' : '') + (istBlutlinie ? ' blutlinie' : '');
@@ -20845,6 +21352,29 @@ function zeichneKnotenBox(g, p, xOffset, istFokus, istBlutlinie) {
 
   // Schnell-Hinzufügen: vier Plus-Punkte an den Kartenrändern (nur Bearbeiter).
   if (istAdmin()) karteRandPlus(box, p);
+
+  // Baumübergreifende Verknüpfung: kommt die Person in MEHR ALS EINEM Stammbaum vor, ein kleines
+  // klickbares 🔗-Chip UNTER der Karte (Schnellsprung). Bewusst UNABHÄNGIG von FLOW_NACHNAMENBAUM,
+  // damit es an JEDER mehrfach vorhandenen Karte erscheint (beide Renderer nutzen zeichneKnotenBox).
+  // Auf ÜBERGANGS-Blättern (istUebergang) zeigt normal das „→{Baum}"-Badge; das Chip übernimmt dort
+  // NUR, wenn die Person in MEHR als „aktueller + Zielbaum" vorkommt (>2) — dann listet es ALLE Bäume
+  // (z. B. Anđela Rakić: Vidović + Rakić + Dušanić), sonst bliebe „→Rakić" unvollständig. Der Aufrufer
+  // unterdrückt in genau diesem Fall sein „→{Baum}"-Badge (kein Doppel). stopPropagation wie bei den
+  // „+"-Punkten. Klick -> crossTreeOeffnen.
+  const _crossN = (typeof crossTreeBaeume === 'function') ? crossTreeBaeume(p).length : 0;
+  if (istUebergang ? (_crossN > 2) : (_crossN > 1)) {
+    // UNTERHALB der vier „+"-Punkte platzieren (sonst fängt der untere „+"-Hotspot den Klick ab)
+    // und eine große, transparente Klickfläche darüberlegen (Touch ≥16px, zuverlässig klickbar).
+    const chip = box.append('g').attr('class', 'uebergang-badge cross-tree-badge')
+      .attr('transform', `translate(0,${HALB + 22})`)
+      .style('cursor', 'pointer')
+      .on('click', (ev) => { if (ev) ev.stopPropagation(); crossTreeOeffnen(p.id); });
+    chip.append('title').text(t('cross_weitere'));
+    chip.append('rect').attr('x', -76).attr('y', -11).attr('width', 152).attr('height', 22)
+      .attr('rx', 6).attr('fill', 'transparent').attr('pointer-events', 'all');
+    chip.append('text').attr('class', 'uebergang-text').attr('text-anchor', 'middle').attr('y', 4)
+      .text('🔗 ' + t('cross_weitere'));
+  }
 }
 
 // MyHeritage-Muster: vier Plus-Punkte an den Rändern JEDER Baumkarte (oben=Eltern, unten=Kind,
@@ -20962,13 +21492,10 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
   // Existiert KEIN Ziel-Baum (Import/Option-3 „ohne Verknüpfung"/Altbestand), wird NICHT
   // gekappt — sonst verschwänden Nachkommen nirgends. Abschaltbar über opts.uebergangCut===false.
   const cutAn = !!treeId && opts.uebergangCut !== false;
-  // Klammer-Zusätze im Baumnamen (z. B. „Pisarević (Desa)", „Stojanović (Nebojša)") gehören NICHT
-  // zur Blutlinie — sie unterscheiden nur gleichnamige Bäume. Für die Blutlinien-Erkennung daher den
-  // REINEN Nachnamen verwenden; sonst zählt selbst eine geborene Trägerin (née == Baumname, z. B. Ana
-  // née Pisarević) als auswärts und wird samt Partner/Kindern fälschlich gekappt. Bewusst NUR hier —
-  // zweigNachnameNorm/zielBaumFuer bleiben strikt (Voll-Name), damit gleichnamige Bäume weiterhin
-  // unterscheidbar bleiben (CLAUDE.md v11.2: zwei Familien dürfen denselben Nachnamen tragen).
-  const treeNameN = treeId ? zweigNachnameNorm((stammbaeumeListe[treeId] || '').replace(/\s*\([^)]*\)\s*/g, ' ')) : '';
+  // Blutname AUS DEN DATEN abgeleitet (häufigster Nachname des Baums), NICHT aus dem Anzeigenamen
+  // geraten — so darf der Baum beliebig heißen („The Scicluna Family" etc.) und die Blutlinie stimmt
+  // trotzdem. zielBaumFuer vergleicht andere Bäume ebenfalls über deren Datenblutname.
+  const treeNameN = treeId ? baumBlutName(treeId) : '';
   const istBlutName = (p) => {
     if (!p) return false;
     if (zweigNachnameNorm(p.surname || '') === treeNameN) return true;
@@ -20986,7 +21513,7 @@ function baueBaumDaten(rootId, tiefeNachUnten = 2, tiefeNachOben = 2, opts = {})
     if (!snNorm || snNorm === treeNameN) return null;
     for (const tid in stammbaeumeListe) {
       if (tid === treeId) continue;
-      if (zweigNachnameNorm(stammbaeumeListe[tid]) === snNorm) return { baumId: tid, baum: stammbaeumeListe[tid] || '' };
+      if (baumBlutName(tid) === snNorm) return { baumId: tid, baum: stammbaeumeListe[tid] || '' };
     }
     return null;
   };
@@ -21549,8 +22076,21 @@ const G2_HH = 38, G2_HW = 76;   // halbe Kartenhöhe/-breite
 // migrierten Daten via tools/sim_render.js (welt-unabhängig: gleiches Ergebnis vor/nach Migration).
 // Liefert { wurzel, visible:Set<canon>, cut:Map<canon,{baumId,baum}> }.
 function graphBlutScope(model, treeId, startCanon) {
-  const treeNameN = zweigNachnameNorm((stammbaeumeListe[treeId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
+  const treeNameN = baumBlutName(treeId);   // Blutname AUS DEN DATEN (nicht aus dem Anzeigenamen geraten)
   const persOf = (c) => { const n = model.nodes.get(c); return n ? n.person : null; };
+  // Guard gegen „gleichnamiger Fremdbaum saugt sich ein": greift NUR beim AUFSTIEG (Schritt 1) UND
+  // NUR, wenn es ÜBERHAUPT mehr als einen Baum mit DIESEM Blutliniennamen gibt (Gleichnamigkeits-Fall,
+  // z. B. „Vidović" + „Vidović (Stephen)"). Dann folgt der Aufstieg ausschließlich Knoten mit einer
+  // Karte im aktuell geöffneten Baum (eigene Karten + echte identitaet_id-Spiegel) → eine rohe
+  // baumübergreifende ELTERN-Kante in den gleichnamigen Fremdbaum zieht nicht dessen ganze Ahnenlinie
+  // herein. Bei EINDEUTIG benanntem Baum (nur EIN Baum dieses Namens) ist der Guard wirkungslos =
+  // exakt Produktions-Verhalten (der Aufstieg stoppt dort ohnehin am abweichenden Namen). Partner/
+  // Nachkommen bleiben immer ungefiltert. Hinter FIX_BAUM_ISOLATION separat abschaltbar.
+  let _gleichnamig = 0;
+  for (const tid in stammbaeumeListe) { if (baumBlutName(tid) === treeNameN) _gleichnamig++; }
+  const sameNameSplit = _gleichnamig > 1;
+  const imBaumKnoten = (c) => { const n = model.nodes.get(c); return !!(n && n.trees && n.trees.has(treeId)); };
+  const darfKnoten = (c) => (!FIX_BAUM_ISOLATION || !sameNameSplit || imBaumKnoten(c));
   const istBlut = (c) => {
     const p = persOf(c); if (!p) return false;
     if (zweigNachnameNorm(p.surname || '') === treeNameN) return true;
@@ -21565,7 +22105,7 @@ function graphBlutScope(model, treeId, startCanon) {
     if (!snNorm || snNorm === treeNameN) return null;
     for (const tid in stammbaeumeListe) {
       if (tid === treeId) continue;
-      if (zweigNachnameNorm(stammbaeumeListe[tid]) === snNorm) return { baumId: tid, baum: stammbaeumeListe[tid] || '' };
+      if (baumBlutName(tid) === snNorm) return { baumId: tid, baum: stammbaeumeListe[tid] || '' };
     }
     return null;   // kein Ziel-Baum -> NICHT kappen (sonst verschwänden Nachkommen nirgends)
   };
@@ -21580,7 +22120,7 @@ function graphBlutScope(model, treeId, startCanon) {
   // 1) hoch zur Blut-Wurzel (solange ein Blut- ODER blut-tragender Platzhalter-Elternteil existiert).
   let wurzel = startCanon, guard = 0;
   while (guard++ < 200) {
-    const be = [...(model.parents.get(wurzel) || [])].filter(c => istBlut(c) || platzMitBlut(c));
+    const be = [...(model.parents.get(wurzel) || [])].filter(c => (istBlut(c) || platzMitBlut(c)) && darfKnoten(c));
     if (!be.length) break;
     wurzel = be[0];
   }
@@ -21598,7 +22138,11 @@ function graphBlutScope(model, treeId, startCanon) {
       if (ziel) { visible.add(c); cut.set(c, ziel); continue; }   // Übergangs-Blatt (keine Partner/Kinder)
     }
     visible.add(c);
-    (model.partners.get(c) || []).forEach(pc => visible.add(pc));   // Partner als Blatt
+    // Partner + Nachkommen bewusst NICHT baum-ID-gefiltert: eingeheiratete Partner aus anderen
+    // Bäumen (z. B. Slađana Knežević als Frau eines Vidović) und ihre gemeinsamen Kinder (Mila)
+    // SOLLEN als Blatt/Nachkomme erscheinen. Das Abschneiden fremder Linien passiert bereits über
+    // die Übergangs-Kappung (selbstAus+elternAus). NUR der Aufstieg (oben) ist baum-ID-gefiltert.
+    (model.partners.get(c) || []).forEach(pc => visible.add(pc));   // Partner als Blatt (auch eingeheiratet)
     (model.children.get(c) || []).forEach(k => stack.push([k, selbstAus]));
   }
   return { wurzel, visible, cut };
@@ -21644,7 +22188,14 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   // Default für die fokus-zentrierte Navigation. 99 = praktisch unbegrenzt.
   const upN = (opts.upN != null) ? opts.upN : 5;
   const downN = (opts.downN != null) ? opts.downN : 5;
-  const visible = blutVisible || graphRadius(model, focus, downN, upN);
+  let visible = blutVisible || graphRadius(model, focus, downN, upN);
+  // Modus „verbund": nur Karten der relevanten Baeume (A, B, Bruecken) zeichnen -> beide Baeume
+  // vollstaendig + Bruecken, KEIN Bleed in fremde Verbund-Familien. Fokus bleibt immer sichtbar.
+  if (opts.nurBaeume && opts.nurBaeume.size) {
+    const _gf = new Set();
+    visible.forEach(c => { const n = model.nodes.get(c); if (n && n.trees && [...n.trees].some(t => opts.nurBaeume.has(t))) _gf.add(c); });
+    _gf.add(focus); visible = _gf;
+  }
 
   const personOf  = c => model.nodes.get(c).person;
   const vis       = c => visible.has(c);
@@ -21865,45 +22416,37 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   }
 
   // ── Karten ──
+  // Verbindungsstellen (Modus „verbund"): kanonische Knoten der Verbindungspersonen -> Highlight.
+  const verbCanons = new Set();
+  if (opts.verbindung) opts.verbindung.forEach(id => { const c = model.canonOf(id); if (model.nodes.has(c)) verbCanons.add(c); });
   const drawCard = (canon, x, y) => {
-    const g = baumG.append('g').attr('class', 'knoten-gruppe' + (canon === focus ? ' fokus' : ''))
+    const g = baumG.append('g').attr('class', 'knoten-gruppe' + (canon === focus ? ' fokus' : '') + (verbCanons.has(canon) ? ' verbindung-stelle' : ''))
       .attr('transform', `translate(${x},${y})`);
-    zeichneKnotenBox(g, personOf(canon), 0, canon === focus, BLUTLINIE_IDS.has(model.nodes.get(canon).rep));
-    // Blutlinien-Kappung: klickbares „→{Baum}"-Badge unter dem Übergangs-Blatt (Fortsetzung im Ziel-Baum).
-    if (blutCut && blutCut.has(canon)) {
-      const ziel = blutCut.get(canon), bnm = nm(ziel.baum || '');
-      const badge = g.append('g').attr('class', 'uebergang-badge').attr('transform', 'translate(0,50)')
-        .style('cursor', 'pointer')
-        .on('click', (ev) => { if (ev) ev.stopPropagation(); if (ziel.baumId) waehleStammbaum(ziel.baumId); });
-      badge.append('title').text(t('bl_uebergang_titel', { baum: bnm }));
-      badge.append('text').attr('class', 'uebergang-text').attr('text-anchor', 'middle').attr('y', 0)
-        .text(t('bl_uebergang', { baum: bnm }));
+    // istUebergang an zeichneKnotenBox durchreichen -> dort wird KEIN 🔗-Cross-Chip gezeichnet
+    // (das „→{Baum}"-Übergangs-Badge unten deckt diesen Fall schon ab).
+    zeichneKnotenBox(g, personOf(canon), 0, canon === focus, BLUTLINIE_IDS.has(model.nodes.get(canon).rep), !!(blutCut && blutCut.has(canon)));
+    if (verbCanons.has(canon)) {
+      const vl = opts.verbundLabel || { a: '', b: '' };
+      const vb = g.append('g').attr('class', 'verbindung-badge').attr('transform', 'translate(0,-56)');
+      vb.append('title').text(t('verbund_stelle', { a: nm(vl.a || ''), b: nm(vl.b || '') }));
+      vb.append('text').attr('class', 'verbindung-text').attr('text-anchor', 'middle').attr('y', 0).text('\uD83D\uDD17 ' + t('verbund_badge'));
     }
-    // Phase 3: Cross-Tree-Badge — Person hat einen Zwilling (identitaet_id) in einem ANDEREN Baum
-    // (andere Blutlinie) -> „🔗 {Baum}" unter der Karte, klickbar, springt dorthin. Nicht doppelt an
-    // Übergangs-Blättern (die haben schon ihr →{Baum}-Badge).
-    else if (FLOW_NACHNAMENBAUM) {
-      const pp = personOf(canon);
-      if (pp) {
-        // Bloodline-Nachname (Mädchenname/née bei Frauen, sonst Nachname) ≠ Baumname UND es
-        // existiert ein Baum dieses Nachnamens im Verbund -> Sprung-Badge in diesen Zielbaum.
-        const treeN = zweigNachnameNorm((stammbaeumeListe[aktuellerStammbaumId] || '').replace(/\s*\([^)]*\)\s*/g, ' '));
-        const blutN = (pp.sex === 'F' && pp.ehename) ? zweigNachnameNorm(pp.ehename) : zweigNachnameNorm(pp.surname || '');
-        let zb = null;
-        if (blutN && blutN !== treeN) {
-          for (const tid in stammbaeumeListe) {
-            if (tid !== aktuellerStammbaumId && zweigNachnameNorm(stammbaeumeListe[tid]) === blutN) { zb = tid; break; }
-          }
-        }
-        if (zb) {
-          const bnm2 = baumLabel(zb);
-          const cbadge = g.append('g').attr('class', 'uebergang-badge cross-tree-badge').attr('transform', 'translate(0,50)')
-            .style('cursor', 'pointer')
-            .on('click', (ev) => { if (ev) ev.stopPropagation(); waehleStammbaum(zb); });
-          cbadge.append('title').text(t('cross_tree_titel', { baum: bnm2 }));
-          cbadge.append('text').attr('class', 'uebergang-text').attr('text-anchor', 'middle').attr('y', 0)
-            .text('🔗 ' + bnm2);
-        }
+    // Blutlinien-Kappung: klickbares „→{Baum}"-Badge unter dem Übergangs-Blatt (Fortsetzung im Ziel-Baum).
+    // (Das baumübergreifende 🔗-„weitere Stammbäume"-Chip zeichnet zentral zeichneKnotenBox für ALLE
+    //  mehrfach vorhandenen Karten — kein separater Block mehr hier.)
+    // „→{Baum}"-Badge NUR, wenn die Person in NICHT mehr als „aktueller + Zielbaum" (<=2) vorkommt.
+    // Bei mehr Bäumen übernimmt das 🔗-„weitere Stammbäume"-Chip (zeichneKnotenBox) mit voller Liste.
+    if (blutCut && blutCut.has(canon)) {
+      const _pp = personOf(canon);
+      const _mehrBaeume = (typeof crossTreeBaeume === 'function') && _pp && crossTreeBaeume(_pp).length > 2;
+      if (!_mehrBaeume) {
+        const ziel = blutCut.get(canon), bnm = nm(ziel.baum || '');
+        const badge = g.append('g').attr('class', 'uebergang-badge').attr('transform', 'translate(0,50)')
+          .style('cursor', 'pointer')
+          .on('click', (ev) => { if (ev) ev.stopPropagation(); if (ziel.baumId) waehleStammbaum(ziel.baumId); });
+        badge.append('title').text(t('bl_uebergang_titel', { baum: bnm }));
+        badge.append('text').attr('class', 'uebergang-text').attr('text-anchor', 'middle').attr('y', 0)
+          .text(t('bl_uebergang', { baum: bnm }));
       }
     }
     pts.push({ x, y });
@@ -21966,6 +22509,7 @@ function handleGedcomUpload(event) {
     try {
       const geparst = parseGedcom(e.target.result);
       aktuelleDaten = geparst;
+      if (typeof blutNameCacheLeeren === 'function') blutNameCacheLeeren();
       fokusPersonId = null;
       aktualisiereStats();
       zeigeKarten();

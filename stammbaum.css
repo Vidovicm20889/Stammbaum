@@ -748,6 +748,12 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .uebergang-badge .uebergang-text { font-size: 11px; font-weight: bold; fill: #9c7c3c;
   paint-order: stroke; stroke: rgba(255,248,220,0.85); stroke-width: 3px; }
 .uebergang-badge:hover .uebergang-text { fill: #c8a840; text-decoration: underline; }
+/* Modus „Zwei Bäume verbinden": Verbindungsstelle klar hervorheben (goldener Glow + Badge) */
+.knoten-gruppe.verbindung-stelle .knoten > rect { stroke: #c8a840; stroke-width: 3.5px;
+  filter: drop-shadow(0 0 7px rgba(200,168,64,0.9)); }
+.verbindung-badge { pointer-events: none; }
+.verbindung-badge .verbindung-text { font-size: 11px; font-weight: bold; fill: #c8a840;
+  paint-order: stroke; stroke: rgba(40,30,20,0.55); stroke-width: 3px; }
 /* Verbindungslinien: warm-weißes Leuchten – gut sichtbar auf Grün/Gold */
 .verbindung { fill: none; stroke: rgba(255,248,220,0.88); stroke-width: 2.5; }
 /* Ehelinien: Gold passend zum Sonnenuntergang im Bild */
@@ -817,7 +823,33 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .fe-media-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .fe-media-preview { width: 72px; height: 72px; object-fit: cover; border: 1px solid var(--linie); border-radius: 4px; }
 .fe-media-del { background: none; border: 1px solid var(--linie); cursor: pointer; padding: 6px 10px; font-size: 13px; color: var(--ink); }
+.fe-media-crop { background: none; border: 1px solid var(--linie); cursor: pointer; padding: 6px 10px; font-size: 13px; color: var(--ink); }
+.fe-media-crop:hover { border-color: var(--gold); color: var(--gold); }
 .fe-file { font-size: 13px; max-width: 100%; }
+
+/* Logo-Ausschnitt-Editor: rundes Crop-Fenster (WYSIWYG = Kopf-Logo), touch-sicher (kein Seiten-Scroll) */
+.lc-viewport {
+  width: 240px; height: 240px; max-width: 74vw; max-height: 74vw; margin: 4px auto 14px;
+  border-radius: 50%; overflow: hidden; position: relative; background: var(--akzent);
+  cursor: grab; touch-action: none; overscroll-behavior: contain;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.32);
+}
+.lc-viewport:active { cursor: grabbing; }
+.lc-img { position: absolute; top: 0; left: 0; width: auto; height: auto; max-width: none; max-height: none;
+  display: block; transform-origin: 0 0; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.lc-zoom-row { display: flex; align-items: center; gap: 12px; margin: 6px 0 16px; }
+.lc-zoom-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--gold); }
+.lc-zoom-lbl { font-size: 14px; opacity: 0.85; }
+.lc-reset { background: none; border: 1px solid var(--linie); cursor: pointer; padding: 6px 12px; font-size: 13px; color: var(--ink); border-radius: 6px; white-space: nowrap; }
+.lc-reset:hover { border-color: var(--gold); color: var(--gold); }
+/* Beide Buttons als gleich großes Paar: gleiche Breite (flex:1), gleiche Höhe (align-items:stretch),
+   identisches Padding/Font; margin-top des login-submit neutralisiert (sonst Versatz zu Abbrechen). */
+.lc-actions { display: flex; align-items: stretch; gap: 10px; flex-wrap: nowrap; }
+.lc-actions .login-submit { flex: 1 1 0; min-width: 0; margin-top: 0; padding: 13px 8px; }
+.lc-abbrechen { flex: 1 1 0; min-width: 0; margin-top: 0; padding: 13px 8px; cursor: pointer;
+  background: none; color: var(--ink); border: 1px solid var(--linie); font-family: inherit;
+  font-size: 14px; letter-spacing: 2px; text-transform: uppercase; transition: border-color 0.2s, color 0.2s; }
+.lc-abbrechen:hover { border-color: var(--gold); color: var(--gold); }
 /* Familien-Owner (Super-Admin) */
 .fe-owner-info { background: var(--gold-hell); border: 1px solid var(--gold); border-radius: 6px; padding: 10px 12px; margin: 4px 0 8px; }
 .fe-owner-zeile { font-size: 14px; margin: 3px 0; color: var(--ink); }
@@ -1168,11 +1200,20 @@ footer {
 .footer-brand .footer-name { font-family: inherit; font-size: 22px; letter-spacing: 3px; color: var(--akzent); }
 /* Eigenes Baum-Logo (Bild) an der Kopf-Logo-Stelle: rund wie das App-SVG, aber DEUTLICH größer
    als das kompakte App-SVG (76px), damit ein Foto/Wappen gut erkennbar ist. */
-header img.header-logo-img {
-  width: 270px; height: 270px; border-radius: 50%; object-fit: cover;
-  background: var(--akzent); box-shadow: 0 3px 16px rgba(0,0,0,0.32);
+/* Runder, clippender Wrapper trägt Größe/Kreis/Schatten; das Bild füllt ihn (object-fit:cover)
+   und wird per transform (Zoom/Pan) fein gerahmt — der Wrapper schneidet den Überstand ab. */
+header .header-logo-wrap {
+  position: relative; display: block; width: 270px; height: 270px; margin: 0 auto 14px;
+  border-radius: 50%; overflow: hidden; background: var(--akzent);
+  box-shadow: 0 3px 16px rgba(0,0,0,0.32);
 }
-@media (max-width: 480px) { header img.header-logo-img { width: 180px; height: 180px; } }
+/* Bild in NATÜRLICHER Größe, per JS gerahmt (translate/scale) — erlaubt Rauszoomen unter „cover"
+   bis das ganze Bild sichtbar ist. transform-origin 0 0, damit die px-Rechnung in Container-Koordinaten stimmt. */
+header img.header-logo-img {
+  position: absolute; top: 0; left: 0; width: auto; height: auto; max-width: none; max-height: none;
+  display: block; transform-origin: 0 0;
+}
+@media (max-width: 480px) { header .header-logo-wrap { width: 180px; height: 180px; margin-bottom: 10px; } }
 /* Kopf-Logo-Auswahl (Chips) in den Familieneinstellungen */
 .fe-logo-wahl .fe-logo-optionen { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .fe-logo-opt {
