@@ -591,6 +591,20 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .lose-avatar.unknown { background: linear-gradient(135deg, var(--gold), var(--akzent)); }
 .lose-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .lose-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* „Ausgeblendet, aber verbunden"-Leiste: Variante der lose-Leiste (Gold-Akzent) + Einblenden-Button */
+.versteckt-leiste { background: rgba(247,241,231,0.98); border-top: 1px solid var(--gold); }
+.versteckt-leiste .lose-titel { color: var(--gold); }
+.versteckt-chip { padding-right: 8px; cursor: default; }
+.versteckt-btn {
+  flex: 0 0 auto; margin-left: 4px; padding: 6px 12px; border-radius: 16px; cursor: pointer;
+  background: var(--akzent); color: var(--paper); border: none;
+  font-family: inherit; font-size: 12px; white-space: nowrap; transition: background .15s, color .15s;
+}
+.versteckt-btn:hover { background: var(--gold); color: var(--ink); }
+.versteckt-hinweis .versteckt-btn { margin-top: 6px; }
+#baum-container.versteckt-aktiv .baum-zentrieren-btn,
+#baum-container.versteckt-aktiv .ansicht-erweitern-btn,
+#baum-container.versteckt-aktiv .pdf-export-btn { bottom: 96px; }
 /* Float-Buttons der unteren Reihe anheben, solange die Leiste sichtbar ist (kein Überdecken). */
 #baum-container.lose-aktiv .baum-zentrieren-btn,
 #baum-container.lose-aktiv .ansicht-erweitern-btn,

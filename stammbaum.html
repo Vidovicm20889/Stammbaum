@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.44">
+<meta name="app-version" content="14.45">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.44">
+<link rel="stylesheet" href="stammbaum.css?v=14.45">
 </head>
 <body>
 
@@ -229,12 +229,10 @@
 <section id="ansicht-feed">
   <div class="feed-wrap">
     <h2 class="feed-titel" data-i18n="feed_titel"></h2>
-    <!-- Umschalter: Wand (Beiträge) | Fragen (Crowdsourcing) -->
+    <!-- Umschalter: Wand (Beiträge) | Rezepte. Fragen/Pitanja wurde außer Betrieb genommen. -->
     <div class="ev-modus" id="feed-modus" role="tablist">
       <button type="button" class="ev-modus-btn aktiv" id="feed-modus-wand" role="tab"
               data-i18n="feed_modus_wand" onclick="feedSetModus('wand')"></button>
-      <button type="button" class="ev-modus-btn" id="feed-modus-fragen" role="tab"
-              data-i18n="feed_modus_fragen" onclick="feedSetModus('fragen')"></button>
       <button type="button" class="ev-modus-btn" id="feed-modus-rezepte" role="tab"
               data-i18n="feed_modus_rezepte" onclick="feedSetModus('rezepte')"></button>
     </div>
@@ -654,6 +652,12 @@
     <div id="lose-leiste" class="lose-leiste" style="display:none">
       <span class="lose-titel" data-i18n="lose_titel"></span>
       <div id="lose-track" class="lose-track"></div>
+    </div>
+
+    <!-- Ausgeblendet, aber verbunden: im Baum vorhanden, vom Renderer aber weggeschnitten (kein Waise). -->
+    <div id="versteckt-leiste" class="lose-leiste versteckt-leiste" style="display:none">
+      <span class="lose-titel" data-i18n="versteckt_titel"></span>
+      <div id="versteckt-track" class="lose-track"></div>
     </div>
   </div>
   <p class="baum-hinweis" data-i18n="baum_hinweis"></p>
@@ -1840,6 +1844,7 @@
           <div class="fe-media-row">
             <img id="fe-hintergrundbild-preview" class="fe-media-preview" alt="" style="display:none">
             <input type="file" id="fe-hintergrundbild-input" accept="image/*" class="fe-file" onchange="feMediaUpload('hintergrundbild', this)">
+            <button type="button" id="fe-hintergrundbild-crop" class="fe-media-crop" data-i18n="fe_logo_ausschnitt" onclick="logoCropOeffne('hintergrundbild')" style="display:none"></button>
             <button type="button" id="fe-hintergrundbild-std" class="fe-media-del" data-i18n="fe_standard_hintergrund" onclick="feMediaStandard('hintergrundbild')" style="display:none"></button>
           </div>
         </div>
@@ -2769,14 +2774,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.44"></script>
+<script src="i18n.js?v=14.45"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.44"></script>
-<script src="chat.js?v=14.44"></script>
-<script src="rezepte_pool.js?v=14.44"></script>
+<script src="pdf_export.js?v=14.45"></script>
+<script src="chat.js?v=14.45"></script>
+<script src="rezepte_pool.js?v=14.45"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -3374,7 +3379,7 @@ function loescheUser() {
   meineBenachrichtigungen = [];   // Benachrichtigungen verwerfen + Indikator zurücksetzen
   aktualisiereBenachrBadge();
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget verbergen (ausgeloggt)
-  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste verbergen (ausgeloggt)
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten(); if (typeof aktualisiereVersteckteKarten === 'function') aktualisiereVersteckteKarten();   // „Lose Karten"-Leiste verbergen (ausgeloggt)
   erinnCache = null; if (typeof aktualisiereErinnAnzeige === 'function') aktualisiereErinnAnzeige();   // „An diesem Tag" zurücksetzen/verbergen (ausgeloggt)
   profilAvatarPending = undefined;
   startBaumGewaehlt = false;   // nächster Login bestimmt den Start-Stammbaum neu
@@ -6300,7 +6305,7 @@ function feldFehlerReset(container) {
 // ============================================================
 let feMedia = {};       // aktuelle Medien im Formular: {logo_url,logo_path,hintergrundbild_url,hintergrundbild_path}
 let feMediaOld = {};    // beim Laden gemerkte Pfade (Aufräumen ersetzter Dateien nach Save)
-let feFrames = { logo: null };   // Rahmung des Logo-Bilds: {zoom,x,y} (null = Default zentriert). Nur das Logo hat einen Zuschnitt.
+let feFrames = { logo: null, hintergrundbild: null };   // Rahmung je Bild-Slot {zoom,x,y} (null = Default zentriert)
 const FE_MEDIA_ARTEN = ['logo', 'hintergrundbild'];   // GENAU zwei Bild-Slots im Medien-Abschnitt
 // Rahmung einer Quelle aus dem einstellungen-Objekt lesen (Felder <art>_zoom/_x/_y); null = keine gespeichert.
 function feFrameAusEinst(e, art) {
@@ -6375,7 +6380,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   const fehlerEl = document.getElementById('fe-fehler');
   const erfolgEl = document.getElementById('fe-erfolg');
   fehlerEl.style.display = 'none'; erfolgEl.style.display = 'none';
-  feMedia = {}; feMediaOld = {}; feFrames = { logo: null };
+  feMedia = {}; feMediaOld = {}; feFrames = { logo: null, hintergrundbild: null };
   fuelleFeKartenfelder(null, false);   // Karten-Feldwahl zurücksetzen (Default), bis geladen
 
   // Felder leeren + Länder-Dropdown füllen
@@ -6416,7 +6421,7 @@ async function zeigeFamilieEinstellungen(stammbaumId) {
   feMedia = { logo_url: lg.url, logo_path: lg.path,
               hintergrundbild_url: e.hintergrund_url || '', hintergrundbild_path: e.hintergrund_path || '' };
   feMediaOld = { logo_path: lg.path, hintergrundbild_path: e.hintergrund_path || '' };
-  feFrames = { logo: lg.frame };
+  feFrames = { logo: lg.frame, hintergrundbild: feFrameAusEinst(e, 'hintergrund') };
   FE_MEDIA_ARTEN.forEach(a => feMediaPreview(a));
   fuelleFeKartenfelder(e.kartenfelder, !d.can_edit);   // Karten-Feldwahl des Baums
 
@@ -6712,11 +6717,9 @@ async function feMediaUpload(art, input) {
     const pub = sbClient.storage.from('familien').getPublicUrl(p);
     feMedia[art + '_url']  = (pub && pub.data && pub.data.publicUrl) || '';
     feMedia[art + '_path'] = p;
+    feFrames[art] = null;        // neues Bild -> Rahmung zurück auf Default (zentriert)
     feMediaPreview(art);
-    if (art === 'logo') {        // nur das Logo hat einen runden Zuschnitt
-      feFrames.logo = null;      // neues Bild -> Rahmung zurück auf Default (zentriert)
-      logoCropOeffne('logo');    // gleich den sichtbaren Ausschnitt einstellen lassen (Button erlaubt späteres Nachjustieren)
-    }
+    logoCropOeffne(art);         // Zuschnitt/Zoom: Logo (rund) UND Hintergrund (rechteckig)
   } catch (e) {
     fehlerEl.textContent = t('reg_fehler') + (e.message || e); fehlerEl.style.display = 'block';
   }
@@ -6726,7 +6729,7 @@ async function feMediaUpload(art, input) {
 // Hintergrund = Default-Hintergrund des #baum-container). Datei wird erst beim Speichern aufgeräumt.
 function feMediaStandard(art) {
   feMedia[art + '_url'] = ''; feMedia[art + '_path'] = '';
-  if (art === 'logo') feFrames.logo = null;   // Rahmung verwerfen
+  feFrames[art] = null;   // Rahmung verwerfen
   const inp = document.getElementById('fe-' + art + '-input'); if (inp) inp.value = '';
   feMediaPreview(art);
 }
@@ -6741,7 +6744,7 @@ const logoCropPtr = new Map();       // aktive Pointer (pan/pinch)
 let logoCropPinch = null;            // { startDist, startZoom }
 
 function logoCropOeffne(art) {
-  if (art !== 'logo') return;   // nur der Logo-Slot hat einen runden Zuschnitt
+  if (art !== 'logo' && art !== 'hintergrundbild') return;
   const url = feMedia[art + '_url'] || '';
   if (!url) return;
   // Nur Bearbeiter (readonly-Hinweis sichtbar = kein Recht)
@@ -6749,11 +6752,32 @@ function logoCropOeffne(art) {
   if (roEl && roEl.style.display !== 'none') return;
   const f = logoFrameNorm(feFrames[art]);   // gespeicherte oder Default-Rahmung
   logoCrop = { art, zoom: f.zoom, x: f.x, y: f.y };
+  logoCropViewportForm(art);   // Logo = runder Quadrat-Viewport; Hintergrund = Rechteck im Baum-Ansicht-Seitenverhältnis
   const img = document.getElementById('lc-img');
   if (img) { img.onload = () => logoCropRender(); if (img.src !== url) img.src = url; }
-  document.getElementById('logo-crop-modal').classList.add('aktiv');   // erst sichtbar -> Viewport hat Breite
+  document.getElementById('logo-crop-modal').classList.add('aktiv');   // erst sichtbar -> Viewport hat Maße
   logoCropRender();                                                    // sofort (falls Bild gecacht)
   logoCropBinde();
+}
+// Viewport-Form je Slot: Logo = Kreis (Quadrat), Hintergrund = Rechteck mit dem aktuellen
+// Seitenverhältnis des #baum-container (WYSIWYG zur späteren cover-Anzeige).
+function logoCropViewportForm(art) {
+  const vp = document.getElementById('lc-viewport'); if (!vp) return;
+  if (art === 'hintergrundbild') {
+    const bc = document.getElementById('baum-container');
+    const ar = (bc && bc.clientHeight) ? Math.max(0.4, Math.min(3, bc.clientWidth / bc.clientHeight)) : 1.5;  // Breite/Höhe
+    // Rechteck im Baum-Ansicht-Seitenverhältnis, in die verfügbare Fläche eingepasst (kein Verzerren).
+    const maxW = Math.min(340, window.innerWidth * 0.84), maxH = window.innerHeight * 0.48;
+    let w = maxW, h = w / ar;
+    if (h > maxH) { h = maxH; w = h * ar; }
+    vp.style.width = Math.round(w) + 'px'; vp.style.height = Math.round(h) + 'px';
+    vp.style.maxWidth = 'none'; vp.style.maxHeight = 'none';   // CSS-74vw-Kappung fürs Rechteck deaktivieren
+    vp.style.borderRadius = '10px';
+  } else {   // logo (rund)
+    vp.style.width = ''; vp.style.height = '';                 // CSS-Default (240px Quadrat)
+    vp.style.maxWidth = ''; vp.style.maxHeight = '';
+    vp.style.borderRadius = '50%';
+  }
 }
 function schliesseLogoCrop() {
   document.getElementById('logo-crop-modal').classList.remove('aktiv');
@@ -6764,11 +6788,13 @@ function logoCropAbbrechen() { schliesseLogoCrop(); }
 function logoCropUebernehmen() {
   if (logoCrop) {
     const n = logoFrameNorm(logoCrop);
-    feFrames.logo = n;
-    // Bearbeiteter Baum = aktiver Baum -> Rahmung sofort im Kopf spiegeln (sonst nach Speichern+Reload).
+    const art = logoCrop.art;
+    feFrames[art] = n;
+    // Bearbeiteter Baum = aktiver Baum -> Rahmung sofort spiegeln (sonst nach Speichern+Reload).
     const sid = document.getElementById('fe-stammbaum-id') ? document.getElementById('fe-stammbaum-id').value : '';
     if (sid && sid === aktuellerStammbaumId) {
-      stammbaumLogoFrame[sid] = n; aktualisiereKopfLogo();
+      if (art === 'logo') { stammbaumLogoFrame[sid] = n; aktualisiereKopfLogo(); }
+      else { stammbaumHintergrundFrame[sid] = n; aktualisiereBaumHintergrund(); }
     }
   }
   schliesseLogoCrop();
@@ -6791,17 +6817,19 @@ function logoCropZoomSlider(v) {
   logoCrop.zoom = Math.max(0.3, Math.min(4, parseFloat(v) || 1));
   logoCropRender();
 }
-// Pan: Pixel-Delta / Überstand (nW*S − D bzw. nH*S − D) -> x,y in [0,1]. Funktioniert für Über- UND
-// Unterstand (zoom<1); Achsen mit vernachlässigbarem Überstand werden nicht bewegt.
+// Pan: Pixel-Delta / Überstand -> x,y in [0,1]. Nutzt EXAKT dieselbe Geometrie wie logoFrameGeom
+// (Viewport-Breite UND -Höhe, cover=max(W/nW,H/nH)); sonst passt der Pan bei RECHTECKIGEM Viewport
+// (Hintergrund) in Betrag und RICHTUNG nicht zum gerenderten Bild -> wirkte gespiegelt. Über-/Unterstand
+// (zoom<1) korrekt; Achsen mit vernachlässigbarem Überstand werden nicht bewegt.
 function logoCropPan(dpx, dpy) {
   if (!logoCrop) return;
   const vp = document.getElementById('lc-viewport');
   const img = document.getElementById('lc-img');
-  const D = vp ? vp.clientWidth : 240;
+  const W = vp ? vp.clientWidth : 240, H = vp ? vp.clientHeight : 240;
   const nW = img ? img.naturalWidth : 0, nH = img ? img.naturalHeight : 0;
-  if (!nW || !nH || !D) return;
-  const S = (D / Math.min(nW, nH)) * logoFrameNorm(logoCrop).zoom;
-  const spanX = nW * S - D, spanY = nH * S - D;
+  if (!nW || !nH || !W || !H) return;
+  const S = Math.max(W / nW, H / nH) * logoFrameNorm(logoCrop).zoom;
+  const spanX = nW * S - W, spanY = nH * S - H;
   if (Math.abs(spanX) > 1) logoCrop.x = Math.max(0, Math.min(1, logoCrop.x - dpx / spanX));
   if (Math.abs(spanY) > 1) logoCrop.y = Math.max(0, Math.min(1, logoCrop.y - dpy / spanY));
   logoCropRender();
@@ -6895,10 +6923,11 @@ function feSammleEinstellungen() {
     if (feMedia.logo_path) o.logo_path = feMedia.logo_path;
     if (feFrames.logo) { const n = logoFrameNorm(feFrames.logo); o.logo_zoom = n.zoom; o.logo_x = n.x; o.logo_y = n.y; }
   }
-  // HINTERGRUNDBILD des #baum-container: hintergrund_url/hintergrund_path. Leer -> Default-Hintergrund.
+  // HINTERGRUNDBILD des #baum-container: hintergrund_url/_path + Rahmung hintergrund_zoom/x/y. Leer -> Default.
   if (feMedia.hintergrundbild_url) {
     o.hintergrund_url = feMedia.hintergrundbild_url;
     if (feMedia.hintergrundbild_path) o.hintergrund_path = feMedia.hintergrundbild_path;
+    if (feFrames.hintergrundbild) { const n = logoFrameNorm(feFrames.hintergrundbild); o.hintergrund_zoom = n.zoom; o.hintergrund_x = n.x; o.hintergrund_y = n.y; }
   }
   // (Altes 3-fach o.logo + foto_/wappen_-Felder werden nicht mehr geschrieben; feLogoAusEinst migriert Altbestand.)
   // Karten-Feldwahl (immer schreiben, auch leer = „nur Name" -> unterscheidbar vom Default)
@@ -8121,6 +8150,7 @@ let stammbaeumeZusatz = {};    // stammbaum_id -> Zusatz/Unterscheidung (z. B. �
 let stammbaumLogo = {};        // stammbaum_id -> Kopf-Logo-URL (aus einstellungen.logo -> foto_url/wappen_url); leer = App-Standard-Logo
 let stammbaumLogoFrame = {};   // stammbaum_id -> {zoom,x,y} Rahmung des gewählten Kopf-Logos (Default: zoom=1, zentriert)
 let stammbaumHintergrund = {}; // stammbaum_id -> Hintergrundbild-URL des #baum-container (leer = Default-Hintergrund)
+let stammbaumHintergrundFrame = {}; // stammbaum_id -> {zoom,x,y} Rahmung des Hintergrundbilds (Default: zoom=1, zentriert)
 let stammbaumZuFamilie = {};   // stammbaum_id -> familie_id (für Podešavanje porodice)
 let meineRollenProFamilie = {};   // familie_id -> Rolle des aktuellen Users (Standard-Stammbaum-Priorität)
 let startBaumGewaehlt = false;    // Start-Stammbaum nach Login einmalig bestimmt?
@@ -8382,7 +8412,7 @@ function wechselSprache(lang, speichern = true) {
   if (typeof chatSpracheUpdate === 'function') chatSpracheUpdate();   // offene Chat-Oberflächen (Liste/Konversation/Picker/Info) neu rendern
   if (typeof einkaufSpracheUpdate === 'function') einkaufSpracheUpdate();   // Einkaufsliste (Einheiten/Artikel/Teilnehmer) neu beschriften
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Anlässe-Widget/-Modal in neuer Sprache neu beschriften
-  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Chips (Namen/SR-Transliteration) neu beschriften
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten(); if (typeof aktualisiereVersteckteKarten === 'function') aktualisiereVersteckteKarten();   // „Lose Karten"-Chips (Namen/SR-Transliteration) neu beschriften
   if (typeof aktualisiereErinnAnzeige === 'function') aktualisiereErinnAnzeige();   // „An diesem Tag"-Karten/-Liste in neuer Sprache neu rendern
   // Profileinstellungen: JS-befüllte Selects (Sprache/Zeitzone) + Kopf in neuer Sprache neu aufbauen
   if (offen('profil-modal')) {
@@ -8462,7 +8492,7 @@ function aktuelleWurzel() {
 // Baum im aktuellen Zustand (Suche / Fokus / Vollansicht) neu zeichnen
 function zeichneBaumNeu() {
   if (!baumG) return;
-  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste mit jedem Neuzeichnen konsistent halten
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten(); if (typeof aktualisiereVersteckteKarten === 'function') aktualisiereVersteckteKarten();   // „Lose Karten"-Leiste mit jedem Neuzeichnen konsistent halten
   const suche = document.getElementById('suche').value.trim();
   if (suche) { suchImBaum(suche); return; }
   // Aktive Ausschnitts-Ansicht (Standard/Erweitert/Zweig) nach Edit/Realtime-Reload erhalten.
@@ -8497,6 +8527,7 @@ async function ladeBaumAusSupabase() {
   stammbaumLogo = {};
   stammbaumLogoFrame = {};
   stammbaumHintergrund = {};
+  stammbaumHintergrundFrame = {};
   stammbaumKartenfelder = {};
   (sRes.data || []).forEach(s => {
     stammbaeumeListe[s.id] = s.name;
@@ -8506,8 +8537,8 @@ async function ladeBaumAusSupabase() {
     // Kopf-Logo: Bild-URL + Rahmung (neues logo_url ODER Migration aus altem logo='foto'/'wappen')
     const lg = feLogoAusEinst(e);
     if (lg.url) { stammbaumLogo[s.id] = lg.url; stammbaumLogoFrame[s.id] = lg.frame; }
-    // Hintergrundbild des #baum-container (leer -> Default-Hintergrund)
-    if (e.hintergrund_url) stammbaumHintergrund[s.id] = e.hintergrund_url;
+    // Hintergrundbild des #baum-container + Rahmung (leer -> Default-Hintergrund)
+    if (e.hintergrund_url) { stammbaumHintergrund[s.id] = e.hintergrund_url; stammbaumHintergrundFrame[s.id] = feFrameAusEinst(e, 'hintergrund'); }
     // Karten-Feldwahl des Baums (welche Personendaten auf den Karten erscheinen)
     if (Array.isArray(e.kartenfelder)) stammbaumKartenfelder[s.id] = e.kartenfelder;
   });
@@ -8854,7 +8885,7 @@ function waehleStammbaum(treeId) {
   aktualisiereBaumHinweis();
   startPresence(treeId);   // Live-Indikator an den jetzt offenen Baum koppeln (P2)
   if (typeof aktualisiereAnlaesse === 'function') aktualisiereAnlaesse();   // Geburtstags-/Gedenktag-Widget für den jetzt offenen Baum
-  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste für den jetzt offenen Baum
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten(); if (typeof aktualisiereVersteckteKarten === 'function') aktualisiereVersteckteKarten();   // „Lose Karten"-Leiste für den jetzt offenen Baum
   if (typeof ladeErinnerungen === 'function') ladeErinnerungen();   // „An diesem Tag"-Widget (verbund-intern; nutzt Cache)
   if (typeof ladeTabNeuigkeiten === 'function') ladeTabNeuigkeiten();   // Events/Mapa-Badges beziehen sich auf den jetzt offenen Baum
   // Ereignis-Ansicht (Liste/Zeitstrahl) zeigt Baum-bezogene Daten -> beim Baumwechsel neu laden,
@@ -9916,18 +9947,27 @@ function logoFrameNorm(f) {
 // Position: mittig + Pan; x,y in [0,1] wählen den sichtbaren Ausschnitt entlang des Überstands.
 // Bei zoom<1 (Bild kleiner als Kreis) erscheint bewusst Rand (ganzes Wappen sichtbar). Größenunabhängig,
 // da D je Anzeigeort (Kopf 270 / Editor 240) eingeht. Wirkt erst, wenn das Bild geladen ist (naturalWidth).
+// Geometrie der Rahmung für eine BELIEBIGE Viewport-Größe W×H (Kreis = Quadrat W=H; Hintergrund =
+// Rechteck mit Baum-Ansicht-Seitenverhältnis). cover = max(W/nW,H/nH) füllt die Box; S = cover*zoom.
+// Liefert {S,left,top} (Bild in natürlicher Größe, top-left-Origin). zoom<1 zeigt das ganze Bild.
+function logoFrameGeom(nW, nH, W, H, f) {
+  const n = logoFrameNorm(f);
+  const cover = Math.max(W / nW, H / nH);
+  const S = cover * n.zoom;
+  const left = (W - nW * S) / 2 + (0.5 - n.x) * (nW * S - W);
+  const top  = (H - nH * S) / 2 + (0.5 - n.y) * (nH * S - H);
+  return { S, left, top };
+}
+// Rahmung auf ein <img> anwenden (Kopf-Logo im Quadrat-Wrapper ODER Editor-Vorschau rund/rechteckig).
 function logoFrameStyleAnwenden(img, container, f) {
   if (!img || !container) return false;
-  const n = logoFrameNorm(f);
   const nW = img.naturalWidth, nH = img.naturalHeight;
-  const D = container.clientWidth || container.offsetWidth || 0;
-  if (!nW || !nH || !D) return false;   // noch nicht geladen -> onload wendet erneut an
-  const cover = D / Math.min(nW, nH);
-  const S = cover * n.zoom;
-  const left = (D - nW * S) / 2 + (0.5 - n.x) * (nW * S - D);
-  const top  = (D - nH * S) / 2 + (0.5 - n.y) * (nH * S - D);
+  const W = container.clientWidth  || container.offsetWidth  || 0;
+  const H = container.clientHeight || container.offsetHeight || 0;
+  if (!nW || !nH || !W || !H) return false;   // noch nicht geladen -> onload wendet erneut an
+  const g = logoFrameGeom(nW, nH, W, H, f);
   img.style.transformOrigin = '0 0';
-  img.style.transform = `translate(${left}px, ${top}px) scale(${S})`;
+  img.style.transform = `translate(${g.left}px, ${g.top}px) scale(${g.S})`;
   return true;
 }
 
@@ -9949,21 +9989,35 @@ function aktualisiereKopfLogo() {
   }
 }
 
-// Hintergrundbild des #baum-container: eigenes Baum-Bild (stammbaumHintergrund) als cover, sonst
+// Hintergrundbild des #baum-container mit Zoom/Zentrierung (dieselbe Rahmungs-Geometrie wie das Logo,
+// hier als CSS background-size/-position gerechnet -> WYSIWYG zum rechteckigen Crop-Editor). Ohne Bild:
 // Inline-Style entfernen -> CSS-Default (Hintergrundbilder/Bild4.jpg) greift wie bisher.
+let bgImgCache = {};   // url -> Image() (für natürliche Maße; Rahmung braucht sie)
 function aktualisiereBaumHintergrund() {
   const el = document.getElementById('baum-container');
   if (!el) return;
   const url = (aktuellerUser && aktuellerStammbaumId) ? (stammbaumHintergrund[aktuellerStammbaumId] || '') : '';
-  if (url) {
-    el.style.backgroundImage    = `url("${String(url).replace(/["\\]/g, '\\$&')}")`;
-    el.style.backgroundSize     = 'cover';
-    el.style.backgroundPosition = 'center center';
-    el.style.backgroundRepeat   = 'no-repeat';
-  } else {
-    // Inline-Hintergrund entfernen -> CSS-Default (Bild4.jpg) übernimmt wieder
+  if (!url) {
     el.style.backgroundImage = ''; el.style.backgroundSize = '';
     el.style.backgroundPosition = ''; el.style.backgroundRepeat = '';
+    return;
+  }
+  const frame = stammbaumHintergrundFrame[aktuellerStammbaumId];
+  const anwenden = (im) => {
+    const W = el.clientWidth, H = el.clientHeight, nW = im.naturalWidth, nH = im.naturalHeight;
+    if (!W || !H || !nW || !nH) return;
+    const g = logoFrameGeom(nW, nH, W, H, frame);   // {S,left,top} = identisch zur Editor-Vorschau
+    el.style.backgroundImage    = `url("${String(url).replace(/["\\]/g, '\\$&')}")`;
+    el.style.backgroundRepeat   = 'no-repeat';
+    el.style.backgroundSize     = `${nW * g.S}px ${nH * g.S}px`;
+    el.style.backgroundPosition = `${g.left}px ${g.top}px`;
+  };
+  let im = bgImgCache[url];
+  if (im && im.complete && im.naturalWidth) { anwenden(im); }
+  else {
+    im = bgImgCache[url] = new Image();
+    im.onload = () => { if ((aktuellerUser && aktuellerStammbaumId ? (stammbaumHintergrund[aktuellerStammbaumId] || '') : '') === url) anwenden(im); };
+    im.src = url;
   }
 }
 
@@ -10218,12 +10272,13 @@ document.addEventListener('keydown', (e) => {
 });
 window.addEventListener('scroll', navSuchPanelPos, true);
 window.addEventListener('resize', navSuchPanelPos);
-// Kopf-Logo-Rahmung ist px-basiert (Kreis-Durchmesser geht ein) -> beim Breakpoint-Wechsel (270<->180) neu berechnen.
+// Kopf-Logo- UND Baum-Hintergrund-Rahmung sind px-basiert (Container-Maße gehen ein) -> bei Resize neu berechnen.
 window.addEventListener('resize', () => {
   const img = document.getElementById('header-logo-img');
   const wrap = document.getElementById('header-logo-wrap');
   if (img && wrap && wrap.style.display !== 'none' && aktuellerStammbaumId)
     logoFrameStyleAnwenden(img, wrap, stammbaumLogoFrame[aktuellerStammbaumId]);
+  if (aktuellerStammbaumId && stammbaumHintergrund[aktuellerStammbaumId]) aktualisiereBaumHintergrund();
 });
 
 // interaktiv=true  -> Nutzer hat die Suche explizit bestätigt (Enter / Such-Taste):
@@ -13270,6 +13325,8 @@ function aktualisiereAnlaesse() {
 // Setzt den Inaktivitäts-Timer NICHT zurück (rein lesend).
 // ============================================================
 let loseCache = [];
+let forceGezeigt = new Set();   // ext-IDs, die der Nutzer erzwungen eingeblendet hat
+let versteckteCache = [];       // „ausgeblendet, aber verbunden" (Cache fuer die Leiste)
 function berechneLoseKarten() {
   if (!aktuellerUser || !aktuellerStammbaumId || !istAdmin()) return [];
   const treeId  = aktuellerStammbaumId;
@@ -13344,6 +13401,85 @@ function aktualisiereLoseKarten() {
 // vorhandenen Aktionen „Person hinzufügen"/„Verbinden".
 function loseOeffne(ext) {
   if (ext && aktuelleDaten.persons[ext] && typeof zeigeDetails === 'function') zeigeDetails(ext);
+}
+
+// ============================================================
+// AUSGEBLENDET, ABER VERBUNDEN: Karten im aktiven Baum mit einer Familien-Kante, die der
+// Renderer aber NICHT zeichnet (nicht Teil der gezeichneten Blutlinie/Wurzel-Komponente).
+// Basis = die praezise Vorkommen-Karte (baueVorkommenMap = graphBlutScope.visible je Baum).
+// Echte Waisen (KEINE Kante) bleiben Sache der lose-Leiste. Rein clientseitig.
+// ============================================================
+function berechneVersteckteKarten() {
+  const tid = aktuellerStammbaumId;
+  if (!aktuellerUser || !tid) return [];
+  const persons = aktuelleDaten.persons || {};
+  const hatKante = new Set();
+  Object.values(aktuelleDaten.families || {}).forEach(f => { if (f.husband) hatKante.add(f.husband); if (f.wife) hatKante.add(f.wife); (f.children || []).forEach(c => hatKante.add(c)); });
+  if (!_vorkommenCache) { try { _vorkommenCache = baueVorkommenMap(); } catch (e) { _vorkommenCache = new Map(); } }
+  const out = [];
+  Object.values(persons).forEach(p => {
+    if (!p || p.platzhalter || p._tree !== tid) return;
+    if (forceGezeigt.has(p.id)) return;                 // schon erzwungen eingeblendet
+    if (!hatKante.has(p.id)) return;                    // keine Kante -> echte Waise (lose-Leiste)
+    const set = _vorkommenCache.get(p.id);
+    if (!set || !set.has(tid)) out.push(p);             // hat Kante, aber nicht in der Vollansicht gezeichnet
+  });
+  out.sort((a, b) => nm(a.name || a.given || '').localeCompare(nm(b.name || b.given || '')));
+  return out;
+}
+// Einzelpruefung (fuer den Detail-Banner).
+function istVersteckteKarte(ext) {
+  const tid = aktuellerStammbaumId; const p = aktuelleDaten.persons[ext];
+  if (!p || p.platzhalter || p._tree !== tid || !tid || forceGezeigt.has(ext)) return false;
+  let kante = false;
+  Object.values(aktuelleDaten.families || {}).some(f => { if (f.husband === ext || f.wife === ext || (f.children || []).indexOf(ext) >= 0) { kante = true; return true; } return false; });
+  if (!kante) return false;
+  if (!_vorkommenCache) { try { _vorkommenCache = baueVorkommenMap(); } catch (e) { _vorkommenCache = new Map(); } }
+  const set = _vorkommenCache.get(ext);
+  return !(set && set.has(tid));
+}
+function versteckteBannerHtml(ext) {
+  if (!istVersteckteKarte(ext)) return '';
+  return `<div class="sync-hinweis versteckt-hinweis" style="margin:10px 0"><div>${escapeHtml(t('versteckt_grund'))}</div><button type="button" class="versteckt-btn" onclick="versteckteEinblenden('${escapeHtml(ext)}')">${escapeHtml(t('versteckt_einblenden'))}</button></div>`;
+}
+// Leiste neu berechnen + zeigen/verstecken (Muster aktualisiereLoseKarten). Ueber der lose-Leiste
+// gestapelt, falls beide sichtbar sind.
+function aktualisiereVersteckteKarten() {
+  versteckteCache = berechneVersteckteKarten();
+  const leiste = document.getElementById('versteckt-leiste');
+  const track  = document.getElementById('versteckt-track');
+  const sichtbar = versteckteCache.length > 0;
+  if (leiste) {
+    leiste.style.display = sichtbar ? '' : 'none';
+    const loseEl = document.getElementById('lose-leiste');
+    const loseH = (loseEl && loseEl.style.display !== 'none') ? (loseEl.offsetHeight || 0) : 0;
+    leiste.style.bottom = loseH ? (loseH + 'px') : '0';
+  }
+  const cont = document.getElementById('baum-container');
+  if (cont) cont.classList.toggle('versteckt-aktiv', sichtbar);
+  if (!track) return;
+  if (!sichtbar) { track.innerHTML = ''; return; }
+  track.innerHTML = versteckteCache.map(p => {
+    const initialen = nm((((p.given || '')[0] || '') + ((p.surname || '')[0] || '')).toUpperCase()) || '?';
+    const klasse = p.sex === 'M' ? 'male' : (p.sex === 'F' ? 'female' : 'unknown');
+    const name = (nm(p.given || '') + ' ' + nm(p.surname || '')).trim() || nm(p.name || '?');
+    return `<span class="lose-chip versteckt-chip" title="${escapeHtml(t('versteckt_grund'))}"><span class="lose-avatar ${klasse}" onclick="versteckteOeffne('${escapeHtml(p.id)}')">${escapeHtml(initialen)}</span><span class="lose-name" onclick="versteckteOeffne('${escapeHtml(p.id)}')">${escapeHtml(name)}</span><button type="button" class="versteckt-btn" onclick="event.stopPropagation();versteckteEinblenden('${escapeHtml(p.id)}')">${escapeHtml(t('versteckt_einblenden'))}</button></span>`;
+  }).join('');
+}
+function versteckteOeffne(ext) { if (ext && aktuelleDaten.persons[ext] && typeof zeigeDetails === 'function') zeigeDetails(ext); }
+// „Im Baum anzeigen": Karte erzwungen freigeben, Vorkommen neu, in die Vollansicht wechseln.
+function versteckteEinblenden(ext) {
+  if (!ext || !aktuelleDaten.persons[ext]) return;
+  forceGezeigt.add(ext);
+  _vorkommenCache = null;                                     // Karte gilt jetzt als gezeichnet
+  ansichtModus = 'voll'; fokusPersonId = null; ansichtFokusId = null;
+  if (typeof vollGraphRender === 'function') vollGraphRender();
+  if (typeof aktualisiereBaumHinweis === 'function') aktualisiereBaumHinweis();
+  if (typeof speichereAnsichtPref === 'function') speichereAnsichtPref('voll');
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();
+  aktualisiereVersteckteKarten();
+  const md = document.getElementById('modal');
+  if (md && md.classList.contains('aktiv') && aktuelleModalPersonId === ext && typeof zeigeDetails === 'function') zeigeDetails(ext);
 }
 
 function oeffneAnlaesseModal() {
@@ -15230,6 +15366,7 @@ function zeigeDetails(personId) {
     ${modalVerlauf.length > 0 ? `<button class="zurueck-btn" onclick="geheZurueck()">← ${t('zurueck')}</button>` : ''}
     <h2>${escapeHtml(nm(p.given || '?'))}</h2>
     <p class="sub-name">${escapeHtml(nm(p.surname || ''))}</p>
+    ${versteckteBannerHtml(personId)}
     ${p.ehename ? `<div class="info-zeile"><strong>${t('pe_ehename')}:</strong> ${escapeHtml(nm(p.ehename))}</div>` : ''}
 
     ${vollstBoxHtml(p)}
@@ -15438,15 +15575,40 @@ async function moveBaumBestaetigen() {
   btn.disabled = false; btn.textContent = altText;
   if (error || !data || !data.ok) {
     const msg = (error && error.message) || '';
+    if (/ziel_hat_zwilling/.test(msg)) { await moveKonsolidiere(p, ziel); return; }   // Zwilling im Ziel -> zusammenführen anbieten
     let txt = t('reg_fehler') + msg;
-    if (/ziel_hat_zwilling/.test(msg)) txt = t('move_fehler_zwilling');
-    else if (/keine_berechtigung/.test(msg)) txt = t('move_fehler_recht');
+    if (/keine_berechtigung/.test(msg)) txt = t('move_fehler_recht');
     fehlerEl.textContent = txt; fehlerEl.style.display = 'block'; return;
   }
   schliesseMoveBaum();
   schliesseModal();
   await reloadBaumBehalteFokus(null);   // neu laden -> Karte verlässt den aktuellen Baum, Lose-Leiste aktualisiert sich
   await zeigeHinweis(t('move_erfolg'));
+}
+
+// Ziel-Baum hat bereits einen identitaet_id-Zwilling dieser Person -> statt Abbruch: die
+// ueberfluessige QUELL-Karte mit der vorhandenen Ziel-Karte ZUSAMMENFUEHREN (Beziehungen wandern
+// zur Ziel-Karte, die Dublette wird entfernt). Reuse person_merge_aufgeloest (rueckgaengig via
+// merge_log). behalten = Ziel-Zwilling, dublette = Quell-Karte.
+async function moveKonsolidiere(p, ziel) {
+  const fehlerEl = document.getElementById('move-fehler');
+  const twin = (p && p._ident)
+    ? Object.values(aktuelleDaten.persons || {}).find(q => q && q._ident === p._ident && q._tree === ziel && q._uuid)
+    : null;
+  if (!twin || !twin._uuid || !p._uuid) { fehlerEl.textContent = t('move_fehler_zwilling'); fehlerEl.style.display = 'block'; return; }
+  const okJa = await zeigeBestaetigung(t('move_konsolidieren_frage', { baum: baumLabel(ziel) }), { gefahr: true, jaText: t('move_konsolidieren_ja') });
+  if (!okJa) { fehlerEl.textContent = t('move_fehler_zwilling'); fehlerEl.style.display = 'block'; return; }
+  const btn = document.getElementById('move-submit'); const altText = btn.textContent; btn.disabled = true; btn.textContent = t('reg_senden_laeuft');
+  // NUR die eine Spiegel-Quellkarte + ihre Kanten in den Papierkorb (der identitaet_id-Zwilling im
+  // Zielbaum bleibt). Ueber die SECURITY-DEFINER-RPC person_karte_papierkorb (umgeht die RESTRICTIVE
+  // softdelete-Policy, die client-seitiges geloescht_am auf personen sperrt).
+  const { data: rd, error: re } = await sbClient.rpc('person_karte_papierkorb', { p_person: p._uuid });
+  btn.disabled = false; btn.textContent = altText;
+  if (re || !rd || !rd.ok) { fehlerEl.textContent = t('reg_fehler') + ((re && re.message) || (rd && rd.grund) || ''); fehlerEl.style.display = 'block'; return; }
+  schliesseMoveBaum();
+  schliesseModal();
+  await reloadBaumBehalteFokus(null);
+  await zeigeHinweis(t('move_konsolidiert', { baum: baumLabel(ziel) }));
 }
 
 // ----- Overlay "Gleiche Person verknüpfen" (Super-Admin), analog zu "Bäume verbinden" -----
@@ -16760,23 +16922,24 @@ async function zeigeFeed() {
   feedEditId = null;
   if (typeof ladeErinnerungen === 'function') ladeErinnerungen();   // „An diesem Tag"-Sektion oben im Feed (nutzt Cache)
   feedApplyModusUI();
-  if (feedModus === 'fragen') { frageRefPersonOptionen(); await fragenLaden(true); }
-  else if (feedModus === 'rezepte') { await rezepteLaden(); }
+  // Fragen/Pitanja außer Betrieb: nur noch Wand + Rezepte.
+  if (feedModus === 'rezepte') { await rezepteLaden(); }
   else { feedRefPersonOptionen(); await feedLaden(true); }
 }
 
 function feedSetModus(m) {
-  feedModus = ['wand', 'fragen', 'rezepte'].includes(m) ? m : 'wand';
+  feedModus = ['wand', 'rezepte'].includes(m) ? m : 'wand';   // 'fragen' außer Betrieb
   feedApplyModusUI();
-  if (feedModus === 'fragen') { frageRefPersonOptionen(); fragenLaden(true); }
-  else if (feedModus === 'rezepte') { rezepteLaden(); }
+  if (feedModus === 'rezepte') { rezepteLaden(); }
   else { feedRefPersonOptionen(); feedLaden(true); }
 }
 function feedApplyModusUI() {
-  [['feed-modus-wand', 'wand'], ['feed-modus-fragen', 'fragen'], ['feed-modus-rezepte', 'rezepte']].forEach(([id, m]) => {
+  [['feed-modus-wand', 'wand'], ['feed-modus-rezepte', 'rezepte']].forEach(([id, m]) => {
     const b = document.getElementById(id); if (b) b.classList.toggle('aktiv', feedModus === m);
   });
-  [['feed-wand', 'wand'], ['feed-fragen', 'fragen'], ['feed-rezepte', 'rezepte']].forEach(([id, m]) => {
+  // #feed-fragen wird nie mehr eingeblendet (Fragen außer Betrieb) -> immer verstecken.
+  const ff = document.getElementById('feed-fragen'); if (ff) ff.style.display = 'none';
+  [['feed-wand', 'wand'], ['feed-rezepte', 'rezepte']].forEach(([id, m]) => {
     const d = document.getElementById(id); if (d) d.style.display = feedModus === m ? '' : 'none';
   });
 }
@@ -18888,7 +19051,7 @@ async function reloadBaumBehalteFokus(fokusExtId) {
     fokusPersonId = null;
     zeichneBaumNeu();
   }
-  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten();   // „Lose Karten"-Leiste nach Anlegen/Bearbeiten/Verknüpfen neu berechnen
+  if (typeof aktualisiereLoseKarten === 'function') aktualisiereLoseKarten(); if (typeof aktualisiereVersteckteKarten === 'function') aktualisiereVersteckteKarten();   // „Lose Karten"-Leiste nach Anlegen/Bearbeiten/Verknüpfen neu berechnen
 }
 
 function schliessePaHilfe() {
@@ -22144,6 +22307,16 @@ function graphBlutScope(model, treeId, startCanon) {
     // die Übergangs-Kappung (selbstAus+elternAus). NUR der Aufstieg (oben) ist baum-ID-gefiltert.
     (model.partners.get(c) || []).forEach(pc => visible.add(pc));   // Partner als Blatt (auch eingeheiratet)
     (model.children.get(c) || []).forEach(k => stack.push([k, selbstAus]));
+  }
+  // Erzwungen eingeblendete Karten (Nutzer: „Im Baum anzeigen") additiv aufnehmen: die Karte + ihre
+  // Eltern zu visible -> descNode zeichnet sie unter dem Elternteil neben den vorhandenen Geschwistern.
+  if (typeof forceGezeigt !== 'undefined' && forceGezeigt.size) {
+    forceGezeigt.forEach(ext => {
+      const p = aktuelleDaten.persons[ext]; if (!p || p._tree !== treeId) return;
+      const cc = model.canonOf(ext); if (!model.nodes.has(cc)) return;
+      visible.add(cc);
+      (model.parents.get(cc) || []).forEach(pc => visible.add(pc));
+    });
   }
   return { wurzel, visible, cut };
 }
