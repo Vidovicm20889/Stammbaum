@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.46">
+<meta name="app-version" content="14.47">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.46">
+<link rel="stylesheet" href="stammbaum.css?v=14.47">
 </head>
 <body>
 
@@ -2529,9 +2529,9 @@
     <p class="mv-legende" data-i18n="ma_info"></p>
     <div class="reg-grid">
       <label class="login-label"><span data-i18n="reg_vorname"></span>
-        <input type="text" id="ma-vorname" class="login-feld" autocomplete="given-name"></label>
+        <input type="text" id="ma-vorname" class="login-feld" autocomplete="given-name" oninput="maKarteSucheDebounce()"></label>
       <label class="login-label"><span data-i18n="reg_nachname"></span>
-        <input type="text" id="ma-nachname" class="login-feld" autocomplete="family-name"></label>
+        <input type="text" id="ma-nachname" class="login-feld" autocomplete="family-name" oninput="maKarteSucheDebounce()"></label>
       <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_email"></span>
         <input type="email" id="ma-email" class="login-feld" placeholder="name@beispiel.de"></label>
       <label class="login-label pflicht"><span data-i18n="reg_rolle"></span>
@@ -2543,25 +2543,18 @@
         <select id="ma-familie-input" class="login-feld" onchange="maFamilieGewechselt()"></select></label>
     </div>
 
-    <!-- Namenskarte zuweisen (optional): keine / bestehende suchen / neue anlegen -->
+    <!-- Namenskarte zuweisen (optional): AUTOMATISCHER Vorschlag aus Vor-/Nachname -->
     <div class="reg-gruppe-titel" data-i18n="ma_karte_titel"></div>
-    <label class="login-label reg-feld-voll"><span data-i18n="ma_karte_label"></span>
-      <select id="ma-karte-modus" class="login-feld" onchange="maPruefeKarte()">
-        <option value="keine" data-i18n="ma_karte_keine"></option>
-        <option value="bestehende" data-i18n="ma_karte_bestehende"></option>
-        <option value="neue" data-i18n="ma_karte_neue"></option>
-      </select></label>
-    <!-- Bestehende Karte suchen -->
-    <div id="ma-karte-such-block" style="display:none">
-      <div id="ma-karte-chip" class="uk-aktuell" style="display:none"></div>
-      <input type="text" id="ma-karte-such" class="login-feld" autocomplete="off"
-        data-i18n-placeholder="ma_karte_suchen" oninput="maKarteSucheDebounce()">
-      <div id="ma-karte-erg" class="mp-pick-liste"></div>
-    </div>
-    <!-- Neue Karte: Zielbaum der eingeladenen Familie -->
+    <!-- verstecktes State-Feld: fuegeMitgliedEinladen liest weiterhin ma-karte-modus (keine/bestehende/neue) -->
+    <select id="ma-karte-modus" style="display:none"><option value="keine"></option><option value="bestehende"></option><option value="neue"></option></select>
+    <p class="mv-legende" id="ma-vorschlag-hinweis" data-i18n="ma_vorschlag_hinweis"></p>
+    <div id="ma-karte-chip" class="uk-aktuell" style="display:none"></div>
+    <div id="ma-karte-erg" class="mp-pick-liste"></div>
+    <button type="button" class="pa-add-btn" id="ma-neue-karte-btn" style="display:block;width:100%;margin:10px 0 4px" onclick="maNeueKarteToggle()">＋ <span data-i18n="ma_karte_neue"></span></button>
+    <!-- Neue Karte: Zielbaum = Stammbaum der oben gewählten Familie (kein eigenes Dropdown mehr) -->
     <div id="ma-karte-neu-block" style="display:none">
-      <label class="login-label reg-feld-voll"><span data-i18n="ma_karte_baum"></span>
-        <select id="ma-karte-baum" class="login-feld"></select></label>
+      <select id="ma-karte-baum" style="display:none"></select>   <!-- verstecktes Feld: fuegeMitgliedEinladen liest ma-karte-baum -->
+      <p class="mv-legende" id="ma-karte-neu-baum" style="color:var(--akzent);font-weight:600"></p>
       <p class="mv-legende" data-i18n="ma_karte_neu_hinweis"></p>
     </div>
 
@@ -2790,14 +2783,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.46"></script>
+<script src="i18n.js?v=14.47"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.46"></script>
-<script src="chat.js?v=14.46"></script>
-<script src="rezepte_pool.js?v=14.46"></script>
+<script src="pdf_export.js?v=14.47"></script>
+<script src="chat.js?v=14.47"></script>
+<script src="rezepte_pool.js?v=14.47"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -3938,13 +3931,13 @@ async function zeigeMitgliedHinzufuegen() {
   const menu = document.getElementById('nav-menu'); if (menu) menu.classList.remove('offen');
   document.getElementById('ma-fehler').style.display = 'none';
   document.getElementById('ma-info').style.display = 'none';
-  ['ma-email','ma-vorname','ma-nachname','ma-karte-such'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  document.getElementById('ma-karte-modus').value = 'keine';
+  ['ma-email','ma-vorname','ma-nachname'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   maKarteWahl = null; maKarteTreffer = {};
   document.getElementById('ma-karte-erg').innerHTML = '';
+  maSetModus('keine');   // versteckter Modus + neu-Block zu; Vorschlaege kommen automatisch beim Tippen
+  maRenderKarteChip();
   document.getElementById('mitglied-add-modal').classList.add('aktiv');
   await ladeAddFamilien();
-  maPruefeKarte();
 }
 function schliesseMitgliedHinzufuegen() {
   document.getElementById('mitglied-add-modal').classList.remove('aktiv');
@@ -3957,34 +3950,46 @@ let maKarteTimer   = null;
 
 // aktuell im Add-Modal gewählte Familie (value = familie_id; bei nur einer automatisch)
 function maAktiveFamilie() {
-  if (Object.keys(mvFamilien).length <= 1) return Object.keys(mvFamilien)[0] || null;
-  return document.getElementById('ma-familie-input').value || null;
+  const keys = Object.keys(mvFamilien);
+  if (keys.length <= 1) return keys[0] || null;
+  return document.getElementById('ma-familie-input').value || keys[0] || null;   // Fallback: erste Familie (sonst leeres Baum-Dropdown)
 }
 
-function maPruefeKarte() {
-  const modus = document.getElementById('ma-karte-modus').value;
-  document.getElementById('ma-karte-such-block').style.display = (modus === 'bestehende') ? '' : 'none';
-  document.getElementById('ma-karte-neu-block').style.display  = (modus === 'neue') ? '' : 'none';
-  if (modus === 'neue') maLadeKarteBaeume();
+// Verstecktes Modus-Feld setzen (fuegeMitgliedEinladen liest es) + UI (neu-Block / Button-Status).
+function maSetModus(m) {
+  const sel = document.getElementById('ma-karte-modus'); if (sel) sel.value = m;
+  const neu = document.getElementById('ma-karte-neu-block'); if (neu) neu.style.display = (m === 'neue') ? '' : 'none';
+  const btn = document.getElementById('ma-neue-karte-btn'); if (btn) btn.classList.toggle('aktiv', m === 'neue');
+  if (m === 'neue')  { maKarteWahl = null; maRenderKarteChip(); maLadeKarteBaeume(); }
+  if (m === 'keine') { maKarteWahl = null; maRenderKarteChip(); }
+}
+// Button Neue-Karte-anlegen: Zielbaum-Auswahl ein-/ausblenden (Toggle neue <-> keine).
+function maNeueKarteToggle() {
+  const jetzt = document.getElementById('ma-karte-modus').value;
+  maSetModus(jetzt === 'neue' ? 'keine' : 'neue');
+  if (jetzt !== 'neue') document.getElementById('ma-karte-erg').innerHTML = '';   // beim Wechsel zu „neu" Vorschlaege ausblenden
 }
 
 function maFamilieGewechselt() {
-  // Karten-Auswahl/Suche zurücksetzen; Zielbaum-Liste der neuen Familie nachladen
+  // Karten-Auswahl zurücksetzen; Zielbaum-Liste der neuen Familie nachladen; Vorschlaege neu suchen.
   maKarteWahl = null; maRenderKarteChip();
   document.getElementById('ma-karte-erg').innerHTML = '';
-  const such = document.getElementById('ma-karte-such'); if (such) such.value = '';
   if (document.getElementById('ma-karte-modus').value === 'neue') maLadeKarteBaeume();
+  maKarteSucheDebounce();
 }
 
 // Zielbaum-Dropdown (für "neue Karte") aus den Bäumen der gewählten Familie befüllen.
 async function maLadeKarteBaeume() {
   const sel = document.getElementById('ma-karte-baum'); if (!sel) return;
+  const hint = document.getElementById('ma-karte-neu-baum');
   const fam = maAktiveFamilie();
-  if (!fam) { sel.innerHTML = ''; return; }
+  if (!fam) { sel.innerHTML = ''; if (hint) hint.textContent = ''; return; }
   const { data, error } = await sbClient.rpc('stammbaeume_der_familie', { p_familie: fam });
   if (error) { sel.innerHTML = ''; console.warn('stammbaeume_der_familie:', error.message); return; }
-  sel.innerHTML = (data || []).map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name))}</option>`).join('');
-  macheAlleSelectsSuchbar(document.getElementById('mitglied-add-modal'));
+  const baeume = data || [];
+  sel.innerHTML = baeume.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(nm(b.name))}</option>`).join('');
+  if (sel.options.length) sel.selectedIndex = 0;   // Zielbaum = erster (meist einziger) Stammbaum der Familie
+  if (hint) hint.textContent = baeume.length ? t('ma_karte_neu_baum', { baum: nm(baeume[0].name) }) : '';
 }
 
 function maRenderKarteChip() {
@@ -3996,27 +4001,24 @@ function maRenderKarteChip() {
   chip.innerHTML = `<span>${escapeHtml(t('ma_karte_gewaehlt', { name: nm(maKarteWahl.name || '?') }))}${maKarteWahl.baum ? ' (' + escapeHtml(trefferBaumLabel(maKarteWahl)) + ')' : ''}${belegt}</span>` +
     ` <button type="button" class="mv-del" onclick="maKarteEntfernen()">${escapeHtml(t('pa_eltern_entfernen'))}</button>`;
 }
-function maKarteEntfernen() { maKarteWahl = null; maRenderKarteChip(); }
+function maKarteEntfernen() { maSetModus('keine'); maKarteSucheDebounce(); }
 
 function maKarteSucheDebounce() { if (maKarteTimer) clearTimeout(maKarteTimer); maKarteTimer = setTimeout(maKarteSuche, 300); }
 async function maKarteSuche() {
   const box = document.getElementById('ma-karte-erg');
-  const q = document.getElementById('ma-karte-such').value.trim();
-  if (q.length < 2) { box.innerHTML = ''; return; }
+  if (maKarteWahl) return;   // bereits gewaehlt -> Vorschlaege nicht ueberschreiben
+  const vn = (document.getElementById('ma-vorname').value || '').trim();
+  const nn = (document.getElementById('ma-nachname').value || '').trim();
+  if ((vn.length + nn.length) < 2) { box.innerHTML = ''; return; }
   box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta">…</span></div>`;
-  // personen_suche/karten_suche_admin AND-en Vor-/Nachname -> je eine Präfix-Suche und mergen.
-  // Kyrillisch -> Latein, sonst kein Treffer (Daten lateinisch, merge_norm transliteriert nicht).
-  const qL = srCyr2Lat(q);
-  const [r1, r2] = await Promise.all([
-    sbClient.rpc('karten_suche_admin', { p_vorname: qL, p_nachname: null, p_geburt: null, p_limit: 15, p_offset: 0 }),
-    sbClient.rpc('karten_suche_admin', { p_vorname: null, p_nachname: qL, p_geburt: null, p_limit: 15, p_offset: 0 })
-  ]);
-  if (r1.error || r2.error) {
-    box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta" style="color:#b33">${escapeHtml((r1.error || r2.error).message)}</span></div>`; return;
+  // Vor-/Nachname (Kyrillisch -> Latein) an karten_suche_admin; beide zusammen = AND-Praefix-Suche.
+  const { data, error } = await sbClient.rpc('karten_suche_admin',
+    { p_vorname: vn ? srCyr2Lat(vn) : null, p_nachname: nn ? srCyr2Lat(nn) : null, p_geburt: null, p_limit: 20, p_offset: 0 });
+  if (error) {
+    box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta" style="color:#b33">${escapeHtml(error.message)}</span></div>`; return;
   }
-  maKarteTreffer = {}; const seen = new Set(); const liste = [];
-  [...(r1.data || []), ...(r2.data || [])].forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); liste.push(r); } });
-  if (!liste.length) { box.innerHTML = `<div class="mp-pick-row"><span class="mp-pick-meta">${escapeHtml(t('uk_kein_treffer'))}</span></div>`; return; }
+  maKarteTreffer = {}; const liste = data || [];
+  if (!liste.length) { box.innerHTML = ''; return; }   // keine Treffer -> nur „Neue Karte anlegen" (Button ist eh da)
   if (!box._maInit) {
     tippAuswahl(box, '.mp-pick-row', el => { const id = el.getAttribute('data-id'); if (id) maKarteWaehle(id); });
     box._maInit = true;
@@ -4040,7 +4042,7 @@ function maKarteWaehle(personId) {
   const r = maKarteTreffer[personId]; if (!r) return;
   maKarteWahl = { id: r.id, name: r.name, baum: r.baum, baum_id: r.baum_id, belegt_user: r.belegt_user, belegt_email: r.belegt_email };
   document.getElementById('ma-karte-erg').innerHTML = '';
-  document.getElementById('ma-karte-such').value = '';
+  maSetModus('bestehende');   // verstecktes Modus-Feld fuer fuegeMitgliedEinladen
   maRenderKarteChip();
 }
 
@@ -4108,6 +4110,9 @@ async function fuegeMitgliedEinladen() {
   const karteModus = document.getElementById('ma-karte-modus').value;
   const vorname = document.getElementById('ma-vorname').value.trim();
   const nachname = document.getElementById('ma-nachname').value.trim();
+  if (karteModus === 'keine') {   // Pflicht: Vorschlag waehlen ODER neue Karte anlegen
+    fehlerEl.textContent = t('ma_karte_pflicht'); fehlerEl.style.display = 'block'; return;
+  }
   if (karteModus === 'bestehende' && !maKarteWahl) {
     fehlerEl.textContent = t('ma_karte_keine_gewaehlt'); fehlerEl.style.display = 'block'; return;
   }
@@ -4191,8 +4196,8 @@ async function fuegeMitgliedEinladen() {
   }
 
   button.disabled = false; button.textContent = altText;
-  ['ma-email','ma-vorname','ma-nachname','ma-karte-such'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  document.getElementById('ma-karte-modus').value = 'keine'; maKarteWahl = null; maRenderKarteChip(); maPruefeKarte();
+  ['ma-email','ma-vorname','ma-nachname'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  maSetModus('keine'); maRenderKarteChip(); document.getElementById('ma-karte-erg').innerHTML = '';
   const maMsg = karteName ? t('ma_erfolg_verknuepft', { name: nm(karteName) }) : t('ma_erfolg');
   infoEl.innerHTML = escapeHtml(maMsg) + `<span class="spam-hinweis">${escapeHtml(t('spam_hinweis'))}</span>`;
   infoEl.style.display = 'block';
@@ -8415,7 +8420,7 @@ function wechselSprache(lang, speichern = true) {
   if (offen('mitglieder-modal') && typeof ladeMitglieder  === 'function') ladeMitglieder();   // Familien-Dropdown + Liste neu (nm)
   if (typeof ukSpracheUpdate === 'function') ukSpracheUpdate();   // User<->Karte-Overlay (Ziel/aktuell/Treffer) in neuer Sprache
   if (offen('mitglied-add-modal')) {   // "Dodaj člana": Karten-Abschnitt (Chip/Modus) neu beschriften
-    if (typeof maPruefeKarte === 'function') maPruefeKarte();
+    if (typeof maKarteSuche === 'function') maKarteSuche();   // Vorschlagsliste in neuer Sprache neu rendern
     if (typeof maRenderKarteChip === 'function') maRenderKarteChip();
   }
   // Person-hinzufügen: Kopf zeigt die gewählte Beziehung (JS-befüllt) -> in neuer Sprache neu aufbauen
