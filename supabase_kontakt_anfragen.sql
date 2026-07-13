@@ -246,9 +246,19 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     COALESCE(NULLIF(btrim(concat_ws(' ', pr.vorname, pr.nachname)), ''), u.email) AS von_name,
     CASE WHEN COALESCE(pr.avatar_sichtbarkeit,'verbund') <> 'privat'
          THEN COALESCE(pr.avatar_thumb_url, pr.avatar_url) END AS von_avatar,
-    (SELECT f2.name FROM public.mitgliedschaften m2
-       JOIN public.familien f2 ON f2.id = m2.familie_id
-      WHERE m2.user_id = a.von_user ORDER BY f2.name LIMIT 1) AS von_familie,
+    -- Familie des Anfragestellers: bevorzugt die mit dem Konto VERKNUEPFTE Personenkarte
+    -- ("Meine Person" -> identitaets-korrekte Familie, z. B. Vidović). Nur als Fallback (kein
+    -- verknuepftes Konto) irgendeine Mitgliedschaft. FRUEHER: alphabetisch erste Mitgliedschaft
+    -- -> zeigte bei Mehrfach-Mitgliedschaft die falsche Familie (z. B. "Knežević" statt "Vidović").
+    COALESCE(
+      (SELECT f3.name FROM public.personen pk
+         JOIN public.familien f3 ON f3.id = pk.familie_id
+        WHERE pk.user_id = a.von_user AND pk.geloescht_am IS NULL
+        ORDER BY pk.id LIMIT 1),
+      (SELECT f2.name FROM public.mitgliedschaften m2
+         JOIN public.familien f2 ON f2.id = m2.familie_id
+        WHERE m2.user_id = a.von_user ORDER BY f2.name LIMIT 1)
+    ) AS von_familie,
     a.ziel_person_id,
     trim(coalesce(pe.vorname,'') || ' ' || coalesce(pe.nachname,'')) AS ziel_name,
     a.ziel_familie_id, f.name AS ziel_familie,

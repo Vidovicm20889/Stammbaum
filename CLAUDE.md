@@ -378,6 +378,22 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   entlang des gerenderten Strangs gezeichnet; das `verwandtschaftsSet` erfasst sie korrekt, die
   *Darstellung* ist durch den Single-Root begrenzt (echte beidseitige Ahnen-Spitzen = späteres
   Renderer-Rework).
+- **Ansichtsmodus „Alle Verwandten / Netz" (Multi-Root, opt-in, ab v14.43):** Vierter Preset im
+  Ansicht-Overlay (`ansicht-radio-netz`, `ansichtModus='netz'`) neben Standard/Kreis/Voll/Zweig.
+  **Bewusste Ausnahme zur Regel „ein Stammbaum = eine Blutlinie":** zeigt **JEDE** Person des AKTUELLEN
+  Baums (`_tree === aktueller Baum`) **+ deren Ehepartner als Blätter** — auch die Geschwister/Herkunfts-
+  familie **echt eingeheirateter** Personen (Nachname ≠ Baum, die die Blutlinien-Ansicht + Platzhalter-
+  Aufstieg NICHT erfasst) und **lose Insel-Karten**. Technik: `zeigeNetzAnsicht`/`netzErlaubtSet` →
+  bestehender **Multi-Root-Renderer `zeichneGraph`** (`graphRaenge`/`graphLayout`/`zeichneGraphKanten`,
+  rang-basiert, NICHT fokus-zentriert — reaktiviert, war seit v14.10 abgeschaltet) via `opts.erlaubt`
+  (ext-ID-Set aller Baum-Mitglieder + Partner). **KEINE Blutlinien-Kappung.** **Baum-BEGRENZT** (nur
+  `_tree`-Mitglieder + direkte Partner) → **kein Cross-Tree-Bleed** in fremde Verbünde (Isolation
+  gewahrt). In `rendereAktuelleAnsicht`/`ansichtAnwenden`/`wendeGespeicherteAnsichtAn`/`oeffneAnsichtModal`/
+  `ansichtModusWahl` eingehängt; pro Nutzer gemerkt (`speichereAnsichtPref('netz')`, wie die anderen
+  Presets). i18n `ansicht_opt_netz`/`ansicht_opt_netz_sub` in allen 5 Blöcken. **Bewusste Grenze:** der
+  reaktivierte `zeichneGraph`-Layout war früher als „falsche Darstellung" markiert → die **visuelle
+  Qualität bei großen/komplexen Bäumen ist am Gerät zu verifizieren** (🔬); der Standard bleibt die
+  aufgeräumte Blutlinien-Ansicht, das Netz ist die opt-in Vollsicht.
 - **Namenskarten-Avatar zeigt Profilbild (ab v9.6):** Die Karten im „Familienmitglieder"-Grid
   (`zeigeKarten`, `.person .avatar`) zeigen das hochgeladene **Profilbild** (`stammbaum_daten.foto`
   bzw. `avatar`/`bild`, dieselben Felder wie PDF-Export), sonst wie bisher die **Initialen** als
@@ -805,6 +821,18 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   = null` → Cut automatisch aus), weil diese Modi gezielt baumübergreifend/tiefer zeigen sollen.
   **Backup vor Einführung:** Daten-Snapshot in Schema `backup_bl` (`backup_blutlinie_render_*.sql`) +
   Git-Tag `pre-blutlinie-render-*`.
+  **Invariante — Blut-Aufstieg durch Platzhalter-Elternteile (ab v14.43, nicht zurückbauen):** Der
+  Blutlinien-Aufstieg zur Render-Wurzel (`graphBlutScope` UND der Fallback `baueBaumDaten`/`findeWurzel`)
+  MUSS über einen namenlosen **Platzhalter-Elternteil** („Unbekannt", `stammbaum_daten.platzhalter`)
+  hindurchsteigen, WENN dieser ≥1 Blutlinien-Kind hat — sonst bleiben die Blutlinien-**Geschwister der
+  Wurzel** unsichtbar (Bug: zwei Schwestern teilen sich einen bei „Geschwister ohne Eltern" erzeugten
+  Platzhalter → nur eine wurde gezeichnet). Ein Platzhalter zählt dabei **nie als „auswärts"**
+  (blut-neutral → seine Blutlinien-Kinder werden nicht als 2. auswärtige Generation gekappt). Sicher,
+  weil ein Platzhalter selbst keine Eltern hat (Aufstieg endet dort) → **kein Bleed aus fremden
+  Familien**; die „eine Blutlinie"-Regel bleibt intakt (der Aufstieg startet an einem Blut-Knoten,
+  eingeheiratete Herkunftsfamilien bleiben ausgeschlossen). Im Fallback läuft die Suche nach dem
+  Platzhalter **vorwärts über `families.children`** (robust gegen eine fehlende `families_child`-
+  Rückreferenz des Blutlinien-Kindes).
 - **Stammbaum-Name = REINER Nachname; Unterscheidung gleichnamiger Familien im Feld `zusatz`
   (ab v11.3):** Der Baum-/Familienname enthält NUR den Nachnamen — erlaubt sind Buchstaben (inkl.
   Diakritika/Kyrillisch), Leerzeichen, Bindestrich, Apostroph (Frontend `istGueltigerBaumName` +
@@ -823,6 +851,18 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   Edge-Function-Pfad — nachträglich über Einstellungen setzbar). **Konventions-Grenze:** Regel nimmt
   als Nachname das letzte Wort → ein bewusst zweiwortiger Name (Zusatz OHNE Klammer HINTER den Namen)
   wird nicht erkannt; Zusätze daher ins Feld bzw. in Klammern.
+  **AUFGEWEICHT ab v14.43 — Blutlinien-Nachname AUS DEN DATEN (`baumBlutName`, freie Anzeigenamen):**
+  Der Blutlinien-Nachname eines Baums wird NICHT mehr aus dem Anzeigenamen geraten (die „letztes Wort"-
+  Heuristik brach bei beschreibenden Namen wie **„The Scicluna Family"** → „family", **„Porodica Vidović"**
+  → „vidović" ok, **„Familie Müller"** → „müller"), sondern **aus den Personen des Baums abgeleitet**:
+  `baumBlutName(treeId)` = häufigster echter Nachname der Nicht-Platzhalter-Personen (Tie-Breaker +
+  Fallback = die alte Namens-Heuristik → rückwärtskompatibel; Cache je treeId, geleert in `blutNameCacheLeeren`
+  bei jedem Daten-Load). ALLE Blutlinien-Vergleiche nutzen ihn (`istBlutName`/`istBlutBaum`/`zielBaumFuer`
+  in `graphBlutScope`/`baueBaumDaten`/`findeStammbaumWurzel`, `crossTreeBaeume`, `pruefeAbweichenderNachname`/
+  `pruefeHeiratsZweig`/`abwSameNameFlow`); die Person-Seite bleibt `zweigNachnameNorm(surname/ehename)`.
+  **Folge:** Baum-/Familiennamen dürfen jetzt **beliebig beschreibend** sein (Nutzerwunsch — Bug „The Scicluna
+  Family": eingeheiratete Geschwister unsichtbar, weil der Blutname „family" niemandem passte). `istGueltigerBaumName`
+  begrenzt weiter nur die ZEICHEN (Buchstaben/Leer/Bindestrich/Apostroph), NICHT die Wortzahl.
   **Löschen ist identitätsbewusst (ab v8.9) — Invariante, nicht zurückbauen:** `loeschePerson`
   entfernt ALLE `identitaet_id`-Zwillingskarten einer Person (über alle Bäume) + deren Beziehungen
   in EINEM Schritt → eine gelöschte Person (inkl. Spiegel) taucht NIRGENDWO mehr auf, **kein „zweimal
@@ -949,13 +989,20 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   **Migration v13.9:** Spalten-Default `true` (idempotent in `supabase_auffindbarkeit.sql`) +
   einmaliger Bestands-Backfill `sql_archiv/backfill_auffindbar_optout.sql` (NICHT erneut ausführen,
   sobald Nutzer sich aktiv verstecken). Konto-Anlage zeigt Hinweis `reg_auffindbar_hinweis`. **Stufe 2
-  KONTAKT:** `kontakt_anfrage_stellen(...,'kontakt')` nur auf entdeckbare Karte MIT Konto
-  (`personen.user_id`); Entscheider ist AUSSCHLIESSLICH der Familien-Admin/Owner/Super-Admin der
-  Zielfamilie (`kann_familie_bearbeiten`) — ein `familien_mitglied` NIE. Genehmigung → Zeile in
-  `kontakt_verbindungen` (sortiertes Paar) → erlaubt verbundübergreifenden 1:1-Chat (Helfer
-  `darf_chatten`; `chats.verbund_id` für solche Chats nullable; Picker via `meine_kontakte`). **Stufe 3
-  BAUMZUGRIFF:** SEPARATE zweite Anfrage `typ='baumzugriff'` (setzt aktive `kontakt_verbindung`
-  voraus; Zielbaum = Baum der entdeckten Person), zweite Admin-Genehmigung → Zeile in `baum_freigaben`.
+  KONTAKT — Chat ist FREI (Regel gelockert ab v14.43, Betreiber-/Nutzerentscheidung „Instagram-DM"):**
+  Ein 1:1-Chat mit einer entdeckten Person (fremder Verbund) braucht KEINE Admin-Genehmigung mehr — die
+  RPC **`entdeckte_person_anschreiben(p_ziel_person)`** (SECURITY DEFINER, DB-Datei
+  `supabase_direktchat_discovery.sql`) prüft `_person_entdeckbar` (fremder Verbund, KEIN Minderjähriger,
+  Konto vorhanden/Opt-in) und legt sofort die `kontakt_verbindungen`-Zeile (sortiertes Paar,
+  `ON CONFLICT DO NOTHING`) an → Helfer `darf_chatten` erlaubt den verbundübergreifenden 1:1-Chat
+  (`chats.verbund_id` für solche Chats nullable; Picker via `meine_kontakte`); Empfänger kann den Chat
+  einfach ignorieren. Der frühere genehmigungspflichtige `kontakt_anfrage_stellen(...,'kontakt')`-Pfad
+  bleibt als Code erhalten, wird vom Frontend aber nicht mehr aufgerufen. **Kindesschutz unverändert:**
+  Minderjährige (lebend) sind über `_person_entdeckbar` NIE entdeck- oder anschreibbar. **Stufe 3
+  BAUMZUGRIFF (weiterhin genehmigungspflichtig):** SEPARATE Anfrage `typ='baumzugriff'`
+  (`kontakt_anfrage_stellen`, optionale Nachricht; legt eine noch fehlende `kontakt_verbindung` selbst an,
+  da Chat ja frei ist; Zielbaum = Baum der entdeckten Person), Admin-Genehmigung durch
+  `kann_familie_bearbeiten` der Zielfamilie → Zeile in `baum_freigaben`.
   **ZWEITE Bruchstelle:** `supabase_baum_freigaben_rls.sql` erweitert die SELECT-Policies auf
   `personen`/`stammbaeume` ADDITIV um `darf_baum_sehen(stammbaum_id)` und auf `beziehungen` um
   `darf_beziehung_sehen(person_a,person_b)` (da `beziehungen` KEIN `stammbaum_id` hat → Kante nur
@@ -1181,6 +1228,22 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Push/Commit nur auf ausdrückliche Anweisung** des Users; vorher kein Veröffentlichen.
 
 ## Dein Arbeitsablauf (Loop)
+
+- **TEST-PFLICHT bei JEDER Änderung (verbindlich, keine Ausnahme):** Jede Änderung wird VOR der
+  Fertigmeldung **sowohl aus UX- als auch aus technischer Sicht gründlich geprüft UND getestet** —
+  nicht nur „sieht plausibel aus". Konkret:
+  - **Testfälle wirklich AUSFÜHREN, nicht nur beschreiben:** die relevanten Prüfungen tatsächlich
+    laufen lassen (`node --check` des Hauptskripts bei JS-Änderungen, `node i18n_lint.js` bei
+    Textänderungen, ausführbare Logik per Node/Script durchspielen — z. B. Token-/Parser-/Berechnungs-
+    Logik mit echten Eingaben und Grenz-/Fehlerfällen, SQL auf Idempotenz/FK-Reihenfolge gegenlesen).
+    Was nur auf echtem Gerät/nach Deploy final verifizierbar ist, wird als 🔬 gekennzeichnet.
+  - **UX-Test:** der Flow wird aus Nutzersicht durchgespielt (Bedienbarkeit, Ordnung/Gruppierung,
+    Beschriftung, Kontrast/Tap-Targets, Mobile Android+iOS, i18n in allen 5 Sprachen) — siehe Schritt 3.
+  - **Ergebnis KURZ vorstellen:** Am Ende jeder Änderung dem Nutzer knapp präsentieren, **welche
+    Testfälle ausgeführt wurden und mit welchem Ergebnis** (PASS/FAIL je Fall, kurze Tabelle/Liste),
+    was am Code geprüft und was nur 🔬 am Gerät/Deploy verifizierbar ist. Schlägt ein Test fehl, wird
+    das ehrlich gemeldet und der Fehler VOR der Fertigmeldung behoben — kein „grün gemeldet, ungetestet".
+
 Nach JEDER Änderung:
 1. Prüfe selbst: Gibt es Seiteneffekte auf andere Komponenten?
 2. Prüfe: Hält die Lösung alle Design-Regeln ein (inkl. i18n in allen 5 Sprachen)?

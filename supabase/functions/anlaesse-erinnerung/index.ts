@@ -38,6 +38,7 @@ function htmlZuText(html: string): string {
 }
 const APP_URL        = Deno.env.get("APP_URL") ?? "https://familyroots.club/stammbaum.html";
 const CRON_SECRET    = Deno.env.get("CRON_SECRET") ?? "";
+const UNSUB_SECRET   = Deno.env.get("UNSUBSCRIBE_SECRET") ?? "";   // für den Abmelde-Token
 
 const TEXTE: Record<string, Record<string, string>> = {
   de: {
@@ -76,6 +77,47 @@ const T = (sprache: string, key: string) =>
 
 const esc = (v: unknown) => String(v ?? "")
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+
+// ---- Abmelde-/Unsubscribe-Helfer (geteilt, siehe _shared_unsub.ts) --------
+const _unsubEnc = new TextEncoder();
+const _b64urlFromBytes = (b: Uint8Array) =>
+  btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const _b64urlFromString = (s: string) => _b64urlFromBytes(_unsubEnc.encode(s));
+async function makeUnsubToken(userId: string, typ: string, ttlDays = 60): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + ttlDays * 86400;
+  const payloadB64 = _b64urlFromString(JSON.stringify({ u: userId, t: typ, e: exp }));
+  const key = await crypto.subtle.importKey(
+    "raw", _unsubEnc.encode(UNSUB_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, _unsubEnc.encode(payloadB64)));
+  return payloadB64 + "." + _b64urlFromBytes(sig);
+}
+const buildUnsubUrl = (token: string, lang = "de") =>
+  `${SUPABASE_URL}/functions/v1/abmelden?token=${encodeURIComponent(token)}&lang=${encodeURIComponent(lang)}`;
+const _UNSUB_FOOTER: Record<string, { one: string; all: string }> = {
+  de: { one: "Diese Benachrichtigungen abbestellen", all: "von allen E-Mails abmelden" },
+  sr: { one: "Одјави се са ових обавештења",           all: "одјави се са свих е-порука" },
+  hr: { one: "Odjavi se s ovih obavijesti",            all: "odjavi se sa svih e-poruka" },
+  ba: { one: "Odjavi se s ovih obavještenja",          all: "odjavi se sa svih e-poruka" },
+  en: { one: "Unsubscribe from these notifications",   all: "unsubscribe from all emails" },
+};
+async function unsubBundle(userId: string, typ: string, lang = "de") {
+  const urlSpecific = buildUnsubUrl(await makeUnsubToken(userId, typ), lang);
+  const urlAlle     = buildUnsubUrl(await makeUnsubToken(userId, "alle"), lang);
+  const x = _UNSUB_FOOTER[lang] ?? _UNSUB_FOOTER.de;
+  const footer = `<div style="margin-top:22px;padding-top:14px;border-top:1px solid #e4d8bf;
+      font-size:12px;color:#a89878;text-align:center;line-height:1.7;">
+    <a href="${urlSpecific}" style="color:#722f37;text-decoration:underline;">${esc(x.one)}</a>
+    &nbsp;·&nbsp;
+    <a href="${urlAlle}" style="color:#a89878;text-decoration:underline;">${esc(x.all)}</a>
+  </div>`;
+  return {
+    footer,
+    headers: {
+      "List-Unsubscribe": `<${urlSpecific}>, <mailto:support@familyroots.club?subject=Abmelden>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    } as Record<string, string>,
+  };
+}
 
 const WRAP = (inner: string) => `
 <div style="font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;
@@ -139,7 +181,7 @@ Deno.serve(async (req) => {
     const erledigt: string[] = [];
     const fehler: string[] = [];
 
-    for (const g of proEmpf.values()) {
+    for (const [uid, g] of proEmpf.entries()) {
       const sprache = g.sprache;
       const to = testEmail ? [testEmail] : [g.email];
       const zeilen = g.items.map((it) => {
@@ -158,6 +200,10 @@ Deno.serve(async (req) => {
         </div>
         <p style="font-size:13px;color:#8a7a5a;">${esc(T(sprache, "hint"))}</p>`;
 
+      // Abmelde-Footer + List-Unsubscribe-Header (typ 'anlaesse' = Geburtstage + Gedenktage).
+      const unsub = await unsubBundle(uid, "anlaesse", sprache);
+      const htmlBody = WRAP(inner + unsub.footer);
+
       const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -166,9 +212,9 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: MAIL_FROM, to,
-          subject: T(sprache, "subject"), html: WRAP(inner),
-          text: htmlZuText(WRAP(inner)),
-          headers: { "List-Unsubscribe": "<mailto:support@familyroots.club?subject=Abmelden>" },
+          subject: T(sprache, "subject"), html: htmlBody,
+          text: htmlZuText(htmlBody),
+          headers: unsub.headers,
         }),
       });
       if (r.ok) { gesendet++; erledigt.push(...g.ids); }

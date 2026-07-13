@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.45">
+<meta name="app-version" content="14.46">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
@@ -33,17 +33,17 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.45">
+<link rel="stylesheet" href="stammbaum.css?v=14.46">
 </head>
 <body>
 
 <nav class="top-nav">
   <div class="nav-controls">
     <div class="tab-gruppe">
-      <button class="tab" id="tab-mape" data-ansicht="mape"><span data-i18n="tab_mape"></span><span class="tab-badge obav-badge" id="tab-badge-mape" style="display:none"></span></button>
-      <button class="tab" id="tab-feed" data-ansicht="feed" style="display:none"><span data-i18n="tab_feed"></span><span class="tab-badge obav-badge" id="tab-badge-feed" style="display:none"></span></button>
-      <button class="tab" id="tab-shorts" data-ansicht="shorts"><span data-i18n="tab_shorts"></span><span class="tab-badge obav-badge" id="tab-badge-events" style="display:none"></span></button>
       <button class="tab aktiv" data-ansicht="baum" data-i18n="tab_baum"></button>
+      <button class="tab" id="tab-feed" data-ansicht="feed" style="display:none"><span data-i18n="tab_feed"></span><span class="tab-badge obav-badge" id="tab-badge-feed" style="display:none"></span></button>
+      <button class="tab" id="tab-album" data-ansicht="album"><span data-i18n="ev_modus_alben"></span></button>
+      <button class="tab" id="tab-shorts" data-ansicht="shorts"><span data-i18n="tab_shorts"></span><span class="tab-badge obav-badge" id="tab-badge-events" style="display:none"></span></button>
     </div>
     <input type="text" class="suche" id="suche" inputmode="search" enterkeyhint="search" autocomplete="off" data-i18n-placeholder="suche_placeholder">
     <select class="filter" id="tree-select" title="Stammbaum wählen" onchange="waehleStammbaum(this.value)"></select>
@@ -233,6 +233,8 @@
     <div class="ev-modus" id="feed-modus" role="tablist">
       <button type="button" class="ev-modus-btn aktiv" id="feed-modus-wand" role="tab"
               data-i18n="feed_modus_wand" onclick="feedSetModus('wand')"></button>
+      <button type="button" class="ev-modus-btn" id="feed-modus-mape" role="tab"
+              onclick="wechselAnsicht('mape')"><span data-i18n="tab_mape"></span><span class="tab-badge obav-badge" id="tab-badge-mape" style="display:none"></span></button>
       <button type="button" class="ev-modus-btn" id="feed-modus-rezepte" role="tab"
               data-i18n="feed_modus_rezepte" onclick="feedSetModus('rezepte')"></button>
     </div>
@@ -440,8 +442,6 @@
     <div class="ev-modus" id="ev-modus" role="tablist">
       <button type="button" class="ev-modus-btn aktiv" id="ev-modus-liste" data-ev-modus="liste"
               role="tab" data-i18n="ev_modus_liste" onclick="evSetModus('liste')"></button>
-      <button type="button" class="ev-modus-btn" id="ev-modus-alben" data-ev-modus="alben"
-              role="tab" data-i18n="ev_modus_alben" onclick="evSetModus('alben')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-zeit" data-ev-modus="zeit"
               role="tab" data-i18n="ev_modus_zeit" onclick="evSetModus('zeit')"></button>
       <button type="button" class="ev-modus-btn" id="ev-modus-kalender" data-ev-modus="kalender"
@@ -988,6 +988,14 @@
       <label class="login-label reg-feld-voll pflicht"><span data-i18n="reg_baum_name"></span>
         <input type="text" id="reg-baum-name" class="login-feld" autocomplete="off" oninput="filterBaumNameInput(this);pruefeBaumMatchDebounced()">
         <span class="feld-hinweis" data-i18n="reg_baum_name_hint"></span></label>
+      <div class="login-label reg-feld-voll adr-geo-feld" data-ziel="reg">
+        <span data-i18n="adr_ort_suchen"></span>
+        <input type="text" class="login-feld adr-geo-suche" inputmode="search" enterkeyhint="search"
+               autocomplete="off" data-i18n-placeholder="adr_suche_ph" oninput="adrGeoInput(this)">
+        <div class="adr-geo-treffer geo-treffer"></div>
+        <span class="feld-hinweis" data-i18n="adr_ort_suchen_hint"></span>
+      </div>
+      <div class="reg-feld-voll adr-erkannt-cap" data-i18n="adr_erkannt_caption"></div>
       <label class="login-label pflicht"><span data-i18n="reg_land"></span>
         <select id="reg-land" class="login-feld land-select" onchange="pruefeBaumMatchDebounced()"></select></label>
       <label class="login-label"><span data-i18n="reg_stadt"></span>
@@ -1796,6 +1804,14 @@
           <span class="feld-hinweis" data-i18n="fe_zusatz_hint"></span></label>
         <label class="login-label reg-feld-voll"><span data-i18n="fe_opis"></span>
           <textarea id="fe-opis" class="login-feld" rows="3"></textarea></label>
+        <div class="login-label reg-feld-voll adr-geo-feld" data-ziel="fe">
+          <span data-i18n="adr_ort_suchen"></span>
+          <input type="text" class="login-feld adr-geo-suche" inputmode="search" enterkeyhint="search"
+                 autocomplete="off" data-i18n-placeholder="adr_suche_ph" oninput="adrGeoInput(this)">
+          <div class="adr-geo-treffer geo-treffer"></div>
+          <span class="feld-hinweis" data-i18n="adr_ort_suchen_hint"></span>
+        </div>
+        <div class="reg-feld-voll adr-erkannt-cap" data-i18n="adr_erkannt_caption"></div>
         <label class="login-label pflicht"><span data-i18n="fe_drzava"></span>
           <select id="fe-land" class="login-feld land-select"></select></label>
         <label class="login-label"><span data-i18n="fe_region"></span>
@@ -2774,14 +2790,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.45"></script>
+<script src="i18n.js?v=14.46"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.45"></script>
-<script src="chat.js?v=14.45"></script>
-<script src="rezepte_pool.js?v=14.45"></script>
+<script src="pdf_export.js?v=14.46"></script>
+<script src="chat.js?v=14.46"></script>
+<script src="rezepte_pool.js?v=14.46"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -10086,7 +10102,7 @@ function aktualisiereKopf(rootId) {
 function aktualisiereSucheZustand(name) {
   const suche = document.getElementById('suche');
   if (!suche) return;
-  if (name === 'shorts' || name === 'feed' || name === 'mape') {
+  if (name === 'shorts' || name === 'album' || name === 'feed' || name === 'mape') {
     if (suche.value) suche.value = '';          // leeren → Platzhalter sichtbar
     suche.disabled = true;
     suche.title = t('suche_events_tooltip');
@@ -12566,6 +12582,21 @@ function geoStatusAktualisieren() {
   }
 }
 
+// Geteilter Nominatim-Sucher (Event-Ort + Familien-/Neuanlage-Adresssuche): rate-limited
+// (~1 Anfrage/s über den gemeinsamen Zähler geoLetzteSuche), limit=5, addressdetails=1 (liefert
+// das strukturierte .address-Objekt für Land/Region/Gemeinde/Stadt), accept-language = App-Sprache.
+// Liefert das rohe Trefferarray (inkl. .address); [] bei Fehler/leer.
+async function nominatimAbfrage(q) {
+  const seit = Date.now() - geoLetzteSuche;
+  if (seit < 1100) await new Promise(r => setTimeout(r, 1100 - seit));   // Mindestabstand erzwingen
+  geoLetzteSuche = Date.now();
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&accept-language='
+    + encodeURIComponent(aktuelleSprache || 'de') + '&q=' + encodeURIComponent(q);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  const daten = await res.json();
+  return Array.isArray(daten) ? daten : [];
+}
+
 function geoSucheDebounce() {
   clearTimeout(geoSucheTimer);
   geoSucheTimer = setTimeout(geoSucheAusfuehren, 700);   // Tippen abwarten (Nominatim schonen)
@@ -12578,17 +12609,10 @@ async function geoSucheAusfuehren() {
   if (!inp || !box) return;
   const q = inp.value.trim();
   if (q.length < 3) { box.innerHTML = ''; return; }
-  // Nominatim-Policy: höchstens ~1 Anfrage/Sekunde -> Mindestabstand erzwingen.
-  const seit = Date.now() - geoLetzteSuche;
-  if (seit < 1100) { geoSucheTimer = setTimeout(geoSucheAusfuehren, 1100 - seit); return; }
-  geoLetzteSuche = Date.now();
   box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_suchen_laeuft'))}</div>`;
   try {
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language='
-      + encodeURIComponent(aktuelleSprache || 'de') + '&q=' + encodeURIComponent(q);
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    const daten = await res.json();
-    if (!Array.isArray(daten) || daten.length === 0) {
+    const daten = await nominatimAbfrage(q);
+    if (!daten.length) {
       box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_keine_treffer'))}</div>`;
       return;
     }
@@ -12608,6 +12632,58 @@ function geoTrefferWahl(lat, lng, btn) {
   const ortEl = document.getElementById('ev-ort');
   if (ortEl && !ortEl.value.trim() && btn && btn.dataset.name)
     ortEl.value = btn.dataset.name.split(',').slice(0, 2).join(', ').replace(/\s+/g, ' ').trim();
+}
+
+// --- Generische Adresssuche für Ortsfelder (Familieneinstellungen + Neuanlage) ---------------
+// Tippen -> debounced Nominatim (geteilter Core) -> Trefferliste -> Auswahl befüllt Land/Region/
+// Gemeinde/Stadt aus dem address-Objekt. Felder bleiben editierbar; was Nominatim nicht liefert,
+// bleibt unverändert (keine Zwangsleerung manueller Eingaben).
+let adrGeoTimer = null;
+let adrGeoTreffer = [];                 // letzte Trefferliste (nur ein Formular gleichzeitig offen)
+const ADR_GEO_ZIELE = {
+  fe:  { land: 'fe-land',  region: 'fe-region', gemeinde: 'fe-gemeinde', stadt: 'fe-stadt', nach: null },
+  reg: { land: 'reg-land', region: null,        gemeinde: 'reg-gemeinde', stadt: 'reg-stadt', nach: 'pruefeBaumMatchDebounced' },
+};
+function adrGeoInput(inp) {
+  clearTimeout(adrGeoTimer);
+  adrGeoTimer = setTimeout(() => adrGeoAusfuehren(inp), 700);
+}
+async function adrGeoAusfuehren(inp) {
+  const feld = inp.closest('.adr-geo-feld');
+  const box = feld ? feld.querySelector('.adr-geo-treffer') : null;
+  if (!box) return;
+  const q = inp.value.trim();
+  if (q.length < 3) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_suchen_laeuft'))}</div>`;
+  try {
+    adrGeoTreffer = await nominatimAbfrage(q);
+    if (!adrGeoTreffer.length) {
+      box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_keine_treffer'))}</div>`;
+      return;
+    }
+    box.innerHTML = adrGeoTreffer.map((d, i) =>
+      `<button type="button" class="geo-treffer-item" onclick="adrGeoWahl(${i}, this)">${escapeHtml(d.display_name)}</button>`).join('');
+  } catch (e) {
+    box.innerHTML = `<div class="geo-treffer-info">${escapeHtml(t('geo_keine_treffer'))}</div>`;
+  }
+}
+function adrGeoWahl(idx, btn) {
+  const d = adrGeoTreffer[idx]; if (!d) return;
+  const feld = btn.closest('.adr-geo-feld');
+  const cfg = feld ? ADR_GEO_ZIELE[feld.dataset.ziel] : null;
+  if (!cfg) return;
+  const a = d.address || {};
+  const region   = a.state || a.region || a.state_district || '';
+  const gemeinde = a.county || a.municipality || a.city_district || '';
+  const stadt    = a.city || a.town || a.village || a.hamlet || a.municipality || '';
+  if (cfg.land && a.country_code) setLandSelect(cfg.land, a.country_code);   // ISO2 (klein) -> Code
+  const setzeWenn = (id, val) => { if (id && val) { const el = document.getElementById(id); if (el) el.value = val; } };
+  if (cfg.region) setzeWenn(cfg.region, region);
+  setzeWenn(cfg.gemeinde, gemeinde);
+  setzeWenn(cfg.stadt, stadt);
+  const box = feld.querySelector('.adr-geo-treffer'); if (box) box.innerHTML = '';
+  const such = feld.querySelector('.adr-geo-suche'); if (such) such.value = '';   // Suchfeld leeren (Auswahl übernommen)
+  if (cfg.nach && typeof window[cfg.nach] === 'function') window[cfg.nach]();     // z. B. Baum-Match neu prüfen
 }
 
 // ============================================================
@@ -21038,7 +21114,8 @@ function wechselAnsicht(name) {
     t.classList.toggle('aktiv', t.dataset.ansicht === name);
   });
   document.getElementById('ansicht-karten').style.display = name === 'karten' ? 'block' : 'none';
-  document.getElementById('ansicht-shorts').style.display = name === 'shorts' ? 'block' : 'none';
+  document.getElementById('ansicht-shorts').style.display = (name === 'shorts' || name === 'album') ? 'block' : 'none';
+  { const evm = document.getElementById('ev-modus'); if (evm) evm.style.display = (name === 'album') ? 'none' : ''; }   // Album-Tab zeigt den Events-Umschalter NICHT
   document.getElementById('ansicht-baum').style.display = name === 'baum' ? 'block' : 'none';
   { const f = document.getElementById('ansicht-feed'); if (f) f.style.display = name === 'feed' ? 'block' : 'none'; }
   { const m = document.getElementById('ansicht-mape'); if (m) m.style.display = name === 'mape' ? 'block' : 'none'; }
@@ -21061,7 +21138,10 @@ function wechselAnsicht(name) {
   } else if (name === 'karten') {
     zeigeKarten();
   } else if (name === 'shorts') {
+    if (evModus === 'alben' && typeof evSetModus === 'function') evSetModus('liste');   // Events-Tab zeigt kein Album mehr (eigener Album-Tab)
     zeigeShorts();
+  } else if (name === 'album') {
+    if (typeof evSetModus === 'function') evSetModus('alben');   // Album-Segment im Events-Bereich + Alben laden
   } else if (name === 'feed') {
     zeigeFeed();
   } else if (name === 'mape') {
