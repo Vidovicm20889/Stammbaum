@@ -150,12 +150,18 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
       'ziel_event', CASE a.typ WHEN 'event_foto_neu' THEN ea.event_id END,
       -- bei Standalone-Album-Foto das Album öffnen (ref_id = album_id).
       'ziel_album', CASE a.typ WHEN 'album_foto_neu' THEN a.ref_id END,
-      -- Vorschau: EIN zufälliges BILD des Albums (Videos ausgeschlossen); Frontend signiert die URL.
-      'album_foto_pfad', CASE a.typ WHEN 'album_foto_neu' THEN (
-                            SELECT m.storage_pfad FROM public.album_medien m
-                             WHERE m.album_id = a.ref_id
-                               AND coalesce(m.mime,'') NOT LIKE 'video/%'
-                             ORDER BY random() LIMIT 1) END,
+      -- Vorschau (Facebook-Stil): die ersten BIS ZU 4 BILDER des Albums (Videos ausgeschlossen) als
+      -- Pfad-Array, sortiert; Frontend signiert je URL async und baut ein 1/2/3/4-Raster.
+      'album_fotos', CASE a.typ WHEN 'album_foto_neu' THEN (
+                        SELECT coalesce(jsonb_agg(s.p ORDER BY s.so, s.ea), '[]'::jsonb) FROM (
+                          SELECT m.storage_pfad AS p, m.sortierung AS so, m.erstellt_am AS ea
+                            FROM public.album_medien m
+                           WHERE m.album_id = a.ref_id AND coalesce(m.mime,'') NOT LIKE 'video/%'
+                           ORDER BY m.sortierung, m.erstellt_am LIMIT 4) s) END,
+      -- Gesamtzahl Bilder (für das „+N"-Overlay auf der letzten Kachel).
+      'album_foto_anzahl', CASE a.typ WHEN 'album_foto_neu' THEN (
+                        SELECT count(*)::int FROM public.album_medien m
+                         WHERE m.album_id = a.ref_id AND coalesce(m.mime,'') NOT LIKE 'video/%') END,
       -- Beitragsfelder (nur beitrag_neu) — Frontend reused feedBeitragHtml
       'text', CASE a.typ WHEN 'beitrag_neu' THEN b.text END,
       'bild_url', CASE a.typ WHEN 'beitrag_neu' THEN b.bild_url END,

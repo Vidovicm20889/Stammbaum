@@ -324,6 +324,17 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     31.12. des Jahres → Minderjährigenschutz bleibt streng). (Voraussetzung: **57** vorher ausgeführt.)
     **VOR Frontend-Deploy.**
 
+79. `supabase_personen_suche_fuzzy.sql` — **Tolerante (Fuzzy-)Personensuche** — aktiviert `pg_trgm` und
+    redefiniert `personen_suche` (DROP+CREATE, Signatur/Rückgabetyp **unverändert** → keine Frontend-
+    Änderung nötig): zusätzlich zum bisherigen Präfix-Match greift ein Trigramm-Match
+    (`similarity(merge_norm(feld), query) >= 0.35`, erst ab 4 Zeichen Eingabe); exakte Präfix-Treffer
+    werden zuerst sortiert, dann nach Ähnlichkeit. Hintergrund: das serbische Lateinalphabet kennt kein
+    Y/W/X/Q → `nm()` erzeugt bei fremden Namen Misch-Schrift (gespeichert `Cyrilo` → Anzeige `Цyрило`,
+    lateinisches `y` ist Homoglyph von kyrillischem `у`) → wer „Curilo" liest und tippt, fand vorher
+    nichts. Ersetzt die Definition aus `supabase_personen_suche_hatkonto.sql` (die ihrerseits **28**
+    ersetzt) — **danach ausführen**. Kein GIN-Index (OR-Zweig nicht index-nutzbar; RLS erzwingt ohnehin
+    Zeilen-Scan).
+
 ---
 
 ## ⚠️ Möglicherweise überholt — bitte bestätigen

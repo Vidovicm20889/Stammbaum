@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="14.47">
+<meta name="app-version" content="14.60">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
@@ -33,7 +33,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=14.47">
+<link rel="stylesheet" href="stammbaum.css?v=14.60">
 </head>
 <body>
 
@@ -2783,14 +2783,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=14.47"></script>
+<script src="i18n.js?v=14.60"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=14.47"></script>
-<script src="chat.js?v=14.47"></script>
-<script src="rezepte_pool.js?v=14.47"></script>
+<script src="pdf_export.js?v=14.60"></script>
+<script src="chat.js?v=14.60"></script>
+<script src="rezepte_pool.js?v=14.60"></script>
 <script>
 // ============================================================
 // SUPABASE AUTH
@@ -5314,6 +5314,34 @@ function entdeckenSucheDebounce() {
   entdeckenTimer = setTimeout(entdeckenSuche, 300);
 }
 
+// Ein Suchfeld, in das ein GANZER Name getippt wird ("Milan Vidovic"), darf NICHT komplett in EIN
+// Namensfeld von personen_suche gehen: die Trigramm-Suche matcht dann 'milan' unscharf gegen
+// "milan vidovic" (0.429) -> JEDER Milan und JEDER Vidovic kommt mit, bei Gleichstand sogar vor dem
+// echten Treffer. Daher mehrwortige Eingaben in Vor-/Nachname splitten (auch umgedreht getippt),
+// einwortige wie bisher gegen Vor- ODER Nachname. Ergebnis: Liste von RPC-Parametern.
+function sucheSplitVarianten(qL) {
+  const s = String(qL || '').trim();
+  const teile = s.split(/\s+/).filter(Boolean);
+  if (teile.length < 2) return [{ p_vorname: s, p_nachname: null }, { p_vorname: null, p_nachname: s }];
+  const raus = [], key = new Set();
+  const add = (v, n) => { const k = v + '|' + n; if (!key.has(k)) { key.add(k); raus.push({ p_vorname: v, p_nachname: n }); } };
+  add(teile[0], teile.slice(1).join(' '));                    // Vorname = erstes Wort
+  add(teile.slice(0, -1).join(' '), teile[teile.length - 1]);  // Nachname = letztes Wort (Doppelvorname)
+  add(teile[teile.length - 1], teile.slice(0, -1).join(' '));  // umgedreht getippt ("Vidovic Milan")
+  return raus;
+}
+// Entdopplungs-Schluessel EXAKT wie in entdoppeltePersonen (identitaet_id vor Karten-id).
+function sucheDedupKey(p) {
+  const ident = p._ident || p.identitaet_id || null;
+  return ident ? ('i:' + ident) : ('u:' + (p._uuid || p.id));
+}
+// Mehrere Split-Varianten liefern dieselbe Person ggf. mehrfach und mit unterschiedlichem
+// `unscharf`. Sie gilt als EXAKT, sobald IRGENDEINE Variante sie per Praefix getroffen hat.
+function sucheMergeUnscharf(rohListe) {
+  const exakt = new Set();
+  (rohListe || []).forEach(p => { if (p && !p.unscharf) exakt.add(sucheDedupKey(p)); });
+  return entdoppeltePersonen(rohListe || []).map(p => Object.assign({}, p, { unscharf: !exakt.has(sucheDedupKey(p)) }));
+}
 // Sucht IMMER beides parallel: eigener Verbund (personen_suche, volle Daten) UND fremde Familien
 // (personen_entdecken, 4 Minimalfelder). Fehlertolerant je RPC — fällt eine aus, bleibt die andere.
 async function entdeckenSuche() {
@@ -5324,14 +5352,16 @@ async function entdeckenSuche() {
   // Kyrillisch -> Latein (Daten lateinisch; merge_norm transliteriert nicht).
   const qL = srCyr2Lat(q);
   const fehl = e => ({ error: e });   // pro RPC abfangen, damit ein Fehler nicht die andere killt
-  const [r1, r2, rx] = await Promise.all([
-    sbClient.rpc('personen_suche', { p_vorname: qL, p_limit: 30 }).catch(fehl),
-    sbClient.rpc('personen_suche', { p_nachname: qL, p_limit: 30 }).catch(fehl),
-    sbClient.rpc('personen_entdecken', { p_query: q, p_limit: 30 }).catch(fehl)
-  ]);
-  const seen = {}, verbund = [];
-  [...(r1.data || []), ...(r2.data || [])].forEach(p => { if (!seen[p.id]) { seen[p.id] = 1; verbund.push(p); } });
-  entdeckenRenderKombiniert(verbund, rx.data || []);
+  // Ganzen Namen in Vor-/Nachname splitten (sonst unscharfe Massentreffer, s. sucheSplitVarianten).
+  const rufe = sucheSplitVarianten(qL).map(v =>
+    sbClient.rpc('personen_suche', Object.assign({ p_geburt: null, p_limit: 30, p_offset: 0 }, v)).catch(fehl));
+  rufe.push(sbClient.rpc('personen_entdecken', { p_query: q, p_limit: 30 }).catch(fehl));
+  const res = await Promise.all(rufe);
+  const rx = res[res.length - 1];
+  const roh = [];
+  res.slice(0, -1).forEach(r => (r.data || []).forEach(p => roh.push(p)));
+  // Gespiegelte Karten (gleiche identitaet_id) = EINE reale Person -> nur 1x (behebt Doppel-Zeilen).
+  entdeckenRenderKombiniert(sucheMergeUnscharf(roh), rx.data || []);
 }
 
 // Gemischte Trefferliste: eigener Verbund zuerst (direkt öffnenbar), dann andere Familien
@@ -5341,9 +5371,9 @@ function entdeckenRenderKombiniert(verbund, extern) {
   const box = document.getElementById('ent-liste'); if (!box) return;
   if (!verbund.length && !extern.length) { box.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_keine'))}</div>`; return; }
   let html = '';
-  if (verbund.length) {
-    html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_verbund'))}</div>`;
-    html += verbund.map(r => {
+  // Exakte Treffer zuerst, NUR-aehnliche getrennt darunter ("Moegliche Treffer").
+  const _exakt = verbund.filter(r => !r.unscharf), _moeglich = verbund.filter(r => r.unscharf);
+  const _zeile = (r) => {
       const jahr = r.birth_date ? (String(r.birth_date).match(/\d{4}/) || [''])[0] : '';
       const sub = [r.baum ? nm(r.baum) : '', jahr ? '* ' + jahr : ''].filter(Boolean).join(' · ');
       return `<div class="benachr-item gelesen" style="cursor:pointer"
@@ -5354,8 +5384,9 @@ function entdeckenRenderKombiniert(verbund, extern) {
           <div class="bi-text">${escapeHtml(sub)}</div>
         </span>
       </div>`;
-    }).join('');
-  }
+  };
+  if (_exakt.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_verbund'))}</div>` + _exakt.map(_zeile).join('');
+  if (_moeglich.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('such_moegliche'))}</div>` + _moeglich.map(_zeile).join('');
   if (extern.length) {
     html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_extern'))}</div>`;
     html += extern.map(r => `
@@ -8672,6 +8703,7 @@ async function ladeBaumDaten() {
   // auf das eingebettete FAMILY_DATA zurückfallen und ihre echten Daten nicht sehen.
   aktuelleDaten = daten;
   if (typeof blutNameCacheLeeren === 'function') blutNameCacheLeeren();   // Blutname-Cache nach Daten-Reload verwerfen
+  if (typeof ladeErzwungeneSichtbarkeit === 'function') await ladeErzwungeneSichtbarkeit();   // persistierte „erzwungen sichtbar"-Karten -> forceGezeigt (vor dem Render)
   console.log('Baum aus Supabase geladen:', Object.keys(daten.persons).length, 'Personen,',
     Object.keys(daten.families).length, 'Familien,', Object.keys(stammbaeumeListe).length, 'Stammbäume.');
   // Multi-Tree (B2): Auswahl befüllen.
@@ -10170,15 +10202,19 @@ async function navSuchPanel(q) {
   // WICHTIG: den Supabase-Query-Builder mit await abfangen (er ist nur thenable, hat KEIN .catch —
   // .catch() darauf würde synchron werfen und das Panel bliebe bei „Searching…" hängen).
   const rpcSafe = async (name, args) => { try { return await sbClient.rpc(name, args); } catch (e) { return { data: null, error: e }; } };
-  const [r1, r2, rx] = await Promise.all([
-    rpcSafe('personen_suche', { p_vorname: qL, p_limit: 30 }),
-    rpcSafe('personen_suche', { p_nachname: qL, p_limit: 30 }),
-    rpcSafe('personen_entdecken', { p_query: q, p_limit: 30 })
-  ]);
+  // Ganzen Namen ("Milan Vidovic") NIE komplett in EIN Namensfeld geben: die Trigramm-Suche
+  // matcht sonst 'milan' unscharf gegen "milan vidovic" (0.429) -> JEDER Milan/Vidovic kommt mit
+  // und landet bei Gleichstand sogar vor dem echten Treffer. -> sucheSplitVarianten.
+  const rufe = sucheSplitVarianten(qL).map(v =>
+    rpcSafe('personen_suche', Object.assign({ p_geburt: null, p_limit: 30, p_offset: 0 }, v)));
+  rufe.push(rpcSafe('personen_entdecken', { p_query: q, p_limit: 30 }));
+  const res = await Promise.all(rufe);
   if (mein !== navSuchToken) return;   // veraltete Antwort verwerfen
-  const seen = {}, verbund = [];
-  [...(r1.data || []), ...(r2.data || [])].forEach(x => { if (!seen[x.id]) { seen[x.id] = 1; verbund.push(x); } });
-  navSuchPanelRender(verbund, rx.data || []);
+  const rx = res[res.length - 1];
+  const roh = [];
+  res.slice(0, -1).forEach(r => (r.data || []).forEach(x => roh.push(x)));
+  // Gespiegelte Karten (gleiche identitaet_id) = EINE reale Person -> nur 1x (behebt Doppel-Zeilen).
+  navSuchPanelRender(sucheMergeUnscharf(roh), rx.data || []);
 }
 function navSuchVerbundItem(r) {
   const jahr = r.birth_date ? (String(r.birth_date).match(/\d{4}/) || [''])[0] : '';
@@ -10192,14 +10228,19 @@ function navSuchVerbundItem(r) {
 }
 function navSuchPanelRender(verbund, extern) {
   const p = document.getElementById('such-panel'); if (!p) return;
-  const konten = verbund.filter(r => r.hat_konto);
-  const karten = verbund.filter(r => !r.hat_konto);
-  if (!konten.length && !karten.length && !extern.length) {
+  // Exakte (Praefix-)Treffer behalten ihre Gruppierung Konto/Namenskarte; NUR-aehnliche Treffer
+  // wandern gesammelt unter "Moegliche Treffer" ans Ende -> echter Treffer steht immer oben.
+  const exakt = verbund.filter(r => !r.unscharf);
+  const moeglich = verbund.filter(r => r.unscharf);
+  const konten = exakt.filter(r => r.hat_konto);
+  const karten = exakt.filter(r => !r.hat_konto);
+  if (!konten.length && !karten.length && !moeglich.length && !extern.length) {
     p.innerHTML = `<div class="benachr-empty">${escapeHtml(t('ent_keine'))}</div>`; return;
   }
   let html = '';
   if (konten.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_konto'))}</div>` + konten.map(navSuchVerbundItem).join('');
   if (karten.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_namenskarte'))}</div>` + karten.map(navSuchVerbundItem).join('');
+  if (moeglich.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('such_moegliche'))}</div>` + moeglich.map(navSuchVerbundItem).join('');
   if (extern.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('ent_gruppe_extern'))}</div>` + extern.map(r => `
     <div class="benachr-item gelesen ent-extern-item" style="cursor:pointer"
          data-pid="${escapeHtml(String(r.person_id || ''))}" data-name="${escapeHtml(nm(r.name || ''))}"
@@ -10947,6 +10988,7 @@ function ladeOrientPref() {
 function speichereOrientPref() {
   try { localStorage.setItem(_orientKey(), baumOrient); } catch (e) {}
 }
+
 // Umschalten aus dem Ansicht-Overlay: setzt die Richtung, merkt sie und rendert die
 // aktuelle Ansicht sofort neu (behält Modus/Fokus). Modal bleibt offen.
 function orientWahl() {
@@ -10973,7 +11015,12 @@ function wendeGespeicherteAnsichtAn() {
     if (zeigeErweitertAnsicht(Object.assign({}, ANSICHT_KREIS_KAT))) return true;
     return zeigeStandardAnsicht();
   }
-  if (v === 'verbund' && pref.a && pref.b) {
+  // Verbund-Ansicht NUR wiederherstellen, wenn der GERADE geöffnete Baum einer der beiden
+  // Verbund-Bäume ist. Sonst wurde beim Öffnen JEDES anderen Baums (z. B. Pisarević) die
+  // gespeicherte Verbund-Ansicht (z. B. Scicluna+Fenech) erzwungen -> „ich wähle Pisarević, sehe
+  // aber Scicluna". Analog zum 'zweig'-Zweig, der ebenfalls baumgebunden ist.
+  if (v === 'verbund' && pref.a && pref.b &&
+      (aktuellerStammbaumId === pref.a || aktuellerStammbaumId === pref.b)) {
     if (zeigeVerbundAnsicht(pref.a, pref.b)) return true;
     return zeigeStandardAnsicht();
   }
@@ -13548,9 +13595,27 @@ function aktualisiereVersteckteKarten() {
   }).join('');
 }
 function versteckteOeffne(ext) { if (ext && aktuelleDaten.persons[ext] && typeof zeigeDetails === 'function') zeigeDetails(ext); }
-// „Im Baum anzeigen": Karte erzwungen freigeben, Vorkommen neu, in die Vollansicht wechseln.
-function versteckteEinblenden(ext) {
-  if (!ext || !aktuelleDaten.persons[ext]) return;
+// Persistierte „erzwungen sichtbar"-Karten (baum_sichtbarkeit) laden und forceGezeigt daraus neu
+// aufbauen (DB = Quelle der Wahrheit) -> alle Baum-Berechtigten sehen denselben eingeblendeten Baum.
+async function ladeErzwungeneSichtbarkeit() {
+  if (!sbClient || !aktuellerUser) return;
+  try {
+    const { data, error } = await sbClient
+      .from('baum_sichtbarkeit').select('person_id').eq('sichtbar', true);
+    if (error) { console.warn('baum_sichtbarkeit laden:', error.message); return; }
+    // UUID -> ext-ID über das geladene Modell (RLS liefert nur Karten sichtbarer Familien).
+    const uuidZuExt = {};
+    Object.values(aktuelleDaten.persons || {}).forEach(p => { if (p && p._uuid) uuidZuExt[String(p._uuid)] = p.id; });
+    const neu = new Set();
+    (data || []).forEach(r => { const ext = uuidZuExt[String(r.person_id)]; if (ext) neu.add(ext); });
+    forceGezeigt = neu;
+  } catch (e) { console.warn('baum_sichtbarkeit:', e); }
+}
+// „Im Baum anzeigen": Karte erzwungen freigeben (lokal sofort), dann DAUERHAFT für alle persistieren.
+async function versteckteEinblenden(ext) {
+  const p = ext && aktuelleDaten.persons[ext];
+  if (!p) return;
+  // 1) Lokal sofort anwenden (optimistisch) -> Klick reagiert unmittelbar.
   forceGezeigt.add(ext);
   _vorkommenCache = null;                                     // Karte gilt jetzt als gezeichnet
   ansichtModus = 'voll'; fokusPersonId = null; ansichtFokusId = null;
@@ -13561,6 +13626,17 @@ function versteckteEinblenden(ext) {
   aktualisiereVersteckteKarten();
   const md = document.getElementById('modal');
   if (md && md.classList.contains('aktiv') && aktuelleModalPersonId === ext && typeof zeigeDetails === 'function') zeigeDetails(ext);
+  // 2) Dauerhaft für ALLE (RPC prüft die Rechte). Lesemitglieder (keine_rechte) behalten die
+  //    lokale Einblendung wie bisher – ohne Fehlermeldung. Nur echte Fehler werden gemeldet.
+  if (sbClient && aktuellerUser && p._uuid) {
+    try {
+      const { error } = await sbClient.rpc('karte_sichtbar_setzen', { p_person: p._uuid, p_sichtbar: true });
+      if (error) throw error;
+    } catch (e) {
+      console.warn('karte_sichtbar_setzen:', e);
+      if (typeof zeigeHinweis === 'function') zeigeHinweis(t('versteckt_fehler'));
+    }
+  }
 }
 
 function oeffneAnlaesseModal() {
@@ -17076,13 +17152,17 @@ function feedRender() {
     if (a.typ === 'beitrag_neu')          engagementMount('feed-eng-' + a.ref_id, 'beitrag', a.ref_id);
     else if (a.typ === 'foto_neu')        engagementMount('feed-eng-' + a.id, 'foto', a.ref_id);
     else if (a.typ === 'geschichte_neu')  engagementMount('feed-eng-' + a.id, 'geschichte', a.ref_id);
-    // Album-Vorschau (privater Bucket) async signieren und ins Bild setzen; entfernt bei Fehler.
-    else if (a.typ === 'album_foto_neu' && a.album_foto_pfad) {
-      albenSigniereEins(a.album_foto_pfad).then(url => {
-        const img = document.getElementById('album-feed-img-' + a.id);
-        if (!img) return;
-        if (url) { img.src = url; img.onerror = () => { const w = img.closest('.feed-bild-wrap'); if (w) w.remove(); }; }
-        else { const w = img.closest('.feed-bild-wrap'); if (w) w.remove(); }
+    // Album-Vorschau (privater Bucket): jedes Raster-Bild async signieren; leere/fehlerhafte Kacheln entfernen.
+    else if (a.typ === 'album_foto_neu' && Array.isArray(a.album_fotos)) {
+      a.album_fotos.slice(0, 4).forEach((pfad, i) => {
+        if (!pfad) return;
+        const wegKachel = () => { const el = document.getElementById('album-feed-img-' + a.id + '-' + i); const kachel = el && el.closest('.feed-foto-tile'); if (kachel) kachel.style.display = 'none'; };
+        albenSigniereEins(pfad).then(url => {
+          const img = document.getElementById('album-feed-img-' + a.id + '-' + i);
+          if (!img) return;
+          if (url) { img.src = url; img.onerror = wegKachel; }
+          else wegKachel();
+        });
       });
     }
   });
@@ -17135,10 +17215,23 @@ function feedAktivitaetHtml(a) {
     icon = '🍲'; txt = t('akt_rezept_neu', { titel: titel });
     klick = `onclick="feedSetModus('rezepte')"`;
   } else if (a.typ === 'album_foto_neu') {
-    // Bucket 'alben' ist privat -> ein zufaelliges Vorschaubild wird async signiert (feedRender-Loop).
+    // Bucket 'alben' ist privat -> Vorschaubilder werden async signiert (feedRender-Loop).
     icon = '🖼️'; txt = t('akt_album_foto_neu', { titel: titel });
-    if (a.ziel_album) klick = `onclick="feedOeffneAlbum('${escapeHtml(String(a.ziel_album))}')"`;
-    if (a.album_foto_pfad) medien = `<div class="feed-bild-wrap"${klick ? ' ' + klick + ' style="cursor:pointer"' : ''}><img class="feed-bild" id="album-feed-img-${id}" alt="" loading="lazy"></div>`;
+    const albumId = a.ziel_album ? String(a.ziel_album) : '';
+    if (albumId) klick = `onclick="feedOeffneAlbum('${escapeHtml(albumId)}')"`;
+    // Facebook-Stil: 1/2/3/4-Raster; auf der letzten Kachel „+N", wenn das Album mehr Bilder hat.
+    const fotos = Array.isArray(a.album_fotos) ? a.album_fotos.filter(p => p) : [];
+    const gesamt = (typeof a.album_foto_anzahl === 'number' && a.album_foto_anzahl >= fotos.length) ? a.album_foto_anzahl : fotos.length;
+    if (fotos.length) {
+      const n = Math.min(fotos.length, 4);
+      const oc = albumId ? ` onclick="feedOeffneAlbum('${escapeHtml(albumId)}')"` : '';
+      const tiles = fotos.slice(0, n).map((p, i) => {
+        const mehr = (i === n - 1 && gesamt > n)
+          ? `<span class="feed-foto-mehr" title="${escapeHtml(t('feed_mehr_fotos', { n: gesamt - n }))}">+${gesamt - n}</span>` : '';
+        return `<div class="feed-foto-tile"${oc}><img id="album-feed-img-${id}-${i}" alt="" loading="lazy">${mehr}</div>`;
+      }).join('');
+      medien = `<div class="feed-foto-grid n${n}">${tiles}</div>`;
+    }
   } else if (a.typ === 'familie_geaendert') {
     icon = '⚙️'; txt = t('akt_familie_geaendert');
   }
@@ -19181,16 +19274,18 @@ function karteEdgeAdd(ev, personId, typ) {
   if (personId && aktuelleDaten.persons[personId]) zeigePersonHinzufuegen(personId, typ);
 }
 
-// ＋ geklickt -> erst fragen: neue Person erstellen oder bestehende verknüpfen?
+// ＋ geklickt -> DIREKT das Live-Such-/Verknüpfungs-Formular (ab v14.x kein Zwischen-Chooser mehr).
+// Man tippt Vor-/Nachname/Geburtsdatum, sieht live existierende Personen (Link) und legt bei
+// „kein Treffer" direkt eine neue, über den Kontext-Typ verknüpfte Person an (vbNeuAnlegen).
 function personPlus(personId, vorTyp) {
   if (!istAdmin()) return;
   const p = aktuelleDaten.persons[personId]; if (!p) return;
   const typ = BEZTYP_GUELTIG.includes(vorTyp) ? vorTyp : 'kind';
-  pcKontext = { personId, typ };
-  document.getElementById('pc-kontext').textContent =
-    t('pc_kontext', { bez: t('beztyp_' + typ), name: nm(p.name || p.given || '?') });
-  document.getElementById('person-choice-modal').classList.add('aktiv');
+  zeigeVerbinden(personId, typ);
 }
+// --- TOTER PFAD (deprecated): der frühere „Neu erstellen / Bestehende verknüpfen"-Chooser
+//     (#person-choice-modal). Wird seit dem Direkt-Flow oben NICHT mehr aufgerufen. Bewusst
+//     belassen (kein Fremdaufrufer, Grep bestätigt), falls später wieder benötigt.
 function schliessePersonChoice() { document.getElementById('person-choice-modal').classList.remove('aktiv'); }
 function pcNeu() {
   const k = pcKontext; schliessePersonChoice();
@@ -19270,8 +19365,72 @@ async function vbSuche() {
   }
   // sich selbst + Zwillinge ausblenden UND gespiegelte Karten (gleiche identitaet_id) = 1 Person
   const liste = entdoppeltePersonen((data || []).filter(r => !ausschluss.has(r.id)));
-  if (!liste.length) { box.innerHTML = `<p class="mv-legende">${t('vb_keine_treffer')}</p>`; return; }
-  box.innerHTML = liste.map(vbErgebnisHtml).join('');
+  if (!liste.length) {
+    // Kein Treffer -> direkt anlegen (Angaben werden ins Anlage-Formular vorbelegt, verknüpft).
+    box.innerHTML = `<p class="mv-legende">${t('vb_keine_treffer')}</p>` +
+      `<button type="button" class="login-submit" style="margin-top:8px" onclick="vbNeuAnlegen()">${escapeHtml(t('vb_neu_anlegen'))}</button>`;
+    return;
+  }
+  // Exakte Treffer zuerst, nur-aehnliche (Trigramm) getrennt darunter.
+  const exakt = liste.filter(r => !r.unscharf), moeglich = liste.filter(r => r.unscharf);
+  let html = exakt.map(vbErgebnisHtml).join('');
+  if (moeglich.length) html += `<div class="ent-gruppe-titel">${escapeHtml(t('such_moegliche'))}</div>`
+    + moeglich.map(vbErgebnisHtml).join('');
+  box.innerHTML = html;
+}
+// „Neue Person mit diesen Angaben anlegen": vb-Eingaben ins Anlage-Formular übernehmen; die neue
+// Person entsteht verknüpft über den Kontext-Typ (Eltern/Kind/Partner/Geschwister), wie karteEdgeAdd.
+function vbNeuAnlegen() {
+  if (!vbKontext) return;
+  const vorbelegung = {
+    vorname:      (document.getElementById('vb-vorname').value || '').trim(),
+    nachname:     (document.getElementById('vb-nachname').value || '').trim(),
+    geburtsdatum: (document.getElementById('vb-geburt').value || '').trim(),
+  };
+  const { personId, typ } = vbKontext;
+  schliesseVerbinden();
+  zeigePersonHinzufuegen(personId, typ, undefined, vorbelegung);
+}
+// --- Client-Erkennung: steht der Treffer im aktuellen Kontext schon in der gewuenschten
+//     Beziehung? Nutzt nur das bereits geladene Modell (aktuelleDaten) - KEINE RPC. ---
+function vbIdentGruppe(obj) {
+  const s = new Set();
+  if (!obj || !aktuelleDaten || !aktuelleDaten.persons) return s;
+  Object.entries(aktuelleDaten.persons).forEach(([k, x]) => {
+    if (x === obj || (obj._ident && x._ident === obj._ident)) s.add(k);
+  });
+  return s;
+}
+function vbSchonVerbunden(r) {
+  if (!vbKontext || !aktuelleDaten || !aktuelleDaten.persons) return false;
+  const cand = Object.values(aktuelleDaten.persons).find(x => x._uuid === r.id);
+  const P = aktuelleDaten.persons[vbKontext.personId];
+  if (!cand || !P) return false;   // nicht im geladenen Modell -> Server entscheidet, Button aktiv lassen
+  const candKeys = vbIdentGruppe(cand);
+  const ctxKeys = vbIdentGruppe(P);
+  const fams = aktuelleDaten.families || {};
+  const typ = vbKontext.typ;
+  const inCand = key => key != null && candKeys.has(key);
+  for (const key of ctxKeys) {
+    const pp = aktuelleDaten.persons[key]; if (!pp) continue;
+    if (typ === 'partner') {
+      for (const fid of (pp.families_spouse || [])) { const f = fams[fid]; if (f && (inCand(f.husband) || inCand(f.wife))) return true; }
+    } else if (typ === 'kind') {
+      for (const fid of (pp.families_spouse || [])) { const f = fams[fid]; if (f && (f.children || []).some(inCand)) return true; }
+    } else if (typ === 'elternteil') {
+      for (const fid of (pp.families_child || [])) { const f = fams[fid]; if (f && (inCand(f.husband) || inCand(f.wife))) return true; }
+    } else if (typ === 'geschwister') {
+      for (const fid of (pp.families_child || [])) { const f = fams[fid]; if (f && (f.children || []).some(inCand)) return true; }
+    }
+  }
+  return false;
+}
+function vbLinkBtn(r) {
+  if (vbSchonVerbunden(r)) {
+    const bez = t('beztyp_' + (vbKontext ? vbKontext.typ : 'kind'));
+    return `<span class="mg-schon">${escapeHtml(t('vb_schon_verbunden', { bez }))}</span>`;
+  }
+  return `<button class="mv-toggle" type="button" onclick="vbVerknuepfe('${r.id}')">${escapeHtml(t('vb_verknuepfen'))}</button>`;
 }
 function vbErgebnisHtml(r) {
   const det = [];
@@ -19283,7 +19442,7 @@ function vbErgebnisHtml(r) {
   return `<div class="mg-kandidat">
     <div class="mg-person"><span class="mg-namen">${escapeHtml(nm(r.name || ''))}${r.identitaet_id ? ' 🔗' : ''}</span>
       <span style="display:block;font-size:12px;opacity:.72;margin-top:2px">${det.join(' · ')}</span></div>
-    <button class="mv-toggle" type="button" onclick="vbVerknuepfe('${r.id}')">${escapeHtml(t('vb_verknuepfen'))}</button>
+    ${vbLinkBtn(r)}
   </div>`;
 }
 function vbFehlerText(msg, typ) {
@@ -19349,7 +19508,7 @@ async function vbVerknuepfe(zielId) {
 
 // Aus dem Detail-Overlay heraus: neue Person im Kontext der aktiven Person anlegen.
 // vorTyp (optional): Beziehung vorbelegen ('kind'|'elternteil'|'partner'|'geschwister') — änderbar.
-function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
+function zeigePersonHinzufuegen(personId, vorTyp, vorSex, vorbelegung) {
   if (!istAdmin()) return;
   const p = aktuelleDaten.persons[personId];
   if (!p) return;
@@ -19404,6 +19563,17 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
   if (paSpouses.length === 1) paSetzeElternteil(andereRolle, paSpouses[0].uuid, paSpouses[0].name);
   else paSetzeElternteil(andereRolle, null, null);
 
+  // Vorbelegung aus der Live-Suche (vbNeuAnlegen): eingegebene Angaben übernehmen. NACH den
+  // Defaults oben, damit sie den aus dem Kontext gesetzten Nachnamen überschreiben.
+  if (vorbelegung) {
+    if (vorbelegung.vorname)  document.getElementById('pa-vorname').value  = vorbelegung.vorname;
+    if (vorbelegung.nachname) document.getElementById('pa-nachname').value = vorbelegung.nachname;
+    if (vorbelegung.geburtsdatum) {
+      const iso = (typeof parseDatumZuIso === 'function') ? parseDatumZuIso(vorbelegung.geburtsdatum) : '';
+      if (iso) datumSetzen(document.getElementById('pa-geburtsdatum'), iso);   // nur parsebares Datum; sonst leer
+    }
+  }
+
   document.getElementById('pa-fehler').style.display = 'none';
   document.getElementById('pa-erfolg').style.display = 'none';
   feldFehlerReset('person-add-modal');   // alte Feld-Fehler/Hinweise löschen
@@ -19414,6 +19584,9 @@ function zeigePersonHinzufuegen(personId, vorTyp, vorSex) {
   try { gesehen = localStorage.getItem('hasSeenTreeHelp') === 'true'; } catch (e) {}
   document.getElementById('pa-hilfe').style.display = gesehen ? 'none' : 'block';
   document.getElementById('person-add-modal').classList.add('aktiv');
+  // Fokus aufs erste Feld erhalten (Vorbelegungs-Flow). Bewusst pa-vorname (kein dp-input, damit
+  // nicht ungewollt der Kalender aufgeht); Vor-/Nachname sind vorbelegt, Cursor steht bereit.
+  if (vorbelegung) setTimeout(() => document.getElementById('pa-vorname')?.focus(), 60);
 }
 
 // Beziehungstyp im Dropdown gewechselt (generischer „＋ Person"-Weg): bei „Partner" die
@@ -19533,20 +19706,22 @@ async function paElternSuche(rolle) {
   const q = document.getElementById('pa-' + rolle + '-suche').value.trim();
   if (q.length < 2) { erg.innerHTML = ''; return; }
   erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;opacity:.6">…</div>`;
-  // personen_suche AND-et Vor-/Nachname -> für eine Box je eine Präfix-Suche und mergen.
+  // Eine Box, in die ein GANZER Name getippt werden darf -> Eingabe in Vor-/Nachname splitten und
+  // die Varianten mergen (sonst unscharfe Massentreffer, s. sucheSplitVarianten).
   // Kyrillisch -> Latein, sonst kein Treffer (Daten lateinisch, merge_norm transliteriert nicht).
   const qL = srCyr2Lat(q);
-  const [r1, r2] = await Promise.all([
-    sbClient.rpc('personen_suche', { p_vorname: qL, p_nachname: null, p_geburt: null, p_limit: 15, p_offset: 0 }),
-    sbClient.rpc('personen_suche', { p_vorname: null, p_nachname: qL, p_geburt: null, p_limit: 15, p_offset: 0 })
-  ]);
-  if (r1.error || r2.error) {
-    erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;color:#b33">${escapeHtml((r1.error || r2.error).message)}</div>`; return;
+  const _res = await Promise.all(sucheSplitVarianten(qL).map(v =>
+    sbClient.rpc('personen_suche', Object.assign({ p_geburt: null, p_limit: 15, p_offset: 0 }, v))));
+  const _err = _res.find(r => r && r.error);
+  if (_err) {
+    erg.innerHTML = `<div class="pa-elt-opt" style="cursor:default;color:#b33">${escapeHtml(_err.error.message)}</div>`; return;
   }
+  const _alle = [];
+  _res.forEach(r => (r.data || []).forEach(p => _alle.push(p)));
   const aktivUuid = (aktuelleDaten.persons[document.getElementById('pa-context-id').value] || {})._uuid;
   const andere = (rolle === 'vater' ? paMutter : paVater);
   const seen = new Set(); const vor = [];
-  [...(r1.data || []), ...(r2.data || [])].forEach(rw => {
+  _alle.forEach(rw => {
     if (seen.has(rw.id)) return; seen.add(rw.id);
     if (rw.id === aktivUuid) return;                 // Kontext (= Kind-Bezug) nicht als Elternteil
     if (andere && rw.id === andere.uuid) return;     // bereits als anderer Elternteil gewählt
@@ -22393,14 +22568,30 @@ function graphBlutScope(model, treeId, startCanon) {
     (model.partners.get(c) || []).forEach(pc => visible.add(pc));   // Partner als Blatt (auch eingeheiratet)
     (model.children.get(c) || []).forEach(k => stack.push([k, selbstAus]));
   }
-  // Erzwungen eingeblendete Karten (Nutzer: „Im Baum anzeigen") additiv aufnehmen: die Karte + ihre
-  // Eltern zu visible -> descNode zeichnet sie unter dem Elternteil neben den vorhandenen Geschwistern.
+  // Erzwungen eingeblendete Karten (Nutzer: „Im Baum anzeigen") additiv aufnehmen.
+  // WICHTIG: `visible` ist nur ein FILTER für den Abstieg ab `wurzel` (descNode -> .filter(vis)).
+  // Nur Karte+direkte Eltern zu visible zu legen reicht NICHT, wenn die Kette WEITER OBEN unterbrochen
+  // ist (z. B. ein Vorfahre wurde als Übergangs-Blatt gekappt -> seine Kinder kamen nie in visible):
+  // der Abstieg erreicht die Karte dann nie und der Klick bleibt wirkungslos (Bug: Vince Fenech).
+  // Daher die GESAMTE Elternkette bis zu einem bereits sichtbaren Knoten mit aufnehmen.
   if (typeof forceGezeigt !== 'undefined' && forceGezeigt.size) {
     forceGezeigt.forEach(ext => {
       const p = aktuelleDaten.persons[ext]; if (!p || p._tree !== treeId) return;
       const cc = model.canonOf(ext); if (!model.nodes.has(cc)) return;
       visible.add(cc);
-      (model.parents.get(cc) || []).forEach(pc => visible.add(pc));
+      (model.parents.get(cc) || []).forEach(pc => visible.add(pc));   // beide Eltern der Karte selbst
+      // Aufstieg: bis zu einem bereits sichtbaren Vorfahren (= an den gezeichneten Baum angebunden).
+      // Bevorzugt einen bereits sichtbaren Elternteil (kürzeste Anbindung), sonst den ersten.
+      let cur = cc, guard = 0;
+      while (guard++ < 200) {
+        const eltern = [...(model.parents.get(cur) || [])];
+        if (!eltern.length) break;                       // Wurzel der Kette erreicht
+        const treffer = eltern.find(e => visible.has(e));
+        if (treffer) break;                              // schon angebunden -> fertig
+        const next = eltern[0];
+        visible.add(next);
+        cur = next;
+      }
     });
   }
   return { wurzel, visible, cut };
