@@ -260,6 +260,14 @@ kein natives `confirm`). **Nicht** ungefragt scharf schalten. Serverseitiger Lö
     einmalig unterdrückt (kein Doppelsprung).
   - **Pixel → Welt** liegt in `boardMinimapZuWelt` (eine Formel für Klick und Zug, isoliert testbar)
     und liest `boardMinimapGeo`, das `boardMinimap()` je Render setzt.
+  - **Mobile Position (SCRUM-30):** Auf ≤480px sitzt das Suchfeld auf **`top: 60px`** — **nicht**
+    auf 69px: dort steht `.anlaesse-btn`, und genau diese Überlappung war die Regression aus
+    SCRUM-4. Die Minimap rückt auf `bottom: 125px`, weil darunter zwei belegte Zeilen liegen
+    (Rundbuttons bei 15px, Preset-Pille bei 73px). Im **Querformat** (`orientation: landscape`,
+    `max-height: 500px`) ist das Suchfeld **linksbündig** statt mittig — mittig kreuzt es auf
+    schmaleren Landscape-Geräten die Layout-Pille — und die Minimap schrumpft auf 110×74.
+    Die mobilen Overlay-Zeilen sind in `stammbaum.css` am Mobilblock dokumentiert; wer ein neues
+    Overlay ergänzt, ordnet es dort ein, statt eine weitere Ecke zu belegen.
   - **CSS zwingend:** `.board-minimap { touch-action: none; user-select: none; cursor: grab }` +
     `.zieht { cursor: grabbing }`. Ohne `touch-action: none` nimmt der Browser den Wisch als
     Seiten-Scroll und die App sieht keine `pointermove`-Ereignisse.

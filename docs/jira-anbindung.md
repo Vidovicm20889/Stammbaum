@@ -49,11 +49,20 @@ gegeben — die Tools erschienen erst nach dem vollständigen Reload).
 
 | Status | Status-ID | Transition-ID |
 |---|---|---|
-| Backlog | 10000 | `11` |
+| Backlog | 10000 | **`2`** ⚠️ (nicht `11` — s. u.) |
 | Zu erledigen | 10001 | `21` |
 | **In Bearbeitung** | 10002 | `31` |
 | **Test** | 10003 | `41` |
 | Erledigt | 10004 | `51` |
+
+⚠️ **Transition-ID-Falle (belegt am 22.07.2026):** Die Transition nach **Backlog** hat die ID **`2`**,
+nicht `11`. Diese Tabelle nannte lange `11`; ein `createJiraIssue` mit `transition: { id: "11" }`
+scheitert mit *„Die Workflow-Funktion mit der Aktions-ID '11' existiert nicht im Workflow"* — der
+Vorgang wird zwar **angelegt**, bleibt aber im Standard-Status liegen (still, ohne Abbruch).
+Aufgefallen beim Anlegen von SCRUM-32; die SCRUM-16-Umstellung von Modus B auf das Backlog wäre damit
+wirkungslos geblieben. Die übrigen IDs (21/31/41/51) stimmen.
+**Im Zweifel `getTransitionsForJiraIssue` fragen, statt dieser Tabelle zu vertrauen** — die IDs sind
+workflowspezifisch und ändern sich, sobald der Workflow angefasst wird.
 
 ⚠️ **Namensfallen:**
 - Die „In Arbeit"-Spalte heißt in diesem Board tatsächlich **„In Bearbeitung"**.
@@ -207,7 +216,7 @@ Epic/Story/Task/Sub-Task. Bei einem frisch aufgesetzten Projekt zuerst prüfen
 (`getJiraProjectIssueTypesMetadata`), sonst schlägt `createJiraIssue` mit unbekanntem Typ fehl.
 
 ### Zielstatus — **Backlog** (geändert 21.07.2026, SCRUM-16)
-Neue Vorgänge landen im **Backlog** (Transition `11`), **nicht** in „Zu erledigen".
+Neue Vorgänge landen im **Backlog** (Transition `2`), **nicht** in „Zu erledigen".
 
 **Warum:** „Zu erledigen" ist genau die Spalte, die der Umsetzungs-Loop (Modus A) automatisch
 abarbeitet. Legte Modus B dort an, griffe ein laufender Loop den frisch geschriebenen Vorgang
@@ -244,7 +253,7 @@ in der neuen „Bereiche"-Oberfläche nicht mehr), sondern über die **Ansichten
 (`Backlog | Board | Entwicklung | …`): Tab-Kontextmenü → Ansicht aus der Navigation entfernen
 (Hinzufügen umgekehrt über `+` → *Backlog*). Beim Entfernen wandern vorhandene Backlog-Vorgänge
 automatisch in die Spalte ihres Status. Zum Parken von „später mal" bleibt der **Status „Backlog"**
-(10000, Transition `11`) als Board-Spalte erhalten. *Sprints* braucht laut Jira einen Backlog und
+(10000, Transition `2`) als Board-Spalte erhalten. *Sprints* braucht laut Jira einen Backlog und
 ist in diesem Projekt bewusst aus.
 
 ✅ **Seit SCRUM-16 (21.07.2026):** Modus B legt hier **nicht** mehr an, sondern im **Backlog** —

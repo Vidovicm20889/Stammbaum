@@ -93,7 +93,36 @@ function pdfQuelleChange() {
     h.classList.toggle('warn', tabla && !imBoard);
     h.style.display = tabla ? '' : 'none';
   }
+  pdfTitelblattSync();
   pdfBerechneEmpfehlung();
+}
+// SCRUM-21: Das Titelblatt entsteht bei PNG/SVG/Druck ausschliesslich in `pdfBaueSvg` — die läuft
+// im Tabla-Zweig gar nicht (dort IST der Board-SVG das Ergebnis). Fuer `format === 'pdf'` baut
+// `pdfExportPdf` das Titelblatt selbst aus `meta`, dort funktioniert es also auch bei Tabla.
+// Ergebnis: genau die Kombination `tabla && format !== 'pdf'` war STILL wirkungslos — verboten
+// laut AK5 von SCRUM-7. Deshalb hier sichtbar deaktivieren + Grund nennen.
+// BEWUSST NICHT ueber die Klasse `.pdf-nur-auto`: die deaktiviert generell bei Tabla und wuerde
+// die bei `Tabla + PDF` GUELTIGE Option grundlos mitsperren (neuer Fehler statt Korrektur).
+function pdfTitelblattSync() {
+  const cb = document.getElementById('pdf-titelblatt');
+  const wrap = document.getElementById('pdf-titelblatt-wrap');
+  const hint = document.getElementById('pdf-titelblatt-hinweis');
+  if (!cb) return;
+  const fmtEl = document.getElementById('pdf-format');
+  const fmt = fmtEl ? fmtEl.value : 'pdf';
+  const aus = pdfQuelleIstTabla() && fmt !== 'pdf';
+  cb.disabled = aus;
+  if (wrap) wrap.classList.toggle('aus', aus);
+  if (hint) {
+    hint.textContent = aus ? t('pdf_titelblatt_nur_pdf') : '';
+    hint.style.display = aus ? '' : 'none';
+  }
+}
+// Formatwechsel: bisher gab es dafuer gar keinen Handler — der Titelblatt-Zustand haette sonst
+// erst beim naechsten Quellenwechsel nachgezogen (AK6: kein Nachhinken um einen Schritt).
+function pdfFormatChange() {
+  pdfTitelblattSync();
+  if (typeof pdfBerechneEmpfehlung === 'function') pdfBerechneEmpfehlung();
 }
 function pdfQuelleIstTabla() {
   const q = document.getElementById('pdf-quelle');
@@ -562,7 +591,8 @@ async function pdfExportPdf(svg, layout, opts, meta, fname) {
     const sc = Math.min(availW / vbW, availH / vbH);
     const drawW = vbW * sc, drawH = vbH * sc, x = (pageW - drawW) / 2, y = (pageH - drawH) / 2;
     const svgText = new XMLSerializer().serializeToString(svg);
-    const winAnsiSafe = !/[^\u0000-\u00FF]/.test(svgText);
+    // SCRUM-23 (AK7): dieselbe Pruefung wie in pdfNutztCanvas — EINE Definition, kein Nachbau.
+    const winAnsiSafe = pdfWinAnsiSafe(svgText);
     let vektorOk = false;
     if (winAnsiSafe && typeof doc.svg === 'function') {
       try { await doc.svg(svg, { x, y, width: drawW, height: drawH }); vektorOk = true; } catch (e) { console.warn('svg2pdf fehlgeschlagen, Raster-Fallback:', e); }
@@ -619,14 +649,37 @@ async function pdfExportPdf(svg, layout, opts, meta, fname) {
 // DIESELBE Ausgabekette wie das berechnete Layout -> PDF (Vektor via svg2pdf), PNG, SVG, Druck.
 // Edit-Artefakte, die es nie ins PDF schaffen dürfen (Griffe, Trefferlinien, Connection-Points,
 // Presence-Cursor, Marquee):
+// SCRUM-23: ZWEI Listen statt einer. Edit-Artefakte duerfen NIE ins Ergebnis; Avatare dagegen nur
+// dort entfernen, wo der Export ueber eine Canvas laeuft (Cross-Origin-Taint). Frueher flog `image`
+// pauschal mit raus — auch bei SVG/Druck/Vektor-PDF, wo gar keine Canvas im Spiel ist.
 const PDF_BOARD_WEG = [
   '.board-connect', '.board-connect-temp',      // ⊕-Schnellzugriff
   '.board-anker-griff-grp', '.board-linie-griff-grp',   // Endpunkt-/Wegpunkt-Griffe (inkl. Fasskreise)
   '.board-anker-griff', '.board-linie-griff', '.board-anker-hit',
   '.board-linie-hit',                           // unsichtbare Lösch-Trefferlinien
-  '.board-cursors', '.board-marquee',           // Presence-Cursor, Auswahlrahmen
-  'image'                                       // Storage-Avatare: cross-origin -> Canvas-Taint
+  '.board-cursors', '.board-marquee'            // Presence-Cursor, Auswahlrahmen
 ].join(', ');
+// Nur bei Canvas-Wegen zu entfernen (Storage-Avatare sind cross-origin -> `toDataURL`/`toBlob`
+// wuerfen sonst einen SecurityError und der Export BRICHT AB).
+const PDF_BOARD_WEG_CANVAS = 'image';
+
+// SCRUM-23 (AK7): Die Canvas-Frage EINMAL beantworten und weiterreichen — nicht an zwei Stellen
+// nachbauen (Drift-Falle aus SCRUM-20). `svgText` ist optional: ohne ihn wird fuer den einseitigen
+// PDF-Weg konservativ `true` angenommen (lieber ein Avatar zu wenig als ein abgebrochener Export).
+// Belegte Matrix (siehe docs/ansichten-pdf.md):
+//   svg / druck            -> nein  (serialisieren bzw. ins DOM haengen)
+//   png                    -> JA
+//   pdf + poster           -> JA    (Kacheln entstehen immer per Canvas)
+//   pdf einseitig          -> nur wenn NICHT winAnsiSafe (dann Raster-Fallback statt doc.svg)
+function pdfWinAnsiSafe(svgText) { return !/[^ -ÿ]/.test(String(svgText || '')); }
+function pdfNutztCanvas(opts, svgText) {
+  const f = opts && opts.format;
+  if (f === 'svg' || f === 'druck') return false;
+  if (f === 'png') return true;
+  if (opts && opts.poster) return true;
+  if (svgText == null) return true;                     // unbekannt -> auf Nummer sicher
+  return !pdfWinAnsiSafe(svgText);
+}
 
 function pdfBoardSvg() {
   if (typeof ansichtModus === 'undefined' || ansichtModus !== 'board') return null;
@@ -652,6 +705,23 @@ function pdfBoardSvg() {
   // Linien-Optik (Farben, Schrift, Strichstärken).
   let css = '';
   try { for (const sh of document.styleSheets) { try { for (const r of sh.cssRules) css += r.cssText + '\n'; } catch (e) {} } } catch (e) {}
+  // SCRUM-24: Die Bildschirmfarben sind fuer den DUNKLEN Hintergrund (Bild4.jpg) gebaut —
+  // `.verbindung` ist cremeweiss (rgba(255,248,220,.88)). Der Export legt aber `#fbfaf7` darunter:
+  // die Linien sind dann physisch da, aber unsichtbar, auf Papier komplett weg. Die dunkle
+  // Edit-Variante (`#baum-container.board-edit-grid .verbindung`) matcht im Klon nicht mehr, weil
+  // der Vorfahre `#baum-container` fehlt und `class` entfernt wird.
+  // Deshalb hier druckfeste Farben ANHAENGEN — sie stehen NACH dem Dokument-CSS und gewinnen daher
+  // bei gleicher Spezifitaet; `!important` zusaetzlich gegen die Edit-Regel, falls sie je matcht.
+  // Farbwerte bewusst identisch zum Auto-Export (`#9c7c3c` / `#c08a1e`), damit beide Exportwege
+  // gleich aussehen. ⚠️ Zweite Farbquelle: bei Design-Aenderungen an stammbaum.css hier mitziehen.
+  css += `
+    .verbindung { stroke: #9c7c3c !important; }
+    .ehe-linie  { stroke: #b07d15 !important; }             /* nicht #c08a1e: das erreicht auf #fbfaf7 nur 2.92:1 */
+    .ehe-linie-ex { stroke: #7a7f85 !important; }           /* Ex bleibt unterscheidbar (grau, feiner) */
+    .ehe-ex-label { fill: #5c5346 !important; }             /* war #d9cfb6 = auf Weiss unlesbar */
+    .verbindung-badge .verbindung-text { fill: #7a5f18 !important; stroke: none !important; }
+    .paar-knoten { fill: #9c7c3c !important; stroke: #9c7c3c !important; }
+  `;
   const styleEl = document.createElementNS(PDF_SVG_NS, 'style'); styleEl.textContent = css;
   clone.insertBefore(styleEl, clone.firstChild);
   const bg = document.createElementNS(PDF_SVG_NS, 'rect');
@@ -709,6 +779,13 @@ async function pdfExportStart() {
       svg = pdfBaueSvg(layout, opts, { header: wantHeader, meta });
     }
     pdfSetProgress(62, t('pdf_prog_ausgabe')); await pdfTick();
+    // SCRUM-23: Avatare erst JETZT entfernen — und nur, wenn der gewaehlte Weg ueber eine Canvas
+    // laeuft. Vorher ging das nicht: `winAnsiSafe` haengt am fertigen SVG-Text, steht in
+    // `pdfBoardSvg` also noch gar nicht fest. Betrifft nur die Tabla-Quelle (der Auto-Pfad baut
+    // sein SVG selbst und bleibt unangetastet).
+    if (tabla && pdfNutztCanvas(opts, new XMLSerializer().serializeToString(svg))) {
+      svg.querySelectorAll(PDF_BOARD_WEG_CANVAS).forEach(n => n.remove());
+    }
     const base = pdfDateiname(meta);
     if (opts.format === 'svg') pdfDownloadSvg(svg, base + '.svg');
     else if (opts.format === 'png') await pdfExportPng(svg, base + '.png');

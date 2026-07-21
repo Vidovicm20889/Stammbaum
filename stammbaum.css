@@ -488,11 +488,16 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   touch-action: none; user-select: none; -webkit-user-select: none; }
 .board-minimap.zieht { cursor: grabbing; }
 @media (max-width: 480px) {
-  /* Untere Reihe sitzt mobil bei bottom:10px/40px hoch -> Minimap knapp darüber und kleiner,
-     damit sie auf kleinen Schirmen (auch quer) nichts verdeckt. */
-  .board-minimap { width: 132px; height: 88px; right: 10px; bottom: 56px; }
-  /* Suchfeld unter die Layout-Pille (oben rechts) rücken — mittig oben würde es sie kreuzen. */
-  .board-tools { top: 69px; }
+  /* SCRUM-30 — Mobile Bedienzeilen, von oben nach unten (Container ist ~760px hoch, aber nur
+     ~350px breit; die Konkurrenz ist rein horizontal, deshalb wird vertikal entzerrt):
+       10px  Layout-Pille (rechts)      |  60px  Board-Suchfeld (mittig)
+      118px  Anlässe-Button (rechts)    | 176px  Erinnerungs-Button (rechts)
+     unten: 15px Rundbuttons (rechts) · 73px Preset-Pille (volle Breite) · 125px Minimap
+     Jede Zeile gehört genau einem Element — nichts teilt sich mehr eine Höhe. */
+  .board-minimap { width: 132px; height: 88px; right: 10px; bottom: 125px; }
+  /* Eigene Zeile unter der Layout-Pille. NICHT 69px: dort sitzt .anlaesse-btn — genau diese
+     Überlappung war die Regression aus SCRUM-4. */
+  .board-tools { top: 60px; }
 }
 /* Feature 7: Umfang-Optionen (Radio) */
 .nb7-opt { display: block; padding: 7px 2px; cursor: pointer; font-size: 15px; }
@@ -690,8 +695,22 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .bam-btn.aktiv { background: var(--akzent); color: var(--paper); }
 .bam-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (max-width: 480px) {
-  .baum-ansicht-modus { left: 10px; bottom: 10px; }
+  /* SCRUM-30: Eigene Zeile ÜBER den Rundbuttons (die bleiben bei bottom:15px). Vorher teilte
+     sich die Pille die unterste Zeile mit drei 48px-Kreisen — bei ~350px Container blieben ihr
+     rund 200px, gebraucht werden in der längsten Sprache ~324px. Sie wurde deshalb zwangsläufig
+     abgeschnitten (`overflow:hidden`), nicht nur gelegentlich.
+     Auf eigener Zeile steht die volle Containerbreite zur Verfügung — kein Kürzen der Labels,
+     keine zweite Übersetzungsgarnitur. */
+  .baum-ansicht-modus { left: 10px; bottom: 73px; max-width: calc(100% - 20px); }
   .bam-btn { font-size: 12px; padding: 0 10px; height: 40px; }
+  /* Umbrechen statt abschneiden ODER scrollen. Gemessen an den echten Labels braucht die
+     Pille je nach Sprache 306px (en) bis 358px (hr/ba) — bei 330px verfügbarer Breite passt
+     sie also NICHT in jeder Sprache in eine Zeile, auch nicht auf eigener Zeile.
+     `overflow: hidden` schnitte ab (der Nutzer merkt nichts), `overflow-x: auto` versteckte den
+     dritten Button hinter einer Wischgeste, die niemand vermutet. Mit `flex-wrap` bleibt immer
+     alles sichtbar: passt es, bleibt es eine Zeile; passt es nicht, wird es zwei — nach oben ist
+     Platz (Container ~760px hoch). Damit hängt die Korrektheit nicht an meiner Breitenschätzung. */
+  .baum-ansicht-modus { flex-wrap: wrap; height: auto; overflow: visible; border-radius: 20px; }
 }
 
 /* Layout-Modus (Autosortierung | Tabla) — oben rechts, gleiche Pillen-Optik wie .baum-ansicht-modus */
@@ -703,6 +722,32 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 @media (max-width: 480px) {
   .baum-layout-modus { right: 10px; top: 10px; }
+  /* SCRUM-30: Die Rundbuttons rutschen unter das Board-Suchfeld (top:60px), damit sich oben
+     rechts nicht vier Elemente dieselben zwei Zeilen teilen. */
+  .anlaesse-btn { top: 118px; }
+  .erinn-btn { top: 176px; }
+  /* Die Hinweisbox belegte oben links fast die volle Breite und lag damit in derselben Zeile
+     wie die Layout-Pille. Ihr Text (`baum_info_hinweis`) steht wortgleich als `.baum-hinweis`
+     direkt UNTER dem Container — auf dem Handy also eine reine Doppelung, die eine ganze Ecke
+     kostet. Ausblenden verliert deshalb keine Information (siehe SCRUM-30 AK8). */
+  .baum-info { display: none; }
+}
+
+/* SCRUM-30 — LIEGENDES Handy. Greift NICHT über die Breite: ein Handy im Querformat ist ~844px
+   breit und fiele damit durch jede max-width-Regel, hat aber nur ~350px Containerhöhe. Hier ist
+   die Lage umgekehrt zum Hochformat: Breite im Überfluss, Höhe knapp — also NICHT stapeln,
+   sondern die Ecken entzerren. Vor SCRUM-30 gab es für die Baum-Overlays gar keine
+   orientation-Regel. */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Wie im Hochformat: der Text steht unter dem Container, die Box kollidiert hier mit dem
+     mittig sitzenden Board-Suchfeld und der Layout-Pille. */
+  .baum-info { display: none; }
+  /* Suchfeld nach LINKS statt mittig: mittig kreuzt es auf schmaleren Landscape-Geräten
+     (z. B. 640px) die Layout-Pille oben rechts. */
+  .board-tools { top: 12px; left: 15px; transform: none; }
+  /* Kleiner, damit zwischen Erinnerungs-Button (endet bei 175px) und der unteren Button-Reihe
+     Platz bleibt — bei 324px Containerhöhe ist das der engste Fall. */
+  .board-minimap { width: 110px; height: 74px; }
 }
 
 /* ===== Teilnehmerverwaltung / Event-Sichtbarkeit ===== */

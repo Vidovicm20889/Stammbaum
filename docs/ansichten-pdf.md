@@ -141,3 +141,96 @@ Board-Edit-Sonderstärke (`#baum-container.board-edit-grid .verbindung`) sind un
 **2-fach** übermalt (bei n Geschwistern auf einer Seite entsprechend n-fach), nachher genau 1×, bei
 **identischer** Abdeckung (`[-600, 450]` in beiden Fällen, es fehlt also keine Linie). Entdoppelung
 per Node getestet (7 Fälle: identisch, umgekehrte Richtung, andere Klasse, Rundung, klar verschieden).
+
+## Titelblatt bei Quelle „Tabla": nur PDF (SCRUM-21)
+Die Option „Titelblatt" war bei **Quelle Tabla + Format PNG/SVG/Druck** *still wirkungslos* — angehakt,
+bedienbar, ohne jede Wirkung. Das verletzte AK5 von SCRUM-7 („nicht unterstützte Formate sind sichtbar
+deaktiviert mit Begründung, **nicht still wirkungslos**").
+
+**Ursache:** Den Header zeichnet ausschließlich `pdfBaueSvg` — und die läuft im Tabla-Zweig gar nicht,
+weil dort der Board-SVG **selbst** das Ergebnis ist (`layout/svg/meta` kommen aus `pdfBoardSvg`).
+Für `format === 'pdf'` ist das folgenlos, weil `pdfExportPdf` das Titelblatt separat aus `meta` baut.
+Betroffen war deshalb genau `tabla && format !== 'pdf'`.
+
+**Lösung:** `pdfTitelblattSync()` deaktiviert die Checkbox sichtbar (`disabled` + `.aus` am
+`#pdf-titelblatt-wrap`) und blendet den Grund als Text ein (`pdf_titelblatt_nur_pdf`, 5 Sprachen).
+
+⚠️ **Bewusst NICHT über `.pdf-nur-auto`:** Diese Klasse deaktiviert generell bei Tabla — die
+Titelblatt-Option ist dort aber bei **PDF gültig**. Mit der Klasse hätte man eine funktionierende
+Option grundlos gesperrt (neuer Fehler statt Korrektur). Deshalb eine eigene, **formatabhängige** Regel.
+
+⚠️ **Neuer Handler `pdfFormatChange()`:** Das Format-`<select>` hatte bisher **gar kein** `onchange` —
+der Zustand wäre erst beim nächsten Quellenwechsel nachgezogen (AK6, „kein Nachhinken um einen
+Schritt"). Der Sync hängt jetzt an **beiden** Auslösern.
+
+**Bewusste Grenze:** Titelblätter für Board-**Bild**exporte gibt es damit weiterhin nicht — die
+Erwartung wird korrigiert, nicht die Funktion erweitert. Der Dialog sagt das jetzt ausdrücklich.
+Die vollständigere Variante (Header über den Board-SVG legen) berührt Zuschnitt und Skalierung aller
+drei Ausgabewege und wäre eine eigene Story mit visuellem Vorher-/Nachher-Vergleich.
+
+**Verifiziert:** vollständige Matrix {Autosortierung, Tabla} × {PDF, PNG, SVG, Druck} — **8/8** korrekt;
+genau diese Matrix fehlte im ursprünglichen SCRUM-7-Test.
+
+## Avatare im Tabla-Export: nur bei Canvas-Wegen entfernt (SCRUM-23)
+`PDF_BOARD_WEG` entfernte beim Klonen des Board-SVG **pauschal alle** `image`-Elemente — auch dort,
+wo gar keine Canvas im Spiel ist. Ergebnis: Tabla-Exporte hatten **nie** Avatare, Auto-Exporte schon.
+
+**Zwei Listen statt einer:**
+- `PDF_BOARD_WEG` — Edit-Artefakte (⊕-Punkte, Anker-/Wegpunkt-Griffe, Fasskreise, Trefferlinien,
+  Presence-Cursor, Marquee). Fliegen **immer** raus.
+- `PDF_BOARD_WEG_CANVAS = 'image'` — nur bei Canvas-Wegen (Cross-Origin-Taint: `toDataURL`/`toBlob`
+  würfen sonst `SecurityError` und der Export **bricht ab**).
+
+**`pdfNutztCanvas(opts, svgText)`** beantwortet die Frage an **einer** Stelle (AK7 — Lehre aus SCRUM-20,
+keine Doppelpflege). `pdfWinAnsiSafe` wird von `pdfExportPdf` **mitbenutzt**, nicht nachgebaut:
+
+| Weg | Canvas? | Avatare |
+|---|---|---|
+| SVG-Download, Druck | nein | **bleiben** |
+| PDF einseitig, Latin-1-sicher (echter Vektor über `doc.svg()`) | nein | **bleiben** |
+| PDF einseitig, Raster-Fallback (`!winAnsiSafe`) | ja | entfernt |
+| PDF Poster/mehrseitig | ja | entfernt |
+| PNG | ja | entfernt |
+
+⚠️ **Zeitpunkt:** Die Entfernung passiert **nicht** mehr in `pdfBoardSvg`, sondern erst in
+`pdfExportStart` kurz vor der Format-Verzweigung — vorher steht `winAnsiSafe` gar nicht fest, das
+hängt am fertigen SVG-Text. Ohne `svgText` nimmt `pdfNutztCanvas` konservativ `true` an: lieber ein
+Avatar zu wenig als ein abgebrochener Export.
+
+**Bewusste Grenze:** In PNG und Poster gibt es weiterhin keine Avatare. Das bräuchte data-URI-Einbettung
+oder CORS am Storage-Bucket (eigenes Ticket). Wegen `winAnsiSafe` greift der echte Vektor-Fall bei
+südslawischen Namen (`ć/č/š/ž/đ`, kyrillisch) ohnehin selten — spürbar ist die Verbesserung vor allem
+bei **SVG** und **Druck**.
+
+## Board-Export braucht eigene Druckfarben (SCRUM-24)
+Die Bildschirmfarben sind für den **dunklen** Hintergrund (`Bild4.jpg`) gebaut: `.verbindung` ist
+cremeweiß (`rgba(255,248,220,.88)`). Der Export legt aber `#fbfaf7` darunter → Kontrast **1,02:1**,
+die Linien sind physisch vorhanden, aber unsichtbar; auf Papier komplett weg.
+
+Die dunkle Edit-Variante (`#baum-container.board-edit-grid .verbindung`) rettet das **nicht**: Der Klon
+stammt aus `#baum-svg`, verliert den Vorfahren `#baum-container` und wird zusätzlich entklassifiziert
+(`clone.removeAttribute('class')`) — der Nachfahren-Selektor matcht nicht mehr.
+
+**Lösung:** `pdfBoardSvg` hängt **nach** dem eingebetteten Dokument-CSS eine druckfeste Regelmenge an
+(`!important`, damit sie auch gegen die Edit-Regel gewinnt, falls die je matcht):
+
+| Element | Bildschirm | Export | Kontrast auf `#fbfaf7` |
+|---|---|---|---|
+| `.verbindung` | `rgba(255,248,220,.88)` | `#9c7c3c` | 1,02 → **3,75:1** |
+| `.ehe-linie` | `#d4a030` | `#b07d15` | → **3,47:1** |
+| `.ehe-linie-ex` | `#9aa0a6` | `#7a7f85` | → **3,87:1** |
+| `.ehe-ex-label` | `#d9cfb6` | `#5c5346` | 1,48 → **7,24:1** |
+| `.verbindung-text` | `#c8a840` | `#7a5f18` | → **5,79:1** |
+| `.paar-knoten` | hell | `#9c7c3c` | — |
+
+Wie in SCRUM-24 §9 gefordert wurden **alle** hell-auf-dunkel gedachten Elemente geprüft, nicht nur die
+gemeldete `.verbindung`. Mindestwert 3:1 (WCAG 1.4.11, grafische Elemente); Graustufendruck gegengeprüft
+(alle ≥ 3,78:1).
+
+⚠️ **`#c08a1e` bewusst NICHT übernommen:** Das ist die Ehelinien-Farbe des **Auto-Exports**, sie erreicht
+auf `#fbfaf7` aber nur **2,92:1**. Deshalb `#b07d15` — optisch praktisch identisch, aber über der
+Schwelle. **Der Auto-Export hat diesen Mangel weiterhin** (eigener Vorgang).
+
+⚠️ **Zweite Farbquelle:** Linienfarben stehen jetzt an zwei Stellen — `stammbaum.css` (Bildschirm) und
+`pdfBoardSvg` (Druck). Bei Design-Änderungen **beide** anfassen. Die Bildschirmoptik wurde bewusst
+nicht angetastet: das warm-weiße Leuchten ist auf dem Hintergrundbild richtig.
