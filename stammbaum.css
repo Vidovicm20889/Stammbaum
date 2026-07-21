@@ -410,10 +410,124 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 }
 .ansicht-erweitern-btn:hover { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
 .ansicht-erweitern-btn:active { transform: scale(0.94); }
+/* Board-Modus: aktiver Umschalter + freie Karten + Beziehungslinien (docs/board-modus.md) */
+#board-modus-btn[aria-pressed="true"] { background: var(--akzent); color: var(--paper); border-color: var(--akzent); }
+.board-knoten.ziehbar { cursor: grab; }
+.board-knoten.ziehbar:active { cursor: grabbing; }
+/* Board-Edit: weisses Punkt-Raster statt Baum-Hintergrund (nur waehrend boardEdit). !important
+   schlaegt die Inline-Styles aus aktualisiereBaumHintergrund; #baum-bg-Overlay wird ausgeblendet. */
+#baum-container.board-edit-grid {
+  background-image: radial-gradient(circle, rgba(120,120,120,0.34) 1.5px, transparent 1.7px) !important;
+  background-size: 26px 26px !important;
+  background-position: 0 0 !important;
+  background-repeat: repeat !important;
+  background-color: #fbfaf7 !important;
+}
+#baum-container.board-edit-grid #baum-bg { display: none; }
+/* Auf dem weißen Dot-Grid sind die cremefarbenen Baumlinien fast unsichtbar -> dunkler zeichnen. */
+#baum-container.board-edit-grid .verbindung { stroke: rgba(70,54,28,0.85) !important; stroke-width: 1.9 !important; }
+#baum-container.board-edit-grid .ehe-linie { stroke: #a8781f !important; }
+#baum-container.board-edit-grid .paar-knoten { fill: #a8781f !important; stroke: #5a4a2a !important; }
+#baum-container.board-edit-grid .board-linie-griff { stroke: #8a6a2a !important; fill: rgba(168,120,31,0.25) !important; }
+#baum-container.board-edit-grid .board-anker-griff { stroke: #5a4a2a !important; fill: #c8961f !important; }
+/* Board 3.2: Connection-Point, temporäre Ziehlinie, Verknüpfungs-Popover */
+.board-connect { fill: var(--akzent); stroke: #fff; stroke-width: 1.5; opacity: 0.35; cursor: crosshair; }
+.board-knoten:hover .board-connect, .board-connect:hover { opacity: 1; }
+.board-connect-temp { stroke: var(--akzent); stroke-width: 2.2; stroke-dasharray: 5 3; pointer-events: none; }
+.board-popover { position: fixed; z-index: 9999; width: 300px; max-width: calc(100vw - 20px); background: #fdf8ee;
+  border: 1px solid var(--akzent); border-radius: 12px; padding: 14px 16px; box-shadow: 0 10px 34px rgba(0,0,0,0.32);
+  font-family: inherit; color: var(--ink); }
+.board-popover-titel { font-weight: bold; margin-bottom: 6px; line-height: 1.35; }
+.board-popover-hint  { font-size: 12px; color: #8a7a5a; margin-bottom: 8px; line-height: 1.4; }
+.board-popover-typen { display: flex; flex-wrap: wrap; gap: 4px; }
+.board-typ-btn { padding: 8px 12px; border: 1px solid var(--linie); border-radius: 8px; background: none;
+  color: var(--ink); cursor: pointer; font-size: 13px; font-family: inherit; }
+.board-typ-btn:hover { border-color: var(--akzent); }
+.board-typ-btn.aktiv { background: var(--akzent); color: #fff; border-color: var(--akzent); }
+.board-popover-fehler { color: #b33; font-size: 12px; margin-top: 8px; }
+.board-popover-aktionen { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.board-popover-aktionen .login-submit { width: auto; padding: 8px 16px; margin: 0; }
+/* Board 4.1: Rechtsklick-Kontextmenü */
+.board-ctx { position: fixed; z-index: 10000; min-width: 168px; background: #fdf8ee; border: 1px solid var(--akzent);
+  border-radius: 10px; padding: 5px; box-shadow: 0 10px 34px rgba(0,0,0,0.32); font-family: inherit; }
+.board-ctx-item { display: block; width: 100%; text-align: left; padding: 9px 12px; border: none; border-radius: 7px;
+  background: none; color: var(--ink); cursor: pointer; font-size: 14px; font-family: inherit; }
+.board-ctx-item:hover:not(:disabled) { background: var(--gold-hell, rgba(176,141,87,0.12)); }
+.board-ctx-item.gefahr { color: #b3352f; }
+.board-ctx-item:disabled { opacity: 0.4; cursor: not-allowed; }
+/* Board 4.3: Auswahl-Highlight + Marquee-Rahmen */
+.board-knoten.selektiert > .knoten > rect { stroke: var(--akzent); stroke-width: 3px; }
+.board-marquee { position: absolute; z-index: 30; border: 1.5px dashed var(--akzent);
+  background: rgba(176,141,87,0.12); pointer-events: none; display: none; }
+/* Board Phase 4: Suchfeld „zu Karte" + Minimap */
+.board-tools { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 28; display: none; }
+.board-suche-wrap { position: relative; }
+.board-suche-input { width: 210px; max-width: 60vw; padding: 8px 12px; border: 1px solid var(--akzent); border-radius: 20px;
+  background: rgba(253,248,238,0.96); color: var(--ink); font-family: inherit; font-size: 14px; }
+.board-suche-liste { position: absolute; top: 40px; left: 0; right: 0; background: #fdf8ee; border: 1px solid var(--akzent);
+  border-radius: 10px; box-shadow: 0 8px 26px rgba(0,0,0,0.28); max-height: 260px; overflow-y: auto; overscroll-behavior: contain; padding: 4px; }
+.board-suche-item { display: block; width: 100%; text-align: left; padding: 8px 10px; border: none; border-radius: 6px;
+  background: none; color: var(--ink); cursor: pointer; font-size: 14px; font-family: inherit; }
+.board-suche-item:hover { background: var(--gold-hell, rgba(176,141,87,0.12)); }
+/* SCRUM-18: zweizeiliger Treffer (Name + Lebensdaten/Eltern). Der KOMPLETTE Button bleibt
+   Klickfläche -> Tap-Target wird größer, nicht kleiner. Optik der Zusatzzeile bewusst wie
+   .bi-text in der Kopfzeilen-Suche, damit beide Trefferlisten gleich wirken. */
+.board-suche-item-name { display: block; }
+.board-suche-item-sub { display: block; margin-top: 2px; font-size: 12px; color: #6b5c3e;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board-suche-leer { padding: 8px 10px; font-size: 12px; color: #8a7a5a; }
+/* Beide Elemente sind Kinder von #baum-container (position:relative) — NICHT auf Body-Ebene
+   verschieben, sonst fällt absolute auf den Dokumentrand zurück und der Kasten landet neben
+   dem Baumbild. Höhe/Breite hier ist zugleich die Zeichenfläche: boardMinimap() misst den
+   Kasten (clientWidth/Height), damit die Klick-Umrechnung mitskaliert. */
+/* touch-action: none ist fuer den Zug ZWINGEND — sonst nimmt der Browser den Wisch als
+   Seiten-Scroll/Zoom und die App sieht keine pointermove-Ereignisse (Regel wie bei den uebrigen
+   Ziehflaechen). user-select verhindert Textmarkierung waehrend des Ziehens. */
+.board-minimap { position: absolute; right: 12px; bottom: 64px; z-index: 28; width: 176px; height: 116px; display: none;
+  background: rgba(30,22,10,0.55); border: 1px solid var(--akzent); border-radius: 8px; cursor: grab; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; }
+.board-minimap.zieht { cursor: grabbing; }
+@media (max-width: 480px) {
+  /* Untere Reihe sitzt mobil bei bottom:10px/40px hoch -> Minimap knapp darüber und kleiner,
+     damit sie auf kleinen Schirmen (auch quer) nichts verdeckt. */
+  .board-minimap { width: 132px; height: 88px; right: 10px; bottom: 56px; }
+  /* Suchfeld unter die Layout-Pille (oben rechts) rücken — mittig oben würde es sie kreuzen. */
+  .board-tools { top: 69px; }
+}
+/* Feature 7: Umfang-Optionen (Radio) */
+.nb7-opt { display: block; padding: 7px 2px; cursor: pointer; font-size: 15px; }
+.nb7-opt input { margin-right: 8px; }
+/* Board Phase 4: Linien-Wegpunkt-Griff (Knick ziehen; Doppelklick = Auto-Verlauf zurück) */
+.board-linie-griff { fill: rgba(255,248,220,0.5); stroke: var(--akzent); stroke-width: 1.4; cursor: move; opacity: 0.55; }
+.board-linie-griff:hover { opacity: 1; }
+/* Endpunkt-Anker einer Verbindung: an die Kartenseite ziehen (rastet links/rechts/oben/unten ein).
+   Deutlicher als der Wegpunkt-Griff (gefüllt), damit die Enden als anfassbar erkennbar sind. */
+.board-anker-griff { fill: var(--gold, #a8781f); stroke: var(--akzent); stroke-width: 1.4; opacity: 0.7; pointer-events: none; }
+.board-anker-griff-grp, .board-linie-griff-grp { cursor: grab; }
+.board-anker-griff-grp:active, .board-linie-griff-grp:active { cursor: grabbing; }
+.board-anker-griff-grp:hover .board-anker-griff { opacity: 1; }
+.board-linie-griff-grp:hover .board-linie-griff { opacity: 1; }
+/* Unsichtbare, große Fassfläche für Griffe (Touch ≥32px Durchmesser). */
+.board-anker-hit { fill: transparent; stroke: none; }
+/* Unsichtbare, dicke Trefferlinie zum Löschen einer Verbindung: eine <line> trifft sonst nur
+   auf Strichbreite (~2px). pointer-events:stroke -> nur der Strichbereich reagiert. */
+.board-linie-hit { stroke: transparent; stroke-width: 16; fill: none; pointer-events: stroke; cursor: pointer; }
+/* Hover über die Trefferlinie hebt die SICHTBARE Linie hervor (rot = wird gelöscht). */
+.verbindung.board-linie-hover, .ehe-linie.board-linie-hover { stroke: #b3352f !important; stroke-width: 4 !important; }
+/* Phase 3: Presence-Cursor der Mit-Bearbeiter */
+.board-cursors { pointer-events: none; }
+.board-cursor-pfeil { fill: #c8a840; stroke: #3a2c12; stroke-width: 0.8; }
+.board-cursor-name { font-size: 11px; font-weight: bold; fill: #2c2418; paint-order: stroke;
+  stroke: rgba(255,248,220,0.9); stroke-width: 3px; }
+/* Anklickbare Beziehungslinie (Edit-Modus) -> löschen; auf Hover rot + dick (leichter zu treffen) */
+.board-linie-klick { cursor: pointer; }
+.board-linie-klick:hover { stroke: #b3352f !important; stroke-width: 4 !important; }
 /* „Anstehende Anlässe" – Dashboard-Widget oben rechts im Baum (Geburtstage/Gedenktage).
    Eigene Ecke (oben rechts), damit es nicht mit der Navigationsreihe unten kollidiert. */
 .anlaesse-btn {
-  position: absolute; right: 15px; top: 15px; z-index: 6;
+  /* Unter die Layout-Pille (oben rechts, top:15px, h≈44px) gerückt, damit die Pille die
+     Erinnerungs-Buttons nicht überdeckt. */
+  position: absolute; right: 15px; top: 69px; z-index: 6;
   width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
   background: rgba(255,250,240,0.96); color: var(--akzent);
   border: 1px solid var(--linie); border-radius: 50%; cursor: pointer;
@@ -423,7 +537,8 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .anlaesse-btn:active { transform: scale(0.94); }
 /* „An diesem Tag"-Widget – gestapelt unter dem Anlässe-Button (oben rechts). Gleiche Optik. */
 .erinn-btn {
-  position: absolute; right: 15px; top: 71px; z-index: 6;
+  /* Gestapelt unter dem Anlässe-Button (der wegen der Layout-Pille nach unten gerückt ist). */
+  position: absolute; right: 15px; top: 127px; z-index: 6;
   width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
   background: rgba(255,250,240,0.96); color: var(--akzent);
   border: 1px solid var(--linie); border-radius: 50%; cursor: pointer;
@@ -526,6 +641,11 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   border-radius: 4px; padding: 9px 12px; font-size: 13px; color: var(--ink); margin-bottom: 10px;
 }
 .pdf-empfehlung b { color: var(--akzent); }
+.pdf-empfehlung.warn { border-left-color: #9b2226; color: #9b2226; }
+/* Quelle „Tabla": Optionen, die nur das BERECHNETE Layout steuern, werden sichtbar deaktiviert
+   statt still ignoriert. pointer-events fängt auch die suchbaren Selects ab — deren sichtbares
+   Steuerelement erbt das `disabled` des versteckten <select> nicht. */
+.pdf-nur-auto.aus { opacity: 0.42; pointer-events: none; filter: grayscale(0.6); }
 .pdf-hinweisbox { margin-top: 12px; font-size: 13px; color: var(--gold); min-height: 0; }
 .pdf-hinweisbox.warn { color: #9b2226; }
 .pdf-progress { margin-top: 16px; }
@@ -551,71 +671,38 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   @page { margin: 8mm; }
 }
 
-/* ===== „Lose Karten"-Leiste =====
-   Personen ohne (gültige) Verknüpfung — im Diagramm unsichtbar (Single-Root-Renderer),
-   hier unten am Baum sichtbar gemacht, bis ein Admin sie verbindet. Schlanke Leiste am
-   unteren Rand des #baum-container; Chips von links nach rechts, horizontal scrollbar. */
-.lose-leiste {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
-  display: flex; align-items: center; gap: 12px; padding: 8px 14px;
-  background: rgba(255,250,240,0.97); border-top: 1px solid var(--linie);
-  box-shadow: 0 -2px 12px rgba(44,36,24,0.18);
+/* Ansicht-Umschalter „Meine Familie / Familienkreis / Ganzer Baum" — segmentierte Pille UNTEN LINKS
+   (rechter Button-Stapel + PDF-Pille bleiben unberührt). z-index/Position wie die übrigen Float-Buttons
+   -> Zoom/Pan des Baums bleiben unangetastet. */
+.baum-ansicht-modus {
+  position: absolute; left: 15px; bottom: 15px; z-index: 6; max-width: calc(100% - 30px);
+  display: flex; align-items: stretch; overflow: hidden;
+  background: rgba(255,250,240,0.96); border: 1px solid var(--linie);
+  border-radius: 26px; box-shadow: 0 2px 10px rgba(44,36,24,0.18);
 }
-.lose-titel {
-  flex: 0 0 auto; max-width: 28%;
-  color: var(--akzent); font-family: serif; font-size: 13px; font-weight: 600;
-  letter-spacing: 0.3px; line-height: 1.25;
+.bam-btn {
+  border: none; background: none; cursor: pointer; color: var(--akzent);
+  font-family: inherit; font-size: 13px; letter-spacing: 0.3px; white-space: nowrap;
+  padding: 0 15px; height: 44px; transition: background 0.2s, color 0.2s;
 }
-.lose-track {
-  flex: 1 1 auto; display: flex; gap: 10px; padding: 2px;
-  overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain;
-  scrollbar-width: thin; -webkit-overflow-scrolling: touch;
-}
-.lose-chip {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
-  min-height: 48px; padding: 6px 14px 6px 6px; max-width: 230px;
-  background: var(--paper); color: var(--ink);
-  border: 1px solid var(--linie); border-radius: 26px; cursor: pointer;
-  font-family: inherit; font-size: 16px; transition: border-color .15s, box-shadow .15s, transform .1s;
-}
-.lose-chip:hover { border-color: var(--akzent); box-shadow: 0 2px 8px rgba(44,36,24,0.16); }
-.lose-chip:active { transform: scale(0.97); }
-.lose-avatar {
-  flex: 0 0 auto; position: relative; overflow: hidden;
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: serif; font-size: 14px; font-weight: 700; color: var(--paper); letter-spacing: 0.4px;
-}
-.lose-avatar.male    { background: linear-gradient(135deg, var(--male), #2a4a65); }
-.lose-avatar.female  { background: linear-gradient(135deg, var(--female), #6b2840); }
-.lose-avatar.unknown { background: linear-gradient(135deg, var(--gold), var(--akzent)); }
-.lose-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.lose-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* „Ausgeblendet, aber verbunden"-Leiste: Variante der lose-Leiste (Gold-Akzent) + Einblenden-Button */
-.versteckt-leiste { background: rgba(247,241,231,0.98); border-top: 1px solid var(--gold); }
-.versteckt-leiste .lose-titel { color: var(--gold); }
-.versteckt-chip { padding-right: 8px; cursor: default; }
-.versteckt-btn {
-  flex: 0 0 auto; margin-left: 4px; padding: 6px 12px; border-radius: 16px; cursor: pointer;
-  background: var(--akzent); color: var(--paper); border: none;
-  font-family: inherit; font-size: 12px; white-space: nowrap; transition: background .15s, color .15s;
-}
-.versteckt-btn:hover { background: var(--gold); color: var(--ink); }
-.versteckt-hinweis .versteckt-btn { margin-top: 6px; }
-#baum-container.versteckt-aktiv .baum-zentrieren-btn,
-#baum-container.versteckt-aktiv .ansicht-erweitern-btn,
-#baum-container.versteckt-aktiv .pdf-export-btn { bottom: 96px; }
-/* Float-Buttons der unteren Reihe anheben, solange die Leiste sichtbar ist (kein Überdecken). */
-#baum-container.lose-aktiv .baum-zentrieren-btn,
-#baum-container.lose-aktiv .ansicht-erweitern-btn,
-#baum-container.lose-aktiv .pdf-export-btn { bottom: 86px; }
+.bam-btn + .bam-btn { border-left: 1px solid var(--linie); }
+.bam-btn:hover:not(:disabled) { background: var(--gold-hell); }
+.bam-btn.aktiv { background: var(--akzent); color: var(--paper); }
+.bam-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (max-width: 480px) {
-  .lose-leiste { flex-direction: column; align-items: stretch; gap: 5px; padding: 6px 10px; }
-  .lose-titel { max-width: none; font-size: 12px; }
-  .lose-chip { max-width: 70vw; }
-  #baum-container.lose-aktiv .baum-zentrieren-btn,
-  #baum-container.lose-aktiv .ansicht-erweitern-btn,
-  #baum-container.lose-aktiv .pdf-export-btn { bottom: 120px; }
+  .baum-ansicht-modus { left: 10px; bottom: 10px; }
+  .bam-btn { font-size: 12px; padding: 0 10px; height: 40px; }
+}
+
+/* Layout-Modus (Autosortierung | Tabla) — oben rechts, gleiche Pillen-Optik wie .baum-ansicht-modus */
+.baum-layout-modus {
+  position: absolute; right: 15px; top: 15px; z-index: 7; max-width: calc(100% - 30px);
+  display: flex; align-items: stretch; overflow: hidden;
+  background: rgba(255,250,240,0.96); border: 1px solid var(--linie);
+  border-radius: 26px; box-shadow: 0 2px 10px rgba(44,36,24,0.18);
+}
+@media (max-width: 480px) {
+  .baum-layout-modus { right: 10px; top: 10px; }
 }
 
 /* ===== Teilnehmerverwaltung / Event-Sichtbarkeit ===== */
@@ -1061,6 +1148,12 @@ label.pflicht > span:first-child::after { content: ' *'; color: #b33; font-weigh
 .confirm-actions {
   display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
 }
+/* Drei-Wahl-Dialog (zeigeDreiWahl): sauberes Raster statt Flex-Umbruch — oben EIN Button über die
+   volle Breite, darunter zwei gleich breite. Sonst behielte der erste Button nur seine Textbreite. */
+.confirm-actions.drei { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.confirm-actions.drei .confirm-a { grid-column: 1 / -1; }   /* volle Breite = Breite der zwei unten */
+.confirm-actions.drei button { width: 100%; padding: 11px 12px; letter-spacing: 1px; }
+@media (max-width: 380px) { .confirm-actions.drei { grid-template-columns: 1fr; } }
 .confirm-actions button {
   font-family: inherit; font-size: 13px; letter-spacing: 1.5px;
   text-transform: uppercase; padding: 11px 22px; border-radius: 8px;

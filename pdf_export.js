@@ -44,9 +44,17 @@ function pdfHinweis(msg, warn) {
 }
 
 // ---- Öffnen / Schließen --------------------------------------------------
-function oeffnePdfExport() {
+// Quelle vorbelegen: wer im Tabla-Modus auf „Export" drückt, will fast immer SEINE Anordnung.
+// vorgabe überschreibt die Automatik (z. B. Aufruf aus dem Board-Kontextmenü).
+function oeffnePdfExport(vorgabe) {
+  const qs = document.getElementById('pdf-quelle');
+  if (qs) {
+    const imBoard = (typeof ansichtModus !== 'undefined' && ansichtModus === 'board');
+    qs.value = vorgabe || (imBoard ? 'tabla' : 'auto');
+  }
   pdfFuelleWurzelSelect();
   pdfUmfangChange();
+  pdfQuelleChange();
   pdfBerechneEmpfehlung();
   pdfHinweis('', false);
   const m = document.getElementById('pdf-export-modal');
@@ -66,6 +74,30 @@ function pdfUmfangChange() {
   const u = document.getElementById('pdf-umfang').value;
   document.getElementById('pdf-xgen-zurueck-wrap').style.display = (u === 'xgen') ? '' : 'none';
   pdfBerechneEmpfehlung();
+}
+// Quelle „Tabla": Positionen und Linien kommen fertig vom Bildschirm — Wurzel, Umfang, Filter und
+// Layout steuern dort nichts mehr. Sie werden deshalb SICHTBAR deaktiviert (nicht still ignoriert):
+// `disabled` fürs Formular + `.aus` fürs Ausgrauen inkl. pointer-events (fängt auch die
+// suchbaren Selects ab, deren sichtbares Steuerelement das `disabled` des <select> nicht erbt).
+function pdfQuelleChange() {
+  const tabla = pdfQuelleIstTabla();
+  document.querySelectorAll('#pdf-export-modal .pdf-nur-auto').forEach(el => {
+    el.classList.toggle('aus', tabla);
+    el.querySelectorAll('input, select, textarea, button').forEach(f => { f.disabled = tabla; });
+  });
+  const h = document.getElementById('pdf-quelle-hinweis');
+  if (h) {
+    const imBoard = (typeof ansichtModus !== 'undefined' && ansichtModus === 'board');
+    // Tabla gewählt, aber der Board ist gar nicht offen -> das kann nichts exportieren.
+    h.textContent = tabla ? (imBoard ? t('pdf_quelle_hinweis') : t('pdf_quelle_kein_board')) : '';
+    h.classList.toggle('warn', tabla && !imBoard);
+    h.style.display = tabla ? '' : 'none';
+  }
+  pdfBerechneEmpfehlung();
+}
+function pdfQuelleIstTabla() {
+  const q = document.getElementById('pdf-quelle');
+  return !!(q && q.value === 'tabla');
 }
 // Sprachwechsel: dynamische Inhalte (Personennamen, Empfehlung) neu aufbauen
 function pdfModalSprachUpdate() {
@@ -118,6 +150,7 @@ function pdfSammleOptionen() {
     status: g('pdf-filter-status').value,
     unbestaetigt: g('pdf-filter-unbestaetigt').checked,
     privat: g('pdf-filter-privat').checked,
+    quelle: g('pdf-quelle') ? g('pdf-quelle').value : 'auto',
     layout, kompakt: layout === 'kompakt',
     geburtsort: g('pdf-inhalt-geburtsort').checked,
     foto: g('pdf-inhalt-foto').checked,
@@ -189,6 +222,13 @@ function pdfAutoPapier(n) { if (n > 500) return 'A0'; if (n > 250) return 'A1'; 
 function pdfBerechneEmpfehlung() {
   const box = document.getElementById('pdf-empfehlung');
   if (!box) return;
+  // Quelle „Tabla": die Empfehlung stammt aus dem berechneten Modell und sagt über den frei
+  // angeordneten Board nichts aus -> Kartenzahl direkt aus dem Renderzustand.
+  if (typeof pdfQuelleIstTabla === 'function' && pdfQuelleIstTabla()) {
+    const n = (typeof boardState !== 'undefined' && boardState && boardState.visible) ? boardState.visible.size : 0;
+    box.innerHTML = t('pdf_empf_tabla', { n, papier: pdfAutoPapier(n) });
+    return;
+  }
   const opts = pdfSammleOptionen();
   if (!opts.wurzel) { box.innerHTML = ''; return; }
   let model = pdfBaueModell(opts);
@@ -388,6 +428,27 @@ function pdfMetadaten(layout, opts) {
     personen: layout.personen.size, gens: layout.gens, baeume: layout.baeume.size
   };
 }
+// Metadaten für die Quelle „Tabla": der Baum steht fest (der offene Board), es gibt keine
+// gewählte Wurzel und keine Generationsrechnung. Gleiche Feldnamen wie pdfMetadaten, damit
+// Titelblatt und Dateiname unverändert funktionieren.
+function pdfMetaTabla(layout) {
+  const sid = (typeof aktuellerStammbaumId !== 'undefined') ? aktuellerStammbaumId : null;
+  const treeName = (sid && stammbaeumeListe[sid]) ? stammbaeumeListe[sid] : '';
+  const treeZusatz = (sid && typeof stammbaeumeZusatz !== 'undefined' && stammbaeumeZusatz[sid]) ? stammbaeumeZusatz[sid] : '';
+  const heute = new Date().toISOString().slice(0, 10);
+  let ersteller = '';
+  if (typeof meinProfil !== 'undefined' && meinProfil && (meinProfil.vorname || meinProfil.nachname)) {
+    ersteller = nm(((meinProfil.vorname || '') + ' ' + (meinProfil.nachname || '')).trim());
+  } else if (typeof aktuellerUser !== 'undefined' && aktuellerUser && aktuellerUser.email) {
+    ersteller = aktuellerUser.email;
+  }
+  return {
+    titel: t('pdf_meta_titel', { name: baumLabelNZ(treeName || '—', treeZusatz) || '—' }),
+    treeName: nm(treeName) || 'stablo',
+    datum: formatDatumLang(heute) || new Date().toLocaleDateString(),
+    ersteller, personen: layout.personen.size, gens: 0, baeume: 1
+  };
+}
 function pdfCanvasWrap(ctx, text, cx, cy, maxW, lh) {
   const words = (text || '').split(' '); let line = ''; const zeilen = [];
   words.forEach(w => { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { zeilen.push(line); line = w; } else line = test; });
@@ -551,11 +612,65 @@ async function pdfExportPdf(svg, layout, opts, meta, fname) {
   doc.save(fname);
 }
 
+// ---- Quelle „Tabla": den angeordneten Board-Zustand als SVG -------------
+// Statt ein Layout zu RECHNEN wird der live gezeichnete Board-SVG geklont und auf die belegte
+// Fläche zugeschnitten. Dadurch stimmen Kartenpositionen (board_layout) UND manuelle Linien-
+// Wegpunkte/Anker (board_linie) exakt mit dem Bildschirm überein. Das Ergebnis geht durch
+// DIESELBE Ausgabekette wie das berechnete Layout -> PDF (Vektor via svg2pdf), PNG, SVG, Druck.
+// Edit-Artefakte, die es nie ins PDF schaffen dürfen (Griffe, Trefferlinien, Connection-Points,
+// Presence-Cursor, Marquee):
+const PDF_BOARD_WEG = [
+  '.board-connect', '.board-connect-temp',      // ⊕-Schnellzugriff
+  '.board-anker-griff-grp', '.board-linie-griff-grp',   // Endpunkt-/Wegpunkt-Griffe (inkl. Fasskreise)
+  '.board-anker-griff', '.board-linie-griff', '.board-anker-hit',
+  '.board-linie-hit',                           // unsichtbare Lösch-Trefferlinien
+  '.board-cursors', '.board-marquee',           // Presence-Cursor, Auswahlrahmen
+  'image'                                       // Storage-Avatare: cross-origin -> Canvas-Taint
+].join(', ');
+
+function pdfBoardSvg() {
+  if (typeof ansichtModus === 'undefined' || ansichtModus !== 'board') return null;
+  if (typeof boardState === 'undefined' || !boardState || !boardState.visible || !boardState.visible.size) return null;
+  const xs = [], ys = [];
+  boardState.visible.forEach(c => { if (boardState.PX.has(c)) { xs.push(boardState.PX.get(c)); ys.push(boardState.PY.get(c)); } });
+  if (!xs.length) return null;
+  const pad = 120;
+  const minX = Math.min(...xs) - pad, minY = Math.min(...ys) - pad;
+  const w = (Math.max(...xs) + pad) - minX, hgt = (Math.max(...ys) + pad) - minY;
+  const src = document.getElementById('baum-svg'); if (!src) return null;
+  const clone = src.cloneNode(true);
+  clone.querySelectorAll(PDF_BOARD_WEG).forEach(n => n.remove());
+  // Auswahl-Highlight ist Bildschirm-Zustand, kein Inhalt.
+  clone.querySelectorAll('.selektiert').forEach(n => n.classList.remove('selektiert'));
+  const g = clone.querySelector('g'); if (g) g.removeAttribute('transform');   // Zoom raus -> viewBox rahmt
+  clone.setAttribute('viewBox', minX + ' ' + minY + ' ' + w + ' ' + hgt);
+  clone.setAttribute('width', String(Math.round(w)));
+  clone.setAttribute('height', String(Math.round(hgt)));
+  clone.removeAttribute('style');
+  clone.removeAttribute('class');
+  // Same-origin CSS einbetten: sonst verliert der Klon außerhalb des Dokuments die Karten-/
+  // Linien-Optik (Farben, Schrift, Strichstärken).
+  let css = '';
+  try { for (const sh of document.styleSheets) { try { for (const r of sh.cssRules) css += r.cssText + '\n'; } catch (e) {} } } catch (e) {}
+  const styleEl = document.createElementNS(PDF_SVG_NS, 'style'); styleEl.textContent = css;
+  clone.insertBefore(styleEl, clone.firstChild);
+  const bg = document.createElementNS(PDF_SVG_NS, 'rect');
+  bg.setAttribute('x', minX); bg.setAttribute('y', minY);
+  bg.setAttribute('width', w); bg.setAttribute('height', hgt); bg.setAttribute('fill', '#fbfaf7');
+  clone.insertBefore(bg, styleEl.nextSibling);
+  // Ersatz-„layout" für die gemeinsame Ausgabekette: pdfExportPdf braucht daraus nur
+  // personen.size (Papierwahl) und cardW (Poster-Kachelung).
+  const layout = { cards: new Array(boardState.visible.size), personen: new Set(boardState.visible), gens: 0, baeume: new Set(), cardW: 152 };
+  return { svg: clone, layout };
+}
+
 // ---- Haupt-Ablauf --------------------------------------------------------
 async function pdfExportStart() {
   if (pdfBusy) return;
   const opts = pdfSammleOptionen();
-  if (!opts.wurzel) { pdfHinweis(t('pdf_keine_wurzel'), true); return; }
+  const tabla = (opts.quelle === 'tabla');
+  // Bei „Tabla" gibt es keine Wurzel-/Umfangswahl — der Board bringt seine Kartenmenge mit.
+  if (!tabla && !opts.wurzel) { pdfHinweis(t('pdf_keine_wurzel'), true); return; }
   if (typeof track === 'function') track('pdf_export', { format: opts.format });   // Analytik
   // jsPDF/svg2pdf erst bei Bedarf laden (PDF + Browser-Druck nutzen jsPDF; PNG/SVG nicht).
   if (opts.format === 'pdf' || opts.format === 'druck') {
@@ -574,16 +689,25 @@ async function pdfExportStart() {
   pdfSetProgress(5, t('pdf_prog_modell'));
   try {
     await pdfTick();
-    let model = pdfBaueModell(opts);
-    if (!model) { pdfHinweis(t('pdf_keine_wurzel'), true); return; }
-    model = pdfFiltere(model, opts) || model;
-    pdfSetProgress(25, t('pdf_prog_layout')); await pdfTick();
-    const layout = pdfLayout(model, opts);
-    if (!layout.cards.length) { pdfHinweis(t('pdf_leer'), true); return; }
-    pdfSetProgress(45, t('pdf_prog_render')); await pdfTick();
-    const meta = pdfMetadaten(layout, opts);
-    const wantHeader = (opts.format !== 'pdf') && opts.titelblatt;
-    const svg = pdfBaueSvg(layout, opts, { header: wantHeader, meta });
+    let layout, meta, svg;
+    if (tabla) {
+      // Kein Modell/Layout rechnen: der Board-SVG IST das Ergebnis.
+      pdfSetProgress(35, t('pdf_prog_render')); await pdfTick();
+      const b = pdfBoardSvg();
+      if (!b) { pdfHinweis(t('pdf_quelle_kein_board'), true); return; }
+      layout = b.layout; svg = b.svg; meta = pdfMetaTabla(layout);
+    } else {
+      let model = pdfBaueModell(opts);
+      if (!model) { pdfHinweis(t('pdf_keine_wurzel'), true); return; }
+      model = pdfFiltere(model, opts) || model;
+      pdfSetProgress(25, t('pdf_prog_layout')); await pdfTick();
+      layout = pdfLayout(model, opts);
+      if (!layout.cards.length) { pdfHinweis(t('pdf_leer'), true); return; }
+      pdfSetProgress(45, t('pdf_prog_render')); await pdfTick();
+      meta = pdfMetadaten(layout, opts);
+      const wantHeader = (opts.format !== 'pdf') && opts.titelblatt;
+      svg = pdfBaueSvg(layout, opts, { header: wantHeader, meta });
+    }
     pdfSetProgress(62, t('pdf_prog_ausgabe')); await pdfTick();
     const base = pdfDateiname(meta);
     if (opts.format === 'svg') pdfDownloadSvg(svg, base + '.svg');

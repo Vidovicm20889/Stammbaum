@@ -24,6 +24,20 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Neue Feature-Spec automatisch anlegen (verbindlich):** Wird ein umfangreicheres neues Feature umgesetzt (eigene Tabellen/RPCs, eigener UI-Bereich, mehr als eine triviale Änderung), lege ich dafür — nach der Umsetzung — eine eigene **`docs/<feature>.md`** an (gleiche Struktur wie die bestehenden: Zweck, Datenmodell/RLS, Frontend, i18n, bewusste Grenzen) und trage sie in den Feature-Index dieser CLAUDE.md ein — **statt die CLAUDE.md weiter aufzublähen**. Passt das Feature thematisch in eine bestehende `docs/`-Datei, ergänze ich dort. Ich weise VOR dem Anlegen kurz darauf hin, welche Datei entsteht bzw. ergänzt wird.
 - **Kleine Änderungen** an einem bestehenden Feature werden in dessen `docs/`-Datei nachgezogen (Datei bleibt der reale Stand).
 - Nur **dauerhafte, feature-übergreifende** Konventionen (nicht feature-spezifisch) gehören direkt in diese CLAUDE.md.
+- **Confluence bei JEDEM Feature/Bug aktualisieren (verbindlich, SCRUM-3):** Das **Repo ist und bleibt
+  die Quelle der Wahrheit**; Confluence ist die gespiegelte Lese-Ansicht für Nicht-Entwickler.
+  Space **„FamilyRoots"** (Key `FamilyRoot`, ID `589828`) auf `milanvidovic89.atlassian.net/wiki`.
+  Nach JEDER umgesetzten Änderung — vor der Fertigmeldung — ist zu pflegen:
+  1. **App-Dokumentation** (Seite `App-Dokumentation`): betroffene Feature-Seite nachziehen, sobald
+     sich Verhalten/Datenmodell/Grenzen geändert haben. Neues Feature → neue Unterseite (Spiegel der
+     zugehörigen `docs/<feature>.md`).
+  2. **Testfälle** (Seite `Testing → Testfälle`): Soll-Verhalten je Feature/Bugfix ergänzen —
+     ID-Schema `TF-<Bereich>-<Nr>`, prüfbar formuliert, mit Jira-Key.
+  3. **Testprotokoll** (Seite `Testing → Testprotokolle`): das TATSÄCHLICHE Testergebnis des
+     Durchlaufs mit PASS/FAIL eintragen; Fehlschläge ehrlich protokollieren, 🔬-Punkte kennzeichnen.
+  Reihenfolge: erst Code + Tests, dann Confluence, dann Jira-Kommentar/Status. Ist Confluence nicht
+  erreichbar (403/fehlende Freigabe), wird das im Jira-Kommentar ausdrücklich vermerkt statt
+  stillschweigend übersprungen.
 
 ## Umgang mit Anweisungen/Prompts (Ideenphase ZUERST) — verbindlich
 - **Jede Anweisung/jeder Prompt wird ZUERST analysiert und als Ideen ausgearbeitet — NICHT
@@ -211,6 +225,19 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   sie manuell aus**. (Claude führt solche Aufgaben grundsätzlich nicht im Hintergrund/automatisch aus.)
 
 ## Deploy & Versionierung
+- **Branch pro Änderung + Test-Freigabe (verbindlich ab v14.86) — Details: `docs/workflow-branching-versionierung.md`:**
+  1. **Jede** Änderung (Bug ODER Story) läuft auf einem **eigenen Branch** (`bugfix/…`, `feature/…`,
+     `docs/…`), abgezweigt von aktuellem `main` — **nie direkt auf `main` arbeiten**.
+  2. Auf dem Branch wird **zuerst lokal getestet** (Test-Pflicht aus „Dein Arbeitsablauf"),
+     Ergebnis dem User als PASS/FAIL vorgelegt. Test rot → kein Commit, erst beheben.
+  3. **Commit/Merge/Push NUR nach ausdrücklicher Freigabe des Users.** „Test grün" ist keine
+     Freigabe. Nur den zur Aufgabe gehörenden Hunk stagen, nie blind ganze Dateien.
+- **Versions-Schema `XX.XX` = MAJOR.STORY.BUG** (zwei Nachkommastellen = zwei Zähler):
+  **Bug** → letzte Stelle +1 (`14.86`→`14.87`; bei `…x9` Übertrag: `14.89`→`14.90`).
+  **Story** → vorletzte Stelle +1, letzte auf 0 (`14.86`→`14.90`; bei `…9x` Übertrag: `14.96`→`15.00`).
+  **Ab der 3. Story ohne Deployment dazwischen** → MAJOR +1, Rest auf `00` (`14.40`→`15.00`).
+  Zähler „Storys seit Deploy" bei jedem Deployment zurücksetzen. Version erst im Freigabe-Schritt
+  vergeben (nicht vorab auf dem Branch — sonst kollidieren parallele Branches).
 - **Frontend**: Commit nach `main` → automatisch live auf GitHub Pages. Commits als „Version X.Y - …".
 - **Bei JEDEM Frontend-Deploy `<meta name="app-version" content="X.Y">` im `<head>` hochzählen**
   (passend zur Commit-Versionsnummer). Die App vergleicht diese Version regelmäßig mit der
@@ -299,6 +326,24 @@ Nach JEDER Änderung:
 5. Prüfe (Governance): Weicht etwas von CLAUDE.md ab? Falls ja, Hinweis geben (siehe Governance).
 6. Gib Selbsteinschätzung: ✅ alles ok / ⚠️ Kompromiss nötig / ❌ Problem gefunden
 7. Schlage den logisch nächsten Schritt vor
+8. **ToDo-Liste „Was DU noch erledigen musst" (verbindlich, am ENDE jeder Antwort):** Alles, was
+   ich **nicht selbst ausführen kann oder darf**, wird am Schluss als **eigener Abschnitt**
+   aufgelistet — nie nur im Fließtext erwähnt und nie stillschweigend vorausgesetzt. Pflicht-Inhalte:
+   - **SQL-Dateien**, die im **Supabase SQL-Editor** auszuführen sind (DB-Änderungen laufen nie
+     automatisch) — inkl. Hinweis, ob idempotent/wiederholbar und in welcher **Reihenfolge**.
+   - **Edge Functions**, die übers **Supabase-Dashboard** zu deployen sind (CLI ist durch die
+     Citrix-Firewall blockiert).
+   - **Commit/Merge/Push + Version-Bump** (`app-version` **und** alle `?v=`), da nur auf
+     ausdrückliche Freigabe.
+   - **Befehle, die ich wegen Defender/EDR nicht ausführe** (siehe „Arbeitsumgebung & Sicherheit") —
+     exakt in ausführbarer Form.
+   - **🔬-Punkte**, die nur am echten Gerät/nach Deploy verifizierbar sind.
+   - Sonstige manuelle Schritte (Storage-Buckets/Policies, Confluence/Jira, Secrets/`.env`,
+     Rechte-/Rollen-Änderungen, externe Dienste wie Resend).
+   **Jeder Punkt verlinkt die betroffene(n) Datei(en)** als klickbaren relativen Pfad im
+   Markdown-Format `[datei.sql](datei.sql)` (bei Bedarf mit Zeilenangabe `[datei.js:42](datei.js#L42)`)
+   — damit sofort auffindbar ist, worauf sich der Schritt bezieht. Ist **nichts** offen, wird das
+   ausdrücklich vermerkt („Keine offenen ToDos für dich") statt den Abschnitt wegzulassen.
 
 ## Gilt für ALLE Prompts (Claude Code automatisch beachten)
 
@@ -336,4 +381,7 @@ Vor der Arbeit an einem Feature die passende Datei lesen; neue Features nach obi
 - `docs/medien-galerie-dokumente.md` — Karten-Avatar aus Profilbild, Foto-Galerie, Dokumente & Quellen, Sprach-/Video-Aufnahmen, mehrsprachige Lebensgeschichten.
 - `docs/ereignisse-anlaesse.md` — Geburtstags-/Gedenktag-Erinnerungen (In-App + E-Mail), Ereignis-Bereich (Liste/Zeitstrahl/Karte + Migrationspfad).
 - `docs/social-chat-feed.md` — Kochbuch-Bewertungen, Chat (1:1/Gruppe), verbundübergreifende Personensuche/Kontakte, Reaktionen & Kommentare, Familien-Feed/Aktivitäten, Foto-Tagging, Familien-Fragen.
+- `docs/board-modus.md` — **KONZEPT/SPEC (noch nicht implementiert)**: Miro-artiger Board-Modus (`ansichtModus='board'`) zum freien Verschieben von Karten (Persistenz via eigener Tabelle `board_layout`, ein gemeinsames Board pro Baum, Leser statisch, ganzer Baum) + Verknüpfen per Linie mit Auto-Erkennung (Eltern/Partner/Kind/Geschwister) über `verknuepfung_anfragen`. Entscheidungen festgelegt; Umsetzungsplan P2 (Verschieben)/P3 (Verknüpfen).
+- `docs/jira-anbindung.md` — Jira/Atlassian-MCP-Anbindung: Einrichtung (`claude mcp add --scope user`, OAuth NUR im Terminal), Projekt `SCRUM`, Workflow-Spalten + Transition-IDs (Backlog/Zu erledigen/In Bearbeitung/Test/Erledigt), verbindlicher Ablauf je Vorgang (max. 1 pro Durchlauf, „nicht raten → Rückfrage als Jira-Kommentar"), die drei Modi **A Jira-Dev** (`.claude/agents/jira-dev.md`, umsetzen) / **B Ticket-Autor** (Idee → Vorgang) / **C Story-Refiner** (`.claude/agents/story-refiner.md`, Backlog ausarbeiten → „Zu erledigen", ohne Code), Commit-Politik, bewusste Grenzen.
+- `docs/workflow-branching-versionierung.md` — **Arbeits-Workflow (verbindlich ab v14.86):** Branch pro Änderung (`bugfix/`/`feature/`/`docs/`), lokaler Test VOR jedem Commit (Testmatrix + PASS/FAIL-Vorlage), Commit/Merge/Push nur nach ausdrücklicher Freigabe, Versions-Schema `XX.XX` (Bug = letzte Stelle, Story = vorletzte + Reset, 3. Story ohne Deploy = MAJOR) inkl. Überlauf-Beispielen.
 - `ROADMAP.md` — Roadmap-Kontext & Ausblick.

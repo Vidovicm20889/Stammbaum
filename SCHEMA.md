@@ -335,6 +335,84 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
     ersetzt) — **danach ausführen**. Kein GIN-Index (OR-Zweig nicht index-nutzbar; RLS erzwingt ohnehin
     Zeilen-Scan).
 
+### 17 — Nachtrag: bisher nicht indizierte Dateien (ergänzt 21.07.2026)
+
+> Diese Skripte lagen im Root, waren aber **in keiner Gruppe aufgeführt** — wer die Liste oben
+> abarbeitete, bekam eine DB **ohne Board-Modus, ohne Terminfindung/iCal/RSVP** usw. Sie sind hier
+> thematisch nachgetragen; jeweils mit Angabe, **nach welcher Gruppe** sie laufen müssen. Reine
+> Einmal-/Vorfall-Skripte wurden stattdessen nach [`sql_archiv/`](sql_archiv/) verschoben (s. u.).
+
+**Zu Gruppe 1 (Grundgerüst)**
+80. `supabase_option_b_1_schema.sql` — **Option B, Schritt 1: Schema.** FK-Entkopplung,
+    `personen.verbund_id`, `stammbaeume.anker_person_id`. Legt **Struktur** an → gehört in den
+    Neuaufbau (die zugehörige Daten-*Migration* Schritt 2 liegt im Archiv). **Nach 1–3.**
+
+**Zu Gruppe 2 (Rollen & Mitglieder)**
+81. `supabase_verwaltbare_familien_nur_mit_baum.sql` — Fix #6: gelöschte/leere Familie erschien in
+    den Einstellungen. Redefiniert `verwaltbare_familien` → **nach** `supabase_verwaltbare_familien.sql`.
+
+**Zu Gruppe 4 (Stammbaum-Lebenszyklus)**
+82. `supabase_stammbaum_zusatz.sql` — Stammbaum-Name = nur Nachname + separates Feld `zusatz`.
+83. `supabase_stammbaum_zweig_person.sql` — generischer Zweigbaum aus einer Person.
+84. `supabase_stammbaum_zweig_person_force.sql` — Force-Option für gleichnamige Bäume. **Nach 83.**
+85. `supabase_stammbaum_zweig_person_zusatz.sql` — Zusatz/laufende Nummer für gleichnamige Bäume. **Nach 84.**
+86. `supabase_stammbaum_person_einordnen.sql` — Person in bestehenden Nachnamen-Baum einordnen.
+
+**Zu Gruppe 5 (Personen / Identität)**
+87. `supabase_partner_art.sql` — Partner-Art (Ehepartner / Partner / Ex-…) an `beziehungen`.
+88. `supabase_person_baum_verschieben.sql` — Person in anderen Stammbaum verschieben (Admin).
+89. `supabase_person_karte_papierkorb.sql` — **einzelne** Spiegelkarte löschen (nicht identitätsbewusst);
+    Gegenstück zu `person_papierkorb`. Wird vom Board- und Editor-Löschpfad benötigt.
+90. `supabase_person_neuer_baum.sql` — **Feature 7:** neuer Baum aus einer Person (Identitäts-Spiegel,
+    Umfang + Tiefe). ⚠️ Hat 5 Parameter (`p_tiefe`) — bei einem Update **erneut ausführen** (droppt die
+    alte 4-arg-Version). **Nach `supabase_gleiche_person_sync.sql` (identitaet_id).**
+91. `supabase_papierkorb_storage_cleanup.sql` — Storage-Waisen zum Papierkorb. **Nach** `supabase_papierkorb.sql`.
+92. `supabase_backup_restore_fix.sql` — redefiniert `backup_restore_ausfuehren` ohne
+    `session_replication_role`. **Nach** `supabase_backup.sql`.
+
+**Zu Gruppe 7 (Profil)**
+93. `supabase_profil_einstellungen.sql` — generische UI-Einstellungen (kontogebunden), u. a. das
+    Datumsformat aus CLAUDE.md.
+
+**Zu Gruppe 9 (Events)**
+94. `supabase_event_kalender.sql` — Uhrzeit/Ende/Zeitzone (Basis für .ics).
+95. `supabase_event_kalender_update.sql` — Kalender-Update bei Eventänderung (SEQUENCE). **Nach 94.**
+96. `supabase_event_rsvp.sql` — Zu-/Absage je eingeladenem Konto (+ Begleitpersonen).
+97. `supabase_event_geo.sql` — Geokoordinaten + Bezugsperson (Karte / Migrationspfad).
+98. `supabase_event_gruppe.sql` — Event optional einer Chat-Gruppe zuordnen. **Nach Gruppe 14 (Chat).**
+99. `supabase_ical_abo.sql` — abonnierbarer Kalender-Feed (webcal). **Nach 94.**
+100. `supabase_terminfindung.sql` — Terminfindung nach Doodle-Prinzip (mehrere Vorschläge + Abstimmung).
+
+**Zu Gruppe 10 (Benachrichtigungen / Mail)**
+101. `supabase_abmelden.sql` — Ein-Klick-Abmeldung aus Erinnerungs-/Status-Mails (Unsubscribe).
+102. `supabase_ungelesen_erinnerung.sql` — E-Mail-Erinnerung bei ungelesener Aktivität (Chat + Benachrichtigungen).
+103. `supabase_erinnerungen_heute.sql` — „An diesem Tag" (Familien-Erinnerungen aus vorhandenen Daten).
+
+**Zu Gruppe 15 (Discovery/Chat)**
+104. `supabase_direktchat_discovery.sql` — Direktchat mit entdeckter Person (Regel gelockert).
+     **Nach** `supabase_chat_kontakt.sql`.
+
+**Zu Gruppe 16 (Soziale Schicht)**
+105. `supabase_kochbuch_bewertungen.sql` — Kochbuch-Bewertungen (1–5 Sterne, global).
+106. `supabase_aktivitaeten_person_neu_wieder.sql` — aktiviert „Neue Person" im Feed wieder.
+     **Nach** `supabase_aktivitaeten.sql`.
+
+### 18 — Board-Modus (Tabla) — komplett, war bisher NICHT indiziert
+> Ohne diese drei Dateien startet die App, aber jedes Verschieben einer Karte im Tabla-Modus schlägt
+> fehl (`karte_board_pos_setzen` existiert nicht). Siehe [`docs/board-modus.md`](docs/board-modus.md).
+
+107. `supabase_board_layout.sql` — Tabelle `board_layout` (freie Kartenpositionen, ein Board je Baum) +
+     RLS-SELECT + RPCs `karte_board_pos_setzen` / `board_layout_reset`.
+108. `supabase_board_linie.sql` — Tabelle `board_linie` (Linien-Wegpunkte) + `board_linie_setzen` /
+     `board_linie_reset` + Realtime. **Nach 107.**
+109. `supabase_board_linie_seiten.sql` — erweitert `board_linie` um `von_seite`/`nach_seite`, macht
+     `wx`/`wy` NULLABLE, ergänzt `board_linie_seiten_setzen`. **Nach 108.**
+
+### 19 — SCRUM-9: „Im Baum anzeigen" entfernen
+110. `supabase_baum_sichtbarkeit_entfernen.sql` — entfernt die erzwungene Sichtbarkeit samt Tabelle/RPCs.
+     **Bei einer FRISCHEN DB nicht nötig** — dort wird `supabase_baum_sichtbarkeit.sql` (liegt im
+     Archiv) gar nicht erst ausgeführt. Nur für bestehende Installationen relevant.
+
 ---
 
 ## ⚠️ Möglicherweise überholt — bitte bestätigen
@@ -362,3 +440,15 @@ person-/konto-gebundene Migrationen (`supabase_split_stojanovic`, `supabase_spli
 `supabase_user_entfernen`, `supabase_user_mmax_entfernen`).
 
 Sie dokumentieren vergangene Eingriffe und bleiben als Referenz/Vorlage erhalten.
+
+**Am 21.07.2026 aus dem Root hierher verschoben** (waren weder indiziert noch Neuaufbau-relevant):
+
+| Datei | Grund |
+|---|---|
+| `backup_blutlinie_render_20260608.sql` | Backup-Snapshot vor dem Blutlinien-/Render-Umbau (Datum im Namen) |
+| `supabase_broadcast_url_info.sql` | einmalige Info-Mail an alle Konten (Umzug auf familyroots.club) |
+| `supabase_option_b_2_plan.sql` | READ-ONLY-Vorschau zur Option-B-Migration |
+| `supabase_option_b_2_migration.sql` | einmalige **Daten**migration (Zwillinge zusammenführen). Das zugehörige **Schema** (Schritt 1) bleibt im Neuaufbau, s. Nr. 80 |
+| `supabase_nachnamen_migration.sql` | Phase-5-Backup + Kandidaten-Report (abweichende Nachnamen) |
+| `supabase_orphan_user_id_fix.sql` | Vorfall-Fix: verwaiste `personen.user_id` nach gelöschtem Auth-Konto |
+| `supabase_baum_sichtbarkeit.sql` | Feature durch SCRUM-9 entfernt — für eine frische DB nicht mehr auszuführen |

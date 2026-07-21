@@ -60,6 +60,25 @@
   reaktivierte `zeichneGraph`-Layout war früher als „falsche Darstellung" markiert → die **visuelle
   Qualität bei großen/komplexen Bäumen ist am Gerät zu verifizieren** (🔬); der Standard bleibt die
   aufgeräumte Blutlinien-Ansicht, das Netz ist die opt-in Vollsicht.
+- **Layout-Quelle: Autosortierung ODER Tabla (SCRUM-7):** Der Dialog hat oben eine Auswahl
+  `#pdf-quelle` mit zwei Werten. **`auto`** = bisheriges Verhalten, das Layout wird gerechnet
+  (`pdfBaueModell` → `pdfFiltere` → `pdfLayout` → `pdfBaueSvg`). **`tabla`** = der im Board-Modus
+  frei angeordnete Zustand: `pdfBoardSvg()` klont den live gezeichneten `#baum-svg`, entfernt den
+  Zoom-`transform` (→ Weltkoordinaten), rahmt die belegte Fläche per `viewBox` (pad 120), bettet die
+  same-origin CSS ein und entfernt alle Edit-Artefakte (`PDF_BOARD_WEG`: Connection-Points,
+  Anker-/Wegpunkt-Griffe, Lösch-Trefferlinien, Presence-Cursor, Marquee, `image`).
+  **Beide Quellen laufen durch dieselbe Ausgabekette** — PDF/PNG/SVG/Druck, Papier, Poster,
+  Titelblatt funktionieren identisch. Dafür liefert `pdfBoardSvg` ein Ersatz-`layout`
+  (`personen`, `cardW: 152`), aus dem `pdfExportPdf` nur die Papierwahl und die Poster-Kachelung
+  ableitet; die Metadaten kommen aus `pdfMetaTabla` (Baum = der offene Board, keine Wurzel/Generationen).
+  Die Quelle ist nach `ansichtModus` **vorbelegt**, bleibt aber frei umstellbar. Bei `tabla` werden
+  alle Optionen, die nur das berechnete Layout steuern (`.pdf-nur-auto` → Wurzel, Umfang,
+  Generationen, verknüpfte Bäume, Filter, Layout, Inhalt), **sichtbar deaktiviert** (`disabled` +
+  `.aus` mit `pointer-events: none`, weil die suchbaren Selects das `disabled` des versteckten
+  `<select>` nicht erben) — nicht still ignoriert. Ist `tabla` gewählt, ohne dass der Board offen
+  ist, warnt der Dialog (`pdf_quelle_kein_board`) statt leer zu exportieren.
+  **Grenze:** Avatare (`image`) bleiben im Tabla-PDF außen vor — Storage-Bilder sind cross-origin
+  und würden die Canvas tainten; das bräuchte CORS am Bucket oder data-URI-Einbettung.
 - **PDF-/Druck-Export des Stammbaums (ab v9.2):** Button „Stammbaum als PDF exportieren"
   (`#pdf-export-btn`, schwebend im `#baum-container`) öffnet den Konfig-Dialog `#pdf-export-modal`
   (`oeffnePdfExport`/`schliessePdfExport`). **Bibliotheken:** `jspdf` + `svg2pdf.js` von jsDelivr
@@ -67,7 +86,7 @@
   +Urgroßeltern / X Generationen zurück / ganzer Baum) + **X Generationen nach vorne**; **verknüpfte
   Bäume** (über `_ident`-Brücken im Verbund) optional einbeziehen + farblich kennzeichnen;
   **Personenfilter** (lebend/verstorben/beide; private/unbestätigte ausblenden); **Layout**
-  (vertikal/horizontal/Ahnen/Nachkommen/kompakt); **Papiergröße** mit Auto-Empfehlung
+  (vertikal/horizontal/Ahnen/Nachkommen/kompakt); **Layout-Quelle** (siehe unten); **Papiergröße** mit Auto-Empfehlung
   (≤25→A4, ≤100→A3, ≤250→A2, ≤500→A1, >500→A0/Poster; **A4 = Minimum**); **Poster/Mehrseiten**
   mit Seitenzahlen + Überlappung; **Formate** PDF/PNG/SVG/Browser-Druck. **Technik:** Der Export
   baut ein **eigenständiges, in sich gestyltes SVG** (kein Zugriff auf die externe CSS — Stile inline,
@@ -88,3 +107,37 @@
   aus `deceased`/`death_date`. **Performance:** Generierung mit Fortschrittsanzeige, schwere Schritte
   asynchron (kein UI-Block); sehr große Bäume → Poster/Mehrseiten. i18n `pdf_*` in allen 5 Blöcken;
   `wechselSprache` baut den offenen Dialog neu auf.
+
+## Gleichmäßige Strichstärke: kein Overdraw mehr (SCRUM-14)
+Einzelne Eltern-Kind-Linien wirkten **dicker** als andere und wurden als Bedeutungsunterschied
+(„Hauptstrang?") gelesen. Es gibt jedoch **keine** Regel, die Blutlinien-Kanten dicker zeichnet —
+die Blutlinie wird ausschließlich über den **Kartenrahmen** hervorgehoben
+(`.knoten.blutlinie rect { stroke-width: 3 }`). Es war ein reiner Zeichenfehler:
+
+**Ursache — Overdraw bei halbtransparenter Linie.** `.verbindung` hat `stroke: rgba(255,248,220,0.88)`.
+Werden zwei identische Segmente übereinander gezeichnet, addiert sich die Deckkraft
+(0,88 → 0,986 → 0,998) und die Antialiasing-Ränder verbreitern sich → die Linie **wirkt** dicker,
+obwohl `stroke-width` identisch ist.
+
+**Zwei Gegenmaßnahmen in `zeichneGraph2` (rein zeichnerisch, kein Layout-Eingriff):**
+1. **Entdoppelung** — Helfer `linie(x1, y1, x2, y2, klasse)` ersetzt die direkten
+   `baumG.append('line')`-Aufrufe für **alle** `.verbindung`-Segmente. Er merkt sich je
+   Render-Durchlauf die gezeichneten Segmente (`Set`, Schlüssel = sortierte Endpunkte auf 0,5px
+   gerundet + Klasse) und überspringt Wiederholungen. Trifft u. a. den Fall „0/1 Partner":
+   dort ist `descX` für **jede** Kindergruppe gleich `px`, die Abstiegs- und Sammellinie wurden
+   je Gruppe deckungsgleich neu gezeichnet.
+2. **Geschwister-Sammellinie zusammengefasst** — sie wurde bisher **je Geschwister** von `pm`
+   (Elternmitte) bis `sx` gezogen. Auf derselben Seite überdecken sich diese Teilstücke: das Stück
+   neben der Elternmitte lag so oft übereinander, wie es Geschwister auf dieser Seite gibt (dick),
+   das äußerste nur einmal (dünn) — genau die gemeldete Beobachtung. Jetzt sammelt die Schleife nur
+   die x-Positionen (`sibSx`) und zieht **eine** Linie von `min(pm, …sibSx)` bis `max(pm, …sibSx)`.
+   Ein reines Endpunkt-`Set` genügt hier nicht, weil sich die Segmente nur **teilweise** überlappen.
+
+**Bewusste Unterschiede bleiben:** `.ehe-linie-ex` (dünner/grau/fein gestrichelt) und die
+Board-Edit-Sonderstärke (`#baum-container.board-edit-grid .verbindung`) sind unverändert.
+**PDF-Export unberührt** — er zeichnet aus einer eigenen Layout-Liste mit deckenden Farben.
+
+**Verifikation:** Überdeckungs-Simulation mit 4 Geschwistern — vorher wurde der mittlere Bereich
+**2-fach** übermalt (bei n Geschwistern auf einer Seite entsprechend n-fach), nachher genau 1×, bei
+**identischer** Abdeckung (`[-600, 450]` in beiden Fällen, es fehlt also keine Linie). Entdoppelung
+per Node getestet (7 Fälle: identisch, umgekehrte Richtung, andere Klasse, Rundung, klar verschieden).
