@@ -23,10 +23,18 @@
 DROP FUNCTION IF EXISTS public.karte_sichtbar_setzen(uuid, boolean);
 DROP FUNCTION IF EXISTS public.karte_sichtbar_setzen(uuid);
 
--- 2) Policies vor der Tabelle (DROP TABLE nähme sie zwar mit, aber explizit ist nachvollziehbar
---    und bleibt idempotent, falls die Tabelle bereits weg ist).
-DROP POLICY IF EXISTS "bs_select" ON public.baum_sichtbarkeit;
-DROP POLICY IF EXISTS "bs_write"  ON public.baum_sichtbarkeit;
+-- 2) Policies vor der Tabelle. Explizit, damit die Reihenfolge nachvollziehbar bleibt (DROP TABLE
+--    nähme sie zwar ohnehin mit).
+--    ACHTUNG: `DROP POLICY IF EXISTS … ON tabelle` bezieht das IF EXISTS nur auf die POLICY —
+--    fehlt die TABELLE, wirft die Anweisung trotzdem „relation does not exist". Beim zweiten
+--    Durchlauf wäre das Skript sonst rot. Deshalb der Guard über to_regclass.
+DO $$
+BEGIN
+  IF to_regclass('public.baum_sichtbarkeit') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "bs_select" ON public.baum_sichtbarkeit;
+    DROP POLICY IF EXISTS "bs_write"  ON public.baum_sichtbarkeit;
+  END IF;
+END $$;
 
 -- 3) Tabelle. Kein CASCADE nötig: auf baum_sichtbarkeit zeigt nichts — ihre FKs gehen
 --    ausgehend auf stammbaeume/personen/familien/auth.users, nicht umgekehrt.
