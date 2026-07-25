@@ -29,6 +29,23 @@ Bereiche (Tags) zum Wiederfinden: `[PDF]` `[RLS]` `[Realtime]` `[Datum]` `[i18n]
 
 ## Einträge (neueste oben)
 
+### 2026-07-25 — Doppelte Board-Linien: geometrische Entdopplung reicht nicht [UX]
+- **Symptom:** Im Tabla/Board manche Verbindungslinien doppelt (zwei fast parallele Striche), v. a. bei
+  Verbünden mit Identitäts-Spiegelkarten („додатна стабла").
+- **Ursache:** Die Segment-Entdopplung `_segMap` in `boardZeichneLinien` arbeitet **rein geometrisch**
+  (auf 0,5px gerundete Endpunkte + Klasse). Dieselbe LOGISCHE Beziehung, aus zwei Unions gezeichnet
+  (Spiegelkarte / Subset-Union {M} vs {M,F} für dasselbe Kind), liefert minimal andere Geometrie
+  (> 0,5px) → verschiedene Schlüssel → beide Linien bleiben.
+- **Lösung (FAMROOTS-48):** Zusätzliche **logische** Entdopplung je kanonischer Beziehung
+  (`E|a|b` Ehe, `P|elternteil|kind`, `G|a|b` Geschwister) in einem `_logGez`-Set. Unions
+  **mehr-Eltern-zuerst** verarbeiten, damit die Paar-Kante (Superset) die (Elternteil,Kind)-Schlüssel
+  VOR der Subset-Einzelkante belegt und diese entfällt. `_segMap` bleibt als Overdraw-Schutz.
+- **Merksatz:** Entdopplung von Darstellungen einer Beziehung gehört auf die **logische** Ebene
+  (kanonische Endpunkte + Typ), nicht (nur) auf die Pixel-Geometrie. Superset vor Subset verarbeiten,
+  damit die tragende Kante (mit allen Elternschaften im `bezPaare` → Löschen bleibt möglich) gewinnt.
+- **Sackgassen:** `_segMap`-Toleranz erhöhen (z. B. 2px) würde echte, dicht benachbarte VERSCHIEDENE
+  Linien fälschlich verschmelzen — verworfen.
+
 ### 2026-07-25 — Ex-ohne-Kinder ins Auto-Diagramm: falscher Renderer + Layout-Bruch [UX]
 - **Symptom/Ziel:** Ex-Partner (ohne gemeinsame Kinder) sollte auch im Auto-Diagramm („Automatsko
   ређанje") verbunden erscheinen (im Board via FAMROOTS-46 ok). Zwei Fehlversuche.

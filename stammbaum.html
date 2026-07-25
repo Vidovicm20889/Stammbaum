@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="16.00">
+<meta name="app-version" content="16.01">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=16.00">
-<link rel="apple-touch-icon" href="favicon.svg?v=16.00">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=16.01">
+<link rel="apple-touch-icon" href="favicon.svg?v=16.01">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -36,7 +36,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=16.00">
+<link rel="stylesheet" href="stammbaum.css?v=16.01">
 </head>
 <body>
 
@@ -2855,14 +2855,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=16.00"></script>
+<script src="i18n.js?v=16.01"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=16.00"></script>
-<script src="chat.js?v=16.00"></script>
-<script src="rezepte_pool.js?v=16.00"></script>
+<script src="pdf_export.js?v=16.01"></script>
+<script src="chat.js?v=16.01"></script>
+<script src="rezepte_pool.js?v=16.01"></script>
 <!-- FAMROOTS-36: lokalen Supabase-Stack NUR auf localhost optional dazuladen. Auf GitHub Pages
      (Prod) wird supabase_local.js NIE angefragt -> kein 404 in fremden Konsolen, kein Local-Key im
      Repo. Die Datei ist gitignored (Vorlage: supabase_local.example.js) und setzt window.__SB_LOCAL.
@@ -11086,7 +11086,14 @@ function boardZeichneLinien(model, visible, X, Y, g, autoKanten) {
   // Griffe (Endpunkt-Anker + Wegpunkt) nur für Bearbeiter im Edit-Modus — wie das Löschen.
   const darfLinie = darfDel;
   const ctx = { model, visible, X, Y, HW, HH, klick, segZeichnen, darfLinie, uuidOf };
-  model.unions.forEach(u => {
+  // FAMROOTS-48: LOGISCHE Entdopplung je kanonischer Beziehung (canon-Endpunkte + Typ), zusätzlich zur
+  // rein geometrischen _segMap. Behebt Doppel-Linien aus Identitäts-Spiegelkarten / Subset-Unions:
+  // dieselbe reale Beziehung aus zwei Unions liefert minimal andere Geometrie (> 0,5px) -> _segMap
+  // greift nicht -> zwei Striche. Der logische Schlüssel ist pixelunabhängig. Unions mit MEHR Eltern
+  // zuerst, damit die Paar-Kante (Superset) die (Elternteil,Kind)-Schlüssel VOR der Subset-Einzelkante
+  // belegt und diese entfällt (die Paar-Kante trägt beide Elternschaften -> Löschen bleibt möglich).
+  const _logGez = new Set();
+  [...model.unions].sort((a, b) => b.parents.size - a.parents.size).forEach(u => {
     const ps = [...u.parents].filter(inV).sort((a, b) => X.get(a) - X.get(b));
     const cs = [...u.children].filter(inV);
     // Partner: goldene gestrichelte Linie zwischen benachbarten Eltern (Endpunkte ziehbar) +
@@ -11097,6 +11104,8 @@ function boardZeichneLinien(model, visible, X, Y, g, autoKanten) {
     const eheKlasse = (u.partner_art === 'ex_ehe' || u.partner_art === 'ex_partner') ? 'ehe-linie ehe-linie-ex' : 'ehe-linie';
     for (let i = 0; i < ps.length - 1; i++) {
       if (!zeigeEhe(ps[i], ps[i + 1])) continue;   // SCRUM-6: nur was die Autosortierung auch zieht
+      const _ke = 'E|' + [ps[i], ps[i + 1]].slice().sort().join('|');   // FAMROOTS-48: Ehe-Paar nur EINMAL
+      if (_logGez.has(_ke)) continue; _logGez.add(_ke);
       const ax = X.get(ps[i]), ay = Y.get(ps[i]), bx = X.get(ps[i + 1]), by = Y.get(ps[i + 1]);
       boardVerbindung(g, ps[i], ps[i + 1], eheKlasse,
         [[uuidOf(ps[i]), uuidOf(ps[i + 1]), 'ehepartner']], nameOf(ps[i]) + ' / ' + nameOf(ps[i + 1]), ctx);
@@ -11113,6 +11122,8 @@ function boardZeichneLinien(model, visible, X, Y, g, autoKanten) {
       const _phU = uuidOf([...u.parents][0]);   // (Platzhalter-)Elternteil der Geschwister
       for (let i = 0; i < sortiert.length - 1; i++) {
         const a = sortiert[i], b = sortiert[i + 1];
+        const _kg = 'G|' + [a, b].slice().sort().join('|');   // FAMROOTS-48: Geschwister-Kante nur EINMAL
+        if (_logGez.has(_kg)) continue; _logGez.add(_kg);
         // Klick löst das RECHTE Geschwister aus der Gruppe (dessen Kante zum Platzhalter-Elternteil).
         boardVerbindung(g, a, b, 'verbindung', [[_phU, uuidOf(b), 'elternteil']], nameOf(b), ctx);
       }
@@ -11129,6 +11140,11 @@ function boardZeichneLinien(model, visible, X, Y, g, autoKanten) {
     const vonRep = ((model.nodes.get(ps[0]) || {}).person || {})._uuid;
     cs.forEach(cc => {
       if (!zeigeElt(ps, cc)) return;   // SCRUM-6: diese Elternschaft zeichnet die Autosortierung nicht
+      // FAMROOTS-48: je (Elternteil,Kind)-Paar nur EINMAL. Ist der ganze Verbinder redundant (alle
+      // Paare schon von einer Superset-Union gezeichnet — Spiegel/Subset), überspringen.
+      const _kelt = ps.map(p => 'P|' + p + '|' + cc);
+      if (_kelt.every(k => _logGez.has(k))) return;
+      _kelt.forEach(k => _logGez.add(k));
       const cx = X.get(cc), cy = Y.get(cc);
       const dir = cy >= py ? 1 : -1;
       const startY = twoParents ? py : (py + dir * HH);   // Paar: ab Diamant; Einzelelternteil: ab Kartenkante

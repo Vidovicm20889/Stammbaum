@@ -790,6 +790,16 @@ den alten Pfad, falls `segZeichnen` im `ctx` fehlt.
 
 **Verifiziert:** 3× dasselbe Segment → **1** sichtbare Linie, aber **3** Trefferflächen.
 
+**Logische Entdopplung ergänzt (FAMROOTS-48):** `segZeichnen`/`_segMap` ist rein **geometrisch** (0,5px +
+Klasse) — dieselbe LOGISCHE Beziehung aus zwei Unions (Identitäts-Spiegelkarten / Subset-Union `{M}` vs
+`{M,F}` fürs selbe Kind) liefert minimal andere Geometrie (> 0,5px) → beide Striche bleiben. Ergänzt um
+ein **`_logGez`-Set** in `boardZeichneLinien`, das je **kanonischer** Beziehung nur einmal zeichnet:
+`E|a|b` (Ehe), `P|elternteil|kind` (je Elternteil-Kind-Paar), `G|a|b` (Geschwister). Die Unions werden
+**mehr-Eltern-zuerst** verarbeitet, damit die **Paar-Kante** (Superset) die (Elternteil,Kind)-Schlüssel
+VOR der Subset-Einzelkante belegt und diese entfällt — die Paar-Kante trägt beide Elternschaften im
+`bezPaare`, **Löschen bleibt** also möglich. Echte, VERSCHIEDENE Beziehungen (andere Endpunkte/Typ)
+haben andere Schlüssel → **keine** Falsch-Verschmelzung. `_segMap` bleibt als Overdraw-Schutz.
+
 ## Rückgängig/Wiederholen-Bedienung (SCRUM-26)
 Die Undo/Redo-**Mechanik** existiert seit v14.72 (Phase 2, 4.3). SCRUM-26 ergänzt die **Bedienoberfläche**:
 - **Pille `#board-undo-tools`** oben links (Kind von `#baum-container`), zwei Buttons ↶/↷ → rufen die
