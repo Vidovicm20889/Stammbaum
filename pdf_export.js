@@ -16,8 +16,19 @@
 const PDF_PAPIER_MM = { A4:[210,297], A3:[297,420], A2:[420,594], A1:[594,841], A0:[841,1189] };
 const PDF_SVG_NS = 'http://www.w3.org/2000/svg';
 const PDF_TREE_FARBEN = ['#c8a840','#5a9bd4','#7bb274','#d98b5f','#b07cc6','#d46a8a','#54b3b0','#c0b04a'];
+// SCRUM-32: Export-Linienfarben an EINER Stelle. Beide Exportwege — Auto (pdfBaueSvg) und Board
+// (druckfester Style-Block in pdfBoardSvg) — lesen dieselben Werte; vorher standen sie doppelt und
+// wichen voneinander ab. Alle >= 3:1 gegen den Export-Hintergrund #fbfaf7 (WCAG 1.4.11, grafische
+// Elemente). #c08a1e schaffte nur 2,92:1 und ist deshalb durch #b07d15 ersetzt (optisch fast gleich).
+const PDF_FARBE_VERB   = '#9c7c3c';   // Eltern-Kind    3,75:1
+const PDF_FARBE_EHE    = '#b07d15';   // Partner/Ehe    3,47:1  (war #c08a1e = 2,92:1)
+const PDF_FARBE_EHE_EX = '#7a7f85';   // Ex-Partner     3,87:1
 let pdfBusy = false;
 let pdfEmpfTimer = null;
+// SCRUM-27: merkt sich, ob der letzte PDF-Lauf auf ein RASTERBILD zurückfiel (Text dann nicht
+// selektierbar/durchsuchbar). Wird in pdfExportPdf gesetzt und in pdfExportStart als Hinweis
+// ausgegeben — Ende der stillen Degradierung.
+let pdfWarRaster = false;
 function pdfEmpfDebounced() { clearTimeout(pdfEmpfTimer); pdfEmpfTimer = setTimeout(pdfBerechneEmpfehlung, 280); }
 
 function pdfEl(tag, attrs, parent) {
@@ -93,6 +104,11 @@ function pdfQuelleChange() {
     h.classList.toggle('warn', tabla && !imBoard);
     h.style.display = tabla ? '' : 'none';
   }
+  // SCRUM-25: Personenfilter gelten im Board-Export nicht (er gibt exakt den Bildschirm aus).
+  // Statt wortlos auszugrauen den Grund NENNEN — der Nutzer soll sehen, warum, und den Ausweg
+  // kennen (Karten im Board ausblenden). Text ist per data-i18n vorbefüllt, hier nur ein-/ausblenden.
+  const fh = document.getElementById('pdf-filter-board-hinweis');
+  if (fh) fh.style.display = tabla ? '' : 'none';
   pdfTitelblattSync();
   pdfBerechneEmpfehlung();
 }
@@ -417,7 +433,7 @@ function pdfBaueSvg(layout, opts, extra) {
 
   const g = pdfEl('g', { transform: `translate(${-b.x},${-b.y + headerH})` }, svg);
   layout.lines.forEach(l => {
-    const at = { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, stroke: l.ehe ? '#c08a1e' : '#9c7c3c', 'stroke-width': 2.4, 'stroke-linecap': 'round' };
+    const at = { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, stroke: l.ehe ? PDF_FARBE_EHE : PDF_FARBE_VERB, 'stroke-width': 2.4, 'stroke-linecap': 'round' };
     if (l.ehe) at['stroke-dasharray'] = '6 3';
     pdfEl('line', at, g);
   });
@@ -576,6 +592,8 @@ async function pdfExportPdf(svg, layout, opts, meta, fname) {
   const fmt = paper.toLowerCase();
   const doc = new Ctor({ orientation, unit: 'mm', format: fmt });
   let pages = 0;
+  pdfWarRaster = false;   // SCRUM-27: pro Lauf neu bewerten
+  if (opts.poster) pdfWarRaster = true;   // Poster/mehrseitig ist IMMER Raster (Kachelung, AK5)
 
   if (opts.titelblatt) {
     const tc = pdfTitelCanvas(meta, pageW, pageH, 5);
@@ -590,18 +608,41 @@ async function pdfExportPdf(svg, layout, opts, meta, fname) {
     const availW = pageW - 2 * margin, availH = pageH - 2 * margin;
     const sc = Math.min(availW / vbW, availH / vbH);
     const drawW = vbW * sc, drawH = vbH * sc, x = (pageW - drawW) / 2, y = (pageH - drawH) / 2;
-    const svgText = new XMLSerializer().serializeToString(svg);
-    // SCRUM-23 (AK7): dieselbe Pruefung wie in pdfNutztCanvas — EINE Definition, kein Nachbau.
-    const winAnsiSafe = pdfWinAnsiSafe(svgText);
+    // SCRUM-27 Stufe 2 / FAMROOTS-35: Ist die Unicode-Schrift eingebettet (Noto Serif,
+    // pdf_font.js), registriert pdfFontRegistrieren sie im jsPDF-VFS und liefert den Font-Namen.
+    // Der Vektorweg oeffnet aber NUR, wenn die Schrift auch jedes vorkommende Zeichen setzen kann
+    // (pdfVektorMoeglich -> pdfFontDeckt) — sonst stuenden im PDF leere Kaestchen, die schlimmere
+    // Regression. Ohne Schrift (Base64 leer, Datei nicht geladen) bleibt es beim WinAnsi-Guard von
+    // SCRUM-23 und beim Raster-Fallback mit Hinweis (AK7: sauberer Rueckfall, kein Mojibake).
+    const textInhalt = pdfSvgTextInhalt(svg);
+    const fontName = (typeof pdfFontRegistrieren === 'function') ? pdfFontRegistrieren(doc) : null;
+    const winAnsiSafe = pdfWinAnsiSafe(textInhalt);
+    const fontDeckt = !!fontName && (typeof pdfFontDeckt === 'function') && pdfFontDeckt(textInhalt);
     let vektorOk = false;
-    if (winAnsiSafe && typeof doc.svg === 'function') {
-      try { await doc.svg(svg, { x, y, width: drawW, height: drawH }); vektorOk = true; } catch (e) { console.warn('svg2pdf fehlgeschlagen, Raster-Fallback:', e); }
+    if ((fontDeckt || winAnsiSafe) && typeof doc.svg === 'function') {
+      try {
+        if (fontDeckt) {
+          doc.setFont(fontName);   // Doc-Default, wo das SVG nichts vorgibt
+          // svg2pdf liest die font-family AM ELEMENT. Der Auto-Pfad schreibt „Georgia, serif", der
+          // Board-Klon bekommt sie ueber die eingebettete Klassen-CSS — beides kennt jsPDF nicht.
+          // Deshalb hier INLINE-STYLE (nicht Praesentationsattribut): inline schlaegt die
+          // Klassenregel, ein Attribut waere schwaecher (gleiche Begruendung wie bei den
+          // Linienfarben in SCRUM-24).
+          svg.querySelectorAll('text, tspan').forEach(n => { n.style.fontFamily = fontName; });
+        }
+        await doc.svg(svg, { x, y, width: drawW, height: drawH }); vektorOk = true;
+      } catch (e) { console.warn('svg2pdf fehlgeschlagen, Raster-Fallback:', e); }
     }
     if (!vektorOk) {
+      // Blieb der Vektorweg zu (oder ist svg2pdf gescheitert), laeuft jetzt DOCH eine Canvas.
+      // Cross-Origin-Avatare muessen dann raus, sonst wirft toDataURL einen SecurityError und der
+      // Export bricht ab. pdfExportStart hat sie in diesem Fall stehen lassen (Vektor erwartet).
+      if (opts.quelle === 'tabla') svg.querySelectorAll(PDF_BOARD_WEG_CANVAS).forEach(n => n.remove());
       let cScale = (drawW * 11.8) / vbW;                    // ~300 dpi (scharfe Schrift)
       cScale = Math.min(cScale, 16000 / Math.max(vbW, vbH));
       const canvas = await pdfSvgZuCanvas(svg, Math.max(0.3, cScale));
       doc.addImage(canvas, 'PNG', x, y, drawW, drawH);
+      pdfWarRaster = true;   // SCRUM-27 Stufe 1: Text ist jetzt nicht selektierbar -> Hinweis
     }
   } else {
     // Poster: ein großes Raster, in Seiten-Kacheln mit Überlappung zerlegt.
@@ -664,21 +705,89 @@ const PDF_BOARD_WEG = [
 const PDF_BOARD_WEG_CANVAS = 'image';
 
 // SCRUM-23 (AK7): Die Canvas-Frage EINMAL beantworten und weiterreichen — nicht an zwei Stellen
-// nachbauen (Drift-Falle aus SCRUM-20). `svgText` ist optional: ohne ihn wird fuer den einseitigen
+// nachbauen (Drift-Falle aus SCRUM-20). `textInhalt` ist optional: ohne ihn wird fuer den einseitigen
 // PDF-Weg konservativ `true` angenommen (lieber ein Avatar zu wenig als ein abgebrochener Export).
 // Belegte Matrix (siehe docs/ansichten-pdf.md):
 //   svg / druck            -> nein  (serialisieren bzw. ins DOM haengen)
 //   png                    -> JA
 //   pdf + poster           -> JA    (Kacheln entstehen immer per Canvas)
-//   pdf einseitig          -> nur wenn NICHT winAnsiSafe (dann Raster-Fallback statt doc.svg)
+//   pdf einseitig          -> nur wenn der Vektorweg ZU ist (dann Raster-Fallback statt doc.svg)
 function pdfWinAnsiSafe(svgText) { return !/[^ -ÿ]/.test(String(svgText || '')); }
-function pdfNutztCanvas(opts, svgText) {
+// FAMROOTS-35: Zeichen, für die Noto Serif GAR KEINEN Glyph besitzt (nicht etwa nur das Subset —
+// die Schrift kennt weder Emoji noch ✉/♂/♀ noch den kompletten Pfeilblock U+2190–21FF). Ohne
+// Ersatz bliebe jede Karte mit Zusatzfeldern ein Raster-Auslöser; mit der Schrift und OHNE Guard
+// gäbe es leere Kästchen. Ersetzt wird NUR im Export — die Bildschirmkarten behalten ihre Emoji.
+// Gewählt ist die klassische genealogische Notation (* Geburt, † Tod, oo Heirat): sprachneutral
+// und vollständig von PDF_FONT_ABDECKUNG gedeckt.
+const PDF_ZEICHEN_ERSATZ = {
+  '\u{1F4CD}': '*',    // Geburtsort   -> wie beim Geburtsdatum
+  '\u{1FAA6}': '†',    // Sterbeort    -> wie beim Sterbedatum
+  '\u{1F48D}': 'oo',   // Hochzeit     -> genealogisches Heiratszeichen
+  '\u{1F492}': 'oo',   // Hochzeitsort
+  '\u{1F4BC}': '·',    // Beruf
+  '\u{1F4DE}': '·',    // Telefon
+  '✉': '@',       // E-Mail
+  '♂': 'M',       // maennlich (entspricht personen.sex)
+  '♀': 'F',       // weiblich
+  '→': '»',       // Uebergangs-Badge (bl_uebergang)
+  '\u{1F517}': '»',    // Cross-Tree-Chip / Verbund-Badge
+};
+// Regex ueber die Schluessel, mit u-Flag — sonst zerfallen die Emoji in Surrogat-Haelften und
+// werden nicht getroffen (genau die Falle, an der die zweite Kette-Stelle unsichtbar blieb).
+const PDF_ZEICHEN_ERSATZ_RE = new RegExp('[' + Object.keys(PDF_ZEICHEN_ERSATZ).join('') + ']', 'gu');
+
+// Schreibt die Textinhalte des Export-SVG so um, dass die eingebettete Schrift sie setzen kann.
+// Fasst ausschliesslich <text>/<tspan> an — Attribute, IDs und die eingebettete CSS bleiben
+// unberuehrt (die landen nie als Glyph im PDF).
+function pdfTextFuerSchrift(svg) {
+  if (!svg || typeof svg.querySelectorAll !== 'function') return svg;
+  svg.querySelectorAll('text, tspan').forEach(n => {
+    n.childNodes.forEach(k => {
+      if (k.nodeType !== 3 || !k.nodeValue) return;
+      PDF_ZEICHEN_ERSATZ_RE.lastIndex = 0;              // /g -> Suchzustand vor jedem Lauf zuruecksetzen
+      k.nodeValue = k.nodeValue.replace(PDF_ZEICHEN_ERSATZ_RE, z => PDF_ZEICHEN_ERSATZ[z] || '');
+    });
+  });
+  return svg;
+}
+
+// Nur das, was im PDF wirklich als Glyph gesetzt wird. Der fruehere Test lief ueber den KOMPLETTEN
+// serialisierten SVG-String — bei Quelle „Tabla" inklusive der eingebetteten App-CSS. Ein
+// Sonderzeichen in irgendeiner CSS-Regel erzwang damit einen Raster-Fallback, obwohl es nie
+// gezeichnet wird (FAMROOTS-35 AK10).
+function pdfSvgTextInhalt(svg) {
+  if (!svg || typeof svg.querySelectorAll !== 'function') return null;
+  let s = '';
+  svg.querySelectorAll('text, tspan').forEach(n => {
+    n.childNodes.forEach(k => { if (k.nodeType === 3 && k.nodeValue) s += k.nodeValue; });
+  });
+  return s;
+}
+
+// Die Vektor-Entscheidung an EINER Stelle (SCRUM-23-Prinzip): sowohl die Avatar-Frage in
+// pdfExportStart als auch der Guard in pdfExportPdf fragen hier. Vektor ist moeglich, wenn
+// entweder die Unicode-Schrift JEDES vorkommende Zeichen darstellen kann ODER der Text ohnehin
+// WinAnsi ist (dann reicht die jsPDF-Standardschrift, wie vor SCRUM-27).
+function pdfVektorMoeglich(opts, textInhalt) {
+  if (opts && opts.poster) return false;                // Poster wird immer gekachelt = Raster
+  if (opts && opts.format !== 'pdf') return false;      // nur der PDF-Weg kennt doc.svg
+  if (textInhalt == null) return false;                 // unbekannt -> konservativ
+  const fontDa = (typeof pdfFontVerfuegbar === 'function') && pdfFontVerfuegbar();
+  const deckt = fontDa && (typeof pdfFontDeckt === 'function') && pdfFontDeckt(textInhalt);
+  return !!deckt || pdfWinAnsiSafe(textInhalt);
+}
+
+function pdfNutztCanvas(opts, textInhalt, vektorMoeglich) {
   const f = opts && opts.format;
   if (f === 'svg' || f === 'druck') return false;
   if (f === 'png') return true;
   if (opts && opts.poster) return true;
-  if (svgText == null) return true;                     // unbekannt -> auf Nummer sicher
-  return !pdfWinAnsiSafe(svgText);
+  if (textInhalt == null) return true;                  // unbekannt -> auf Nummer sicher
+  // FAMROOTS-35: haengt nicht mehr an winAnsiSafe. Sobald die Schrift den Vektorweg oeffnet,
+  // laeuft KEINE Canvas — die Avatare muessen dann drinbleiben, sonst faehrt das Vektor-PDF ohne
+  // Kartenbilder aus. Faellt der Vektorweg doch noch, raeumt pdfExportPdf sie selbst ab.
+  const vektor = (arguments.length > 2) ? !!vektorMoeglich : pdfVektorMoeglich(opts, textInhalt);
+  return !vektor;
 }
 
 function pdfBoardSvg() {
@@ -705,25 +814,27 @@ function pdfBoardSvg() {
   // Linien-Optik (Farben, Schrift, Strichstärken).
   let css = '';
   try { for (const sh of document.styleSheets) { try { for (const r of sh.cssRules) css += r.cssText + '\n'; } catch (e) {} } } catch (e) {}
-  // SCRUM-24: Die Bildschirmfarben sind fuer den DUNKLEN Hintergrund (Bild4.jpg) gebaut —
-  // `.verbindung` ist cremeweiss (rgba(255,248,220,.88)). Der Export legt aber `#fbfaf7` darunter:
-  // die Linien sind dann physisch da, aber unsichtbar, auf Papier komplett weg. Die dunkle
-  // Edit-Variante (`#baum-container.board-edit-grid .verbindung`) matcht im Klon nicht mehr, weil
-  // der Vorfahre `#baum-container` fehlt und `class` entfernt wird.
-  // Deshalb hier druckfeste Farben ANHAENGEN — sie stehen NACH dem Dokument-CSS und gewinnen daher
-  // bei gleicher Spezifitaet; `!important` zusaetzlich gegen die Edit-Regel, falls sie je matcht.
-  // Farbwerte bewusst identisch zum Auto-Export (`#9c7c3c` / `#c08a1e`), damit beide Exportwege
-  // gleich aussehen. ⚠️ Zweite Farbquelle: bei Design-Aenderungen an stammbaum.css hier mitziehen.
-  css += `
-    .verbindung { stroke: #9c7c3c !important; }
-    .ehe-linie  { stroke: #b07d15 !important; }             /* nicht #c08a1e: das erreicht auf #fbfaf7 nur 2.92:1 */
-    .ehe-linie-ex { stroke: #7a7f85 !important; }           /* Ex bleibt unterscheidbar (grau, feiner) */
-    .ehe-ex-label { fill: #5c5346 !important; }             /* war #d9cfb6 = auf Weiss unlesbar */
-    .verbindung-badge .verbindung-text { fill: #7a5f18 !important; stroke: none !important; }
-    .paar-knoten { fill: #9c7c3c !important; stroke: #9c7c3c !important; }
-  `;
   const styleEl = document.createElementNS(PDF_SVG_NS, 'style'); styleEl.textContent = css;
   clone.insertBefore(styleEl, clone.firstChild);
+  // SCRUM-24: Druckfarben DIREKT aufs Element, nicht per <style>-Klassenregel.
+  // Die Bildschirmfarben sind fuer den DUNKLEN Hintergrund (Bild4.jpg) gebaut — `.verbindung` ist
+  // cremeweiss (rgba(255,248,220,.88)); der Export legt `#fbfaf7` darunter -> Linien unsichtbar,
+  // auf Papier komplett weg. Der fruehere Fix haengte einen `<style>`-Block mit `!important` an —
+  // das griff NICHT: eingebettete <style>-KLASSENSELEKTOREN werden von svg2pdf und beim Rastern
+  // (SVG->Image->Canvas) nicht zuverlaessig aufgeloest, die cremeweisse Regel blieb (Nutzer: TEST NOK).
+  // Der funktionierende Auto-Export (pdfBaueSvg, s. `stroke: l.ehe ? …`) setzt die Farbe ebenfalls
+  // direkt am Element. Hier per INLINE-STYLE (nicht Praesentationsattribut): Inline-style schlaegt
+  // die eingebettete `.verbindung`-Klassenregel; ein Attribut waere schwaecher als die Klasse. Die
+  // Edit-`!important`-Regel matcht im Klon ohnehin nicht (Vorfahre `#baum-container` fehlt).
+  // Farbwerte = dieselben Konstanten wie der Auto-Export (SCRUM-32), alle >= 3:1 gegen #fbfaf7.
+  const faerbe = (sel, prop, farbe) => clone.querySelectorAll(sel).forEach(n => { n.style[prop] = farbe; });
+  faerbe('.verbindung', 'stroke', PDF_FARBE_VERB);
+  faerbe('.ehe-linie', 'stroke', PDF_FARBE_EHE);
+  faerbe('.ehe-linie-ex', 'stroke', PDF_FARBE_EHE_EX);
+  faerbe('.ehe-ex-label', 'fill', '#5c5346');                 // war #d9cfb6 = auf Weiss unlesbar
+  clone.querySelectorAll('.verbindung-badge .verbindung-text').forEach(n => { n.style.fill = '#7a5f18'; n.style.stroke = 'none'; });
+  faerbe('.paar-knoten', 'fill', PDF_FARBE_VERB);
+  faerbe('.paar-knoten', 'stroke', PDF_FARBE_VERB);
   const bg = document.createElementNS(PDF_SVG_NS, 'rect');
   bg.setAttribute('x', minX); bg.setAttribute('y', minY);
   bg.setAttribute('width', w); bg.setAttribute('height', hgt); bg.setAttribute('fill', '#fbfaf7');
@@ -779,11 +890,17 @@ async function pdfExportStart() {
       svg = pdfBaueSvg(layout, opts, { header: wantHeader, meta });
     }
     pdfSetProgress(62, t('pdf_prog_ausgabe')); await pdfTick();
+    // FAMROOTS-35: Zeichen ohne Glyph (Emoji, ✉ ♂ ♀, →) vor JEDER weiteren Entscheidung durch
+    // darstellbare ersetzen — sonst blockierten sie den Vektorweg fuer die ganze Seite. Zentral
+    // fuer BEIDE Quellen: der Board-Klon bringt sie ueber die Bildschirmkarten mit, der Auto-Pfad
+    // koennte sie kuenftig ueber Personendaten bekommen.
+    pdfTextFuerSchrift(svg);
     // SCRUM-23: Avatare erst JETZT entfernen — und nur, wenn der gewaehlte Weg ueber eine Canvas
-    // laeuft. Vorher ging das nicht: `winAnsiSafe` haengt am fertigen SVG-Text, steht in
+    // laeuft. Vorher ging das nicht: die Zeichen-Entscheidung haengt am fertigen SVG-Text, steht in
     // `pdfBoardSvg` also noch gar nicht fest. Betrifft nur die Tabla-Quelle (der Auto-Pfad baut
-    // sein SVG selbst und bleibt unangetastet).
-    if (tabla && pdfNutztCanvas(opts, new XMLSerializer().serializeToString(svg))) {
+    // sein SVG selbst, seine Fotos sind data:-URLs und damit canvas-sicher).
+    const textInhalt = pdfSvgTextInhalt(svg);
+    if (tabla && pdfNutztCanvas(opts, textInhalt, pdfVektorMoeglich(opts, textInhalt))) {
       svg.querySelectorAll(PDF_BOARD_WEG_CANVAS).forEach(n => n.remove());
     }
     const base = pdfDateiname(meta);
@@ -792,7 +909,11 @@ async function pdfExportStart() {
     else if (opts.format === 'druck') { await pdfDrucke(svg); }
     else await pdfExportPdf(svg, layout, opts, meta, base + '.pdf');
     pdfSetProgress(100, t('pdf_prog_fertig'));
-    if (opts.format !== 'druck') pdfHinweis(t('pdf_fertig'), false);
+    // SCRUM-27 Stufe 1: Fiel das PDF auf ein Rasterbild zurück, sagen wir das jetzt — statt still
+    // ein nicht-selektierbares Bild-PDF zu liefern. Nur bei format 'pdf' relevant (PNG ist gewollt
+    // Raster, SVG ist Vektor, Druck hat keinen Fertig-Hinweis).
+    if (opts.format === 'pdf' && pdfWarRaster) pdfHinweis(t('pdf_raster_hinweis'), true);
+    else if (opts.format !== 'druck') pdfHinweis(t('pdf_fertig'), false);
   } catch (e) {
     console.error('PDF-Export-Fehler:', e);
     pdfHinweis(t('pdf_fehler') + (e && e.message ? ' (' + e.message + ')' : ''), true);

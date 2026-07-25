@@ -1,0 +1,152 @@
+# FamilyRoots — lokaler Supabase-Stack (FAMROOTS-36, Staging-Vorstufe „lokal").
+# Referenz: https://supabase.com/docs/guides/local-development/cli/config
+#
+# ⚠️ KOEXISTENZ MIT StockFlow (Pflicht, AK2): Im VidovicAI-Ordner liegen ZWEI Apps mit je einem
+# lokalen Supabase-Stack. StockFlow belegt die Default-Ports (54320–54324, 54327, 54329, 8083).
+# FamilyRoots weicht deshalb um +10 aus (54330–54339, 54337, 8093) — so laufen beide Stacks
+# gleichzeitig ohne Port-Kollision. Ports sind in docs/staging-umgebung.md dokumentiert.
+#
+# Dieser Stack ist ein WEGWERF-Stack: nur synthetische Testdaten (docs/staging-umgebung.md),
+# nie echte Familiendaten. Start: `supabase start` · Stopp: `supabase stop`.
+project_id = "familyroots"
+
+[api]
+enabled = true
+# Port to use for the API URL. (Default wäre 54321 — von StockFlow belegt.)
+port = 54331
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[db]
+# Port to use for the local database URL. (Default 54322 = StockFlow.)
+port = 54332
+# Port used by db diff command to initialize the shadow database. (Default 54320 = StockFlow.)
+shadow_port = 54330
+health_timeout = "2m"
+# Muss der Remote-Major-Version entsprechen. Prod-Supabase = Postgres 17.
+major_version = 17
+
+[db.pooler]
+enabled = false
+# Default 54329 = StockFlow.
+port = 54339
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[db.migrations]
+# FamilyRoots pflegt KEINE supabase/migrations/-Dateien — die 117 nummerierten `.sql` aus dem
+# Root sind die Quelle der Wahrheit (SCHEMA.md). Der lokale Aufbau läuft über das Einspiel-Skript
+# scripts/lokal_db_aufbau.mjs, NICHT über `supabase db reset`. Deshalb hier leer.
+enabled = true
+schema_paths = []
+
+[db.seed]
+# ⚠️ AUS (FAMROOTS-36): `supabase start` würde seed.sql sonst gegen die noch LEERE DB einspielen
+# (public.personen existiert dann nicht → Start bricht ab). In diesem Projekt baut NICHT die
+# Supabase-Migrationsmechanik das Schema, sondern scripts/lokal_db_aufbau.mjs (Basis-Dump → 117
+# Migrationen → seed als LETZTER Schritt). Das Seed läuft also NUR über das Skript, nie beim Start.
+enabled = false
+sql_paths = ["./seed.sql"]
+
+[db.network_restrictions]
+enabled = false
+allowed_cidrs = ["0.0.0.0/0"]
+allowed_cidrs_v6 = ["::/0"]
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+# Supabase Studio (Web-UI). Default 54323 = StockFlow.
+port = 54333
+api_url = "http://127.0.0.1"
+openai_api_key = "env(OPENAI_API_KEY)"
+
+# Lokaler E-Mail-Fänger: lokal versendete Mails gehen NICHT raus, sondern in dieses Web-UI.
+[local_smtp]
+enabled = true
+# Default 54324 = StockFlow.
+port = 54334
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.s3_protocol]
+enabled = true
+
+[storage.analytics]
+enabled = false
+max_namespaces = 5
+max_tables = 10
+max_catalogs = 2
+
+[storage.vector]
+enabled = true
+max_buckets = 10
+max_indexes = 5
+
+[auth]
+enabled = true
+# Lokale App-URL. Anpassen an den lokalen Static-Server (z. B. VS-Code Live Server = 5500).
+site_url = "http://localhost:5500"
+additional_redirect_urls = [
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# LOKAL: freie Registrierung + keine Mail-Bestätigung, damit man Testkonten schnell anlegen kann.
+# ⚠️ Bewusst ANDERS als Prod (dort läuft die Aufnahme über Admin-Genehmigung + Resend). Dieser
+# Stack testet die DB/RLS, nicht den produktiven Registrierungs-Mailflow (der gehört zu FAMROOTS-37).
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 6
+password_requirements = ""
+
+[auth.rate_limit]
+email_sent = 2
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+token_verifications = 30
+web3 = 30
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Lokal aus: keine E-Mail-Bestätigung nötig (Testkonten sofort nutzbar).
+enable_confirmations = false
+secure_password_change = false
+max_frequency = "1s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+max_frequency = "5s"
+
+[edge_runtime]
+# Edge Functions gehören zum Staging-Cloud-Teil (FAMROOTS-37) und werden weiter übers Dashboard
+# deployt. Der lokale Stack lässt das Runtime laufen, konfiguriert aber keine einzelnen Functions.
+enabled = true
+policy = "per_worker"
+# Chrome-Inspector-Port. Default 8083 = StockFlow.
+inspector_port = 8093
+deno_version = 2
+
+[analytics]
+enabled = false
+# Default 54327 = StockFlow. Aus, weil für reines DB-Testen nicht gebraucht.
+port = 54337
+backend = "postgres"

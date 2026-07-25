@@ -380,6 +380,33 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
   box-shadow: 0 2px 10px rgba(44,36,24,0.10);
 }
 .baum-info strong { color: var(--akzent); }
+/* SCRUM-26: Im Tabla-Bearbeitungsmodus weicht der Info-Hinweis der Undo-Pille (beide oben links).
+   Der Zustand kommt aus boardGridAnwenden (setzt .board-edit-grid am Container) — EIN Zustandspfad,
+   kein zweiter, der driften kann. Ausserhalb des Edit-Modus erscheint der Hinweis wieder. */
+#baum-container.board-edit-grid .baum-info { display: none; }
+/* Rückgängig/Wiederholen-Pille (Optik wie .baum-layout-modus, aber oben LINKS). */
+.board-undo-tools {
+  position: absolute; top: 15px; left: 15px; z-index: 7;
+  display: flex; align-items: stretch; overflow: hidden;
+  background: rgba(255,250,240,0.96); border: 1px solid var(--linie);
+  border-radius: 26px; box-shadow: 0 2px 10px rgba(44,36,24,0.18);
+}
+.board-undo-btn {
+  appearance: none; border: none; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 15px; color: var(--text);
+  padding: 10px 16px; min-width: 44px; min-height: 44px;   /* Touch-Target (AK17) */
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.board-undo-btn + .board-undo-btn { border-left: 1px solid var(--linie); }
+.board-undo-btn:hover:not(:disabled) { background: rgba(200,168,64,0.16); }
+.board-undo-btn:disabled { opacity: 0.4; cursor: default; }
+/* FAMROOTS-41: „(früher)"-Kennzeichnung im Zweiter-Elternteil-Auswahldialog */
+.board-zweitelt-ex { opacity: 0.7; font-size: 0.9em; font-style: italic; }
+.board-undo-btn span[aria-hidden] { font-size: 18px; line-height: 1; }
+@media (max-width: 480px) {
+  /* Kompakter, damit die Pille oben links neben nichts anderem klemmt; Text bleibt, Padding kleiner. */
+  .board-undo-btn { padding: 9px 12px; font-size: 14px; }
+}
 .baum-zurueck-btn {
   display: block; margin-top: 12px;
   background: none; border: 1px solid var(--akzent);
@@ -427,6 +454,10 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 /* Auf dem weißen Dot-Grid sind die cremefarbenen Baumlinien fast unsichtbar -> dunkler zeichnen. */
 #baum-container.board-edit-grid .verbindung { stroke: rgba(70,54,28,0.85) !important; stroke-width: 1.9 !important; }
 #baum-container.board-edit-grid .ehe-linie { stroke: #a8781f !important; }
+/* FAMROOTS-46: Ex-Linie bleibt auch im Bearbeiten-Grid grau (sonst überschreibt die Zeile darüber
+   die Ex-Farbe mit Gold) — Ex vs. aktuell auch beim Anlegen unterscheidbar. Muss NACH der .ehe-linie-
+   Grid-Regel stehen. */
+#baum-container.board-edit-grid .ehe-linie-ex { stroke: #6c7075 !important; }
 #baum-container.board-edit-grid .paar-knoten { fill: #a8781f !important; stroke: #5a4a2a !important; }
 #baum-container.board-edit-grid .board-linie-griff { stroke: #8a6a2a !important; fill: rgba(168,120,31,0.25) !important; }
 #baum-container.board-edit-grid .board-anker-griff { stroke: #5a4a2a !important; fill: #c8961f !important; }
@@ -436,7 +467,10 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .board-connect-temp { stroke: var(--akzent); stroke-width: 2.2; stroke-dasharray: 5 3; pointer-events: none; }
 .board-popover { position: fixed; z-index: 9999; width: 300px; max-width: calc(100vw - 20px); background: #fdf8ee;
   border: 1px solid var(--akzent); border-radius: 12px; padding: 14px 16px; box-shadow: 0 10px 34px rgba(0,0,0,0.32);
-  font-family: inherit; color: var(--ink); }
+  font-family: inherit; color: var(--ink);
+  /* FAMROOTS-44: auf niedrigen Viewports niemals abschneiden -> intern scrollen; box-sizing, damit
+     max-height inkl. Padding rechnet und die JS-Höhenmessung (offsetHeight) passt. */
+  box-sizing: border-box; max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain; }
 .board-popover-titel { font-weight: bold; margin-bottom: 6px; line-height: 1.35; }
 .board-popover-hint  { font-size: 12px; color: #8a7a5a; margin-bottom: 8px; line-height: 1.4; }
 .board-popover-typen { display: flex; flex-wrap: wrap; gap: 4px; }

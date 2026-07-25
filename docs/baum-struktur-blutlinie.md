@@ -235,3 +235,25 @@
   (Merge/Restore/Migration/Bereinigung/Massenlöschung/Import) — Batch-Tools umklammern ihre Mutation
   mit `wartung_start`/`wartung_ende`. Audit in `familien_audit` (`aktion='auto_leer_geloescht'`:
   Baum-ID, Name, Personen-vorher, Nutzer, Datum, Grund). DB-Datei `supabase_stammbaum_auto_leer.sql`.
+
+## Stammbaum-Dropdown: Auswahl nach Neuaufbau erhalten (SCRUM-29)
+`befuelleStammbaumAuswahl` ersetzt bei jeder Änderung `sel.innerHTML` komplett (Optionen nach Größe
+sortiert, mit Kartenzahl im Label). Ein `<select>` fällt danach auf die **erste** Option zurück
+(= größter Baum) → die Anzeige sprang auf einen fremden Baum, während `aktuellerStammbaumId` und der
+gezeichnete Baum unverändert blieben (**Desync**, verletzt „aktuellen Stammbaum nie automatisch
+wechseln"). Trat nur auf, wenn der offene Baum **nicht** der größte war — deshalb lange unbemerkt.
+
+**Behoben (Lösung A):**
+1. Nach dem `innerHTML`-Austausch `sel.value = aktuellerStammbaumId` (falls noch in der Liste) +
+   `ssSyncLabel(sel)` für das **sichtbare** Label des suchbaren Dropdowns. Die Suchliste selbst wird
+   beim Öffnen dynamisch aus `sel.options` gebaut (`ssRender`) — das `_ssControl` muss **nicht** neu
+   aufgebaut werden.
+2. `waehleStammbaum` zieht das sichtbare Label ebenfalls nach (`ssSyncLabel`) — sonst blieb es auf dem
+   alten Baum stehen, obwohl der Wert stimmte („Dropdown reagiert nicht").
+3. **AK6:** Fällt der offene Baum aus der Liste (letzte Karte gelöscht → Baum verschwindet), erfolgt ein
+   **bewusster** Wechsel über `waehleStammbaum(ids[0])` — Zustand und Anzeige wandern gemeinsam, kein
+   stiller Sprung.
+
+Gilt für alle Aufrufer (Löschen/Anlegen/Bearbeiten/Verknüpfen über `reloadBaumBehalteFokus` **und**
+Sprachwechsel). Verwandte Fehlerklasse: SCRUM-19 (Preset-Pille). Ein zentraler Helfer für **alle**
+dynamisch befüllten Dropdowns (Alternative C) wäre ein eigenes Aufräum-Ticket.

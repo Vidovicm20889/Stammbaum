@@ -3,6 +3,17 @@ supabase/.env
 supabase/.temp/
 .env
 
+# FAMROOTS-36: lokale Supabase-Umschaltung (URL/anon-Key des lokalen Stacks) — NIE committen.
+# Vorlage bleibt versioniert: supabase_local.example.js
+supabase_local.js
+
+# Kompletter Prod-DB-Schema-Dump (633 KB) — NIE ins öffentliche Pages-Repo. Lokale Referenz
+# für den Neuaufbau (docs/staging-umgebung.md); legt sonst die gesamte DB-Struktur öffentlich offen.
+supabase_prod_schema.sql
+
+# Lokales Supabase-CLI-Artefakt (aktueller Branch-Name) — kein Repo-Inhalt.
+supabase/.branches/
+
 # Claude Code – lokale Arbeitsdateien (Pläne/Memory/Settings), nicht versionieren
 .claude/
 

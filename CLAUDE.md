@@ -24,10 +24,14 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
 - **Neue Feature-Spec automatisch anlegen (verbindlich):** Wird ein umfangreicheres neues Feature umgesetzt (eigene Tabellen/RPCs, eigener UI-Bereich, mehr als eine triviale Änderung), lege ich dafür — nach der Umsetzung — eine eigene **`docs/<feature>.md`** an (gleiche Struktur wie die bestehenden: Zweck, Datenmodell/RLS, Frontend, i18n, bewusste Grenzen) und trage sie in den Feature-Index dieser CLAUDE.md ein — **statt die CLAUDE.md weiter aufzublähen**. Passt das Feature thematisch in eine bestehende `docs/`-Datei, ergänze ich dort. Ich weise VOR dem Anlegen kurz darauf hin, welche Datei entsteht bzw. ergänzt wird.
 - **Kleine Änderungen** an einem bestehenden Feature werden in dessen `docs/`-Datei nachgezogen (Datei bleibt der reale Stand).
 - Nur **dauerhafte, feature-übergreifende** Konventionen (nicht feature-spezifisch) gehören direkt in diese CLAUDE.md.
-- **Confluence bei JEDEM Feature/Bug aktualisieren (verbindlich, SCRUM-3):** Das **Repo ist und bleibt
-  die Quelle der Wahrheit**; Confluence ist die gespiegelte Lese-Ansicht für Nicht-Entwickler.
+- **Confluence bei JEDEM Deployment aktualisieren (verbindlich, SCRUM-3; Zuständigkeit geändert
+  am 23.07.2026):** Das **Repo ist und bleibt die Quelle der Wahrheit**; Confluence ist die
+  gespiegelte Lese-Ansicht für Nicht-Entwickler.
   Space **„FamilyRoots"** (Key `FamilyRoot`, ID `589828`) auf `milanvidovic89.atlassian.net/wiki`.
-  Nach JEDER umgesetzten Änderung — vor der Fertigmeldung — ist zu pflegen:
+  **Wer pflegt:** ausschließlich der **Deploy-Agent** (`.claude/agents/deploy-manager.md`, Modus D)
+  im Zuge des Deployments. Der Umsetzungs-Agent (`jira-dev`) pflegt weiterhin die
+  `docs/<feature>.md` **im Repo**, fasst Confluence aber **nicht** an — sonst stünde dort
+  Dokumentation zu Änderungen, die noch gar nicht live sind. Beim Deployment ist zu pflegen:
   1. **App-Dokumentation** (Seite `App-Dokumentation`): betroffene Feature-Seite nachziehen, sobald
      sich Verhalten/Datenmodell/Grenzen geändert haben. Neues Feature → neue Unterseite (Spiegel der
      zugehörigen `docs/<feature>.md`).
@@ -35,9 +39,12 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
      ID-Schema `TF-<Bereich>-<Nr>`, prüfbar formuliert, mit Jira-Key.
   3. **Testprotokoll** (Seite `Testing → Testprotokolle`): das TATSÄCHLICHE Testergebnis des
      Durchlaufs mit PASS/FAIL eintragen; Fehlschläge ehrlich protokollieren, 🔬-Punkte kennzeichnen.
-  Reihenfolge: erst Code + Tests, dann Confluence, dann Jira-Kommentar/Status. Ist Confluence nicht
-  erreichbar (403/fehlende Freigabe), wird das im Jira-Kommentar ausdrücklich vermerkt statt
-  stillschweigend übersprungen.
+  4. **Release-Info** (Elternseite `Releases`, je Deploy eine eigene Unterseite
+     „Release X.YZ – <Datum>"): Ticketliste, Änderungen in Nutzersprache, Abnahmetest-Ergebnis,
+     manuelle Schritte (SQL/Edge Functions), Risiken.
+  Reihenfolge: erst Code + Tests, dann Deploy, dann Confluence, dann Jira-Kommentar/Status. Ist
+  Confluence nicht erreichbar (403/fehlende Freigabe), wird das im Jira-Kommentar ausdrücklich
+  vermerkt statt stillschweigend übersprungen.
 
 ## Umgang mit Anweisungen/Prompts (Ideenphase ZUERST) — verbindlich
 - **Jede Anweisung/jeder Prompt wird ZUERST analysiert und als Ideen ausgearbeitet — NICHT
@@ -64,6 +71,13 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
   mehrsprachigen Lebensgeschichten; vom User ausdrücklich freigegeben) sowie **`leaflet@1.9.4`**
   (ausschließlich für die Ereignis-Karte / Migrationskarte; vom User ausdrücklich freigegeben).
   Alle von `cdn.jsdelivr.net` (CSP `script-src` deckt das bereits ab), exakt versions-gepinnt + SRI.
+  **`Noto Serif` (Schrift-Asset, kein Framework; SCRUM-27, vom User am 21.07.2026 freigegeben)** —
+  ausschließlich für den **Vektor-PDF-Export** (Unicode-Text: č/ć/š/ž/đ, Kyrillisch, `→`, die jsPDFs
+  WinAnsi-Standardschriften nicht können). Subset (Latin + Latin-Extended-A + Kyrillisch, Regular +
+  Bold), Lizenz **SIL OFL 1.1**. **Aus dem Repo geliefert** (`pdf_font.js`, Base64-VFS) — **same-
+  origin, deshalb KEINE CSP-Änderung**; **lazy** über `ladePdfLib()`. Das Subsetting läuft **einmalig
+  offline** (`pyftsubset`), nur das fertige Base64-Ergebnis wird committet — **kein Build-Tool in der
+  Auslieferung**. Anleitung im Kopf von `pdf_font.js`.
   **Leaflet braucht zusätzliche CSP-Quellen** (in [stammbaum.html] bereits gesetzt): `style-src`
   → `cdn.jsdelivr.net` (leaflet.css), `img-src` → `*.tile.openstreetmap.org` (OSM-Tiles),
   `connect-src` → `nominatim.openstreetmap.org` (Geocoding-`fetch`). **Karten-Tiles =
@@ -269,9 +283,16 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
     Haupt-Inline-`<script>` stehen (globale `const`/Funktionen). Der `init();`-Bootstrap bleibt am
     Ende des Haupt-Scripts. `split_i18n.js`/`split_css.js`/`split_pdf.js` waren Einmal-Auslagerungs-
     werkzeuge (können entfallen); `i18n_lint.js` bleibt nützlich.
-- **DB-Änderungen**: als idempotente `.sql`-Datei im Repo ablegen → im Supabase SQL-Editor ausführen.
-  **SQL-Index/Reihenfolge für eine frische DB:** siehe `SCHEMA.md`. Einmal-/Vorfall-Skripte
-  (Diagnose/Reparatur/Restore/konto-spezifisch) liegen unter `sql_archiv/` und gehören NICHT
+- **DB-Änderungen**: als idempotente `.sql`-Datei im Repo ablegen. **Erst lokal, dann prod
+  (verbindlich ab FAMROOTS-36):** Eine NEUE Migration wird **zuerst gegen die lokale DB verprobt**
+  (Prod-Spiegel: `supabase db reset` → `node scripts/lokal_db_aufbau.mjs` → dann die neue `.sql`) und
+  **erst nach erfolgreichem lokalem Lauf** im Prod-SQL-Editor ausgeführt.
+  Einrichtung/Ports/Datenstrategie: `docs/staging-umgebung.md`; Staging-Cloud folgt (FAMROOTS-37).
+  **Frischer DB-Aufbau (lokal/neues Projekt) NICHT über die 117 `.sql` replayen** (nicht am Stück
+  lauffähig — überholte/nicht-idempotente Altskripte, FAMROOTS-36), sondern über den **kompletten
+  Prod-Dump** `supabase_prod_schema.sql` (`supabase db dump -f …`). `SCHEMA.md` bleibt Änderungs-
+  Historie/Index, ist aber KEINE Aufbau-Sequenz. Einmal-/Vorfall-
+  Skripte (Diagnose/Reparatur/Restore/konto-spezifisch) liegen unter `sql_archiv/` und gehören NICHT
   zum Neuaufbau.
 - **Edge Functions**: über das Supabase-Dashboard deployen (Supabase-CLI durch Citrix-Firewall blockiert).
 - **Code-Review + Code-Test VOR JEDEM Deployment (PFLICHT):** Bevor committet/veröffentlicht wird,
@@ -303,6 +324,32 @@ Die Stammbaum-Daten liegen in Supabase (mehrmandantenfähig), nicht mehr statisc
     Testfälle ausgeführt wurden und mit welchem Ergebnis** (PASS/FAIL je Fall, kurze Tabelle/Liste),
     was am Code geprüft und was nur 🔬 am Gerät/Deploy verifizierbar ist. Schlägt ein Test fehl, wird
     das ehrlich gemeldet und der Fehler VOR der Fertigmeldung behoben — kein „grün gemeldet, ungetestet".
+
+- **FEHLER-/LERN-LOOP bei Problemen (verbindlich):** Stoße ich beim Programmieren/Testen auf ein
+  Problem (Fehler, roter Test, unerwartetes Verhalten), gebe ich NICHT beim ersten Versuch auf und
+  wechsle auch nicht blind den Ansatz — ich durchlaufe diese Schleife, bis eine **tragbare Lösung**
+  steht:
+  1. **Ursache verstehen:** Fehlermeldung/Symptom genau lesen, Root Cause bestimmen (nicht am
+     Symptom herumdoktern). Kurz benennen, WAS schiefgeht und WARUM.
+  2. **Gezielt beheben:** eine begründete Änderung vornehmen, die die Ursache adressiert — kleine,
+     nachvollziehbare Schritte (siehe VidovicAI-Regel „klein & nachvollziehbar").
+  3. **Erneut testen** (Test-Pflicht oben): bringt der Versuch keinen Fortschritt, wird er
+     **verworfen** (nicht darauf aufbauen) und ein **anderer** Ansatz probiert — jeder Versuch mit
+     einer neuen Hypothese, nicht dieselbe Sache doppelt.
+  4. **Abbruchgrenze (kein Endlos-Loop):** Nach **3 ernsthaft verschiedenen Ansätzen** ohne
+     tragbare Lösung höre ich auf zu raten und **frage dich** — mit klarer Zusammenfassung: was
+     versucht wurde, was jeweils passierte, welche Hypothesen ausgeschlossen sind, welche
+     Optionen/Trade-offs bleiben. Lieber eine gute Rückfrage als eine erratene Scheinlösung.
+     Genauso stoppe ich sofort, wenn eine Lösung eine CLAUDE.md-Regel brechen würde (dann Hinweis
+     statt Umsetzung, siehe Governance).
+  5. **Lehre festhalten (Persistenz):** War ein Problem **nicht trivial** (Ursache war nicht
+     offensichtlich, kostete mehrere Anläufe, oder ist eine Stolperfalle, die wiederkehren kann),
+     trage ich die Lehre nach der Lösung in **`docs/lessons.md`** ein (Symptom → Ursache → Lösung →
+     Merksatz). So wird derselbe Fehler nicht zweimal gemacht. **VOR** dem Angehen eines Problems in
+     einem bekannten Bereich (PDF-Export, RLS/Rekursion, Realtime, Datumsparser, i18n, Mobile/iOS-
+     Zoom, Storage-Cleanup …) schaue ich **zuerst in `docs/lessons.md`**, ob es dazu schon eine
+     Lehre gibt. Rein triviale Fehler (Tippfehler, sofort klar) werden NICHT protokolliert — nur
+     echte Lehren, damit die Datei nützlich bleibt.
 
 Nach JEDER Änderung:
 1. Prüfe selbst: Gibt es Seiteneffekte auf andere Komponenten?
@@ -382,6 +429,8 @@ Vor der Arbeit an einem Feature die passende Datei lesen; neue Features nach obi
 - `docs/ereignisse-anlaesse.md` — Geburtstags-/Gedenktag-Erinnerungen (In-App + E-Mail), Ereignis-Bereich (Liste/Zeitstrahl/Karte + Migrationspfad).
 - `docs/social-chat-feed.md` — Kochbuch-Bewertungen, Chat (1:1/Gruppe), verbundübergreifende Personensuche/Kontakte, Reaktionen & Kommentare, Familien-Feed/Aktivitäten, Foto-Tagging, Familien-Fragen.
 - `docs/board-modus.md` — **KONZEPT/SPEC (noch nicht implementiert)**: Miro-artiger Board-Modus (`ansichtModus='board'`) zum freien Verschieben von Karten (Persistenz via eigener Tabelle `board_layout`, ein gemeinsames Board pro Baum, Leser statisch, ganzer Baum) + Verknüpfen per Linie mit Auto-Erkennung (Eltern/Partner/Kind/Geschwister) über `verknuepfung_anfragen`. Entscheidungen festgelegt; Umsetzungsplan P2 (Verschieben)/P3 (Verknüpfen).
-- `docs/jira-anbindung.md` — Jira/Atlassian-MCP-Anbindung: Einrichtung (`claude mcp add --scope user`, OAuth NUR im Terminal), Projekt `SCRUM`, Workflow-Spalten + Transition-IDs (Backlog/Zu erledigen/In Bearbeitung/Test/Erledigt), verbindlicher Ablauf je Vorgang (max. 1 pro Durchlauf, „nicht raten → Rückfrage als Jira-Kommentar"), die drei Modi **A Jira-Dev** (`.claude/agents/jira-dev.md`, umsetzen) / **B Ticket-Autor** (Idee → Vorgang) / **C Story-Refiner** (`.claude/agents/story-refiner.md`, Backlog ausarbeiten → „Zu erledigen", ohne Code), Commit-Politik, bewusste Grenzen.
+- `docs/jira-anbindung.md` — Jira/Atlassian-MCP-Anbindung: Einrichtung (`claude mcp add --scope user`, OAuth NUR im Terminal), Projekt `FAMROOTS` (früher `SCRUM`), Workflow-Spalten + Transition-IDs (Backlog/Zu erledigen/In Bearbeitung/Test/Erledigt), verbindlicher Ablauf je Vorgang (max. 1 pro Durchlauf, „nicht raten → Rückfrage als Jira-Kommentar"), die drei Modi **A Jira-Dev** (`.claude/agents/jira-dev.md`, umsetzen) / **B Ticket-Autor** (Idee → Vorgang im Backlog) / **C Story-Refiner** (`.claude/agents/story-refiner.md`, Backlog ausarbeiten → „Zu erledigen", ohne Code), Commit-Politik, bewusste Grenzen. **Story-Autor-Storys durchlaufen VERBINDLICH die Refiner-Pflichtstufe (FAMROOTS-38):** der Weg Backlog → „Zu erledigen" führt für sie ausschließlich über Modus C, nicht per direktem Ziehen.
 - `docs/workflow-branching-versionierung.md` — **Arbeits-Workflow (verbindlich ab v14.86):** Branch pro Änderung (`bugfix/`/`feature/`/`docs/`), lokaler Test VOR jedem Commit (Testmatrix + PASS/FAIL-Vorlage), Commit/Merge/Push nur nach ausdrücklicher Freigabe, Versions-Schema `XX.XX` (Bug = letzte Stelle, Story = vorletzte + Reset, 3. Story ohne Deploy = MAJOR) inkl. Überlauf-Beispielen.
+- `docs/staging-umgebung.md` — **Staging-Prinzip (FAMROOTS-36, „erst lokal, dann prod"):** 3 Stufen (lokal Docker → Staging-Cloud → Prod), lokaler Supabase-Stack (`supabase/config.toml`, +10-Ports wg. Koexistenz mit StockFlow), Aufbau als **exakter Prod-Spiegel** über den kompletten Dump `supabase_prod_schema.sql` (`node scripts/lokal_db_aufbau.mjs`, via docker exec) — **kein Replay der 117 `.sql`** (nicht am Stück lauffähig: überholte/nicht-idempotente Altskripte), synthetisches Seed (`supabase/seed.sql`), Frontend-Umschaltung über gitignored `supabase_local.js`. Staging-Cloud = FAMROOTS-37.
+- `docs/lessons.md` — **Fehler-/Lern-Log:** dauerhafte Sammlung nicht-trivialer Stolperfallen (Symptom → Ursache → Lösung → Merksatz). VOR dem Angehen eines Problems in einem bekannten Bereich zuerst hier nachschauen, NACH dem Lösen eines nicht-trivialen Problems ergänzen (siehe „FEHLER-/LERN-LOOP bei Problemen" im Loop-Abschnitt).
 - `ROADMAP.md` — Roadmap-Kontext & Ausblick.

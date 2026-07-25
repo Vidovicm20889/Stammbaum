@@ -31,7 +31,7 @@ Test-Pflicht der `CLAUDE.md` (Abschnitt „Dein Arbeitsablauf"), mindestens:
 | Inline-/Datei-JS syntaktisch fehlerfrei | bei JS-Änderungen | `node --check` bzw. Inline-Script-Check |
 | i18n-Schlüsselparität (5 Sprachen) | bei Textänderungen | `node i18n_lint.js` |
 | CSS-Klammerbilanz | bei CSS-Änderungen | Balance-Check |
-| SQL idempotent + FK-Reihenfolge | bei `.sql` | Gegenlesen |
+| Migration **real auf lokal verprobt** (Idempotenz + FK-Reihenfolge) | bei `.sql` | lokaler Supabase-Stack — `node scripts/lokal_db_aufbau.mjs`, siehe [staging-umgebung.md](staging-umgebung.md) · Fallback wenn kein Stack verfügbar: Gegenlesen (🔬) |
 | Fachlogik mit echten Ein-/Grenzwerten | bei Parser/Berechnung | Node-Durchlauf |
 | UX-/Mobile-Durchgang (Android + iOS, <480px) | bei UI | Code-Prüfung, real wo möglich |
 

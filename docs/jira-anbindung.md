@@ -1,7 +1,7 @@
 # Jira-Anbindung (Atlassian MCP) — Ticket-Abarbeitung durch Claude Code
 
 ## Zweck
-Claude Code liest das Jira-Board des Projekts **FamilyRoots (Key: `SCRUM`)** direkt über den
+Claude Code liest das Jira-Board des Projekts **FamilyRoots (Key: `FAMROOTS`)** direkt über den
 **offiziellen Atlassian-MCP-Server**, übernimmt Vorgänge aus der Spalte „Zu erledigen" automatisch
 in Bearbeitung, setzt sie um, dokumentiert das Ergebnis als Jira-Kommentar und schiebt sie nach
 „Test". Kein Copy-&-Paste von Ticketinhalten mehr, kein manuelles Statuspflegen.
@@ -42,8 +42,17 @@ gegeben — die Tools erschienen erst nach dem vollständigen Reload).
 | | Wert |
 |---|---|
 | Site / cloudId | `milanvidovic89.atlassian.net` (funktioniert direkt als `cloudId`) |
-| Projekt | `SCRUM` — „FamilyRoots" (Team-managed / `simplified: true`) |
-| Board | https://milanvidovic89.atlassian.net/jira/software/projects/SCRUM/boards/1 |
+| Projekt | `FAMROOTS` — „FamilyRoots" (Team-managed / `simplified: true`) |
+| Board | https://milanvidovic89.atlassian.net/jira/software/projects/FAMROOTS/boards/1 |
+
+⚠️ **Key-Wechsel am 22.07.2026: `SCRUM` → `FAMROOTS`.** Jira führt den alten Key als **Alias** weiter
+— bestehende Vorgänge behalten ihre Nummer (`SCRUM-27` → `FAMROOTS-27`), alte Links und Keys leiten
+weiter. **Historische Referenzen werden bewusst NICHT umgeschrieben:** die `SCRUM-n`-Nennungen in
+Code-Kommentaren (`stammbaum.html`, `stammbaum.css`, `pdf_font.js`), in der CLAUDE.md, in den übrigen
+`docs/`-Dateien und in der Commit-Historie bleiben stehen — sie dokumentieren den Stand zum jeweiligen
+Zeitpunkt und bleiben über den Alias klickbar. Umgestellt wurden nur die **funktional wirksamen**
+Stellen: die JQLs und Projekt-Angaben in den drei Agent-Dateien unter `.claude/agents/` sowie diese
+Datei.
 
 **Workflow-Spalten und Transition-IDs** (global, für alle Vorgangstypen):
 
@@ -53,7 +62,16 @@ gegeben — die Tools erschienen erst nach dem vollständigen Reload).
 | Zu erledigen | 10001 | `21` |
 | **In Bearbeitung** | 10002 | `31` |
 | **Test** | 10003 | `41` |
+| **Bereit für Deployment** | **10108** | **`3`** |
 | Erledigt | 10004 | `51` |
+
+⚠️ **Spalte „Bereit für Deployment" (nachgetragen 23.07.2026):** Sie existierte im Jira-Workflow
+bereits, war aber in keiner Doku und in keiner Agent-Datei erfasst. Belegt per
+`getTransitionsForJiraIssue` an FAMROOTS-35: Status-ID **`10108`**, Transition-ID **`3`**,
+`statusCategory` **„Zu erledigen" (blau-grau)** — die Kategorie ist also auch hier **nicht**
+zum Filtern geeignet, immer über den **Status-Namen** gehen. Die Spalte trennt „vom User
+abgenommen" von „live": `jira-dev` endet weiterhin in **„Test"**, der User zieht nach der Abnahme
+per Hand nach **„Bereit für Deployment"**, und nur von dort holt der **`deploy-manager`** (Modus D).
 
 ⚠️ **Transition-ID-Falle (belegt am 22.07.2026):** Die Transition nach **Backlog** hat die ID **`2`**,
 nicht `11`. Diese Tabelle nannte lange `11`; ein `createJiraIssue` mit `transition: { id: "11" }`
@@ -73,8 +91,36 @@ workflowspezifisch und ändern sich, sobald der Workflow angefasst wird.
 
 **JQL für den Durchlauf:**
 ```sql
-project = SCRUM AND status = "Zu erledigen" ORDER BY rank ASC
+project = FAMROOTS AND status = "Zu erledigen" ORDER BY rank ASC
 ```
+
+---
+
+## Reihenfolge = Priorität (verbindlich, ab 23.07.2026)
+
+**Das Board ist nach Priorität sortiert: oben = wichtigste Aufgabe, unten = unwichtigste.**
+Die Reihenfolge innerhalb einer Spalte (Jira-**Rank**) pflegt der Nutzer per Drag & Drop — sie ist
+eine bewusste Entscheidung, keine zufällige Sortierung.
+
+Daraus folgt für **alle** Modi (A Jira-Dev, C Story-Refiner, D Deploy-Manager) und für beide Loops:
+
+1. **Immer von oben nehmen.** Der jeweils **oberste** Vorgang der Spalte wird zuerst bearbeitet —
+   nie ein weiter unten stehender, weil er einfacher/schneller/interessanter wirkt.
+2. **Jede JQL endet auf `ORDER BY rank ASC`** — das ist genau die Board-Reihenfolge von oben nach
+   unten. Ohne diese Klausel liefert Jira eine beliebige Reihenfolge, und die Priorität geht
+   verloren.
+3. **Nicht selbst umsortieren.** Rank/Board-Reihenfolge ändert ausschließlich der Nutzer; Claude
+   kann das ohnehin nicht (Agile-API fehlt, siehe „Bewusste Grenzen").
+4. **Überspringen nur mit Grund und Ansage.** Ein oberster Vorgang darf nur übersprungen werden,
+   wenn er blockiert ist (unklar → Rückfrage als Jira-Kommentar; Code-Kollision mit einem Vorgang
+   in „In Bearbeitung"/„Test"; bereits von einem anderen Agenten beansprucht). Das wird dem Nutzer
+   **ausdrücklich gemeldet** („FAMROOTS-x übersprungen, weil …, stattdessen FAMROOTS-y") — nie
+   still weitergehen.
+5. **Das Feld `priority`** am Vorgang (Highest…Lowest) ist zusätzliche Information, ersetzt die
+   Board-Reihenfolge aber **nicht**. Bei Widerspruch gilt die **Position von oben nach unten**.
+6. **Modus D** deployt ohnehin die **ganze** Spalte „Bereit für Deployment" — dort bestimmt die
+   Reihenfolge nur, in welcher Folge Review/Doku/Release-Einträge abgearbeitet werden, nicht die
+   Auswahl.
 
 ---
 
@@ -93,7 +139,9 @@ erst dann der nächste.
 6. **Testen** gemäß TEST-PFLICHT: `node --check` (Hauptskript + i18n.js), `node i18n_lint.js`,
    ausführbare Logik-Testfälle; Ergebnis mit PASS/FAIL vorstellen.
 7. **Jira-Kommentar** mit dem, was gemacht wurde (inkl. Testergebnis).
-8. **Status → „Test"** (Transition `41`) — der Nutzer reviewt dort.
+8. **Status → „Test"** (Transition `41`) — der Nutzer reviewt dort. **Dort endet Modus A**:
+   kein Merge, kein Push, kein Version-Bump, keine Confluence-Pflege (seit 23.07.2026 alles
+   beim **Deploy-Agent**, Modus D).
 
 **Betroffene Vorgangstypen:** Stories und Bugs. Tasks nur nach ausdrücklicher Ansage.
 
@@ -138,7 +186,7 @@ Claude schaut **selbstständig regelmäßig** in Jira und übernimmt Aufgaben, o
 jedes Mal anstoßen muss. Eingerichtet über die eingebaute Loop-Mechanik:
 
 ```
-/loop Prüfe das Jira-Projekt SCRUM … (voller Auftragstext, siehe unten)
+/loop Prüfe das Jira-Projekt FAMROOTS … (voller Auftragstext, siehe unten)
 ```
 
 **Modus:** **dynamisch/selbst-getaktet** (bewusst *ohne* festes Intervall) — passend zu
@@ -152,7 +200,7 @@ Tempo; häufigeres Pollen erzeugt nur Kosten ohne Nutzen.
 ist per Shell nicht erreichbar. Deshalb **zeitbasiertes** Pacing statt Ereignis-Trigger.
 
 **Ablauf je Aufwachen:**
-1. JQL `project = SCRUM AND status = "Zu erledigen" ORDER BY rank ASC`
+1. JQL `project = FAMROOTS AND status = "Zu erledigen" ORDER BY rank ASC`
 2. Treffer → **genau EINEN** (obersten) nach dem Ablauf oben abarbeiten → Zusammenfassung an den Nutzer
 3. Kein Treffer → **kurze Rückfrage an den Nutzer** nach neuen Aufgaben
 4. Neuen Weckruf setzen (oder bei „stopp" beenden)
@@ -167,12 +215,12 @@ geschlossen, stoppt er und muss neu gestartet werden.
 Der Story-Refiner läuft nach demselben Muster über die **Backlog**-Spalte:
 
 ```
-/loop Prüfe Jira SCRUM auf Backlog-Storys und starte den Agent story-refiner …
+/loop Prüfe Jira FAMROOTS auf Backlog-Storys und starte den Agent story-refiner …
 ```
 
 - **Modus:** dynamisch/selbst-getaktet, **Takt ~30 Minuten** (1800 s) im Leerlauf — gleiche
   Begründung wie oben (Tickets entstehen im menschlichen Tempo).
-- **Ablauf je Aufwachen:** JQL `project = SCRUM AND status = "Backlog" AND issuetype = Story
+- **Ablauf je Aufwachen:** JQL `project = FAMROOTS AND status = "Backlog" AND issuetype = Story
   ORDER BY rank ASC` → Treffer: Agent `story-refiner` für **genau EINE** Story starten →
   Ergebnis dem Nutzer melden. Kein Treffer: **still weiterschlafen** (keine Rückfrage — sonst
   meldet sich der Loop bei leerem Backlog alle 30 Minuten grundlos).
@@ -228,9 +276,13 @@ Das Backlog ist die **bereits bestehende, dokumentierte Grenze**, die Modus A pe
 überschreitet (siehe „Backlog ≠ Zu erledigen" oben). Der Schutz kommt damit aus der **Struktur**,
 nicht aus einer Regel, an die sich alle erinnern müssen — und kostet **null** Jira-Konfiguration.
 
-**Freigabe = bewusste menschliche Handlung:** Der Nutzer zieht den Vorgang auf dem Board nach
-„Zu erledigen" (oder lässt ihn vom **Story-Refiner**, Modus C, ausarbeiten und dorthin schieben).
-Erst dann darf Modus A ihn übernehmen.
+**Freigabe = Refiner-Pflichtstufe (verbindlich seit FAMROOTS-38):** Eine vom Story-Autor angelegte
+Story ist im Backlog eine **Rohstory** und gelangt **ausschließlich über den Story-Refiner**
+(Modus C) nach „Zu erledigen". Der frühere Shortcut „der Nutzer zieht sie selbst direkt nach
+‚Zu erledigen'" gilt für **Story-Autor-Storys nicht mehr** — jede muss zuvor vom Refiner geprüft,
+am Repo belegt und umsetzungsreif ergänzt werden. Erst danach darf Modus A sie übernehmen.
+(Für bereits ausgearbeitete Vorgänge, die **nicht** vom Story-Autor stammen, kann der Nutzer
+weiterhin selbst nach „Zu erledigen" freigeben.)
 
 *Verworfen:* Label `neu-ungeprueft` + JQL-Ausschluss (Schutz hängt daran, dass **jeder** Schreibpfad
 das Label setzt und **jede** JQL es ausschließt → dieselbe Fehlerklasse, nur schwerer zu bemerken);
@@ -317,15 +369,23 @@ Er nimmt **eine** Story aus der Spalte **Backlog**, analysiert sie, belegt den I
 Repo, schreibt sie **auf Deutsch** umsetzungsreif fertig und schiebt sie nach **„Zu erledigen"**
 (Transition `21`). Den Dev-Agent startet er **nicht** — dort entscheidet der Nutzer (s. u.).
 
-**Abgrenzung der drei Modi:**
+**Der Refiner ist die verbindliche Qualitätsstufe für Story-Autor-Storys (FAMROOTS-38):** Jede vom
+Story-Autor (Modus B) im Backlog angelegte Rohstory MUSS diese Stufe durchlaufen, bevor sie umgesetzt
+wird — sie ist der einzige zulässige Weg vom Backlog nach „Zu erledigen" für solche Storys.
+
+**Abgrenzung der vier Modi:**
 | Modus | Agent | Quelle | Ergebnis | Ändert Code? | Startet danach |
 |---|---|---|---|---|---|
 | **B** Story-Autor | `story-autor` | Idee des Nutzers | neuer Vorgang im **Backlog** | nein | **nichts** — der Nutzer gibt frei |
 | **C** Story-Refiner | `story-refiner` | Spalte **Backlog** | fertige Story in „Zu erledigen" | **nein** | Vorschlag an den Nutzer |
 | **A** Jira-Dev | `jira-dev` | Spalte „Zu erledigen" | Umsetzung, Vorgang in „Test" | ja | — |
+| **D** Deploy-Manager | `deploy-manager` | Spalte **„Bereit für Deployment"** | Release live, Vorgänge in „Erledigt" | nur Version/Doku/Kleinfix | — |
 
-**Fluss:** `Idee → B → Backlog → (C verfeinert) → Zu erledigen → A → Test`. Zwischen „geschrieben"
-und „wird umgesetzt" liegt damit **immer** ein menschlicher Schritt.
+**Fluss:** `Idee → B → Backlog → C (PFLICHT: verfeinert) → Zu erledigen → A → Test → (Abnahme durch den
+Nutzer) → Bereit für Deployment → D → Erledigt/live`. Die Refiner-Stufe **C ist für Story-Autor-Storys
+verbindlich** (FAMROOTS-38), nicht optional — zwischen „geschrieben" und „wird umgesetzt" liegt damit
+immer sowohl die fachliche Ausarbeitung durch den Refiner als auch ein menschlicher Freigabeschritt;
+seit 23.07.2026 zusätzlich ein Kontrollpunkt zwischen „umgesetzt" und „live".
 
 ⚠️ **Geändert am 21.07.2026 (SCRUM-16):** Zuvor legte der Story-Autor direkt in „Zu erledigen" an
 **und startete `jira-dev` automatisch** — ein frisch geschriebenes Ticket konnte dadurch umgesetzt
@@ -333,7 +393,7 @@ werden, bevor der Nutzer es überhaupt gelesen hatte. Beides ist entfallen: Modu
 angelegten Vorgang im Backlog und meldet Key + Link zurück. **Weder B noch C starten den Dev-Agent
 selbst** — das entscheidet ausschließlich der Nutzer.
 
-**JQL:** `project = SCRUM AND status = "Backlog" AND issuetype = Story ORDER BY rank ASC`
+**JQL:** `project = FAMROOTS AND status = "Backlog" AND issuetype = Story ORDER BY rank ASC`
 
 ### Regeln
 - **Genau EIN Vorgang pro Durchlauf** (oberster nach Rank) — analog Modus A.
@@ -370,13 +430,74 @@ Restgefahr ist ausschließlich der **parallel laufende Loop**.
 
 ---
 
+## Modus D — „Deploy-Manager" („Bereit für Deployment" ➜ live ➜ „Erledigt")
+
+Vierter Arbeitsmodus (seit 23.07.2026). Agent-Datei: **`.claude/agents/deploy-manager.md`**.
+Er ist der **einzige** Agent, der deployen darf — Modus A endet ausdrücklich in „Test".
+
+**JQL:** `project = FAMROOTS AND status = "Bereit für Deployment" ORDER BY rank ASC`
+
+### Zuständigkeit
+| | Modus A (`jira-dev`) | Modus D (`deploy-manager`) |
+|---|---|---|
+| Umsetzung | ✅ | ❌ (nur kleine, eindeutige Review-Korrekturen) |
+| `docs/<feature>.md` im Repo | ✅ | ergänzt, wo beim Review nötig |
+| **Confluence** (App-Doku, Testfälle, Testprotokoll, Release) | ❌ (seit 23.07.2026) | ✅ |
+| Version-Bump (`app-version` + **alle** `?v=`) | ❌ | ✅ |
+| Merge nach `main` + Push | ❌ | ✅ |
+| Jira-Zielstatus | „Test" | „Erledigt" (Transition `51`) |
+
+### Umfang eines Laufs
+Anders als die Modi A–C arbeitet Modus D **nicht** ein einzelnes Ticket ab, sondern **alle**
+Vorgänge der Spalte zusammen: ein Lauf = ein Release = **eine** Versionsnummer. Genau daraus
+zieht der Modus seinen Wert — nur hier fällt auf, wenn **zwei** Tickets dieselbe Funktion
+angefasst haben und sich gegenseitig aufheben. Ein `jira-dev`-Lauf kann das per Konstruktion
+nicht sehen; er kennt nur sein eigenes Ticket.
+
+### Ablauf (Kurzfassung, Details in der Agent-Datei)
+1. Umfang aus der Spalte lesen (leer → Ende, nichts wird gepusht).
+2. **Code-Review** über den gesamten Umfang, inkl. Wechselwirkungen zwischen den Tickets und
+   der Akzeptanzkriterien jedes Vorgangs.
+3. **Gesamttest der Anwendung** (nicht nur des Diffs): `node --check`, `node i18n_lint.js`,
+   Verbotsmuster-Grep (`alert`/`confirm`/`prompt`), **Cache-Busting-Prüfung** (`app-version`
+   == jedes `?v=`), Logik-Testfälle, SQL-Idempotenz, Regression über die Kernflüsse,
+   Mobile Android + iOS. Ergebnis als PASS/FAIL-Matrix.
+4. **Version** nach `docs/workflow-branching-versionierung.md` vergeben (Schema steht dort, wird
+   nicht in der Agent-Datei dupliziert), `app-version` + **alle** `?v=` ziehen.
+5. **Merge nach `main` + Push** → GitHub Pages ist damit live.
+6. **Confluence**: App-Doku, Testfälle (`TF-<Bereich>-<Nr>`), Testprotokoll mit dem tatsächlichen
+   Ergebnis — und eine **eigene Seite je Release** unter der Elternseite **„Releases"**
+   („Release X.YZ – <Datum>": Ticketliste, Änderungen in Nutzersprache, Abnahmetest, manuelle
+   Schritte, Risiken). Die Elternseite wird beim ersten Lauf angelegt, falls sie fehlt.
+7. **Jira**: je Vorgang Kommentar mit Version/Commit/Release-Link, dann Status → **„Erledigt"**.
+
+### Regeln
+- **Start nur auf ausdrückliches Kommando des Nutzers.** Kein `/loop`, kein Start durch einen
+  anderen Agenten, kein „läuft mal eben mit". Das ist die zentrale Vorgabe des Nutzers
+  (23.07.2026) — der Deploy ist der einzige unumkehrbare Schritt der Kette.
+- **Start = Freigabe** für Commit/Merge/Push/Version-Bump (Entscheidung des Nutzers vom
+  23.07.2026). Eine zweite Rückfrage vor dem Push gibt es bewusst nicht; das Gegengewicht ist
+  die **Abbruchpflicht** bei jedem roten Ergebnis.
+- **Rot = kein Deploy.** Review-Finding größer als ein Kleinfix, FAIL in der Testmatrix,
+  unklarer Merge-Konflikt, fremde untrennbare Änderungen im Working Tree, fehlende DB-Migration
+  → abbrechen, nichts pushen, kein Statuswechsel, Bericht mit Grund.
+- **Keine SQL-Ausführung, kein Edge-Function-Deploy** durch den Agenten (SQL-Editor bzw.
+  Dashboard, Citrix-Firewall) — beides landet als ToDo beim Nutzer und im Release-Eintrag.
+- Er fasst **nur** „Bereit für Deployment" an; „Test" bleibt unberührt, damit die Abnahme des
+  Nutzers ein echter Kontrollpunkt bleibt.
+
+⚠️ **Kein Loop für Modus D** — bewusst. Ein zeitgesteuerter Deploy würde genau den menschlichen
+Kontrollpunkt entfernen, für den die Spalte eingeführt wurde.
+
+---
+
 ## Commit-Politik
 Ob pro Ticket committet wird, ist **nicht** pauschal geregelt, sondern wird vom Nutzer je Phase
 festgelegt. Hintergrund: Wenn parallel ein anderer Agent an denselben Dateien arbeitet
 (`stammbaum.html` / `i18n.js` / `stammbaum.css`), würde ein Ticket-Commit dessen **unfertiges**
 Feature mit ins Repo (und beim Push live) ziehen. Modi:
 - **(a)** umsetzen, Jira pflegen, **nicht** committen → sammeln für einen gemeinsamen Deploy
-- **(c)** pro Ticket committen, Commit-Message enthält den Jira-Key (z. B. `SCRUM-12: …`)
+- **(c)** pro Ticket committen, Commit-Message enthält den Jira-Key (z. B. `FAMROOTS-12: …`)
 
 Vor Beginn einer Ticket-Serie **immer klären, welcher Modus gilt.**
 
@@ -387,6 +508,9 @@ Vor Beginn einer Ticket-Serie **immer klären, welcher Modus gilt.**
 `transitionJiraIssue` · `addCommentToJiraIssue`
 (weitere verfügbar: `createJiraIssue`, `editJiraIssue`, `getVisibleJiraProjects`,
 `lookupJiraAccountId`, Confluence-Tools)
+
+**Modus D zusätzlich (Confluence):** `getPagesInConfluenceSpace` · `getConfluencePage` ·
+`getConfluencePageDescendants` · `createConfluencePage` · `updateConfluencePage`.
 
 Schemas werden in Claude Code per `ToolSearch` nachgeladen:
 `select:mcp__atlassian__searchJiraIssuesUsingJql,mcp__atlassian__transitionJiraIssue,…`

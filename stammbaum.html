@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="15.05">
+<meta name="app-version" content="16.00">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=14.42">
-<link rel="apple-touch-icon" href="favicon.svg?v=14.42">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=16.00">
+<link rel="apple-touch-icon" href="favicon.svg?v=16.00">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -17,7 +17,10 @@
 <!-- Leaflet-Karte: style-src braucht cdn.jsdelivr.net (leaflet.css), img-src die OSM-Tile-Server
      (*.tile.openstreetmap.org), connect-src Nominatim (Ortssuche/Geocoding, fetch). Marker sind
      CSS-DivIcons (kein externes Marker-Bild) -> keine weitere img-Quelle nötig. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org; media-src 'self' blob: https://*.supabase.co; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org; frame-src 'self' blob: https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<!-- FAMROOTS-36: connect-src erlaubt zusätzlich http(s)://127.0.0.1:* / localhost:* (+ ws) für den
+     LOKALEN Supabase-Stack (docs/staging-umgebung.md). Harmlos für Prod: erlaubt nur Verbindungen
+     zum EIGENEN Rechner des Besuchers, kein Datenabfluss an Fremde. Ohne das: "Failed to fetch". -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org; media-src 'self' blob: https://*.supabase.co; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; frame-src 'self' blob: https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- CDN-Skripte auf EXAKTE Versionen gepinnt + Subresource Integrity (Lieferketten-Schutz).
      Versionswechsel erfordert neuen integrity-Hash (sonst lädt der Browser die Datei nicht). -->
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
@@ -33,7 +36,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=15.05">
+<link rel="stylesheet" href="stammbaum.css?v=16.00">
 </head>
 <body>
 
@@ -622,6 +625,14 @@
   <div id="baum-container">
     <div id="baum-bg"></div>
     <div class="baum-info" id="baum-info"></div>
+    <!-- SCRUM-26: Rückgängig/Wiederholen-Pille, oben links. Nur im Tabla-Edit-Modus für Admins
+         sichtbar (boardWerkzeugeSync). MUSS Kind von #baum-container bleiben (position:absolute).
+         #baum-info wird im Edit-Modus per CSS ausgeblendet, damit die Pille auf top/left:15px sitzt.
+         Buttons rufen die bestehenden boardUndo/boardRedo (Kernlogik seit v14.72). -->
+    <div id="board-undo-tools" class="board-undo-tools" style="display:none">
+      <button type="button" id="board-undo-btn" class="board-undo-btn" onclick="boardUndo()" disabled data-i18n-title="board_undo_titel"><span aria-hidden="true">↶</span> <span data-i18n="board_undo"></span></button>
+      <button type="button" id="board-redo-btn" class="board-undo-btn" onclick="boardRedo()" disabled data-i18n-title="board_redo_titel"><span aria-hidden="true">↷</span> <span data-i18n="board_redo"></span></button>
+    </div>
     <svg id="baum-svg"></svg>
     <!-- Board Phase 4: Suchfeld „zu Karte springen" (ganzer Board-Modus) + Minimap (nur im
          Edit-Modus). Beide MÜSSEN Kinder von #baum-container bleiben — sie positionieren sich
@@ -767,17 +778,25 @@
         <div class="reg-gruppe-titel" data-i18n="pdf_verknuepft_titel"></div>
         <label class="pdf-check"><input type="checkbox" id="pdf-verknuepft"> <span data-i18n="pdf_verknuepft"></span></label>
         <label class="pdf-check pdf-sub-check"><input type="checkbox" id="pdf-verknuepft-farbe" checked> <span data-i18n="pdf_verknuepft_farbe"></span></label>
+      </div>
 
-        <div class="reg-gruppe-titel" style="margin-top:14px" data-i18n="pdf_filter_titel"></div>
-        <label class="login-label"><span data-i18n="pdf_filter_status"></span>
-          <select id="pdf-filter-status" class="login-feld">
-            <option value="beide" selected data-i18n="pdf_filter_beide"></option>
-            <option value="lebend" data-i18n="pdf_filter_lebend"></option>
-            <option value="verstorben" data-i18n="pdf_filter_verstorben"></option>
-          </select>
-        </label>
-        <label class="pdf-check"><input type="checkbox" id="pdf-filter-unbestaetigt"> <span data-i18n="pdf_filter_unbestaetigt"></span></label>
-        <label class="pdf-check"><input type="checkbox" id="pdf-filter-privat"> <span data-i18n="pdf_filter_privat"></span></label>
+      <!-- 3) Personenfilter — SCRUM-25: eigene Sektion (früher im „verknüpfte Bäume"-div und dadurch
+           mit-gesperrt). Titel + Hinweis bleiben sichtbar; nur die Controls tragen .pdf-nur-auto,
+           damit bei Quelle „Board" ERKENNBAR ist, warum sie nicht gelten (Board = exakt der Schirm). -->
+      <div class="pdf-sektion">
+        <div class="reg-gruppe-titel" data-i18n="pdf_filter_titel"></div>
+        <div class="pdf-empfehlung warn" id="pdf-filter-board-hinweis" style="display:none" data-i18n="pdf_filter_board_hinweis"></div>
+        <div class="pdf-nur-auto">
+          <label class="login-label"><span data-i18n="pdf_filter_status"></span>
+            <select id="pdf-filter-status" class="login-feld">
+              <option value="beide" selected data-i18n="pdf_filter_beide"></option>
+              <option value="lebend" data-i18n="pdf_filter_lebend"></option>
+              <option value="verstorben" data-i18n="pdf_filter_verstorben"></option>
+            </select>
+          </label>
+          <label class="pdf-check"><input type="checkbox" id="pdf-filter-unbestaetigt"> <span data-i18n="pdf_filter_unbestaetigt"></span></label>
+          <label class="pdf-check"><input type="checkbox" id="pdf-filter-privat"> <span data-i18n="pdf_filter_privat"></span></label>
+        </div>
       </div>
 
       <!-- 4) Darstellung -->
@@ -2836,21 +2855,34 @@
   </div>
 </div>
 
-<script src="i18n.js?v=15.05"></script>
+<script src="i18n.js?v=16.00"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=15.05"></script>
-<script src="chat.js?v=15.05"></script>
-<script src="rezepte_pool.js?v=15.05"></script>
+<script src="pdf_export.js?v=16.00"></script>
+<script src="chat.js?v=16.00"></script>
+<script src="rezepte_pool.js?v=16.00"></script>
+<!-- FAMROOTS-36: lokalen Supabase-Stack NUR auf localhost optional dazuladen. Auf GitHub Pages
+     (Prod) wird supabase_local.js NIE angefragt -> kein 404 in fremden Konsolen, kein Local-Key im
+     Repo. Die Datei ist gitignored (Vorlage: supabase_local.example.js) und setzt window.__SB_LOCAL.
+     Separater <script>-Block, damit der document.write-Import VOR dem AUTH-Block unten fertig ist. -->
+<script>
+  if (['localhost', '127.0.0.1', ''].includes(location.hostname)) {
+    document.write('<scr' + 'ipt src="supabase_local.js"><\/scr' + 'ipt>');
+  }
+</script>
 <script>
 // ============================================================
 // SUPABASE AUTH
 // ============================================================
-const SUPABASE_URL  = 'https://tybvzhifvufgvlgjpmyl.supabase.co';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5YnZ6aGlmdnVmZ3ZsZ2pwbXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDIyMDQsImV4cCI6MjA5NTgxODIwNH0.VL1Z5bZN4t73ArS-uKLC1tAkt1yhQqflKJZ7XU5vA5Y';
+// FAMROOTS-36: Prod bleibt der Default (Werte unten unverändert). Nur wenn ein lokaler Stack per
+// window.__SB_LOCAL (supabase_local.js, nur localhost) hinterlegt ist, zeigt die App dorthin.
+// Prod-Konstante NIE überschreiben, Local-Key NIE ins Repo/nach Prod ausliefern.
+const SUPABASE_URL  = (window.__SB_LOCAL && window.__SB_LOCAL.url) || 'https://tybvzhifvufgvlgjpmyl.supabase.co';
+const SUPABASE_KEY  = (window.__SB_LOCAL && window.__SB_LOCAL.key) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5YnZ6aGlmdnVmZ3ZsZ2pwbXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDIyMDQsImV4cCI6MjA5NTgxODIwNH0.VL1Z5bZN4t73ArS-uKLC1tAkt1yhQqflKJZ7XU5vA5Y';
 const sbClient      = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+if (window.__SB_LOCAL) console.warn('⚠️ Supabase: LOKALER Stack aktiv (' + SUPABASE_URL + ') — NICHT Produktion.');
 
 // Diagnose-Logging nur lokal (localhost/127.0.0.1/file://). In Produktion (GitHub Pages)
 // bleibt es still, damit keine internen Daten (Rollen, Signed-URLs, Storage-Pfade) in die
@@ -2895,6 +2927,12 @@ function ladeCss(href, integrity) {
 }
 // jsPDF (+ svg2pdf, das die jsPDF-Instanz um .svg() erweitert -> Reihenfolge wichtig).
 async function ladePdfLib() {
+  // pdf_font.js (SCRUM-27) LAZY mitladen — same-origin (kein SRI), erst beim Export, damit ohne
+  // PDF-Export kein zusätzlicher Download entsteht (AK6). Fehlt/scheitert es, bleibt der Export
+  // funktionsfähig (pdfFontRegistrieren wird dann nicht definiert -> Raster-Fallback).
+  if (typeof window.pdfFontRegistrieren !== 'function') {
+    try { await ladeScript('pdf_font.js?v=' + (typeof APP_VERSION !== 'undefined' ? APP_VERSION : Date.now())); } catch (e) {}
+  }
   if (window.jspdf && window.jspdf.jsPDF) return true;
   try { await ladeScript(LIBS.jspdf.src, LIBS.jspdf.integrity);
         await ladeScript(LIBS.svg2pdf.src, LIBS.svg2pdf.integrity); return true; }
@@ -4469,7 +4507,16 @@ async function realtimeReloadAusfuehren() {
   realtimeReloadLaeuft = true;
   realtimePendingReload = false;
   try {
-    if (typeof ladeBaumDaten === 'function') await ladeBaumDaten();
+    // FAMROOTS-39: Im Board-/Tabla-Modus den Vollreload über den board-ERHALTENDEN Pfad fahren.
+    // ladeBaumDaten geht sonst über waehleStammbaum (setzt ansichtModus=null) -> rendereLayout ->
+    // zeigeBoardAnsicht(false) -> boardEdit=false, d. h. der Bearbeitungsmodus schließt sich ~0,7 s
+    // nach Anlegen/Verbinden (INSERT erzwingt den Vollreload). reloadBaumBehalteFokus lädt bei
+    // ansichtModus==='board' nur Layout/Linien neu und behält boardEdit + Board-Zustand.
+    if (ansichtModus === 'board' && typeof reloadBaumBehalteFokus === 'function') {
+      await reloadBaumBehalteFokus(null);
+    } else if (typeof ladeBaumDaten === 'function') {
+      await ladeBaumDaten();
+    }
     pruefeOverlayAktualitaet();   // P3: offene Personen-Overlays auf Live-Änderungen prüfen
     aktualisiereProfilLeise();    // Profil<->Karte-Sync: eigenes Profil/Badge live nachziehen
   } catch (e) {
@@ -8674,6 +8721,15 @@ async function ladeBaumAusSupabase() {
       _pos: (row.pos_x != null && row.pos_y != null) ? { x: row.pos_x, y: row.pos_y } : null,
       _updated: row.updated_at || null   // P5: Stand für Optimistic-Locking-Vergleich
     };
+    // FAMROOTS-42: `name` kann in Altdaten/bestimmten Anlagepfaden fehlen, obwohl given/surname
+    // gesetzt sind. `name` wird beim Laden nur gespreadet (kein Compose) -> nm(name)-Anzeigen (z. B.
+    // Partner-/Verwandten-Chip) blieben leer. Einmalig aus given+surname zusammensetzen, damit ALLE
+    // Namensanzeigen einen Wert haben. Echte Platzhalter (given/surname leer) bleiben unberührt und
+    // werden weiterhin von lokalisierePlatzhalterNamen beschriftet.
+    if (!persons[ext].name || !String(persons[ext].name).trim()) {
+      const zn = (((sd.given || '') + ' ' + (sd.surname || '')).trim());
+      if (zn) persons[ext].name = zn;
+    }
   });
 
   // Beziehungen -> Ehepaare + Eltern-Mengen je Kind
@@ -8926,6 +8982,21 @@ function befuelleStammbaumAuswahl() {
     `<option value="${id}">${escapeHtml(baumLabel(id))} (${z[id]})</option>`
   ).join('');
   sel.style.display = ids.length ? '' : 'none';
+  // SCRUM-29: Nach innerHTML-Austausch fällt ein <select> auf die ERSTE Option (= größter Baum)
+  // zurück -> die Anzeige spränge auf einen fremden Baum, obwohl aktuellerStammbaumId unverändert
+  // ist (Desync). Deshalb die Auswahl explizit wiederherstellen. Die Suchliste des suchbaren
+  // Dropdowns wird beim Öffnen dynamisch aus sel.options gebaut (ssRender) -> das Control muss NICHT
+  // neu aufgebaut werden; es genügt, sel.value zu setzen und das sichtbare Label (ssSyncLabel)
+  // nachzuziehen.
+  if (aktuellerStammbaumId && ids.includes(aktuellerStammbaumId)) {
+    sel.value = aktuellerStammbaumId;
+    if (typeof ssSyncLabel === 'function') ssSyncLabel(sel);
+  } else if (aktuellerStammbaumId && ids.length && !ids.includes(aktuellerStammbaumId)) {
+    // Der offene Baum ist aus der Liste gefallen (z. B. letzte Karte gelöscht -> Baum verschwindet).
+    // BEWUSST über waehleStammbaum wechseln, damit Zustand UND Anzeige gemeinsam wandern (kein
+    // stiller Sprung; CLAUDE.md „aktuellen Stammbaum nie automatisch wechseln" -> hier ist er weg).
+    if (typeof waehleStammbaum === 'function') waehleStammbaum(ids[0]);
+  }
 }
 
 // Wurzel eines Baums: Person ohne Eltern im selben Baum mit den meisten Nachkommen
@@ -8987,6 +9058,9 @@ function waehleStammbaum(treeId) {
   document.getElementById('suche').value = '';
   const sel = document.getElementById('tree-select');
   if (sel && sel.value !== treeId) sel.value = treeId;
+  // SCRUM-29 Teil 2: auch das SICHTBARE Steuerelement des suchbaren Dropdowns nachziehen — sonst
+  // bleibt die Beschriftung auf dem alten Baum stehen, obwohl der Wert stimmt („reagiert nicht").
+  if (sel && typeof ssSyncLabel === 'function') ssSyncLabel(sel);
   aktualisiereKopf();
   const root = findeStammbaumWurzel(treeId);
   // Reihenfolge: Deep-Link (#p=) > zuletzt gewählte/gespeicherte Ansicht (Fallback Standard) > Vollansicht.
@@ -10927,11 +11001,41 @@ function boardZeichneLinien(model, visible, X, Y, g, autoKanten) {
   // Linien beim ersten Ziehen alle zurueck. Fehlt beides, bleibt das bisherige Verhalten.
   const _kFilter = (autoKanten && autoKanten.size) ? autoKanten
     : ((typeof boardState !== 'undefined' && boardState && boardState.kanten && boardState.kanten.size) ? boardState.kanten : null);
-  const zeigeEhe = (a, b) => !_kFilter || _kFilter.has([a, b].sort().join('|') + '|ehe');
+  // FAMROOTS-42: Partner-Linie zwischen zwei SICHTBAREN Karten auch dann zeichnen, wenn die
+  // Blutlinien-Autosortierung sie nicht erzeugt (frisch eingeheirateter/nicht-blutlinien-Partner
+  // steht außerhalb blutScope -> `…|ehe`-Schlüssel fehlt, analog FAMROOTS-40). Kein Phantom-Risiko:
+  // die Kante ist real, sobald beide Personen sich EINE echte Ehe-/Partner-Familie teilen (husband/
+  // wife = genau diese beiden ext-IDs) — eine Identitäts-Spiegelkarte teilt keine solche Familie.
+  // FAMROOTS-46: KEINE Ex-ohne-Kinder-Ausnahme im BOARD — das manuelle Board zeigt JEDE vom Nutzer
+  // angelegte Beziehung (auch Ex ohne gemeinsame Kinder). Das AUTO-Diagramm blendet Ex ohne
+  // gemeinsame Kinder bewusst weiter aus (`istExOhneKinder`/`baueGraphModell` `exOhneKinder`): ein
+  // Aufnehmen ins Layout-Modell bricht die `zeichneGraph2`-Anordnung (verpartnerter Bloodline-Knoten
+  // wird verdrängt) — Versuch am 25.07.2026 verworfen, siehe docs/lessons.md.
+  const echtesPaar = (a, b) => {
+    const pa = (model.nodes.get(a) || {}).person, pb = (model.nodes.get(b) || {}).person;
+    if (!pa || !pb || !pa.id || !pb.id) return false;
+    return (pa.families_spouse || []).some(fid => {
+      const fam = aktuelleDaten.families[fid]; if (!fam) return false;
+      return (fam.husband === pa.id && fam.wife === pb.id) || (fam.wife === pa.id && fam.husband === pb.id);
+    });
+  };
+  const zeigeEhe = (a, b) => !_kFilter || _kFilter.has([a, b].sort().join('|') + '|ehe') || echtesPaar(a, b);
   const zeigeElt = (eltern, kind) => {
     if (!_kFilter) return true;
     const el = [...eltern].filter(Boolean);
-    return el.length && _kFilter.has('P:' + el.sort().join('&') + '>' + kind);
+    if (!el.length) return false;
+    // FAMROOTS-40: EIN-ELTERN-Kante zwischen sichtbaren Karten IMMER zeichnen. Der SCRUM-6-Filter
+    // wurde gegen Phantom-Linien aus Identitäts-Spiegelkarten eingeführt, deren PAAR-Mittelpunkt
+    // (px = Mittel zweier Eltern) quer über den Baum läuft — ein EINZELNER Elternteil hat keinen
+    // Paar-Mittelpunkt und kann diesen Phantom nicht erzeugen. Der eingeheiratete/nicht-blutlinien-
+    // Elternteil (typ. Mutter) landet aber in einer eigenständigen Ein-Eltern-Union, die die
+    // blutScope-Autosortierung NIE erreicht -> `P:mutter>kind` fehlt komplett -> Linie stumm
+    // unterdrückt. Da die Kante real ist (aus `beziehungen`, beide Karten sichtbar), zeichnen.
+    if (el.length === 1) return true;
+    // Mehr-Eltern-(Paar-)Kante: exakter Schlüssel ODER Teilmengen-Elternteil (Autosortierung zog
+    // das Paar evtl. unter nur einem Elternteil). Phantom-Paare bleiben gefiltert (kein Subkey).
+    if (_kFilter.has('P:' + el.slice().sort().join('&') + '>' + kind)) return true;
+    return el.some(p => _kFilter.has('P:' + p + '>' + kind));
   };
   // Linien im Edit-Modus anklickbar -> Beziehung löschen (paare = [[von,nach,typ],...]).
   const darfDel = (typeof boardEdit !== 'undefined' && boardEdit) && (typeof istAdmin === 'function') && istAdmin();
@@ -10987,10 +11091,14 @@ function boardZeichneLinien(model, visible, X, Y, g, autoKanten) {
     const cs = [...u.children].filter(inV);
     // Partner: goldene gestrichelte Linie zwischen benachbarten Eltern (Endpunkte ziehbar) +
     // Rauten-Joint mittig zwischen den KARTEN (dort hängt der Eltern->Kind-Verbinder, bleibt fix).
+    // FAMROOTS-46: Ex-Partnerschaft (ex_ehe/ex_partner) grau/dezent statt golden zeichnen — auf
+    // einen Blick von der aktuellen Partnerschaft unterscheidbar (CSS `.ehe-linie-ex`). Gilt für Ex
+    // mit UND ohne gemeinsame Kinder (Union kennt ihre `partner_art`).
+    const eheKlasse = (u.partner_art === 'ex_ehe' || u.partner_art === 'ex_partner') ? 'ehe-linie ehe-linie-ex' : 'ehe-linie';
     for (let i = 0; i < ps.length - 1; i++) {
       if (!zeigeEhe(ps[i], ps[i + 1])) continue;   // SCRUM-6: nur was die Autosortierung auch zieht
       const ax = X.get(ps[i]), ay = Y.get(ps[i]), bx = X.get(ps[i + 1]), by = Y.get(ps[i + 1]);
-      boardVerbindung(g, ps[i], ps[i + 1], 'ehe-linie',
+      boardVerbindung(g, ps[i], ps[i + 1], eheKlasse,
         [[uuidOf(ps[i]), uuidOf(ps[i + 1]), 'ehepartner']], nameOf(ps[i]) + ' / ' + nameOf(ps[i + 1]), ctx);
       const jx = (ax + bx) / 2, jy = (ay + by) / 2;
       g.append('rect').attr('class', 'paar-knoten').attr('x', jx - 4).attr('y', jy - 4).attr('width', 8).attr('height', 8)
@@ -11107,7 +11215,7 @@ async function boardBezLoeschen(paare, name) {
 // Karte ziehbar machen (nur Bearbeiter). container = baumG -> Koordinaten im Welt-Raum
 // (Zoom/Scale bereits herausgerechnet). stopPropagation im start -> d3.zoom pant NICHT mit.
 function boardMacheZiehbar(g, canon, model, visible, PX, PY, linienG) {
-  let _alt = null, _menge = null;
+  let _alt = null, _menge = null, _wpKeys = null, _altWp = null;
   const drag = d3.drag()
     .container(() => baumG.node())
     .on('start', (e) => {
@@ -11122,6 +11230,17 @@ function boardMacheZiehbar(g, canon, model, visible, PX, PY, linienG) {
       _alt = new Map();
       _menge.forEach(c => { const nn = model.nodes.get(c); _alt.set(c, { uuid: nn && nn.person && nn.person._uuid, x: PX.get(c), y: PY.get(c) }); });
       _menge.forEach(c => { const gg = boardState && boardState.gruppen && boardState.gruppen.get(c); if (gg) gg.raise(); });
+      // SCRUM-28: manuell verstellte Linien-Wegpunkte MITFÜHREN, wenn BEIDE Endkarten in der Auswahl
+      // liegen (starrer Körper -> Verlauf wandert unverändert mit). Nur EIN Endpunkt in der Auswahl:
+      // Wegpunkt bleibt stehen (die Anker-Seiten passen sich ohnehin an, ein blind mitgezogener
+      // Knick läge dann oft schlechter). Keine neuen Wegpunkte — nur bereits gesetzte (x/y != null).
+      const uuidSet = new Set(); _alt.forEach(a => { if (a.uuid) uuidSet.add(String(a.uuid)); });
+      _wpKeys = []; _altWp = new Map();
+      for (const key in boardLinien) {
+        const st = boardLinien[key]; if (!st || st.x == null || st.y == null) continue;
+        const [von, nach] = String(key).split('|');
+        if (uuidSet.has(von) && uuidSet.has(nach)) { _wpKeys.push(key); _altWp.set(key, { x: st.x, y: st.y }); }
+      }
     })
     .on('drag', (e) => {
       _menge.forEach(c => {
@@ -11129,6 +11248,8 @@ function boardMacheZiehbar(g, canon, model, visible, PX, PY, linienG) {
         const gg = boardState && boardState.gruppen && boardState.gruppen.get(c);
         if (gg) gg.attr('transform', `translate(${PX.get(c)},${PY.get(c)})`);
       });
+      // SCRUM-28: Wegpunkte im selben Frame um dasselbe Delta verschieben (akkumuliert wie PX/PY).
+      _wpKeys.forEach(key => { const st = boardLinien[key]; if (st) { st.x += e.dx; st.y += e.dy; } });
       boardZeichneLinien(model, visible, PX, PY, linienG);
     })
     .on('end', () => {
@@ -11138,11 +11259,36 @@ function boardMacheZiehbar(g, canon, model, visible, PX, PY, linienG) {
         const a = _alt.get(c), uuid = a && a.uuid;
         if (uuid) { altP.set(uuid, { x: a.x, y: a.y }); neuP.set(uuid, { x: Math.round(PX.get(c)), y: Math.round(PY.get(c)) }); boardSpeicherePos(String(uuid), PX.get(c), PY.get(c)); }
       });
-      if (neuP.size) boardPushUndo({
-        undo: async () => { for (const [u, p] of altP) await sbClient.rpc('karte_board_pos_setzen', { p_person: u, p_x: Math.round(p.x), p_y: Math.round(p.y) }); },
-        redo: async () => { for (const [u, p] of neuP) await sbClient.rpc('karte_board_pos_setzen', { p_person: u, p_x: p.x, p_y: p.y }); }
+      // SCRUM-28: mitgeführte Wegpunkte persistieren (nur die tatsächlich bewegten) + für Undo sichern.
+      const altW = new Map(), neuW = new Map();
+      (_wpKeys || []).forEach(key => {
+        const st = boardLinien[key], vor = _altWp.get(key);
+        if (!st || !vor || (st.x === vor.x && st.y === vor.y)) return;   // unverschoben -> nichts speichern
+        const [von, nach] = String(key).split('|');
+        altW.set(key, { von, nach, x: vor.x, y: vor.y });
+        neuW.set(key, { von, nach, x: st.x, y: st.y });
+        boardLinieSpeichern(von, nach, st.x, st.y);
       });
-      _menge = null; _alt = null;
+      if (neuP.size || neuW.size) {
+        // SCRUM-26 AK12 (FAMROOTS-26): Fremdänderungs-Schutz RICHTUNGSABHÄNGIG. Vor Undo müssen die
+        // Karten auf den NEUEN (von mir gesetzten) Positionen stehen, vor Redo auf den ALTEN (durchs
+        // Undo hergestellten) — sonst blockiert die Prüfung jedes Redo fälschlich als Fremdänderung.
+        const neuErwartet = {}; neuP.forEach((p, u) => { neuErwartet[String(u)] = { x: p.x, y: p.y }; });
+        const altErwartet = {}; altP.forEach((p, u) => { altErwartet[String(u)] = { x: Math.round(p.x), y: Math.round(p.y) }; });
+        boardPushUndo({
+          pruefUndo: neuP.size ? boardPosPruef(neuErwartet) : undefined,
+          pruefRedo: neuP.size ? boardPosPruef(altErwartet) : undefined,
+          undo: async () => {
+            for (const [u, p] of altP) await sbClient.rpc('karte_board_pos_setzen', { p_person: u, p_x: Math.round(p.x), p_y: Math.round(p.y) });
+            for (const [, w] of altW) await sbClient.rpc('board_linie_setzen', { p_baum: aktuellerStammbaumId, p_von: w.von, p_nach: w.nach, p_x: Math.round(w.x), p_y: Math.round(w.y) });
+          },
+          redo: async () => {
+            for (const [u, p] of neuP) await sbClient.rpc('karte_board_pos_setzen', { p_person: u, p_x: p.x, p_y: p.y });
+            for (const [, w] of neuW) await sbClient.rpc('board_linie_setzen', { p_baum: aktuellerStammbaumId, p_von: w.von, p_nach: w.nach, p_x: Math.round(w.x), p_y: Math.round(w.y) });
+          }
+        });
+      }
+      _menge = null; _alt = null; _wpKeys = null; _altWp = null;
       boardZieht = false;
     });
   g.classed('ziehbar', true); g.call(drag);
@@ -11200,6 +11346,12 @@ async function boardBeziehungAnlegen(aUuid, bUuid, typ, aExt) {
   // Gleiche Vorbereitung wie vbVerknuepfe: Geschwister -> über (Platzhalter-)Eltern als "kind";
   // sonst direkt. So wird die Kante WIRKLICH angelegt (nicht nur scheinbar) — behebt „Erfolg, aber
   // nichts verbunden" bei Geschwistern.
+  // FAMROOTS-43: 'ex_partner' ist KEINE eigene Kante, sondern eine 'ehepartner'-Kante mit
+  // partner_art='ex_partner'. Auf rpcTyp 'partner' abbilden und die Art atomar mitreichen (der
+  // Server setzt sie beim Anlegen bzw. bei der Genehmigung — funktioniert auch im 'angefragt'-Fall,
+  // in dem die Kante erst später entsteht).
+  let art = null;
+  if (typ === 'ex_partner') { art = 'ex_partner'; typ = 'partner'; }
   let kontext = aUuid, rpcTyp = typ, zweiter = null, childId = null;
   try {
     if (typ === 'geschwister') {
@@ -11220,7 +11372,7 @@ async function boardBeziehungAnlegen(aUuid, bUuid, typ, aExt) {
       kontext = elternUuids[0]; rpcTyp = 'kind'; zweiter = elternUuids[1] || null;
     }
     const { data, error } = await sbClient.rpc('verknuepfung_anfragen',
-      { p_modus: 'beziehung', p_kontext: kontext, p_ziel: bUuid, p_typ: rpcTyp, p_zweiter: zweiter });
+      { p_modus: 'beziehung', p_kontext: kontext, p_ziel: bUuid, p_typ: rpcTyp, p_zweiter: zweiter, p_art: art });
     if (error) return { err: (typeof vbFehlerText === 'function') ? vbFehlerText(error.message, typ) : error.message };
     childId = (rpcTyp === 'kind') ? bUuid : (rpcTyp === 'elternteil') ? kontext : null;
     return { ok: data, childId };
@@ -11233,7 +11385,7 @@ function boardVerknuepfenPopover(aCanon, bCanon, model, ev) {
   const a = na && na.person, b = nb && nb.person;
   if (!a || !b || !a._uuid || !b._uuid) return;
   const vorschlag = boardTypVorschlag(a, b);
-  boardVerkn = { aUuid: a._uuid, bUuid: b._uuid, aExt: a.id,
+  boardVerkn = { aUuid: a._uuid, bUuid: b._uuid, aExt: a.id, bExt: b.id,
                  aName: a.name || a.given || '?', bName: b.name || b.given || '?', typ: vorschlag };
   const pop = document.getElementById('board-verkn-popover'); if (!pop) return;
   document.getElementById('board-popover-titel').textContent =
@@ -11241,6 +11393,7 @@ function boardVerknuepfenPopover(aCanon, bCanon, model, ev) {
   const typen = [
     { k: 'elternteil', label: t('board_typ_eltern') },
     { k: 'partner',    label: t('board_typ_partner') },
+    { k: 'ex_partner', label: t('board_typ_ex') },   // FAMROOTS-43: Ex-Partner beim Verknüpfen wählbar
     { k: 'kind',       label: t('board_typ_kind') },
     { k: 'geschwister',label: t('board_typ_geschwister') }
   ];
@@ -11250,11 +11403,37 @@ function boardVerknuepfenPopover(aCanon, bCanon, model, ev) {
   if (hint) hint.textContent = vorschlag ? t('board_typ_erkannt') : t('board_typ_offen');
   const fehler = document.getElementById('board-popover-fehler'); if (fehler) fehler.style.display = 'none';
   const okBtn = document.getElementById('board-popover-ok'); if (okBtn) okBtn.disabled = !boardVerkn.typ;
-  const x = (ev && ev.clientX != null) ? ev.clientX : 200, y = (ev && ev.clientY != null) ? ev.clientY : 200;
-  pop.style.left = Math.max(8, Math.min(x, window.innerWidth - 320)) + 'px';
-  pop.style.top  = Math.max(8, Math.min(y, window.innerHeight - 240)) + 'px';
+  // FAMROOTS-44: Anker (Bildschirm-Koordinate der Drop-Stelle) merken, erst SICHTBAR schalten, dann
+  // an der ECHTEN Höhe (offsetHeight) klemmen — die alte fixe 240px-Annahme schnitt das höhere
+  // Popover (5 Typen + Fehlertext) unten ab.
+  boardPopoverAnker = { x: (ev && ev.clientX != null) ? ev.clientX : 200,
+                        y: (ev && ev.clientY != null) ? ev.clientY : 200 };
   pop.style.display = 'block';
+  boardPopoverPositionieren();
 }
+// FAMROOTS-44: Popover an der echten Höhe im Viewport halten. Passt es unterhalb der Drop-Stelle
+// nicht mehr, oberhalb öffnen; sonst an den unteren Rand klemmen (max-height/overflow im CSS sorgt
+// dafür, dass der Inhalt bei sehr kleinen Viewports intern scrollt statt abgeschnitten zu werden).
+let boardPopoverAnker = null;
+function boardPopoverPositionieren() {
+  const pop = document.getElementById('board-verkn-popover');
+  if (!pop || pop.style.display === 'none' || !boardPopoverAnker) return;
+  const rand = 8, vw = window.innerWidth, vh = window.innerHeight;
+  const bw = pop.offsetWidth || 300, bh = pop.offsetHeight || 240;
+  const x = Math.max(rand, Math.min(boardPopoverAnker.x, vw - bw - rand));
+  let y = boardPopoverAnker.y;
+  if (y + bh + rand > vh) {                       // passt unterhalb nicht -> oberhalb der Drop-Stelle
+    const oben = boardPopoverAnker.y - bh - rand;
+    y = (oben >= rand) ? oben : (vh - bh - rand);
+  }
+  y = Math.max(rand, y);
+  pop.style.left = x + 'px';
+  pop.style.top  = y + 'px';
+}
+// Panel-Regel (CLAUDE.md): bei scroll/resize NEU positionieren statt hängen lassen. Global registriert
+// (wie dpPositioniere/ssPositioniere), no-op solange das Popover zu ist (boardPopoverAnker=null).
+window.addEventListener('scroll', boardPopoverPositionieren, true);
+window.addEventListener('resize', boardPopoverPositionieren);
 function boardPopoverTypWaehle(k) {
   if (!boardVerkn) return; boardVerkn.typ = k;
   document.querySelectorAll('#board-popover-typen .board-typ-btn').forEach(b => b.classList.toggle('aktiv', b.dataset.typ === k));
@@ -11263,18 +11442,91 @@ function boardPopoverTypWaehle(k) {
 function boardPopoverSchliessen() {
   const p = document.getElementById('board-verkn-popover'); if (p) p.style.display = 'none';
   boardVerkn = null;
+  boardPopoverAnker = null;   // FAMROOTS-44: scroll/resize-Handler wird wieder no-op
+}
+// FAMROOTS-41: Partner (aktuelle UND Ex) eines Elternteils aus dem geladenen Modell — analog zur
+// `paSpouses`-Logik des Kind-Editors. Ex (`partner_art` ex_ehe/ex_partner) zählen mit (Nutzer-
+// Entscheidung), werden aber gekennzeichnet, damit der Auswahldialog sie unterscheidet.
+function boardPartnerVon(parentExt) {
+  const p = parentExt ? aktuelleDaten.persons[parentExt] : null;
+  if (!p) return [];
+  const out = [];
+  (p.families_spouse || []).forEach(fid => {
+    const fam = aktuelleDaten.families[fid]; if (!fam) return;
+    const partnerExt = fam.husband === parentExt ? fam.wife : fam.husband;
+    const partner = partnerExt ? aktuelleDaten.persons[partnerExt] : null;
+    if (partner && partner._uuid && !out.some(o => o.uuid === partner._uuid)) {
+      out.push({ uuid: partner._uuid, name: nm(partner.name || partner.given || '?'),
+                 ex: /^ex_/.test(fam.partner_art || '') });
+    }
+  });
+  return out;
+}
+// App-eigenes Auswahl-Overlay „Wer ist der zweite Elternteil?" (kein natives confirm/prompt).
+// Muster wie zeigeDreiWahl (.confirm-overlay). Liefert die gewählte partner-uuid oder null
+// („keiner / später" bzw. Außenklick). Nur bei MEHREREN Partnern aufgerufen.
+function boardZweitEltWahl(partners) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    const zeilen = partners.map(p =>
+      `<button type="button" class="confirm-ja board-zweitelt-opt" data-uuid="${escapeHtml(p.uuid)}">` +
+      `${escapeHtml(p.name)}${p.ex ? ' <span class="board-zweitelt-ex">' + escapeHtml(t('board_zweitelt_ex')) + '</span>' : ''}</button>`).join('');
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <p class="confirm-text" style="text-align:left">${escapeHtml(t('board_zweitelt_frage'))}</p>
+        <div class="confirm-actions" style="flex-direction:column;align-items:stretch;gap:8px">
+          ${zeilen}
+          <button type="button" class="confirm-nein board-zweitelt-keiner">${escapeHtml(t('board_zweitelt_keiner'))}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const fertig = (wert) => { overlay.remove(); resolve(wert); };
+    overlay.querySelectorAll('.board-zweitelt-opt').forEach(b =>
+      b.addEventListener('click', () => fertig(b.dataset.uuid)));
+    overlay.querySelector('.board-zweitelt-keiner').addEventListener('click', () => fertig(null));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) fertig(null); });
+  });
+}
+// 0 Partner -> null (nichts); 1 -> automatisch; n -> Auswahl-Overlay (null = keiner/später).
+async function boardZweitElternteilErmitteln(parentExt) {
+  const partners = boardPartnerVon(parentExt);
+  if (!partners.length) return null;
+  if (partners.length === 1) return partners[0].uuid;
+  return await boardZweitEltWahl(partners);
 }
 async function boardPopoverBestaetigen() {
   if (!boardVerkn || !boardVerkn.typ) return;
-  const aUuid = boardVerkn.aUuid, bUuid = boardVerkn.bUuid, typ = boardVerkn.typ, aExt = boardVerkn.aExt;
+  const aUuid = boardVerkn.aUuid, bUuid = boardVerkn.bUuid, typ = boardVerkn.typ, aExt = boardVerkn.aExt, bExt = boardVerkn.bExt;
   const fehler = document.getElementById('board-popover-fehler');
   const res = await boardBeziehungAnlegen(aUuid, bUuid, typ, aExt);
   // Linie/Meldung NUR bei echtem RPC-Erfolg — Fehler (vkn_zyklus/vkn_kante_existiert/…) am Popover.
-  if (res.err) { if (fehler) { fehler.textContent = res.err; fehler.style.display = 'block'; } return; }
+  if (res.err) { if (fehler) { fehler.textContent = res.err; fehler.style.display = 'block'; if (typeof boardPopoverPositionieren === 'function') boardPopoverPositionieren(); } return; }
   boardPopoverSchliessen();
-  boardPushUndo(boardUndoLink(aUuid, bUuid, typ));   // Undo: Verknüpfen -> trennen
+  // FAMROOTS-43: 'ex_partner' trennt dieselbe 'ehepartner'-Kante wie 'partner' -> fürs Undo auf
+  // 'partner' normalisieren (boardUndoLink kennt nur partner/kind/elternteil).
+  boardPushUndo(boardUndoLink(aUuid, bUuid, typ === 'ex_partner' ? 'partner' : typ));   // Undo: Verknüpfen -> trennen
   // Kind ggf. in alle Bäume spiegeln (wie vbVerknuepfe) — nur bei sofortiger Verknüpfung.
   if (res.ok === 'sofort' && res.childId) { try { await sbClient.rpc('kind_baeume_sync', { p_kind: res.childId }); } catch (e) { console.warn('kind_baeume_sync:', e); } }
+  // FAMROOTS-41: Bei einer Eltern↔Kind-Verknüpfung den Partner des Elternteils als ZWEITEN
+  // Elternteil des Kindes ergänzen. 'kind' -> a ist Elternteil, b Kind; 'elternteil' -> b Elternteil,
+  // a Kind. Genau ein Partner: automatisch; mehrere: Auswahl-Overlay; keiner: nichts. Der zweite
+  // Eintrag läuft über denselben verknuepfung_anfragen-Pfad und ist eigenständig atomar — schlägt er
+  // fehl (z. B. Kante existiert schon), bleibt die erste (gültige) Elternschaft bestehen (AK5).
+  if (typ === 'kind' || typ === 'elternteil') {
+    const parentExt = (typ === 'kind') ? aExt : bExt;
+    const childUuid = (typ === 'kind') ? bUuid : aUuid;
+    try {
+      const zweitElt = parentExt ? await boardZweitElternteilErmitteln(parentExt) : null;
+      if (zweitElt && zweitElt !== childUuid) {
+        const res2 = await boardBeziehungAnlegen(zweitElt, childUuid, 'kind');
+        if (!res2.err) {
+          boardPushUndo(boardUndoLink(zweitElt, childUuid, 'kind'));
+          if (res2.ok === 'sofort' && res2.childId) { try { await sbClient.rpc('kind_baeume_sync', { p_kind: res2.childId }); } catch (e) { console.warn('kind_baeume_sync 2:', e); } }
+        } else { console.warn('zweiter Elternteil nicht ergänzt:', res2.err); }
+      }
+    } catch (e) { console.warn('zweiter Elternteil:', e); }
+  }
   // IM AKTUELLEN Baum BLEIBEN: nur Daten nachladen + Board neu zeichnen. KEIN reloadBaumBehalteFokus
   // (setzt ansichtModus=null + zeichneBaum -> Baumwechsel/Dropdown-Sprung), KEIN waehleStammbaum.
   try { const daten = await ladeBaumAusSupabase(); if (daten && Object.keys(daten.persons).length) aktuelleDaten = daten; } catch (e) { console.warn('board reload:', e); }
@@ -11483,20 +11735,88 @@ let boardSelektion = new Set();     // ausgewählte canons
 let boardUndoStack = [];            // {undo:async, redo:async}
 let boardRedoStack = [];
 
-function boardPushUndo(entry) { if (!entry) return; boardUndoStack.push(entry); boardRedoStack = []; if (boardUndoStack.length > 100) boardUndoStack.shift(); }
+function boardPushUndo(entry) { if (!entry) return; boardUndoStack.push(entry); boardRedoStack = []; if (boardUndoStack.length > 100) boardUndoStack.shift(); boardUndoSync(); }
+// SCRUM-26: Sichtbarkeit der Rückgängig/Wiederholen-Pille + Aktiv/Inaktiv der Buttons. Die
+// Sichtbarkeitsbedingung ist ZEICHENGLEICH zum Tastatur-Gate in boardTastatur.
+function boardUndoSync() {
+  const box = document.getElementById('board-undo-tools');
+  const sichtbar = (ansichtModus === 'board') && boardEdit && (typeof istAdmin === 'function') && istAdmin();
+  if (box) box.style.display = sichtbar ? 'flex' : 'none';
+  const ub = document.getElementById('board-undo-btn'), rb = document.getElementById('board-redo-btn');
+  if (ub) { ub.disabled = !boardUndoStack.length; ub.setAttribute('aria-disabled', ub.disabled ? 'true' : 'false'); }
+  if (rb) { rb.disabled = !boardRedoStack.length; rb.setAttribute('aria-disabled', rb.disabled ? 'true' : 'false'); }
+}
 async function boardReloadUndRedraw() {
   try { if (typeof reloadBaumBehalteFokus === 'function') await reloadBaumBehalteFokus(null); } catch (e) { console.warn('board reload:', e); }
   if (ansichtModus === 'board') { await boardLadeLayout(); zeichneBoard(); }
 }
+// SCRUM-26 (AK12): Schutz vor Überschreiben fremder Arbeit. Ein Eintrag KANN ein `pruef()` tragen —
+// eine async-Funktion, die false liefert, wenn die betroffene Zeile seit der eigenen Aktion von
+// jemand anderem geändert wurde. In diesem Fall wird die Rücknahme NICHT ausgeführt, ein Hinweis
+// erscheint, und der Eintrag wird VERWORFEN (nicht auf den Gegenstapel gelegt) — statt fremde
+// Änderungen still zu überschreiben. Ohne `pruef` verhält sich alles wie bisher.
+async function boardUndoKonfliktfrei(e, richtung) {
+  // FAMROOTS-26 (Nachbesserung): Undo und Redo prüfen gegen VERSCHIEDENE Erwartungszustände. Vor dem
+  // Undo müssen die Karten auf den von mir zuletzt gesetzten (NEUEN) Positionen stehen, vor dem Redo
+  // auf den durchs Undo hergestellten (ALTEN). Ein einziger fixer `pruef` blockierte sonst JEDES
+  // Redo fälschlich als Fremdänderung — „Wiederholen"/„ponovi" ging nie. `e.pruef` bleibt als
+  // Rückfall für Undo (Einträge ohne richtungsabhängige Prüfung).
+  const pruef = (richtung === 'redo') ? e.pruefRedo : (e.pruefUndo || e.pruef);
+  if (typeof pruef !== 'function') return true;
+  try { if (await pruef()) return true; } catch (err) { console.warn('undo-pruef:', err); return true; }   // Prüfung selbst kaputt -> nicht blockieren
+  if (typeof zeigeHinweis === 'function') await zeigeHinweis(t('board_undo_konflikt'));
+  return false;
+}
 async function boardUndo() {
   const e = boardUndoStack.pop(); if (!e) return;
+  if (!(await boardUndoKonfliktfrei(e, 'undo'))) { boardUndoSync(); return; }   // Eintrag verworfen
   try { await e.undo(); } catch (err) { console.warn('undo:', err); }
-  boardRedoStack.push(e); await boardReloadUndRedraw();
+  boardRedoStack.push(e); boardUndoSync(); await boardReloadUndRedraw();
 }
 async function boardRedo() {
   const e = boardRedoStack.pop(); if (!e) return;
+  if (!(await boardUndoKonfliktfrei(e, 'redo'))) { boardUndoSync(); return; }
   try { await e.redo(); } catch (err) { console.warn('redo:', err); }
-  boardUndoStack.push(e); await boardReloadUndRedraw();
+  boardUndoStack.push(e); boardUndoSync(); await boardReloadUndRedraw();
+}
+// Aktuelle Board-Positionen je Karte lesen: Map uuid -> {x,y} (fehlende Zeile = kein Eintrag).
+async function boardPosLesen(uuids) {
+  const out = {};
+  if (!uuids || !uuids.length) return out;
+  try {
+    const { data } = await sbClient.from('board_layout').select('person_id,x,y').in('person_id', uuids);
+    (data || []).forEach(r => { out[String(r.person_id)] = { x: Number(r.x), y: Number(r.y) }; });
+  } catch (e) { console.warn('pos-lesen:', e); }
+  return out;
+}
+// Prüf-Funktion für Positions-Undos (AK12): Statt updated_at (das am 500ms-Debounce der Speicherung
+// hängt) wird DIREKT verglichen, ob die Karten noch dort stehen, wo die eigene Aktion sie zuletzt
+// hingelegt hat (`erwartet` = Map uuid->{x,y}, oder null-Wert = „soll KEINE board_layout-Zeile haben").
+// Steht eine Karte anderswo, hat jemand anderes sie inzwischen verschoben -> Rücknahme blockieren.
+// Das verbleibende winzige TOCTOU-Fenster ist dieselbe bewusste Grenze wie bei der Konflikterkennung
+// P5 (docs/realtime-kollaboration.md) — bei dieser Nutzerzahl unkritisch.
+function boardPosPruef(erwartet) {
+  const uuids = Object.keys(erwartet);
+  return async () => {
+    const jetzt = await boardPosLesen(uuids);
+    return uuids.every(u => {
+      const soll = erwartet[u], ist = jetzt[u];
+      if (soll == null) return ist == null;                                   // sollte gelöscht sein
+      return ist && Math.round(ist.x) === Math.round(soll.x) && Math.round(ist.y) === Math.round(soll.y);
+    });
+  };
+}
+// SCRUM-33: personen.updated_at je Karte lesen (Map uuid -> updated_at, fehlend = null). Stempel für
+// den Fremdänderungs-Schutz der Anlage-Undos — analog zur Positions-Prüfung, aber auf Personenebene.
+async function boardPersonStempel(uuids) {
+  const out = {};
+  const ids = (uuids || []).filter(Boolean).map(String);
+  if (!ids.length) return out;
+  try {
+    const { data } = await sbClient.from('personen').select('id,updated_at').in('id', ids);
+    (data || []).forEach(r => { out[String(r.id)] = r.updated_at; });
+  } catch (e) { console.warn('person-stempel:', e); }
+  return out;
 }
 
 // Auswahl visuell aktualisieren (ohne Voll-Neuzeichnen): CSS-Klasse an den Karten-Gruppen.
@@ -11625,9 +11945,19 @@ async function boardLoeschen(canon, silent, modusVorgabe) {
 }
 
 // Undo-Eintrag fürs Anlegen (lose/Kopie): Undo = löschen (Batch merken), Redo = wiederherstellen.
+// SCRUM-33: Fremdänderungs-Schutz. Der Stempel wird DIREKT NACH dem Anlegen erfasst (nur ich habe die
+// Person zuletzt berührt). Beim Undo (= löschen) wird geprüft, ob niemand die Person seither geändert
+// hat; hat B sie bearbeitet, weicht personen.updated_at ab -> Undo wird blockiert (Hinweis über
+// boardUndoKonfliktfrei), statt Bs Arbeit still in den Papierkorb zu werfen. Deckt das Ticket-Beispiel
+// „A legt an, B ändert, A drückt Strg+Z".
 function boardUndoAnlage(neuId) {
   let batch = null;
+  const stempelVor = boardPersonStempel([neuId]);   // Promise, läuft sofort los (Person existiert bereits)
   return {
+    pruef: async () => {
+      const vor = await stempelVor, jetzt = await boardPersonStempel([neuId]);
+      return String(jetzt[neuId] || '') === String(vor[neuId] || '');
+    },
     undo: async () => { const r = await sbClient.rpc('person_papierkorb', { p_person: neuId }); batch = (r && r.data && r.data.batch) || null; },
     redo: async () => { if (batch) await sbClient.rpc('papierkorb_wiederherstellen', { p_batch: batch }); }
   };
@@ -11658,10 +11988,25 @@ async function boardOrdnen() {
   if (!aktuellerStammbaumId || typeof istAdmin !== 'function' || !istAdmin()) return;
   const ok = (typeof zeigeBestaetigung === 'function') ? await zeigeBestaetigung(t('board_ordnen_frage'), { jaText: t('board_ordnen') }) : true;
   if (!ok) return;
+  // SCRUM-26: Positionen VOR dem Reset sichern, damit „Als Baum ordnen" rücknehmbar wird (AK11).
+  // Snapshot als [uuid, {x,y}] — Undo schreibt sie über karte_board_pos_setzen zurück (gleiches
+  // Muster wie beim Verschieben, s. o.), Redo ruft board_layout_reset erneut.
+  const snapshot = Object.entries(boardPos).map(([u, p]) => [u, { x: p.x, y: p.y }]);
   try {
     const { error } = await sbClient.rpc('board_layout_reset', { p_stammbaum: aktuellerStammbaumId });
     if (error) throw error;
-    boardPos = {}; boardUndoStack = []; boardRedoStack = []; boardSelektion.clear();
+    boardPos = {}; boardSelektion.clear();
+    // Der Stack wird NICHT mehr geleert — „Als Baum ordnen" ist selbst ein Verlaufseintrag.
+    if (snapshot.length) {
+      // SCRUM-26 AK12: „Als Baum ordnen" hat ALLE board_layout-Zeilen dieses Baums gelöscht.
+      // Undo nur, wenn keine der Karten inzwischen wieder verschoben wurde (erwartet: keine Zeile).
+      const erwartet = {}; snapshot.forEach(([u]) => { erwartet[String(u)] = null; });
+      boardPushUndo({
+        pruef: boardPosPruef(erwartet),
+        undo: async () => { for (const [u, p] of snapshot) await sbClient.rpc('karte_board_pos_setzen', { p_person: u, p_x: Math.round(p.x), p_y: Math.round(p.y) }); },
+        redo: async () => { await sbClient.rpc('board_layout_reset', { p_stammbaum: aktuellerStammbaumId }); }
+      });
+    }
     if (ansichtModus === 'board') zeichneBoard();
   } catch (e) { if (typeof zeigeHinweis === 'function') await zeigeHinweis(t('reg_fehler') + ((e && e.message) || e)); }
 }
@@ -11847,6 +12192,7 @@ function boardWerkzeugeSync() {
   const an = (ansichtModus === 'board');
   const tl = document.getElementById('board-tools'); if (tl) tl.style.display = an ? 'flex' : 'none';
   if (an && boardEdit) boardMinimap(); else { const mm = document.getElementById('board-minimap'); if (mm) mm.style.display = 'none'; }
+  boardUndoSync();   // SCRUM-26: Undo-Pille zeigen/verbergen + Button-Zustand
 }
 
 
@@ -12170,15 +12516,20 @@ function boardAnkerHandle(g, key, feld, P, seite, canon, ctx) {
   const h = g.append('g').attr('class', 'board-anker-griff-grp');
   h.append('circle').attr('class', 'board-anker-hit').attr('cx', hx).attr('cy', hy).attr('r', 16);
   h.append('circle').attr('class', 'board-anker-griff').attr('cx', hx).attr('cy', hy).attr('r', 6);
+  let ankerVor = null;   // SCRUM-26: Zustand VOR dem Zug fuer Undo (AK10)
   const drag = d3.drag().container(() => baumG.node())
-    .on('start', (e) => { if (e.sourceEvent) e.sourceEvent.stopPropagation(); })
+    .on('start', (e) => { if (e.sourceEvent) e.sourceEvent.stopPropagation(); ankerVor = boardLinien[key] ? { ...boardLinien[key] } : null; })
     .on('drag', (e) => {
       const cx = X.get(canon), cy = Y.get(canon);
       const s = boardSeiteAusPunkt(cx, cy, e.x, e.y, HW, HH);
       const st = boardLinien[key] || (boardLinien[key] = {});
       if (st[feld] !== s) { st[feld] = s; boardZeichneLinien(model, visible, X, Y, g); }
     })
-    .on('end', () => { const st = boardLinien[key] || {}; boardLinieSeitenSpeichern(key, st.vs || null, st.ns || null); });
+    .on('end', () => {
+      const st = boardLinien[key] || {}; boardLinieSeitenSpeichern(key, st.vs || null, st.ns || null);
+      const [von, nach] = String(key).split('|');
+      if (von && nach) boardLiniePushUndo(von, nach, ankerVor, { ...st });   // AK10
+    });
   h.call(drag);
   h.on('dblclick', (e) => {
     if (e && e.stopPropagation) e.stopPropagation();
@@ -12205,16 +12556,41 @@ function boardLinienHandle(g, key, hx, hy, vonRep, nachRep, model, visible, X, Y
   const handle = g.append('g').attr('class', 'board-linie-griff-grp');
   handle.append('circle').attr('class', 'board-anker-hit').attr('cx', hx).attr('cy', hy).attr('r', 16);
   handle.append('circle').attr('class', 'board-linie-griff').attr('cx', hx).attr('cy', hy).attr('r', 6);
+  let wpVor = null;   // SCRUM-26: Zustand VOR dem Zug fuer Undo
   const drag = d3.drag().container(() => baumG.node())
-    .on('start', (e) => { if (e.sourceEvent) e.sourceEvent.stopPropagation(); })
+    .on('start', (e) => { if (e.sourceEvent) e.sourceEvent.stopPropagation(); wpVor = boardLinien[key] ? { ...boardLinien[key] } : null; })
     .on('drag', (e) => { const st = boardLinien[key] || (boardLinien[key] = {}); st.x = e.x; st.y = e.y; boardZeichneLinien(model, visible, X, Y, g); })
-    .on('end', () => { const w = boardLinien[key]; if (w) boardLinieSpeichern(vonRep, nachRep, w.x, w.y); });
+    .on('end', () => {
+      const w = boardLinien[key]; if (w) boardLinieSpeichern(vonRep, nachRep, w.x, w.y);
+      boardLiniePushUndo(vonRep, nachRep, wpVor, w ? { ...w } : null);   // AK9
+    });
   handle.call(drag);
   handle.on('dblclick', (e) => { if (e && e.stopPropagation) e.stopPropagation(); boardLinieReset(key, vonRep, nachRep, model, visible, X, Y); });
 }
 async function boardLinieSpeichern(von, nach, x, y) {
   try { await sbClient.rpc('board_linie_setzen', { p_baum: aktuellerStammbaumId, p_von: von, p_nach: nach, p_x: Math.round(x), p_y: Math.round(y) }); }
   catch (e) { console.warn('board_linie_setzen:', e); if (typeof zeigeHinweis === 'function') zeigeHinweis(t('board_fehler_speichern')); }
+}
+// SCRUM-26 (AK9/AK10): Kompletten Linien-Zustand wiederherstellen. `board_linie_reset` loescht
+// Wegpunkt UND Anker gemeinsam — es gibt keine RPC nur fuer den Wegpunkt. Deshalb die saubere
+// Inverse fuer BELIEBIGEN Vorher-Zustand: erst auf Null (reset), dann die vorhandenen Teile neu
+// setzen (Anker via seiten_setzen, Wegpunkt via setzen). So kann ein Wegpunkt-Undo keinen Anker
+// mitloeschen und umgekehrt. `z` = Snapshot {vs,ns,x,y} (Teilmengen erlaubt) oder null/leer.
+async function boardLinieZustandSetzen(von, nach, z) {
+  const baum = aktuellerStammbaumId;
+  try {
+    await sbClient.rpc('board_linie_reset', { p_baum: baum, p_von: von, p_nach: nach });
+    if (z && (z.vs || z.ns)) await sbClient.rpc('board_linie_seiten_setzen', { p_baum: baum, p_von: von, p_nach: nach, p_von_seite: z.vs || null, p_nach_seite: z.ns || null });
+    if (z && z.x != null && z.y != null) await sbClient.rpc('board_linie_setzen', { p_baum: baum, p_von: von, p_nach: nach, p_x: Math.round(z.x), p_y: Math.round(z.y) });
+  } catch (e) { console.warn('board_linie zustand:', e); if (typeof zeigeHinweis === 'function') zeigeHinweis(t('board_fehler_speichern')); }
+}
+// Undo-Eintrag fuer eine Linien-Aenderung: von `vor` nach `nach` (beides Snapshots von boardLinien[key]).
+function boardLiniePushUndo(von, nach, vorZustand, nachZustand) {
+  if (JSON.stringify(vorZustand || null) === JSON.stringify(nachZustand || null)) return;   // nichts geaendert
+  boardPushUndo({
+    undo: async () => boardLinieZustandSetzen(von, nach, vorZustand),
+    redo: async () => boardLinieZustandSetzen(von, nach, nachZustand)
+  });
 }
 async function boardLinieReset(key, von, nach, model, visible, X, Y) {
   delete boardLinien[key];
@@ -17076,7 +17452,14 @@ function zeigeDetails(personId) {
       // Person in mehreren Stammbäumen zu finden (Zwilling ODER Baum ihres Blutlinien-Nachnamens).
       cross = `<button class="rel-cross-btn" type="button" title="${escapeHtml(t('cross_weitere'))}" onclick="event.stopPropagation();crossTreeOeffnen('${escapeHtml(String(v.id))}')">🔗</button>`;
     }
-    return `<span class="verwandter${x ? ' mit-x' : ''}" role="button" tabindex="0" onclick="zeigeDetails('${v.id}')">${escapeHtml(nm(v.name))}${cross}${x}</span>`;
+    // FAMROOTS-42: Nie ein leeres Chip (nur ⇄/✕). Ist `name` leer (z. B. frisch verknüpfte lose
+    // Karte, deren Name noch nicht sauber aufgelöst ist), auf given+surname zurückfallen, sonst auf
+    // ein sprechendes Platzhalter-Label — damit der Chip immer eine erkennbare Person zeigt.
+    const rohName = (v.name && v.name.trim())
+      || (((v.given || '') + ' ' + (v.surname || '')).trim())
+      || (v.given || '') || (v.surname || '');
+    const anzeige = rohName ? nm(rohName) : t('ohne_namen');
+    return `<span class="verwandter${x ? ' mit-x' : ''}" role="button" tabindex="0" onclick="zeigeDetails('${v.id}')">${escapeHtml(anzeige)}${cross}${x}</span>`;
   };
   const buildVerwandte = (liste, typ) => liste.map(v => relChip(v, typ)).join('');
 
@@ -23103,16 +23486,31 @@ function initBaum() {
     _bc.addEventListener('contextmenu', (ev) => {
       if (ansichtModus === 'board' && boardEdit && typeof istAdmin === 'function' && istAdmin() && boardState) boardCtxMenu(ev);
     });
-    let _lpT = null, _lpX = 0, _lpY = 0;
+    // SCRUM-31: Long-Press-Kontextmenü NUR bei genau EINEM Finger. Ein zweiter Finger = Pinch-Zoom,
+    // nie ein Menüaufruf. Frühere Fassung startete den Timer je Finger und ueberschrieb _lpT ohne
+    // clearTimeout -> beim Pinch blieb der Timer des ERSTEN Fingers scharf und oeffnete das Menue.
+    let _lpT = null, _lpX = 0, _lpY = 0, _lpId = null;
+    const _lpTouches = new Set();          // aktive Touch-Pointer (nach pointerId)
+    const _lpStop = () => { if (_lpT) { clearTimeout(_lpT); _lpT = null; } _lpId = null; };
     _bc.addEventListener('pointerdown', (ev) => {
       if (ev.pointerType !== 'touch') return;
+      _lpTouches.add(ev.pointerId);
+      // Jeder ZUSÄTZLICHE Finger bricht einen laufenden Long-Press sofort ab (Zwei-Finger erkannt).
+      if (_lpTouches.size > 1) { _lpStop(); return; }
       if (!(ansichtModus === 'board' && boardEdit && typeof istAdmin === 'function' && istAdmin() && boardState)) return;
       if (boardEigeneGeste(ev.target)) return;   // Touch auf Karte/Linien-Griff -> kein Long-Press-Menü
-      _lpX = ev.clientX; _lpY = ev.clientY;
-      _lpT = setTimeout(() => { _lpT = null; boardCtxMenu(ev); }, 500);
+      if (ev.isPrimary === false) return;
+      _lpStop();                                  // nie einen alten Timer ueberschreiben
+      _lpId = ev.pointerId; _lpX = ev.clientX; _lpY = ev.clientY;
+      _lpT = setTimeout(() => { _lpT = null; _lpId = null; boardCtxMenu(ev); }, 500);
     });
-    _bc.addEventListener('pointermove', (ev) => { if (_lpT && (Math.abs(ev.clientX - _lpX) > 8 || Math.abs(ev.clientY - _lpY) > 8)) { clearTimeout(_lpT); _lpT = null; } });
-    _bc.addEventListener('pointerup', () => { if (_lpT) { clearTimeout(_lpT); _lpT = null; } });
+    // Bewegungsschwelle gegen den Startpunkt DESSELBEN Fingers (nicht gegen fremde Koordinaten).
+    _bc.addEventListener('pointermove', (ev) => {
+      if (_lpT && ev.pointerId === _lpId && (Math.abs(ev.clientX - _lpX) > 8 || Math.abs(ev.clientY - _lpY) > 8)) _lpStop();
+    });
+    const _lpEnd = (ev) => { if (ev && ev.pointerType === 'touch') _lpTouches.delete(ev.pointerId); if (!ev || ev.pointerId === _lpId) _lpStop(); };
+    _bc.addEventListener('pointerup', _lpEnd);
+    _bc.addEventListener('pointercancel', _lpEnd);   // Browser uebernimmt die Geste (Pinch/Scroll)
   }
   document.addEventListener('pointerdown', (e) => {
     const m = document.getElementById('board-ctx-menu');
@@ -23300,6 +23698,22 @@ function zeichneBaum(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
 function zeichneVerbindungen(wurzelNode) {
   const HH = KARTE_HALB; // halbe Kartenhöhe (dynamisch nach Feldwahl)
 
+  // SCRUM-34: identische `.verbindung`-Segmente nur EINMAL zeichnen. `.verbindung` ist
+  // halbtransparent (rgba …,0.88) -> zweimal deckungsgleich addiert die Deckkraft und die Linie
+  // wirkt dicker, obwohl stroke-width gleich ist. Overdraw entsteht hier, wenn benachbarte
+  // Elterngruppen dieselbe Sammellinie/denselben Stich erzeugen. Helfer + Set 1:1 wie in
+  // zeichneGraph2 (SCRUM-14); Set ist PRO Aufruf frisch (nicht modulglobal), sonst würden
+  // Folge-Renders Segmente fälschlich unterdrücken. Deckt zeichneBaum mit ab (ruft diese Funktion).
+  const _segGezeichnet = new Set();
+  const linie = (x1, y1, x2, y2, klasse) => {
+    const r = v => Math.round(v * 2) / 2;
+    const a = r(x1) + ',' + r(y1), b = r(x2) + ',' + r(y2);
+    const key = (a < b ? a + '|' + b : b + '|' + a) + '|' + klasse;
+    if (_segGezeichnet.has(key)) return null;
+    _segGezeichnet.add(key);
+    return baumG.append('line').attr('class', klasse).attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2);
+  };
+
   // Links nach (Eltern-ID + FamilienIndex) gruppieren
   const gruppen = new Map();
   wurzelNode.links().forEach(link => {
@@ -23331,19 +23745,11 @@ function zeichneVerbindungen(wurzelNode) {
     const collXMax = Math.max(descentX, ...xs);
 
     // 1. Vertikale Linie: Elternteil → Sammelpunkt
-    baumG.append('line').attr('class', 'verbindung')
-      .attr('x1', descentX).attr('y1', srcBottom)
-      .attr('x2', descentX).attr('y2', midY);
+    linie(descentX, srcBottom, descentX, midY, 'verbindung');
     // 2. Horizontale Sammellinie bei midY
-    baumG.append('line').attr('class', 'verbindung')
-      .attr('x1', collXMin).attr('y1', midY)
-      .attr('x2', collXMax).attr('y2', midY);
+    linie(collXMin, midY, collXMax, midY, 'verbindung');
     // 3. Vertikale Stubs zu jedem Kind
-    targets.forEach(t => {
-      baumG.append('line').attr('class', 'verbindung')
-        .attr('x1', t.x).attr('y1', midY)
-        .attr('x2', t.x).attr('y2', childTop);
-    });
+    targets.forEach(t => { linie(t.x, midY, t.x, childTop, 'verbindung'); });
   });
 }
 
@@ -23858,21 +24264,26 @@ function baueGraphModell() {
   const unions = [...unionMap.values()];
 
   // Relationsindizes (canon -> Set canon)
-  const parents = new Map(), children = new Map(), partners = new Map();
-  nodes.forEach((_, c) => { parents.set(c, new Set()); children.set(c, new Set()); partners.set(c, new Set()); });
+  const parents = new Map(), children = new Map(), partners = new Map(), nebenPartner = new Map();
+  nodes.forEach((_, c) => { parents.set(c, new Set()); children.set(c, new Set()); partners.set(c, new Set()); nebenPartner.set(c, new Set()); });
   unions.forEach(u => {
     const ps = [...u.parents], cs = [...u.children];
-    // Ex-Partnerschaft OHNE gemeinsame Kinder: KEINE Partner-Kante -> erscheint nicht im
-    // Graph-Diagramm (bleibt aber in der Detailkarte). Mit gemeinsamen Kindern bleibt die
-    // Kante (Co-Elternschaft sichtbar). Eltern->Kind-Kanten sind davon unberührt.
+    // Ex-Partnerschaft OHNE gemeinsame Kinder darf NICHT in den `partners`-Index: der steuert
+    // Ko-Elternschaft/Rang/Vorfahren-Paar in `zeichneGraph2` — ein bereits verpartnerter Bloodline-
+    // Knoten würde sonst von seinem ECHTEN Partner verdrängt (Kind verschwindet, siehe FAMROOTS-47 /
+    // docs/lessons.md). Stattdessen als reinen ZEICHEN-`nebenPartner` führen: `zeichneGraph2` setzt ihn
+    // POST-LAYOUT neben die bereits platzierte Person (freier Slot) + graue Ex-Linie. Rein additiv →
+    // keine Karte kann dadurch verschwinden.
     const exOhneKinder = (u.partner_art === 'ex_ehe' || u.partner_art === 'ex_partner') && cs.length === 0;
     if (!exOhneKinder) {
       for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { partners.get(ps[i]).add(ps[j]); partners.get(ps[j]).add(ps[i]); }
+    } else {
+      for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { nebenPartner.get(ps[i]).add(ps[j]); nebenPartner.get(ps[j]).add(ps[i]); }
     }
     ps.forEach(p => cs.forEach(c => { children.get(p).add(c); parents.get(c).add(p); }));
   });
 
-  return { nodes, unions, parents, children, partners, canonOf };
+  return { nodes, unions, parents, children, partners, nebenPartner, canonOf };
 }
 
 // 2) Sichtbarkeits-Set bestimmen (kanonische Knoten) -----------------------------------
@@ -24019,6 +24430,19 @@ function graphLayout(model, visible, rank) {
 // 5) Zeichnen ---------------------------------------------------------------------------
 function zeichneGraphKanten(model, visible, X, Y) {
   const HH = 38;   // halbe Kartenhöhe
+  // SCRUM-34: identische `.verbindung`-Segmente entdoppeln (Overdraw bei halbtransparenten Linien).
+  // Hier besonders relevant: ein Kind kann durch Identitäts-Spiegelkarten in MEHREREN Unions
+  // stehen -> dieselbe T-Verbindung entsteht mehrfach deckungsgleich. Helfer wie SCRUM-14; Set pro
+  // Aufruf frisch.
+  const _segGezeichnet = new Set();
+  const linie = (x1, y1, x2, y2, klasse) => {
+    const r = v => Math.round(v * 2) / 2;
+    const a = r(x1) + ',' + r(y1), b = r(x2) + ',' + r(y2);
+    const key = (a < b ? a + '|' + b : b + '|' + a) + '|' + klasse;
+    if (_segGezeichnet.has(key)) return null;
+    _segGezeichnet.add(key);
+    return baumG.append('line').attr('class', klasse).attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2);
+  };
   model.unions.forEach(u => {
     const ps = [...u.parents].filter(c => visible.has(c) && X.has(c)).sort((a, b) => X.get(a) - X.get(b));
     const cs = [...u.children].filter(c => visible.has(c) && X.has(c));
@@ -24037,12 +24461,9 @@ function zeichneGraphKanten(model, visible, X, Y) {
     const childBottom = Math.min(...cs.map(c => Y.get(c))) + HH;
     const midY = (parentTop + childBottom) / 2;
     const xs = cs.map(c => X.get(c));
-    baumG.append('line').attr('class', 'verbindung')
-      .attr('x1', midX).attr('y1', parentTop).attr('x2', midX).attr('y2', midY);
-    baumG.append('line').attr('class', 'verbindung')
-      .attr('x1', Math.min(midX, ...xs)).attr('y1', midY).attr('x2', Math.max(midX, ...xs)).attr('y2', midY);
-    cs.forEach(c => baumG.append('line').attr('class', 'verbindung')
-      .attr('x1', X.get(c)).attr('y1', midY).attr('x2', X.get(c)).attr('y2', Y.get(c) + HH));
+    linie(midX, parentTop, midX, midY, 'verbindung');
+    linie(Math.min(midX, ...xs), midY, Math.max(midX, ...xs), midY, 'verbindung');
+    cs.forEach(c => linie(X.get(c), midY, X.get(c), Y.get(c) + HH, 'verbindung'));
   });
 }
 
@@ -24278,6 +24699,8 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   const parentsOf = c => [...(model.parents.get(c) || [])].filter(vis);
   const childrenOf= c => [...(model.children.get(c) || [])].filter(vis);
   const partnersOf= c => [...(model.partners.get(c) || [])].filter(vis);
+  // FAMROOTS-47: Ex-ohne-Kinder = reiner ZEICHEN-Neben-Partner (nicht im Layout/Ko-Elternschaft).
+  const nebenPartnerOf = c => [...((model.nebenPartner && model.nebenPartner.get(c)) || [])].filter(vis);
 
   // ── NACHKOMMEN-Hierarchie (Fokus nach unten): Person + Partner(seitlich), Kinder darunter ──
   // Kinder werden je Ehe GRUPPIERT eingehängt (childUnion[i] = Partner-Index in `partners`, -1 = ohne
@@ -24558,9 +24981,11 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   const verbCanons = new Set();
   if (opts.verbindung) opts.verbindung.forEach(id => { const c = model.canonOf(id); if (model.nodes.has(c)) verbCanons.add(c); });
   const gezeichnetCanons = new Set();   // was tatsaechlich auf der Flaeche liegt (fuer die Lose-Karten-Ergaenzung)
+  const posByCanon = new Map();         // FAMROOTS-47: canon -> {x,y} der gezeichneten Karte (Neben-Partner-Pass)
   const ptsLos = [];                    // Ablage-Raster: zaehlt fuer die Pan-Grenze, NICHT fuer den Auto-Fit
   const drawCard = (canon, x, y, los) => {
     gezeichnetCanons.add(canon);
+    posByCanon.set(canon, { x, y });
     if (opts.sammlePos) opts.sammlePos.set(canon, { x, y, uuid: (personOf(canon) || {})._uuid, los: !!los });
     const g = baumG.append('g').attr('class', 'knoten-gruppe' + (canon === focus ? ' fokus' : '') + (verbCanons.has(canon) ? ' verbindung-stelle' : ''))
       .attr('transform', `translate(${x},${y})`);
@@ -24600,6 +25025,44 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   });
   ah.each(a => { if (a.data.canon !== focus) drawCard(a.data.canon, a.x, a.y); });
   sibs.forEach(sb => drawCard(sb.canon, sb.x, sb.y));
+
+  // ── FAMROOTS-47: Ex-ohne-Kinder als NEBEN-PARTNER neben die bereits platzierte Person setzen ──
+  // Rein additiv, KEIN Layout-/Modelleingriff (der Ex ist NICHT in `partners` → kann keinen echten
+  // Ko-Elternteil verdrängen, keine Karte verschwindet). Der Ex war sonst eine unverbundene „lose"
+  // Karte (schwebend, ohne Linie). Hier: freien Slot in derselben Reihe der Person suchen, Karte dort
+  // zeichnen (= aus dem Lose-Pass genommen, da gezeichnetCanons ihn danach kennt) + graue Ex-Linie.
+  {
+    const nbPaar = new Set();      // Paar "a|b" (sortiert) nur einmal
+    const nbSeite = new Map();      // canon -> Anzahl schon platzierter Neben-Partner (Alternierung)
+    [...posByCanon.entries()].forEach(([c, p]) => {
+      const nps = nebenPartnerOf(c);
+      if (!nps.length) return;
+      // Seite des ECHTEN Partners/Ko-Elternteils bestimmen -> Ex auf die GEGENÜBERLIEGENDE Seite.
+      const realX = partnersOf(c).map(pp => posByCanon.get(pp)).filter(Boolean).map(o => o.x);
+      const realRechts = realX.length ? (realX.reduce((s, x) => s + x, 0) / realX.length) >= p.x : false;
+      const gegen = realRechts ? -1 : 1;   // -1 = links, +1 = rechts (weg vom echten Partner)
+      nps.forEach(np => {
+        const key = c < np ? c + '|' + np : np + '|' + c;
+        if (nbPaar.has(key)) return; nbPaar.add(key);
+        let q = posByCanon.get(np);
+        if (!q) {
+          // 1. Ex auf die Gegenseite, danach abwechselnd rechts/links, je Paar weiter nach außen.
+          const idx = nbSeite.get(c) || 0; nbSeite.set(c, idx + 1);
+          const dirSide = (idx % 2 === 0) ? gegen : -gegen;
+          const stapel = Math.floor(idx / 2) + 1;
+          const rowXs = [...posByCanon.values()].filter(o => Math.abs(o.y - p.y) < 1).map(o => o.x);
+          let x = p.x + dirSide * G2_PAAR * stapel, guard = 0;
+          while (rowXs.some(rx => Math.abs(rx - x) < G2_PAAR * 0.9) && guard++ < 24) x += dirSide * G2_PAAR;
+          drawCard(np, x, p.y, false);
+          q = { x, y: p.y };
+        }
+        const dir = q.x >= p.x ? 1 : -1;
+        baumG.append('line').attr('class', 'ehe-linie ehe-linie-ex')
+          .attr('x1', p.x + G2_HW * dir).attr('y1', p.y).attr('x2', q.x - G2_HW * dir).attr('y2', q.y);
+        joint((p.x + q.x) / 2, (p.y + q.y) / 2);
+      });
+    });
+  }
 
   // ── Unverbundene ("lose") Karten des Baums ergaenzen: Raster OBEN LINKS neben dem Baum ──
   // Der Renderer traversiert vom Fokus aus und erreicht unverbundene Inseln nie — sie fehlten

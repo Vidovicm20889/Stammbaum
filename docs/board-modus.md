@@ -106,18 +106,57 @@ Reine Kartenbewegung (Drag am Kartenkörper) bleibt davon getrennt (Anker ≠ K�
 - Fehlen beide Daten → keine Vorauswahl, alle Optionen gleichrangig anbieten.
 
 Das Popover zeigt den **erkannten Typ vorausgewählt** + die **Alternativen**
-(Eltern / Partner / Kind / ggf. Geschwister). **Erst nach Bestätigung** wird angelegt.
+(Eltern / Partner / **Ex-Partner** / Kind / ggf. Geschwister). **Erst nach Bestätigung** wird angelegt.
 
 **Anlegen** über den **bestehenden** Pfad (keine Umgehung der Server-Prüfungen):
 ```
-verknuepfung_anfragen({ p_modus:'beziehung', p_kontext, p_ziel, p_typ, p_zweiter })
+verknuepfung_anfragen({ p_modus:'beziehung', p_kontext, p_ziel, p_typ, p_zweiter, p_art })
   p_typ ∈ { 'kind', 'elternteil', 'partner', 'geschwister' }
+  p_art ∈ { null, 'ehe', 'partner', 'ex_ehe', 'ex_partner' }   (nur für p_typ='partner')
   Rückgabe: 'sofort' | 'angefragt' | Fehler (vkn_zyklus, vkn_kante_existiert, vkn_selbst)
 ```
+
+**Sofort vs. Genehmigung (FAMROOTS-45):** `verknuepfung_anfragen` verknüpft **sofort** (`'sofort'`),
+wenn der Nutzer die **Ziel-Familie ohnehin bearbeiten darf** — Super-Admin, **gleiche Familie**
+(`v_qf=v_zf`, eigener Baum) ODER `kann_familie_bearbeiten(ziel)`. Der Genehmigungs-Weg (`'angefragt'`,
+Zustimmung des Ziel-Admins über Obavještenja) bleibt **nur** für den echten **Cross-Tree-Fall**
+(fremde, nicht bearbeitbare Ziel-Familie — Datenschutz/Kinderschutz). Vorher verknüpfte **nur**
+Super-Admin sofort → ein Owner/Admin bekam selbst im eigenen Baum fälschlich „Antrag gesendet". Fix
+in der Migration `supabase_verknuepfung_partner_art.sql` (idempotent, `p_art`-Signatur bleibt). Der
+Board-Flow (`boardPopoverBestaetigen`) wertet `'sofort'`/`'angefragt'` unverändert korrekt aus.
+
+**Ex-Partner beim Verknüpfen (FAMROOTS-43):** Das Popover bietet neben „Partner" auch **„Ex-Partner"**
+(`board_typ_ex`, i18n 5 Sprachen). Die Wahl ist **keine** eigene Kante — `boardBeziehungAnlegen`
+bildet `ex_partner` auf `p_typ:'partner'` + `p_art:'ex_partner'` ab; die `'ehepartner'`-Kante bekommt
+`partner_art` direkt beim Anlegen. **Atomar & genehmigungsfest:** `p_art` wird durch
+`verknuepfung_anfragen` → Antragszeile (`verknuepfungs_anfragen.partner_art`) → `_vkn_ausfuehren`
+gereicht (Migration `supabase_verknuepfung_partner_art.sql`), sodass die Art auch im **'angefragt'**-Fall
+(Kante entsteht erst bei `verknuepfung_entscheiden`) korrekt gesetzt wird — **kein** zweiter RPC-Aufruf
+`partner_art_setzen` nötig. Für das **Undo** wird `ex_partner` auf `partner` normalisiert (dieselbe
+`ehepartner`-Trennung, `boardUndoLink` kennt nur partner/kind/elternteil). Die **Ex-Linie im Board**
+wird **immer** gezeichnet — auch **ohne** gemeinsame Kinder (FAMROOTS-46; das manuelle Board zeigt
+jede angelegte Beziehung), und zwar **grau/dezent** (`.ehe-linie-ex`) statt golden. **Auto-Diagramm
+(FAMROOTS-47):** Ex-ohne-Kinder wird jetzt auch dort **verbunden** gezeigt — über einen separaten
+**`nebenPartner`**-Index in `baueGraphModell` (getrennt von `partners`, damit die Ko-Elternschaft/Rang-
+Logik unberührt bleibt) und einen **Post-Layout-Pass** in `zeichneGraph2`, der den Ex neben die bereits
+platzierte Person setzt (freier Slot in derselben Reihe) + graue Ex-Linie. **Rein additiv → keine Karte
+kann verdrängt werden** (der frühere Versuch, den Ex in `partners` aufzunehmen, ließ das Kind
+verschwinden — siehe `docs/lessons.md`). Feinere Arten (ex_ehe, ehe vs. partner) bleiben über das ✎ der
+Detailkarte (`partnerArtDialog`) einstellbar.
 Mapping der Popover-Wahl → `p_typ`/Richtung exakt wie in `vbVerknuepfe` (inkl. Geschwister-
 Sonderweg über Platzhalter-Elternteil). **Zyklus-/Dubletten-/Rollen-Prüfung bleibt
 serverseitig.** Fehler werden **am Board verständlich** angezeigt (Wiederverwendung
 `vbFehlerText`); die Linie wird **nur bei Erfolg** dauerhaft gezeichnet.
+
+**Zweiter Elternteil automatisch (FAMROOTS-41):** Bei einer **Eltern↔Kind**-Verknüpfung wird der
+**Partner** des verknüpften Elternteils als **zweiter Elternteil** des Kindes ergänzt —
+`boardPartnerVon` (aus `families_spouse`, **Ex zählen mit**, `partner_art`-`ex_*` wird als
+„(früher)" gekennzeichnet), `boardZweitElternteilErmitteln`: **0** Partner → nichts, **1** →
+automatisch, **mehrere** → app-eigenes Auswahl-Overlay `boardZweitEltWahl` (kein natives
+`confirm`/`prompt`; i18n `board_zweitelt_*` in 5 Sprachen) mit Option „keiner / später". Der zweite
+Eintrag läuft über **denselben** `verknuepfung_anfragen`-Pfad (`p_typ:'kind'`) und ist eigenständig
+atomar — schlägt er fehl (z. B. Kante existiert schon), bleibt die erste, gültige Elternschaft
+bestehen (keine halbe Kante). Deckt sich mit dem Render-Fix FAMROOTS-40 (beide Eltern-Linien sichtbar).
 
 ## (d) Verhältnis zu bestehenden Ansichten & Blutlinie
 - Board zeigt **frei angeordnete** Karten; die **Beziehungen** sind die **echten Daten**.
@@ -314,6 +353,18 @@ kein natives `confirm`). **Nicht** ungefragt scharf schalten. Serverseitiger Lö
   sie auf < 480 px verkleinern (132×88), ohne dass die Klick-Umrechnung auf Weltkoordinaten
   verrutscht. `#board-ctx-menu` und `#board-verkn-popover` bleiben bewusst `position: fixed` auf
   Body-Ebene.
+  - **Popover-Position an der echten Höhe (FAMROOTS-44):** Die frühere Positionierung nahm eine
+    **feste Höhe von 240px** an (`top = min(y, innerHeight - 240)`) — mit 5 Typen (inkl. Ex-Partner,
+    FAMROOTS-43) **plus** Fehlertext ist das Popover höher → unterer Teil abgeschnitten. Jetzt wird
+    nach `display:block` die **echte** `offsetHeight` gemessen und geklemmt (`boardPopoverPositionieren`,
+    Anker = Bildschirm-Koordinate der Drop-Stelle in `boardPopoverAnker`): passt es unterhalb nicht,
+    öffnet es **oberhalb** der Drop-Stelle, sonst am unteren Rand; CSS `.board-popover`
+    `max-height: calc(100vh - 16px)` + `overflow-y:auto` (+`box-sizing:border-box`) lässt es auf sehr
+    niedrigen Viewports **intern** scrollen statt abzuschneiden. Zusätzlich global registrierte
+    `scroll`(capture)/`resize`-Handler (Muster wie `dpPositioniere`/`ssPositioniere`) positionieren
+    **neu** statt hängen zu lassen (CLAUDE.md-Panel-Regel); no-op solange das Popover zu ist
+    (`boardPopoverAnker=null` in `boardPopoverSchliessen`). Nach dem Einblenden des Fehlertexts wird
+    erneut geklemmt. `#board-ctx-menu` bleibt unverändert (keine Regression).
 - **Board-PDF ✅ (SCRUM-7):** Der Export-Dialog hat eine **Layout-Quelle** (`#pdf-quelle`):
   „Autosortierung (berechnet)" oder „Tabla — wie von mir angeordnet". Bei `tabla` wird **kein**
   Layout gerechnet; `pdfBoardSvg()` (in `pdf_export.js`) klont den live gezeichneten `#baum-svg`,
@@ -377,7 +428,7 @@ Identitäts-Spiegel über Bäume ist Feature 7 (`person_neuer_baum`).
 ## i18n-Schlüssel (anzulegen, alle 5 Sprachen — bei Umsetzung)
 `board_modus` (Umschalter), `board_tooltip`, `board_verschieben_hinweis`,
 `board_gross_warnung` (Performance-Schwelle), `board_fehler_speichern`,
-`board_verkn_titel`, `board_typ_eltern`/`_partner`/`_kind`/`_geschwister`,
+`board_verkn_titel`, `board_typ_eltern`/`_partner`/`_ex`/`_kind`/`_geschwister`,
 `board_typ_erkannt`, `board_bestaetigen`, `board_bez_entfernen`.
 (Bestehende Fehlertexte `vkn_*` werden wiederverwendet.)
 
@@ -609,6 +660,31 @@ gezeichnet werden — er ist also keine Überschuss-Quelle.
 **Verifikation:** Diff Auto ↔ Tabla über alle Bäume aus `render_snapshot.json` — Überschuss **77 → 0**
 und **0 verlorene** Auto-Kanten (Schutz gegen Über-Filtern, die gefährlichere Regression, siehe v14.84).
 
+**Ausnahmen vom Autosort-Filter — reale Kanten zwischen sichtbaren Karten (FAMROOTS-40, FAMROOTS-42):**
+Der Filter unterdrückt Kanten, die die blutScope-Autosortierung nicht zieht. Ein **frisch eingeheirateter
+/ nicht-blutlinien** Partner bzw. Elternteil steht außerhalb blutScope → sein Schlüssel (`…|ehe` bzw.
+`P:…>kind`) fehlt komplett → die reale Kante wird stumm unterdrückt (leere Detailkarte + keine Linie).
+Da eine Identitäts-Spiegelkarte **kein Phantom** erzeugen kann, wenn die Kante real zwischen zwei
+**sichtbaren** Karten besteht, gelten zwei gezielte Ausnahmen:
+- **`zeigeElt` (FAMROOTS-40):** Ein **Ein-Eltern**-Kante immer zeichnen (ein einzelner Elternteil hat
+  keinen Paar-Mittelpunkt `px` → kann die lange Phantom-Waagerechte gar nicht erzeugen).
+- **`zeigeEhe` (FAMROOTS-42/46):** Partner-Linie zeichnen, wenn beide sich eine **echte** Ehe-/Partner-
+  Familie teilen (`husband`/`wife` = genau diese beiden ext-IDs, `echtesPaar`). Der Autosort-Schlüssel
+  behält Vorrang; der Datencheck greift nur, wenn er fehlt. **FAMROOTS-46:** `echtesPaar` schließt Ex
+  **ohne** gemeinsame Kinder NICHT mehr aus — `boardZeichneLinien` ist board-only und das manuelle Board
+  zeigt jede angelegte Beziehung. Ex-Linien werden im Board grau gezeichnet (`.ehe-linie-ex`, aus
+  `u.partner_art`). **Auto-Diagramm (FAMROOTS-47):** Ex-ohne-Kinder wird über den separaten
+  `nebenPartner`-Index + Post-Layout-Pass in `zeichneGraph2` neben die Person gesetzt (rein additiv,
+  verdrängt keinen echten Ko-Elternteil). NICHT in `partners` aufnehmen — das bricht die Anordnung
+  (Kind verschwindet, siehe `docs/lessons.md`).
+
+**Leeres Partner-/Verwandten-Chip (FAMROOTS-42, Weg A+B):** Ursache war zweistufig — (A) `ladeBaumAusSupabase`
+spreadet `stammbaum_daten.name` nur (kein Compose), also blieb `person.name` leer, wenn Altdaten/
+bestimmte Anlagepfade nur `given`/`surname` gesetzt hatten → `nm(name)` leer → Chip nur mit ⇄/✕.
+Behoben an der Quelle (Compose `given+surname`, echte Platzhalter bleiben `lokalisierePlatzhalterNamen`
+überlassen) **und** defensiv in `relChip` (Fallback `name → given+surname → given → surname →
+`t('ohne_namen')`) — es entsteht nie mehr ein komplett leeres Chip.
+
 ### Karten-Gleichstand: Autosortierung zeigt jetzt AUCH die losen Karten (SCRUM-6, v14.8x)
 **Nutzerentscheidung:** *Alle Ansichten zeigen alle Karten des Baums; lose Karten oben links gruppiert.*
 Damit entfällt die bisherige Grenze „Unverbundene Inseln bleiben der ‚Lose Karten'-Leiste vorbehalten"
@@ -713,3 +789,87 @@ senkrechte Stück für **alle** Kinder identisch und wurde n-fach übereinander 
 den alten Pfad, falls `segZeichnen` im `ctx` fehlt.
 
 **Verifiziert:** 3× dasselbe Segment → **1** sichtbare Linie, aber **3** Trefferflächen.
+
+## Rückgängig/Wiederholen-Bedienung (SCRUM-26)
+Die Undo/Redo-**Mechanik** existiert seit v14.72 (Phase 2, 4.3). SCRUM-26 ergänzt die **Bedienoberfläche**:
+- **Pille `#board-undo-tools`** oben links (Kind von `#baum-container`), zwei Buttons ↶/↷ → rufen die
+  bestehenden `boardUndo()`/`boardRedo()`. Sichtbar nur bei `ansichtModus==='board' && boardEdit &&
+  istAdmin()` — **zeichengleich** zum Tastatur-Gate in `boardTastatur`.
+- **`boardUndoSync()`** setzt Sichtbarkeit + `disabled`/`aria-disabled` der Buttons anhand der
+  Stack-Längen. Aufgerufen aus `boardPushUndo`, `boardUndo`, `boardRedo`, `boardWerkzeugeSync`.
+- **`#baum-info` weicht im Edit-Modus** per CSS (`#baum-container.board-edit-grid .baum-info { display:none }`)
+  — ein Zustandspfad über `boardGridAnwenden`, kein zweiter, der driften kann.
+- **„Als Baum ordnen" ist jetzt rücknehmbar** (`boardOrdnen`): sichert die Positionen vor dem
+  `board_layout_reset` und leert den Stack **nicht** mehr, sondern legt selbst einen Undo-Eintrag an.
+- Tastenkürzel (Strg+Z / Strg+Shift+Z / Strg+Y) unverändert; der Schutz in Eingabefeldern
+  (INPUT/TEXTAREA/SELECT/contentEditable) bleibt bestehen.
+- i18n: `board_undo`, `board_redo`, `board_undo_titel`, `board_redo_titel`, `board_undo_konflikt`,
+  `board_ordnen_undo` (5 Sprachen).
+
+**Linien-Wegpunkte/-Anker rücknehmbar (AK9/AK10):** `board_linie_reset` löscht **Wegpunkt UND Anker
+gemeinsam** — es gibt keine RPC nur für den Wegpunkt. Gelöst über `boardLinieZustandSetzen(von,nach,z)`:
+setzt erst auf Null (`reset`), dann die vorhandenen Teile neu (Anker via `seiten_setzen`, Wegpunkt via
+`setzen`). So kann ein Wegpunkt-Undo keinen vorhandenen Anker mitlöschen. Snapshot des kompletten
+`boardLinien[key]` am Drag-Start, Push am Drag-Ende (`boardLiniePushUndo`).
+
+**Schutz vor Überschreiben fremder Arbeit (AK12):** Zentraler Hook — `boardUndo`/`boardRedo` prüfen
+vor der Ausführung (`boardUndoKonfliktfrei(e, richtung)`), bei Konflikt Hinweis
+(`board_undo_konflikt`) + Eintrag verworfen (nicht auf den Gegenstapel). Für **Positions-Undos**
+(Verschieben, „Als Baum ordnen") über `boardPosPruef(erwartet)`: vergleicht **direkt die aktuellen
+x/y** in `board_layout` mit den erwarteten (robuster als `updated_at`, das am 500ms-Speicher-Debounce
+hängt). Steht eine Karte anderswo → jemand hat sie inzwischen verschoben → Rücknahme blockiert.
+
+⚠️ **Die Prüfung ist RICHTUNGSABHÄNGIG (FAMROOTS-26-Nachbesserung):** vor **Undo** müssen die Karten
+auf den **neuen** (zuletzt selbst gesetzten) Positionen stehen (`pruefUndo`), vor **Redo** auf den
+**alten** (durchs Undo hergestellten) (`pruefRedo`). Ein einziger fixer `pruef` blockierte sonst
+**jedes Redo** fälschlich als Fremdänderung — „Wiederholen"/„ponovi" ging nie. Einträge ohne
+Richtungs-Prüfung (Anlegen/Löschen/Verknüpfen) sind unverändert nie blockiert.
+
+⚠️ **AK12 — Reichweite (erweitert durch SCRUM-33):** Der Konfliktschutz gilt für **Positions-Undos**
+(Verschieben, „Als Baum ordnen") **und** für **Anlage-Undos** (Karte anlegen, Kopie einfügen — beide
+über `boardUndoAnlage`). Bei der Anlage wird `personen.updated_at` direkt nach dem Anlegen erfasst
+(`boardPersonStempel`) und beim Undo verglichen; hat jemand die Person seither geändert, wird das
+Löschen blockiert (Ticket-Beispiel „A legt an, B ändert, A drückt Strg+Z"). **Weiterhin OHNE Schutz**
+(bewusste Grenze): der **Lösch**-Undo — die Person ist bereits im Papierkorb, ihr `updated_at` wurde
+durch das Löschen selbst verändert, ein Vorher-Vergleich ist dort nicht sinnvoll — und der
+**Verknüpfen**-Undo — Beziehungen haben keinen `updated_at`-Stempel wie Personen; Geschwister-
+Verknüpfungen haben ohnehin kein Undo (`boardUndoLink`). Das winzige TOCTOU-Fenster ist dieselbe
+bewusste Grenze wie bei P5 (`docs/realtime-kollaboration.md`).
+
+## Linien-Wegpunkte beim Verschieben mitführen (SCRUM-28)
+Wechselwirkung „Mehrfach-Verschieben (v14.72) × Linien-Wegpunkte (v14.77)", die bisher an keiner
+Stelle behandelt war: Ein von Hand verstellter Knick blieb beim Verschieben einer Auswahl an seiner
+alten Weltkoordinate hängen (Wegpunkte werden absolut in `board_linie.wx/wy` gespeichert, der
+Karten-Drag verschob nur `PX/PY`). Betraf auch das Verschieben **einer** Karte.
+
+**Lösung (A, ohne Datenmodell-Änderung):** `boardMacheZiehbar` führt beim Ziehen die Wegpunkte um
+dasselbe `dx/dy` mit — aber **nur**, wenn **beide** Endkarten in der Auswahl liegen (starrer Körper).
+Liegt nur eine Seite in der Auswahl, bleibt der Wegpunkt stehen (bewusst: die Anker-Seiten passen sich
+ohnehin an, ein blind mitgezogener Knick läge oft schlechter). Persistenz je bewegtem Wegpunkt über
+das bestehende `board_linie_setzen`; Undo/Redo führt Positionen **und** Wegpunkte gemeinsam zurück.
+
+**Bewusste Grenzen / Fallen (im Test abgedeckt):**
+- **Kein Wegpunkt entsteht neu** — nur Einträge mit `x/y != null` werden mitgeführt.
+- **Anker-Seiten (`vs`/`ns`) bleiben unberührt** — sie sind kartenrelativ.
+- `x` gesetzt / `y` null → übersprungen (kein `NaN`); Verschiebung um 0 → keine Schreibvorgänge.
+- **Noch offen (eigener Vorgang):** `boardOrdnen`/`board_layout_reset` verwirft Kartenpositionen, lässt
+  `board_linie` aber stehen → Wegpunkte hängen danach im Nichts. Gleiche Ursache (entkoppelte Tabellen).
+- **Struktureller Rest (Variante B):** Solange Wegpunkte absolut gespeichert sind, muss jeder künftige
+  Karten-Bewegungs-Pfad an die Mitführung denken.
+
+## Long-Press-Kontextmenü nur mit EINEM Finger (SCRUM-31)
+Auf dem Handy öffnete der **Zwei-Finger-Zoom** im Board-Edit-Modus das Kontextmenü. Ursache war ein
+Timer-Leak: `pointerdown` feuert je Finger, der Long-Press-Timer `_lpT` wurde vom zweiten Finger
+**überschrieben ohne `clearTimeout`** → der Timer des ersten Fingers blieb scharf und öffnete nach
+500 ms das Menü. Zusätzlich fehlte `pointercancel`, und die 8-px-Bewegungsschwelle verglich gegen die
+Koordinaten des *zuletzt* aufgesetzten Fingers.
+
+**Behoben (Lösung A):** Aktive Touch-Pointer werden in einem `Set` (`_lpTouches`) verfolgt.
+- Long-Press startet **nur bei genau einem** Finger (`_lpTouches.size === 1`, zusätzlich `isPrimary`).
+- Jeder **weitere** `pointerdown` bricht einen laufenden Long-Press sofort ab (Pinch erkannt).
+- `_lpStop()` **vor** jedem `setTimeout` — kein Timer wird je überschrieben.
+- `pointercancel` räumt wie `pointerup` (Browser hat die Geste übernommen).
+- Bewegungsschwelle gegen den Startpunkt **desselben** Fingers (`_lpId`).
+
+Der Rechtsklick am Desktop (`contextmenu`-Handler) und `boardEigeneGeste` (kein Menü auf Karten/Griffen)
+bleiben unberührt. Verifiziert per Zustandsmaschine (10 Ereignisfolgen inkl. Kern-Leak-Test).

@@ -1,14 +1,22 @@
 # Supabase-Schema — Migrations-Index & Ausführungsreihenfolge
 
-Diese Datei beschreibt, **welche `.sql`-Dateien eine frische Supabase-DB aufbauen** und in
-welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das frühere
-„85 Dateien im Root, niemand weiß was Pflicht ist".
+Diese Datei ist der **Änderungs-Index** aller `.sql` — welche Datei was macht, in grob
+chronologischer Reihenfolge. Sie ersetzt das frühere „85 Dateien im Root, niemand weiß was Pflicht ist".
 
-- **Alle Migrationen sind idempotent** (mehrfaches Ausführen schadet nicht) — so der Anspruch
-  laut CLAUDE.md. Bei Abweichung bitte hier vermerken.
-- **Reihenfolge = Best-Effort** nach Abhängigkeiten/Phasen. Läuft ein Skript wegen einer noch
-  fehlenden Funktion/Tabelle auf einen Fehler, das benötigte Skript der früheren Gruppe
-  zuerst ausführen.
+> ⚠️ **Diese Liste ist KEIN lauffähiges Start-zu-Ende-Replay (FAMROOTS-36).** Ein frischer Aufbau
+> (lokal ODER neues Cloud-Projekt) erfolgt über den **kompletten Prod-Schema-Dump**
+> `supabase_prod_schema.sql` (Tabellen + Functions + Policies + RPCs + Trigger + FKs, 1:1 Prod),
+> eingespielt via `node scripts/lokal_db_aufbau.mjs` — siehe [`docs/staging-umgebung.md`](docs/staging-umgebung.md).
+> **Warum kein Replay:** Die gewachsene Kette lässt sich nicht am Stück gegen eine leere DB fahren —
+> etliche Skripte wurden von späteren **ersetzt** (belegt: `event_eingeladene.sql` legt `person_id`
+> an, `event_eingeladene_user.sql` stellte das später auf `user_id` um → ein überholter Schritt
+> läuft gegen den Prod-Endstand auf Grund). Die Liste unten bleibt als **Historie/Referenz** je
+> Änderung wertvoll, ist aber nicht als Neuaufbau-Sequenz zu verstehen.
+
+- **Idempotenz war der Anspruch, stimmt aber nicht durchgängig** (FAMROOTS-36): einige Altskripte
+  machen `CREATE POLICY`/`CREATE TRIGGER` ohne vorheriges `DROP … IF EXISTS`. Für NEUE `.sql` gilt
+  weiterhin: idempotent schreiben.
+- **Reihenfolge = grob chronologisch** — zur Orientierung, nicht als garantierte Aufbau-Ordnung.
 - **Einmal-/Vorfall-Skripte** (Diagnose, person-/konto-spezifische Reparaturen, Restore/Rollback)
   liegen unter [`sql_archiv/`](sql_archiv/) und gehören **NICHT** zum Neuaufbau.
 - **Edge Functions** (kein SQL) liegen unter [`supabase/functions/`](supabase/functions/) und
@@ -19,10 +27,15 @@ welcher **Reihenfolge** sie im SQL-Editor auszuführen sind. Sie ersetzt das fr�
 ## Reihenfolge für eine frische DB
 
 ### 1 — Grundgerüst (Basis-Tabellen, RLS, Verbund)
-1. `supabase_rls_setup.sql` — Basis-Tabellen (familien/stammbaeume/personen/beziehungen) + RLS
+> **Frischer Aufbau NICHT über Nr. 1 ff., sondern über `supabase_prod_schema.sql`** (siehe Kasten
+> oben). Die folgende Nummerierung dokumentiert nur, welche Änderung wann kam.
+1. `supabase_rls_setup.sql` — RLS + Policies + Helfer auf den Basis-Tabellen
 2. `supabase_rls_fix_recursion.sql` — rekursionsfreie `mitgliedschaften`-SELECT-Policy
-3. `supabase_verbund.sql` — `verbund_id`, `ist_super_admin`, `kann_familie_bearbeiten`
-4. `supabase_multitree_phase5.sql` — Mehrbaum-Fähigkeit (RLS-SELECT-Policies für Baumdaten)
+3. `supabase_multitree_phase5.sql` — legt `stammbaeume` an + `personen.stammbaum_id`. ⚠️ **VOR Nr. 4**
+   (FAMROOTS-36, lokaler Aufbau belegt): `supabase_verbund.sql` definiert Policies **auf** `stammbaeume`
+   und scheitert sonst mit `relation "public.stammbaeume" does not exist`. multitree hängt selbst nur
+   an `ist_super_admin`/`get_meine_rolle` aus Nr. 1, nicht an verbund → Vorziehen ist sicher.
+4. `supabase_verbund.sql` — `verbund_id`, `ist_super_admin`, `kann_familie_bearbeiten` + stammbaeume-Policies (braucht Nr. 3)
 5. `supabase_stammbaum_phase4.sql` — Stammbaum-Phase 4
 
 ### 2 — Rollen & Mitglieder
