@@ -126,7 +126,45 @@ Der Zähler „Storys seit letztem Deployment" wird bei **jedem** Deployment auf
 
 ---
 
-## 5. Bewusste Grenzen
+## 5. Ausgelagerte Dateien & Cache-Busting (Deploy-Pflicht)
+
+Aus `stammbaum.html` wurden schrittweise Teile ausgelagert — jeweils als gleichrangige Datei im
+selben Verzeichnis, eingebunden mit `?v=X.Y`:
+
+| Datei | Inhalt | Einbindung |
+|---|---|---|
+| [stammbaum.css](../stammbaum.css) | der frühere `<style>`-Block | `<link rel="stylesheet" href="stammbaum.css?v=X.Y">` |
+| [i18n.js](../i18n.js) | `TEXTE` + `RECHTSTEXTE` als globale `const` | `<script>` **vor** dem Haupt-Script |
+| [pdf_export.js](../pdf_export.js) | Stammbaum-PDF-/Druck-Export (ab v14.3) | `<script>` **vor** dem Haupt-Script |
+| [chat.js](../chat.js) | 1:1-/Gruppen-Chat (ab v14.4) | `<script>` **vor** dem Haupt-Script |
+
+**Beim Deploy IMMER zusätzlich zur `app-version` auch das `?v=` an ALLEN vier Dateien** auf
+dieselbe Version ziehen — sonst liefert GitHub Pages die ausgelagerte Datei veraltet aus
+(`hardReload` / `?v=timestamp` bricht nur den HTML-Cache, nicht die Sub-Ressourcen).
+
+**Details/Invarianten:**
+- **i18n.js** — Texte werden hier gepflegt (weiterhin alle 5 Sprachen). Schlüssel-Parität prüfen
+  mit `node i18n_lint.js`; neue Schlüssel bevorzugt über `node scripts/i18n_add.mjs` einfügen
+  (schreibt in alle 5 Blöcke, ohne die 8.000-Zeilen-Datei zu lesen).
+- **pdf_export.js** — definiert globale `pdf*`/`PDF_*`; der **Kosten-/Troskovi-PDF** im
+  Haupt-Script nutzt `pdfEl` / `pdfSvgZuCanvas` / `pdfDownloadBlob` / `PDF_SVG_NS` daraus. Ruft
+  Haupt-Globals (`t`, `d3`, `aktuelleWurzel`, …) erst zur Laufzeit auf. **`jsPDF`/`svg2pdf` werden
+  LAZY** über `ladePdfLib()` geladen (ab v14.2 nicht mehr eager im `<head>`); `pdf_export.js`
+  selbst lädt eager (~30 KB), da der Kosten-PDF dessen Helfer jederzeit braucht.
+- **chat.js** — `startChat()` / `stopChat()` werden im Login-/Logout-Flow gerufen,
+  `chatSpracheUpdate()` aus `wechselSprache` (typeof-Guard); ruft Haupt-Globals
+  (`sbClient`, `aktuellerUser`, `t`, `nm`, …) erst zur Laufzeit auf.
+- **Reihenfolge:** die ausgelagerten `<script>` müssen **vor** dem Haupt-Inline-`<script>` stehen
+  (globale `const`/Funktionen). Der `init();`-Bootstrap bleibt am Ende des Haupt-Scripts.
+- `split_i18n.js` / `split_css.js` / `split_pdf.js` waren Einmal-Auslagerungswerkzeuge (können
+  entfallen); `i18n_lint.js` bleibt nützlich.
+- **Vor dem Commit einer Änderung an `stammbaum.html`/`pdf_export.js`/`chat.js`:**
+  `node scripts/karte_bauen.mjs` laufen lassen — sonst zeigt [karte.md](karte.md) veraltete
+  Zeilennummern, was schlimmer ist als gar keine Karte.
+
+---
+
+## 6. Bewusste Grenzen
 
 - **Kein Pull-Request-Zwang.** Branch → lokaler Test → Freigabe → Merge nach `main` genügt;
   GitHub Pages deployt weiterhin von `main`.

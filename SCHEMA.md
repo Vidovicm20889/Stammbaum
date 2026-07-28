@@ -13,6 +13,13 @@ chronologischer Reihenfolge. Sie ersetzt das frühere „85 Dateien im Root, nie
 > läuft gegen den Prod-Endstand auf Grund). Die Liste unten bleibt als **Historie/Referenz** je
 > Änderung wertvoll, ist aber nicht als Neuaufbau-Sequenz zu verstehen.
 
+> 📁 **Wo die Dateien liegen (seit 28.07.2026):** Alle **123** `.sql`, die älter als der Prod-Dump
+> vom 24.07.2026 sind — also nachweislich in ihm enthalten —, liegen unter
+> **`sql_archiv/2026-07-24_im-dump-enthalten/`**. Im Wurzelverzeichnis stehen nur noch
+> `supabase_prod_schema.sql` (der Dump selbst) und `.sql`, die **noch nicht** in Prod sind.
+> Die Dateinamen unten sind unverändert — Datei per `Glob` suchen, nicht den Pfad raten.
+> Zurückholen einer Datei: `git mv sql_archiv/2026-07-24_im-dump-enthalten/<datei>.sql .`
+
 - **Idempotenz war der Anspruch, stimmt aber nicht durchgängig** (FAMROOTS-36): einige Altskripte
   machen `CREATE POLICY`/`CREATE TRIGGER` ohne vorheriges `DROP … IF EXISTS`. Für NEUE `.sql` gilt
   weiterhin: idempotent schreiben.

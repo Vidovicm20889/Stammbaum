@@ -156,3 +156,20 @@ Bereiche (Tags) zum Wiederfinden: `[PDF]` `[RLS]` `[Realtime]` `[Datum]` `[i18n]
   MUSS `[db.seed]` in der `config.toml` AUS sein — sonst seedet `supabase start` gegen eine leere DB.
 - **Sackgassen:** Reihenfolge im Seed umsortieren hilft nicht — das ganze Schema fehlt, nicht nur
   eine Tabelle.
+
+### 2026-07-28 — `Read(...)`-Deny in settings.json blockiert auch `Grep` [Werkzeuge/Kontext]
+- **Symptom:** Nach dem Eintragen von `"deny": ["Read(./supabase_prod_schema.sql)", …]` in
+  [.claude/settings.json](../.claude/settings.json) scheiterte nicht nur `Read`, sondern auch ein
+  gezielter `Grep` auf dieselbe Datei: „Permission to read … has been denied."
+- **Ursache:** Die Permission-Regel `Read(pfad)` wirkt als **Lese-Sperre auf die Datei**, nicht als
+  Sperre für das Werkzeug „Read". Alle lesenden Werkzeuge (Read, Grep, vermutlich auch Glob-Inhalte)
+  fallen darunter.
+- **Lösung:** Nur Dateien sperren, in denen **auch ein Treffer wertlos** ist — Base64/Binär-artiges
+  (`pdf_font.js`) und generierte Snapshots (`render_snapshot.json`). Dateien, in denen gezielt
+  gesucht werden muss (`supabase_prod_schema.sql` = Schema-Referenz, `rezepte_pool.js`,
+  `CLAUDEArchiv.md`), NICHT sperren — die schützt stattdessen die Regel „nie am Stück lesen,
+  erst Grep" in der CLAUDE.md.
+- **Merksatz:** `deny: Read(datei)` = **die Datei ist unlesbar**, nicht „nur das Read-Tool ist aus".
+  Vor dem Sperren fragen: Brauche ich hier je einen gezielten Treffer? Wenn ja → nicht sperren.
+- **Sackgassen:** Am Pfadformat (`./datei` vs. `//abs/pfad`) zu drehen ändert nichts — die Sperre
+  wirkt korrekt, sie ist nur breiter als erwartet.
