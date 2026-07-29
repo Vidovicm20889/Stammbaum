@@ -5,6 +5,7 @@
 
 const TEXTE = {
   de: {
+    bz_ledig: 'Ledig',
     rezept_quelle_eigene: 'Eigene', rezept_quelle_kochbuch: 'Kochbuch',
     rezept_kueche: 'Küche', rezept_kueche_alle: 'Alle Küchen',
     rezept_tagesgericht: 'Gericht des Tages', rezept_zutaten: 'Zutaten', rezept_zubereitung: 'Zubereitung',
@@ -1508,6 +1509,7 @@ const TEXTE = {
     chat_gestern: 'Gestern'
   },
   sr: {
+    bz_ledig: 'Неожењен/неудата',
     rezept_quelle_eigene: 'Моји', rezept_quelle_kochbuch: 'Кувар',
     rezept_kueche: 'Кухиња', rezept_kueche_alle: 'Све кухиње',
     rezept_tagesgericht: 'Јело дана', rezept_zutaten: 'Састојци', rezept_zubereitung: 'Припрема',
@@ -3011,6 +3013,7 @@ const TEXTE = {
     chat_gestern: 'Јуче'
   },
   hr: {
+    bz_ledig: 'Neoženjen/neudana',
     rezept_quelle_eigene: 'Moji', rezept_quelle_kochbuch: 'Kuharica',
     rezept_kueche: 'Kuhinja', rezept_kueche_alle: 'Sve kuhinje',
     rezept_tagesgericht: 'Jelo dana', rezept_zutaten: 'Sastojci', rezept_zubereitung: 'Priprema',
@@ -4514,6 +4517,7 @@ const TEXTE = {
     chat_gestern: 'Jučer'
   },
   ba: {
+    bz_ledig: 'Neoženjen/neudana',
     rezept_quelle_eigene: 'Moji', rezept_quelle_kochbuch: 'Kuharica',
     rezept_kueche: 'Kuhinja', rezept_kueche_alle: 'Sve kuhinje',
     rezept_tagesgericht: 'Jelo dana', rezept_zutaten: 'Sastojci', rezept_zubereitung: 'Priprema',
@@ -6017,6 +6021,7 @@ const TEXTE = {
     chat_gestern: 'Jučer'
   },
   en: {
+    bz_ledig: 'Single',
     rezept_quelle_eigene: 'Ours', rezept_quelle_kochbuch: 'Cookbook',
     rezept_kueche: 'Cuisine', rezept_kueche_alle: 'All cuisines',
     rezept_tagesgericht: 'Dish of the day', rezept_zutaten: 'Ingredients', rezept_zubereitung: 'Preparation',

@@ -1459,6 +1459,7 @@
       <label class="login-label reg-feld-voll"><span data-i18n="pe_beziehung"></span>
         <select id="pe-beziehung" class="login-feld" onchange="pePruefeFelder()">
           <option value="unbekannt" data-i18n="bz_unbekannt"></option>
+          <option value="ledig" data-i18n="bz_ledig"></option>
           <option value="verheiratet" data-i18n="bz_verheiratet"></option>
           <option value="verlobt" data-i18n="bz_verlobt"></option>
           <option value="partner" data-i18n="bz_partner"></option>
@@ -1705,6 +1706,7 @@
       <label class="login-label reg-feld-voll"><span data-i18n="pe_beziehung"></span>
         <select id="pa-beziehung" class="login-feld" onchange="paPruefeFelder()">
           <option value="unbekannt" data-i18n="bz_unbekannt"></option>
+          <option value="ledig" data-i18n="bz_ledig"></option>
           <option value="verheiratet" data-i18n="bz_verheiratet"></option>
           <option value="verlobt" data-i18n="bz_verlobt"></option>
           <option value="partner" data-i18n="bz_partner"></option>
@@ -11603,7 +11605,7 @@ async function boardLoseSpeichern() {
   const vd = id => { const el = document.getElementById(id); return (typeof datumWert === 'function' && el) ? datumWert(el) : ''; };
   const vorname = v('pa-vorname'), nachname = v('pa-nachname');
   const sex = (document.getElementById('pa-geschlecht') || {}).value || '';
-  if (!pruefeNamePflicht('pa', vorname, nachname, sex, v('pa-ehename'))) return;
+  if (!pruefeNamePflicht('pa', vorname, nachname, sex, v('pa-ehename'), v('pa-beziehung'))) return;
   if (!pruefeEmailFeld(document.getElementById('pa-email'), false)) return feldFokus('pa-email');
   { const df = ['pa-geburtsdatum','pa-getauft','pa-hochzeit-standesamt','pa-hochzeit-kirchlich'];
     if ((document.getElementById('pa-status') || {}).value === 'verstorben') df.push('pa-sterbedatum');
@@ -18020,7 +18022,7 @@ async function zeigePersonBearbeiten(personId) {
   setD('pe-hochzeit-kirchlich', p.hochzeit_kirchlich);
   set('pe-beziehung-sonstige', p.beziehung_sonstige);
   document.getElementById('pe-beziehung').value =
-    ['unbekannt','verheiratet','verlobt','partner','getrennt','geschieden','verwitwet','sonstige']
+    ['unbekannt','ledig','verheiratet','verlobt','partner','getrennt','geschieden','verwitwet','sonstige']
       .includes(p.beziehung) ? p.beziehung : 'unbekannt';
   set('pe-email', p.email);          set('pe-telefon', p.telefon);
   set('pe-facebook', p.facebook);    set('pe-instagram', p.instagram);
@@ -18055,6 +18057,7 @@ function pePruefeFelder() {
   document.getElementById('pe-row-standesamt').style.display   = ehe ? '' : 'none';
   document.getElementById('pe-row-kirchlich').style.display    = ehe ? '' : 'none';
   document.getElementById('pe-row-sonstige').style.display     = (bez === 'sonstige') ? '' : 'none';
+  pePflichtMarkierung();   // Mädchenname-Pflicht hängt auch vom Beziehungsstatus ab (FAMROOTS-50)
 }
 
 function schliessePersonEdit() {
@@ -20964,23 +20967,31 @@ function aufnSpracheUpdate() {
 // Mädchenname (ehename) — nötig für die korrekte Blutlinien-Erkennung im Renderer (istBlutName).
 // Zeigt den Fehler DIREKT am betroffenen Feld (feldFehler, scrollt+fokussiert) und gibt false
 // zurück. `prefix` = 'pe' (Bearbeiten) bzw. 'pa' (Hinzufügen) adressiert die Feld-IDs.
-function pruefeNamePflicht(prefix, vorname, nachname, sex, ehename) {
+// Beziehungsstatus, bei denen eine Frau (ehemals) einen Ehenamen angenommen haben könnte —
+// nur dort bleibt der Mädchenname Pflicht (FAMROOTS-50, Entscheidung Option c, 28.07.2026).
+const BZ_EHEMALS_VERHEIRATET = ['verheiratet', 'getrennt', 'geschieden', 'verwitwet'];
+function pruefeNamePflicht(prefix, vorname, nachname, sex, ehename, beziehung) {
   if (!vorname)  return feldFehler(prefix + '-vorname',  t('pe_vorname_pflicht'));
   if (!nachname) return feldFehler(prefix + '-nachname', t('pe_nachname_pflicht'));
-  if (sex === 'F' && !ehename) return feldFehler(prefix + '-ehename', t('pe_ehename_pflicht'));
+  if (sex === 'F' && BZ_EHEMALS_VERHEIRATET.includes(beziehung) && !ehename) {
+    return feldFehler(prefix + '-ehename', t('pe_ehename_pflicht'));
+  }
   return true;
 }
-// Pflicht-* dynamisch umschalten: der Mädchenname ist NUR bei Frauen Pflicht.
-function pflichtMarkierung(geschlechtId, ehenameLabelId) {
+// Pflicht-* dynamisch umschalten: der Mädchenname ist NUR bei (ehemals) verheirateten Frauen
+// Pflicht, bei ledig/verlobt/partner/unbekannt/sonstige optional (Feld bleibt sichtbar, FAMROOTS-50).
+function pflichtMarkierung(geschlechtId, ehenameLabelId, beziehungId) {
   const sel = document.getElementById(geschlechtId);
   const lab = document.getElementById(ehenameLabelId);
   if (!lab) return;
   const frau = !!sel && sel.value === 'F';
-  lab.classList.toggle('pflicht', frau);         // roter „*" nur bei Frauen
-  lab.style.display = frau ? '' : 'none';        // Mädchenname-Feld NUR bei Frauen einblenden
+  const bezSel = beziehungId ? document.getElementById(beziehungId) : null;
+  const pflicht = frau && BZ_EHEMALS_VERHEIRATET.includes(bezSel ? bezSel.value : '');
+  lab.classList.toggle('pflicht', pflicht);      // roter „*" nur bei (ehemals) verheirateten Frauen
+  lab.style.display = frau ? '' : 'none';        // Mädchenname-Feld weiterhin NUR bei Frauen einblenden
 }
-function pePflichtMarkierung() { pflichtMarkierung('pe-geschlecht', 'pe-ehename-label'); }
-function paPflichtMarkierung() { pflichtMarkierung('pa-geschlecht', 'pa-ehename-label'); }
+function pePflichtMarkierung() { pflichtMarkierung('pe-geschlecht', 'pe-ehename-label', 'pe-beziehung'); }
+function paPflichtMarkierung() { pflichtMarkierung('pa-geschlecht', 'pa-ehename-label', 'pa-beziehung'); }
 
 async function speicherePerson(force) {
   if (!istAdmin()) return;
@@ -20998,7 +21009,7 @@ async function speicherePerson(force) {
   const vd = id => datumWert(document.getElementById(id));   // Datumsfelder -> ISO/Freitext
   // Pflicht: Vorname + Nachname (alle) + Mädchenname bei Frauen — Fehler direkt am Feld
   const sexE = document.getElementById('pe-geschlecht').value || '';
-  if (!pruefeNamePflicht('pe', v('pe-vorname'), v('pe-nachname'), sexE, v('pe-ehename'))) return;
+  if (!pruefeNamePflicht('pe', v('pe-vorname'), v('pe-nachname'), sexE, v('pe-ehename'), v('pe-beziehung'))) return;
   // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt (Hinweis steht am Feld)
   if (!pruefeEmailFeld(document.getElementById('pe-email'), false)) return feldFokus('pe-email');
   // Datumsfelder: nicht-parsebarer Freitext wie „xx/xx/xxxx" hier abfangen (sonst fehlen Anlässe/Zeitstrahl).
@@ -21603,7 +21614,7 @@ function paPartnerVorbelegen(p) {
     if (src === 'M' || src === 'F') { gsel.value = (src === 'M') ? 'F' : 'M'; paPflichtMarkierung(); }
   }
   const bsel = document.getElementById('pa-beziehung');
-  if (bsel && bsel.value === 'unbekannt') bsel.value = 'verheiratet';   // Default für Ehepartner
+  if (bsel && bsel.value === 'unbekannt') { bsel.value = 'verheiratet'; paPflichtMarkierung(); }   // Default für Ehepartner
   [['pa-hochzeit-standesamt', 'hochzeit_standesamt'], ['pa-hochzeit-kirchlich', 'hochzeit_kirchlich']]
     .forEach(([id, key]) => {
       const el = document.getElementById(id);
@@ -21642,6 +21653,7 @@ function paPruefeFelder() {
   const paArt = document.getElementById('pa-partner-art-label');
   if (paArt) paArt.style.display = (typ === 'partner') ? '' : 'none';
   paAktualisiereKontext();   // Kopf an die GEWÄHLTE Beziehung anpassen (live bei Dropdown-Wechsel)
+  paPflichtMarkierung();   // Mädchenname-Pflicht hängt auch vom Beziehungsstatus ab (FAMROOTS-50)
 }
 
 // Kopf des Anlegen-Overlays: macht die GEWÄHLTE Beziehung deutlich sichtbar. Der prominente
@@ -21788,7 +21800,7 @@ async function speichereNeuePerson() {
   const nachname = v('pa-nachname') || aktiv.surname || '';
   const sex      = document.getElementById('pa-geschlecht').value || '';
   // Pflicht: Vorname + Nachname (alle) + Mädchenname bei Frauen — Fehler direkt am Feld
-  if (!pruefeNamePflicht('pa', vorname, nachname, sex, v('pa-ehename'))) return;
+  if (!pruefeNamePflicht('pa', vorname, nachname, sex, v('pa-ehename'), v('pa-beziehung'))) return;
   // Kontakt-E-Mail (optional) muss gültig sein, falls gesetzt (Hinweis steht am Feld)
   if (!pruefeEmailFeld(document.getElementById('pa-email'), false)) return feldFokus('pa-email');
   // Datumsfelder: nicht-parsebarer Freitext wie „xx/xx/xxxx" hier abfangen (sonst fehlen Anlässe/Zeitstrahl).
