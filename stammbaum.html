@@ -2,11 +2,11 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="16.01">
+<meta name="app-version" content="16.02">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FamilyRoots — Porodično stablo</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=16.01">
-<link rel="apple-touch-icon" href="favicon.svg?v=16.01">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=16.02">
+<link rel="apple-touch-icon" href="favicon.svg?v=16.02">
 <meta name="theme-color" content="#722f37">
 <!-- Content-Security-Policy (Defense-in-Depth). Hinweis: script-src braucht 'unsafe-inline',
      weil die App durchgehend Inline-onclick-Handler + einen Inline-<script>-Block nutzt; eine
@@ -36,7 +36,7 @@
        * marked           -> nur für die mehrsprachigen Lebensgeschichten (gesch*)
        * leaflet (+CSS)   -> nur für die Event-Karte/den Geo-Editor (karteRender/geoEditOeffnen)
      CSP (script-src/style-src cdn.jsdelivr.net) deckt das weiterhin ab. -->
-<link rel="stylesheet" href="stammbaum.css?v=16.01">
+<link rel="stylesheet" href="stammbaum.css?v=16.02">
 </head>
 <body>
 
@@ -2857,14 +2857,14 @@
   </div>
 </div>
 
-<script src="i18n.js?v=16.01"></script>
+<script src="i18n.js?v=16.02"></script>
 <!-- Ausgelagerte Module — VOR dem Haupt-Script (definieren globale Funktionen, rufen Haupt-Globals
      erst zur Laufzeit auf). pdf_export: PDF-/Druck-Export (auch Kosten-PDF nutzt pdfEl/…);
      chat: 1:1-/Gruppen-Chat (startChat/stopChat im Login-/Logout-Flow);
      rezepte_pool: statischer Kochbuch-Rezept-Pool (mehrsprachig, „Gericht des Tages"). -->
-<script src="pdf_export.js?v=16.01"></script>
-<script src="chat.js?v=16.01"></script>
-<script src="rezepte_pool.js?v=16.01"></script>
+<script src="pdf_export.js?v=16.02"></script>
+<script src="chat.js?v=16.02"></script>
+<script src="rezepte_pool.js?v=16.02"></script>
 <!-- FAMROOTS-36: lokalen Supabase-Stack NUR auf localhost optional dazuladen. Auf GitHub Pages
      (Prod) wird supabase_local.js NIE angefragt -> kein 404 in fremden Konsolen, kein Local-Key im
      Repo. Die Datei ist gitignored (Vorlage: supabase_local.example.js) und setzt window.__SB_LOCAL.
@@ -11315,7 +11315,7 @@ function boardMacheZiehbar(g, canon, model, visible, PX, PY, linienG) {
   const handle = g.append('circle').attr('class', 'board-connect').attr('cx', 0).attr('cy', _hh + 11).attr('r', 8);
   let _temp = null;
   const cdrag = d3.drag().container(() => baumG.node())
-    .on('start', (e) => { if (e.sourceEvent) e.sourceEvent.stopPropagation();
+    .on('start', (e) => { if (e.sourceEvent) { e.sourceEvent.stopPropagation(); if (e.sourceEvent.cancelable) e.sourceEvent.preventDefault(); } /* FAMROOTS-49 */
       _temp = linienG.append('line').attr('class', 'board-connect-temp')
         .attr('x1', PX.get(canon)).attr('y1', PY.get(canon)).attr('x2', PX.get(canon)).attr('y2', PY.get(canon)); })
     .on('drag', (e) => { if (_temp) _temp.attr('x2', e.x).attr('y2', e.y); })
@@ -11857,6 +11857,11 @@ let boardMarq = null;   // {x0,y0} Startpunkt (Screen) + DOM-Rechteck
 // sind zwar sichtbar, aber nicht ziehbar. EIN Selektor für alle Stellen, damit er nicht driftet.
 const BOARD_GESTE_SEL = '.board-knoten, .board-anker-griff-grp, .board-linie-griff-grp, .board-linie-hit';
 function boardEigeneGeste(target) { return !!(target && target.closest && target.closest(BOARD_GESTE_SEL)); }
+// FAMROOTS-49: NUR die Linien-/Anker-Griffe + Verbindungs-Punkt (kleine Ziel-Elemente, an denen ein
+// d3.drag hängt) — OHNE `.board-knoten`. Der zoom.filter blendet für diese Selektoren auf Touch das
+// Board-Pan/Zoom aus, damit der Griff-Drag greift; freie Fläche (Ein-Finger-Pan) und Karten (Pinch-
+// Zoom) bleiben unberührt. Getrennt von BOARD_GESTE_SEL (Long-Press), das bewusst AUCH Karten ausschließt.
+const BOARD_GRIFF_SEL = '.board-anker-griff-grp, .board-linie-griff-grp, .board-anker-hit, .board-linie-hit, .board-connect';
 
 function boardMarqueeStart(ev) {
   if (!(ansichtModus === 'board' && boardEdit && typeof istAdmin === 'function' && istAdmin() && boardState)) return false;
@@ -12536,7 +12541,7 @@ function boardAnkerHandle(g, key, feld, P, seite, canon, ctx) {
   h.append('circle').attr('class', 'board-anker-griff').attr('cx', hx).attr('cy', hy).attr('r', 6);
   let ankerVor = null;   // SCRUM-26: Zustand VOR dem Zug fuer Undo (AK10)
   const drag = d3.drag().container(() => baumG.node())
-    .on('start', (e) => { if (e.sourceEvent) e.sourceEvent.stopPropagation(); ankerVor = boardLinien[key] ? { ...boardLinien[key] } : null; })
+    .on('start', (e) => { if (e.sourceEvent) { e.sourceEvent.stopPropagation(); if (e.sourceEvent.cancelable) e.sourceEvent.preventDefault(); } /* FAMROOTS-49: Touch-Scroll/Pinch unterbinden */ ankerVor = boardLinien[key] ? { ...boardLinien[key] } : null; })
     .on('drag', (e) => {
       const cx = X.get(canon), cy = Y.get(canon);
       const s = boardSeiteAusPunkt(cx, cy, e.x, e.y, HW, HH);
@@ -12576,7 +12581,7 @@ function boardLinienHandle(g, key, hx, hy, vonRep, nachRep, model, visible, X, Y
   handle.append('circle').attr('class', 'board-linie-griff').attr('cx', hx).attr('cy', hy).attr('r', 6);
   let wpVor = null;   // SCRUM-26: Zustand VOR dem Zug fuer Undo
   const drag = d3.drag().container(() => baumG.node())
-    .on('start', (e) => { if (e.sourceEvent) e.sourceEvent.stopPropagation(); wpVor = boardLinien[key] ? { ...boardLinien[key] } : null; })
+    .on('start', (e) => { if (e.sourceEvent) { e.sourceEvent.stopPropagation(); if (e.sourceEvent.cancelable) e.sourceEvent.preventDefault(); } /* FAMROOTS-49 */ wpVor = boardLinien[key] ? { ...boardLinien[key] } : null; })
     .on('drag', (e) => { const st = boardLinien[key] || (boardLinien[key] = {}); st.x = e.x; st.y = e.y; boardZeichneLinien(model, visible, X, Y, g); })
     .on('end', () => {
       const w = boardLinien[key]; if (w) boardLinieSpeichern(vonRep, nachRep, w.x, w.y);
@@ -23549,6 +23554,13 @@ function initBaum() {
     zoom.filter((ev) => {
       if (ansichtModus === 'board' && boardEdit && (ev.type === 'mousedown' || ev.type === 'pointerdown') &&
           ev.target && ev.target.closest && !ev.target.closest('.board-knoten')) return false;
+      // FAMROOTS-49: d3.zoom nutzt auf Touch-Geräten EIGENE `touchstart`-Listener (nicht Pointer-Events),
+      // für die die Maus-Ausnahme oben nicht greift -> beim Ziehen eines Linien-/Anker-Griffs pant/zoomt
+      // das Board und der Bearbeitungsmodus wirkt „verlassen". Deshalb: auf `touchstart` das Board-Pan/
+      // Zoom NUR unterdrücken, wenn der Touch auf einem Griff/Verbindungs-Punkt startet (BOARD_GRIFF_SEL)
+      // -> der d3.drag des Griffs greift. Freie Fläche (Ein-Finger-Pan) und Karten (Pinch-Zoom) bleiben.
+      if (ansichtModus === 'board' && boardEdit && ev.type === 'touchstart' &&
+          ev.target && ev.target.closest && ev.target.closest(BOARD_GRIFF_SEL)) return false;
       return (!ev.ctrlKey || ev.type === 'wheel') && !ev.button;
     });
   }

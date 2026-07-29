@@ -544,6 +544,11 @@ header .stats { margin-top: 20px; font-size: 13px; opacity: 0.6; letter-spacing:
 .board-anker-griff { fill: var(--gold, #a8781f); stroke: var(--akzent); stroke-width: 1.4; opacity: 0.7; pointer-events: none; }
 .board-anker-griff-grp, .board-linie-griff-grp { cursor: grab; }
 .board-anker-griff-grp:active, .board-linie-griff-grp:active { cursor: grabbing; }
+/* FAMROOTS-49: ZWINGEND für Touch — ohne explizites touch-action:none übernimmt der Browser die
+   Touch-Geste (Scroll/Pinch) auf dem Griff, statt sie an den d3.drag zu geben (Griff „springt" raus /
+   Board pant). Nicht auf die Vererbung von #baum-svg verlassen (analog .board-minimap). */
+.board-anker-griff-grp, .board-linie-griff-grp, .board-anker-hit, .board-connect {
+  touch-action: none; }
 .board-anker-griff-grp:hover .board-anker-griff { opacity: 1; }
 .board-linie-griff-grp:hover .board-linie-griff { opacity: 1; }
 /* Unsichtbare, große Fassfläche für Griffe (Touch ≥32px Durchmesser). */

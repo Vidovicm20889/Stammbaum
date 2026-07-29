@@ -29,6 +29,24 @@ Bereiche (Tags) zum Wiederfinden: `[PDF]` `[RLS]` `[Realtime]` `[Datum]` `[i18n]
 
 ## Einträge (neueste oben)
 
+### 2026-07-26 — Board-Linien-Griff per Touch: d3.zoom umgeht den zoom.filter (eigene touchstart-Listener) [Mobile/iOS]
+- **Symptom:** Am Handy ließen sich Board-Verbindungslinien (Anker-/Wegpunkt-Griffe) nicht ziehen —
+  die Geste verließ den Bearbeitungsmodus / pante das Board.
+- **Ursache:** `zoom.filter` blendete das Board-Pan nur für `ev.type === 'mousedown'|'pointerdown'`
+  aus. **d3-zoom v7 registriert auf Touch-Geräten aber EIGENE `touchstart`/`touchmove`-Listener**
+  (nicht Pointer-Events). Für `touchstart` griff die Ausnahme nicht → `d3.zoom` konkurrierte mit dem
+  `d3.drag` des Griffs (dessen `stopPropagation()` reichte auf Touch nicht zuverlässig) → Board pant.
+- **Lösung (FAMROOTS-49):** (1) `zoom.filter` zusätzlich für `ev.type === 'touchstart'` auf einem
+  Griff/Verbindungs-Punkt (`BOARD_GRIFF_SEL`, OHNE `.board-knoten`) `return false` — nur Griffe, damit
+  Ein-Finger-Pan (freie Fläche) und Pinch-Zoom (Karten) unberührt bleiben. (2) In den Griff-`d3.drag`-
+  `start`-Handlern zusätzlich `e.sourceEvent.preventDefault()` (wenn `cancelable`) gegen native
+  Touch-Gesten. (3) CSS `touch-action: none` explizit auf `.board-anker-griff-grp`/`.board-linie-griff-grp`/
+  `.board-anker-hit`/`.board-connect` (nicht auf Vererbung von `#baum-svg` verlassen — wie `.board-minimap`).
+- **Merksatz:** Wer `d3.zoom` per `filter` für Maus/Pointer aushebelt, muss `touchstart` SEPARAT
+  behandeln — d3-zoom hört auf Touch getrennt. Griff-Selektoren getrennt von den Karten-Selektoren
+  halten, sonst bricht Pinch-Zoom auf Karten. `touch-action:none` gehört auf jedes Element mit eigenem
+  Touch-`d3.drag`.
+
 ### 2026-07-25 — Doppelte Board-Linien: geometrische Entdopplung reicht nicht [UX]
 - **Symptom:** Im Tabla/Board manche Verbindungslinien doppelt (zwei fast parallele Striche), v. a. bei
   Verbünden mit Identitäts-Spiegelkarten („додатна стабла").

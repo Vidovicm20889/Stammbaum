@@ -186,6 +186,17 @@ kein natives `confirm`). **Nicht** ungefragt scharf schalten. Serverseitiger Lö
   `start` (sonst pant `d3.zoom` gleichzeitig); Position beim Ziehen durch `transform.k`
   teilen (Welt- vs. Bildschirm-Koordinaten). Anker-Ziehen vs. Karten-Ziehen sauber trennen
   (getrennte Handles), Tap-Targets ≥ 16 px, `pointer`-Events.
+  - **⚠️ Touch-Griffe (FAMROOTS-49):** `stopPropagation()` allein reicht auf Touch NICHT — `d3.zoom`
+    v7 hört auf Touch-Geräten über **eigene `touchstart`-Listener** (nicht Pointer-Events), die der
+    `zoom.filter` bisher nur für `mousedown`/`pointerdown` aushebelte → Griff-Drag pant das Board /
+    „verlässt" den Edit-Modus. Fix dreiteilig: (1) `zoom.filter` gibt für `ev.type==='touchstart'` auf
+    einem Griff/Verbindungs-Punkt (`BOARD_GRIFF_SEL` = `.board-anker-griff-grp, .board-linie-griff-grp,
+    .board-anker-hit, .board-linie-hit, .board-connect`; **ohne** `.board-knoten`) `false` zurück — nur
+    Griffe, damit Ein-Finger-Pan (freie Fläche) + Pinch-Zoom (Karten) unberührt bleiben; (2) die Griff-
+    `d3.drag`-`start`-Handler rufen zusätzlich `e.sourceEvent.preventDefault()` (wenn `cancelable`); (3)
+    CSS `touch-action: none` explizit auf die Griff-/Connect-Elemente (nicht auf Vererbung von
+    `#baum-svg` verlassen). `BOARD_GRIFF_SEL` bewusst getrennt von `BOARD_GESTE_SEL` (Long-Press, das
+    AUCH Karten ausschließt).
 - **Mobile Bedienbarkeit:** freies Board auf < 480 px ist eng; Board eher als
   Desktop-/Tablet-Feature bewerben, auf dem Handy funktionsfähig aber nicht primär.
 - **Nur Bearbeiter bearbeiten:** Verschieben/Verknüpfen nur bei `istAdmin()`; **Leser sehen
