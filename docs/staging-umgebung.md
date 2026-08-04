@@ -85,6 +85,30 @@ Im VidovicAI-Ordner liegen **zwei** Apps mit je einem lokalen Stack. StockFlow b
 Die lokale DB erreichst du damit unter
 `postgresql://postgres:postgres@127.0.0.1:54332/postgres`, Studio unter `http://127.0.0.1:54333`.
 
+### Geteilte Docker-Kapazität mit StockFlow und LedgerFlow
+
+Der lokale FamilyRoots-Stack teilt sich Docker Desktop und die WSL2-VM mit
+StockFlow und LedgerFlow – **eine** RAM-Grenze für alle drei Apps, auch aus
+getrennten Claude-Code-Sitzungen. Details und der auslösende Vorfall
+(StockFlow, 03.08.2026, ~2 Std. Stillstand durch RAM-Kollaps über alle Apps
+hinweg): [`../../CLAUDE.md`](../../CLAUDE.md).
+
+- **Vor größerem DB-lastigem Arbeiten** (`supabase db reset`, großer
+  Schema-/Seed-Import) kurz `docker ps` **ungefiltert** prüfen – nicht nur
+  `supabase status` im eigenen Ordner. Laufen parallel StockFlow-
+  Story-Instanzen oder LedgerFlow-Container, ist die VM ggf. schon ausgelastet.
+- **Stack stoppen statt dauerhaft laufen lassen, wenn gerade nicht an
+  FamilyRoots gearbeitet wird:** `supabase stop` (Daten/Migrationsstand
+  bleiben erhalten, `supabase start` bringt ihn in Sekunden zurück). Ein
+  über Stunden ungenutzt laufender Stack (Docker Desktop zeigt ihn dann als
+  „Paused") reserviert trotzdem Speicher auf der gemeinsamen VM.
+- **Alte, nicht mehr gebrauchte Container/Volumes entfernen, nicht nur
+  stoppen:** nach größeren Schema-Umbauten `supabase stop --no-backup`
+  bzw. veraltete `supabase_*_familyroots`-Container/-Volumes explizit
+  entfernen. Nur die eigenen, als `familyroots` erkennbaren Objekte anfassen –
+  kein projektübergreifendes `docker system prune -a`, das auch fremde,
+  laufende Sitzungen (StockFlow/LedgerFlow) treffen würde.
+
 ### Prod-Schema erzeugen (EINMALIG bzw. nach Prod-Änderungen)
 
 Der lokale Aufbau spiegelt Prod **exakt** über den kompletten Prod-Schema-Dump. Das ist die einzige

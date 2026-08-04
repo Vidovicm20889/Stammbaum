@@ -65,6 +65,13 @@ Datei.
 | **Bereit für Deployment** | **10108** | **`3`** |
 | Erledigt | 10004 | `51` |
 
+**Labels `-offen`** (Konvention seit 21.07./23.07.2026, um `frage-offen`/
+`merge-offen` erweitert seit 2026-08-04): `frage-offen` (Rückfrage an den
+Nutzer), `merge-offen` (Stand nicht auf `main`, betrifft FamilyRoots aktuell
+nicht direkt, da `jira-dev` ohne Worktree im Hauptbaum arbeitet),
+`review-offen` (Befund des `review-agent`, siehe Modus E), `test-offen`
+(Befund des `test-agent`, siehe Modus F).
+
 ⚠️ **Spalte „Bereit für Deployment" (nachgetragen 23.07.2026):** Sie existierte im Jira-Workflow
 bereits, war aber in keiner Doku und in keiner Agent-Datei erfasst. Belegt per
 `getTransitionsForJiraIssue` an FAMROOTS-35: Status-ID **`10108`**, Transition-ID **`3`**,
@@ -373,19 +380,26 @@ Repo, schreibt sie **auf Deutsch** umsetzungsreif fertig und schiebt sie nach **
 Story-Autor (Modus B) im Backlog angelegte Rohstory MUSS diese Stufe durchlaufen, bevor sie umgesetzt
 wird — sie ist der einzige zulässige Weg vom Backlog nach „Zu erledigen" für solche Storys.
 
-**Abgrenzung der vier Modi:**
+**Abgrenzung der sechs Modi:**
 | Modus | Agent | Quelle | Ergebnis | Ändert Code? | Startet danach |
 |---|---|---|---|---|---|
 | **B** Story-Autor | `story-autor` | Idee des Nutzers | neuer Vorgang im **Backlog** | nein | **nichts** — der Nutzer gibt frei |
 | **C** Story-Refiner | `story-refiner` | Spalte **Backlog** | fertige Story in „Zu erledigen" | **nein** | Vorschlag an den Nutzer |
-| **A** Jira-Dev | `jira-dev` | Spalte „Zu erledigen" | Umsetzung, Vorgang in „Test" | ja | — |
+| **A** Jira-Dev | `jira-dev` | Spalte „Zu erledigen" | Umsetzung, Vorgang in „Test" | ja | Vorschlag: `review-agent` |
+| **E** Review-Agent | `review-agent` | Spalte „Test" | Code-Review, bleibt in „Test" oder zurück „In Bearbeitung" (`review-offen`) | nein | Vorschlag: `test-agent` |
+| **F** Test-Agent | `test-agent` | Spalte „Test" (ohne `review-offen`) | Klicktest, „Bereit für Deployment" oder zurück „In Bearbeitung" (`test-offen`) | nein | — |
 | **D** Deploy-Manager | `deploy-manager` | Spalte **„Bereit für Deployment"** | Release live, Vorgänge in „Erledigt" | nur Version/Doku/Kleinfix | — |
 
-**Fluss:** `Idee → B → Backlog → C (PFLICHT: verfeinert) → Zu erledigen → A → Test → (Abnahme durch den
-Nutzer) → Bereit für Deployment → D → Erledigt/live`. Die Refiner-Stufe **C ist für Story-Autor-Storys
-verbindlich** (FAMROOTS-38), nicht optional — zwischen „geschrieben" und „wird umgesetzt" liegt damit
-immer sowohl die fachliche Ausarbeitung durch den Refiner als auch ein menschlicher Freigabeschritt;
-seit 23.07.2026 zusätzlich ein Kontrollpunkt zwischen „umgesetzt" und „live".
+**Fluss:** `Idee → B → Backlog → C (PFLICHT: verfeinert) → Zu erledigen → A → Test → E (Review) →
+F (Klicktest) → Bereit für Deployment → D → Erledigt/live`. Die Refiner-Stufe **C ist für
+Story-Autor-Storys verbindlich** (FAMROOTS-38), nicht optional. **E und F sind seit 2026-08-04 die
+neuen, automatisierten Stationen** anstelle der bisherigen persönlichen Abnahme durch den Nutzer in
+„Test" — analog zum Schwesterprojekt StockFlow/LedgerFlow (dortige Agenten `review-agent`/
+`test-agent`). Zwischen „geschrieben" und „wird umgesetzt" liegt weiterhin ein menschlicher
+Freigabeschritt (Refiner → Nutzer entscheidet, ob `jira-dev` startet); zwischen „getestet" und
+„live" bleibt der Kontrollpunkt vor `deploy-manager` seit 23.07.2026 unverändert bestehen — **E und
+F starten sich nur gegenseitig per Vorschlag, nie automatisch, und keines von beiden startet
+jemals den `deploy-manager`.**
 
 ⚠️ **Geändert am 21.07.2026 (SCRUM-16):** Zuvor legte der Story-Autor direkt in „Zu erledigen" an
 **und startete `jira-dev` automatisch** — ein frisch geschriebenes Ticket konnte dadurch umgesetzt
@@ -427,6 +441,61 @@ per Definition nicht anfasst. Der Refiner ist damit die **einzige** verbleibende
 Vorgang ohne menschlichen Zwischenschritt in der Umsetzungs-Spalte landet. Das ist vertretbar, weil
 der Refiner **gezielt** vom Nutzer gestartet wird (kein Hintergrund-Automatismus) — die verbleibende
 Restgefahr ist ausschließlich der **parallel laufende Loop**.
+
+---
+
+## Modus E — „Review-Agent" („Test" ➜ „Test" bleibt oder „In Bearbeitung")
+
+Fünfter Arbeitsmodus (seit 2026-08-04). Agent-Datei:
+**`.claude/agents/review-agent.md`**. Er nimmt **einen** Vorgang aus der
+Spalte **Test**, liest den (meist noch uncommitteten) Code-Stand mit
+frischem Kontext gegen Akzeptanzkriterien, Familien-/Verbund-Isolation,
+RLS-Rekursionsfreiheit, referenzielle Integrität, i18n (alle 5 Sprachen),
+verbotene native Dialoge und Mobile-Markup (`docs/ui-bausteine.md` §8).
+Ändert **keinen** Code.
+
+**Warum es das gibt:** Bisher prüfte niemand außer dem Nutzer persönlich den
+Code eines Vorgangs vor „Bereit für Deployment" — analog zu StockFlow/
+LedgerFlow (dortige Lektion: der Umsetzende sieht seine eigene Begründungskette
+nicht als Fehlerquelle).
+
+**JQL:** `project = FAMROOTS AND status = "Test" ORDER BY rank ASC`
+(Treffer mit Label `review-offen`, die schon einmal zurückgeschickt wurden,
+überspringt der Agent selbst).
+
+**Ohne Befund:** Vorgang bleibt in `Test`, der Agent schlägt dem Nutzer den
+Start von `test-agent` vor (startet ihn nicht selbst).
+**Mit schwerem Befund/Akzeptanzkriterium verletzt:** Label `review-offen`,
+Transition nach `In Bearbeitung` (`31`), Zeile in
+`.claude/agent-inbox/dev.md`.
+
+## Modus F — „Test-Agent" („Test" ➜ „Bereit für Deployment" oder „In Bearbeitung")
+
+Sechster Arbeitsmodus (seit 2026-08-04). Agent-Datei:
+**`.claude/agents/test-agent.md`**. Er nimmt **einen** Vorgang aus „Test",
+auf dem `review-agent` keine Befunde hatte, und bedient die **laufende**
+Anwendung im echten Browser (Playwright MCP) auf einem eigenen, dauerhaften
+Test-Worktree (`C:/VidovicAi/WorkTreeFamilyRoots/FamilyRoots-test`) gegen
+die eine bestehende lokale Supabase-Instanz — kein eigenes
+Instanz-Pooling je Vorgang wie bei StockFlow (dafür ist FamilyRoots als
+Ein-Entwickler-Projekt ohne parallele Story-Worktrees zu klein). Prüft
+Akzeptanzkriterien per echtem Klickweg, Handy hoch/quer (< 480 px, kein
+separates Tablet-Format), und greift die Familien-/Verbund-Isolation aktiv
+an (eigene Fremdfamilie registrieren, fremde Daten-URL aufrufen).
+
+**JQL:** `project = FAMROOTS AND status = "Test" ORDER BY rank ASC`, Treffer
+mit Label `review-offen` werden übersprungen.
+
+**Bestanden:** Transition nach `Bereit für Deployment` (`3`) — der Vorgang
+liegt dort für den `deploy-manager` bereit, dessen Start bleibt **weiterhin
+ausschließlich manuell**. **Durchgefallen:** Label `test-offen`, Transition
+nach `In Bearbeitung` (`31`), Zeile in `.claude/agent-inbox/dev.md`.
+
+⚠️ **Kein Loop für E/F** — analog zur Begründung bei Modus D: Ein
+zeitgesteuerter Review/Test würde faktisch denselben menschlichen
+Kontrollpunkt entfernen, den die manuelle Vorschlags-Kette (A schlägt E vor,
+E schlägt F vor) bewusst erhält. Beide Modi starten **nur** auf Kommando
+des Nutzers oder als Vorschlag, dem der Nutzer zustimmt — nie automatisch.
 
 ---
 

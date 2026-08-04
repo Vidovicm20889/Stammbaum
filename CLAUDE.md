@@ -130,9 +130,13 @@ Vor jeder UI-Änderung `docs/ui-bausteine.md` lesen. Die harten Invarianten:
   Reaktionen/Kommentare erben die Lese-Grenze ihres Zielobjekts.
 - `supabase/.env` (RESEND_API_KEY etc.) ist gitignored und darf NIE committet werden.
 
-## Arbeitsumgebung & Sicherheit (Unternehmens-Defender) — IMMER einhalten
-- Dies ist ein **Unternehmensrechner mit aktivem Defender/EDR**. Zu vermeiden, weil es
-  Sicherheitsalarme auslöst:
+## Arbeitsumgebung & Sicherheit (Windows Defender) — IMMER einhalten
+- **Milans privater Rechner** (keine Firma, kein EDR — frühere Notiz „Unternehmensrechner"
+  war veraltet, korrigiert 2026-08-03). Aktiv ist der reguläre Windows Defender; `C:\VidovicAi`
+  (alle drei Apps) ist per Pfad-Ausnahme von Echtzeit-Scans befreit (Performance, siehe
+  `../CLAUDE.md`, Abschnitt „Windows Defender"). Die folgenden Vorsichtsregeln bleiben davon
+  **unberührt** — sie gelten wegen Defenders Verhaltenserkennung (AMSI) auf ausgeführte
+  PowerShell-Befehle, nicht wegen gescannter Dateien, und sind unabhängig von der Ausnahme:
   - **Keine** PowerShell-Flags wie `-EncodedCommand`/`-enc`, `-NoProfile`, `-NonInteractive`,
     `-WindowStyle Hidden`, `-ExecutionPolicy Bypass`.
   - **Keine** versteckten Hintergrund-Prozesse ohne Not; keine Base64-/verschleierten Kommandos,
@@ -214,9 +218,13 @@ Analyse-/Auskunftsantworten):
 3. Mobile-/Geräte-Test Android + iOS durchgeführt (`docs/ui-bausteine.md` §8)?
 4. Bei Daten: alle Tabellen konsistent, keine verwaisten Zeilen (inkl. Storage)?
 5. Governance: weicht etwas von den Regeln ab? Falls ja → Hinweis.
-6. Selbsteinschätzung: ✅ alles ok / ⚠️ Kompromiss nötig / ❌ Problem gefunden.
-7. Logisch nächsten Schritt vorschlagen.
-8. **ToDo-Liste „Was DU noch erledigen musst"** als eigener Abschnitt am Ende — alles, was ich
+6. **Lokaler Docker-Stack nach dem Verproben aufgeräumt** (nicht dauerhaft
+   nebenbei weiterlaufen lassen): `supabase stop`, sobald die Migration/der
+   Test gegen den lokalen Stack abgeschlossen ist – Daten/Migrationsstand
+   bleiben erhalten, siehe [`docs/staging-umgebung.md`](docs/staging-umgebung.md#geteilte-docker-kapazität-mit-stockflow-und-ledgerflow).
+7. Selbsteinschätzung: ✅ alles ok / ⚠️ Kompromiss nötig / ❌ Problem gefunden.
+8. Logisch nächsten Schritt vorschlagen.
+9. **ToDo-Liste „Was DU noch erledigen musst"** als eigener Abschnitt am Ende — alles, was ich
    nicht selbst ausführen kann oder darf, nie nur im Fließtext: **SQL im Supabase-Editor**
    (mit Reihenfolge + Idempotenz-Hinweis), **Edge Functions übers Dashboard**, **Commit/Merge/Push
    + Version-Bump** (`app-version` **und** alle `?v=`), **Defender-kritische Befehle** in exakt
@@ -234,7 +242,7 @@ Vor der Arbeit an einem Feature die passende Datei lesen; neue Features nach obi
 - `docs/externe-libraries-csp.md` — freigegebene Libraries + Verwendungszweck, Noto-Serif-Subset, Leaflet/OSM/Nominatim-CSP & Rate-Limit, Markdown-Sanitizer.
 - `docs/confluence-pflege.md` — Confluence-Spiegelung beim Deployment (nur Deploy-Agent).
 - `docs/workflow-branching-versionierung.md` — Branch pro Änderung, Testmatrix, Freigabe, Versions-Schema mit Überlauf-Beispielen, ausgelagerte Dateien & Cache-Busting.
-- `docs/staging-umgebung.md` — „erst lokal, dann prod": lokaler Supabase-Stack, Aufbau als Prod-Spiegel über den Dump, Seed, Frontend-Umschaltung. Staging-Cloud = FAMROOTS-37.
+- `docs/staging-umgebung.md` — „erst lokal, dann prod": lokaler Supabase-Stack, Aufbau als Prod-Spiegel über den Dump, Seed, Frontend-Umschaltung, geteilte Docker-Kapazität mit StockFlow/LedgerFlow (stoppen statt laufen lassen, Cleanup alter Container). Staging-Cloud = FAMROOTS-37.
 - `docs/lessons.md` — Fehler-/Lern-Log (Symptom → Ursache → Lösung → Merksatz).
 - `docs/karte.md` — Zeilen-Index von `stammbaum.html` (generiert, nicht von Hand pflegen).
 
@@ -247,5 +255,5 @@ Vor der Arbeit an einem Feature die passende Datei lesen; neue Features nach obi
 - `docs/ereignisse-anlaesse.md` — Geburtstags-/Gedenktag-Erinnerungen (In-App + E-Mail), Ereignis-Bereich (Liste/Zeitstrahl/Karte + Migrationspfad).
 - `docs/social-chat-feed.md` — Kochbuch-Bewertungen, Chat (1:1/Gruppe), verbundübergreifende Personensuche/Kontakte, Reaktionen & Kommentare, Familien-Feed/Aktivitäten, Foto-Tagging, Familien-Fragen.
 - `docs/board-modus.md` — Board-Modus (`ansichtModus='board'`): freies Verschieben von Karten (`board_layout`, ein Board pro Baum) + Verknüpfen per Linie mit Auto-Erkennung über `verknuepfung_anfragen`.
-- `docs/jira-anbindung.md` — Jira/Atlassian-MCP: Einrichtung, Projekt `FAMROOTS`, Workflow-Spalten + Transition-IDs, Ablauf je Vorgang (max. 1 pro Durchlauf), die drei Modi A Jira-Dev / B Ticket-Autor / C Story-Refiner (Pflichtstufe für Story-Autor-Storys, FAMROOTS-38), Commit-Politik.
+- `docs/jira-anbindung.md` — Jira/Atlassian-MCP: Einrichtung, Projekt `FAMROOTS`, Workflow-Spalten + Transition-IDs, Ablauf je Vorgang (max. 1 pro Durchlauf), die sechs Modi A Jira-Dev / B Story-Autor / C Story-Refiner (Pflichtstufe für Story-Autor-Storys, FAMROOTS-38) / D Deploy-Manager / E Review-Agent / F Test-Agent (E/F seit 2026-08-04, analog StockFlow/LedgerFlow), Commit-Politik.
 - `ROADMAP.md` — Roadmap-Kontext & Ausblick.
