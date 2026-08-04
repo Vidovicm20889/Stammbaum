@@ -62,7 +62,8 @@ Datei.
 | Zu erledigen | 10001 | `21` |
 | **In Bearbeitung** | 10002 | `31` |
 | **Test** | 10003 | `41` |
-| **Bereit für Deployment** | **10108** | **`3`** |
+| **Dokumentation** | **10180** | **`4`** |
+| **Erledigt für Deployment** (bis 2026-08-04: „Bereit für Deployment") | **10108** | **`3`** |
 | Erledigt | 10004 | `51` |
 
 **Labels `-offen`** (Konvention seit 21.07./23.07.2026, um `frage-offen`/
@@ -72,13 +73,17 @@ nicht direkt, da `jira-dev` ohne Worktree im Hauptbaum arbeitet),
 `review-offen` (Befund des `review-agent`, siehe Modus E), `test-offen`
 (Befund des `test-agent`, siehe Modus F).
 
-⚠️ **Spalte „Bereit für Deployment" (nachgetragen 23.07.2026):** Sie existierte im Jira-Workflow
-bereits, war aber in keiner Doku und in keiner Agent-Datei erfasst. Belegt per
-`getTransitionsForJiraIssue` an FAMROOTS-35: Status-ID **`10108`**, Transition-ID **`3`**,
-`statusCategory` **„Zu erledigen" (blau-grau)** — die Kategorie ist also auch hier **nicht**
-zum Filtern geeignet, immer über den **Status-Namen** gehen. Die Spalte trennt „vom User
-abgenommen" von „live": `jira-dev` endet weiterhin in **„Test"**, der User zieht nach der Abnahme
-per Hand nach **„Bereit für Deployment"**, und nur von dort holt der **`deploy-manager`** (Modus D).
+⚠️ **Spalte „Erledigt für Deployment" (nachgetragen 23.07.2026, umbenannt 2026-08-04):** Sie
+existierte im Jira-Workflow bereits, war aber in keiner Doku und in keiner Agent-Datei erfasst.
+Belegt per `getTransitionsForJiraIssue` an FAMROOTS-35: Status-ID **`10108`**, Transition-ID
+**`3`**, `statusCategory` **„Zu erledigen" (blau-grau)** — die Kategorie ist also auch hier
+**nicht** zum Filtern geeignet, immer über den **Status-Namen** gehen. Die Spalte trennt
+„fertig geprüft und dokumentiert" von „live": `jira-dev` endet weiterhin in **„Test"**, seit
+2026-08-04 laufen dort automatisch `review-agent` → `test-agent` → `doku-agent` (Modi E/F/G)
+durch bis **„Erledigt für Deployment"**, und nur von dort holt der **`deploy-manager`**
+(Modus D). Der Statusname wurde am 2026-08-04 von „Bereit für Deployment" auf „Erledigt für
+Deployment" geändert (Angleichung an StockFlow) — **die Status-ID `10108` blieb dieselbe**, nur
+JQL/Prosa, die den Namen wörtlich nennen, mussten nachgezogen werden.
 
 ⚠️ **Transition-ID-Falle (belegt am 22.07.2026):** Die Transition nach **Backlog** hat die ID **`2`**,
 nicht `11`. Diese Tabelle nannte lange `11`; ein `createJiraIssue` mit `transition: { id: "11" }`
@@ -125,7 +130,7 @@ Daraus folgt für **alle** Modi (A Jira-Dev, C Story-Refiner, D Deploy-Manager) 
    still weitergehen.
 5. **Das Feld `priority`** am Vorgang (Highest…Lowest) ist zusätzliche Information, ersetzt die
    Board-Reihenfolge aber **nicht**. Bei Widerspruch gilt die **Position von oben nach unten**.
-6. **Modus D** deployt ohnehin die **ganze** Spalte „Bereit für Deployment" — dort bestimmt die
+6. **Modus D** deployt ohnehin die **ganze** Spalte „Erledigt für Deployment" — dort bestimmt die
    Reihenfolge nur, in welcher Folge Review/Doku/Release-Einträge abgearbeitet werden, nicht die
    Auswahl.
 
@@ -380,26 +385,29 @@ Repo, schreibt sie **auf Deutsch** umsetzungsreif fertig und schiebt sie nach **
 Story-Autor (Modus B) im Backlog angelegte Rohstory MUSS diese Stufe durchlaufen, bevor sie umgesetzt
 wird — sie ist der einzige zulässige Weg vom Backlog nach „Zu erledigen" für solche Storys.
 
-**Abgrenzung der sechs Modi:**
+**Abgrenzung der sieben Modi:**
 | Modus | Agent | Quelle | Ergebnis | Ändert Code? | Startet danach |
 |---|---|---|---|---|---|
 | **B** Story-Autor | `story-autor` | Idee des Nutzers | neuer Vorgang im **Backlog** | nein | **nichts** — der Nutzer gibt frei |
 | **C** Story-Refiner | `story-refiner` | Spalte **Backlog** | fertige Story in „Zu erledigen" | **nein** | Vorschlag an den Nutzer |
 | **A** Jira-Dev | `jira-dev` | Spalte „Zu erledigen" | Umsetzung, Vorgang in „Test" | ja | Vorschlag: `review-agent` |
 | **E** Review-Agent | `review-agent` | Spalte „Test" | Code-Review, bleibt in „Test" oder zurück „In Bearbeitung" (`review-offen`) | nein | Vorschlag: `test-agent` |
-| **F** Test-Agent | `test-agent` | Spalte „Test" (ohne `review-offen`) | Klicktest, „Bereit für Deployment" oder zurück „In Bearbeitung" (`test-offen`) | nein | — |
-| **D** Deploy-Manager | `deploy-manager` | Spalte **„Bereit für Deployment"** | Release live, Vorgänge in „Erledigt" | nur Version/Doku/Kleinfix | — |
+| **F** Test-Agent | `test-agent` | Spalte „Test" (ohne `review-offen`) | Klicktest, „Dokumentation" oder zurück „In Bearbeitung" (`test-offen`) | nein | Vorschlag: `doku-agent` |
+| **G** Doku-Agent | `doku-agent` | Spalte „Dokumentation" | Confluence-Fachdoku, „Erledigt für Deployment" | nein | — |
+| **D** Deploy-Manager | `deploy-manager` | Spalte **„Erledigt für Deployment"** | Release live, Vorgänge in „Erledigt" | nur Version/Doku/Kleinfix | — |
 
 **Fluss:** `Idee → B → Backlog → C (PFLICHT: verfeinert) → Zu erledigen → A → Test → E (Review) →
-F (Klicktest) → Bereit für Deployment → D → Erledigt/live`. Die Refiner-Stufe **C ist für
-Story-Autor-Storys verbindlich** (FAMROOTS-38), nicht optional. **E und F sind seit 2026-08-04 die
-neuen, automatisierten Stationen** anstelle der bisherigen persönlichen Abnahme durch den Nutzer in
-„Test" — analog zum Schwesterprojekt StockFlow/LedgerFlow (dortige Agenten `review-agent`/
-`test-agent`). Zwischen „geschrieben" und „wird umgesetzt" liegt weiterhin ein menschlicher
-Freigabeschritt (Refiner → Nutzer entscheidet, ob `jira-dev` startet); zwischen „getestet" und
-„live" bleibt der Kontrollpunkt vor `deploy-manager` seit 23.07.2026 unverändert bestehen — **E und
-F starten sich nur gegenseitig per Vorschlag, nie automatisch, und keines von beiden startet
-jemals den `deploy-manager`.**
+F (Klicktest) → Dokumentation → G (Fachdoku) → Erledigt für Deployment → D → Erledigt/live`. Die
+Refiner-Stufe **C ist für Story-Autor-Storys verbindlich** (FAMROOTS-38), nicht optional. **E, F
+und G sind seit 2026-08-04 die neuen, automatisierten Stationen** anstelle der bisherigen
+persönlichen Abnahme durch den Nutzer in „Test" — analog zum Schwesterprojekt StockFlow/
+LedgerFlow (dortige Agenten `review-agent`/`test-agent`/`doku-agent`), inklusive der neuen Spalte
+„Dokumentation" und der Umbenennung „Bereit für Deployment" → „Erledigt für Deployment" (beide
+2026-08-04 am Board nachgezogen). Zwischen „geschrieben" und „wird umgesetzt" liegt weiterhin ein
+menschlicher Freigabeschritt (Refiner → Nutzer entscheidet, ob `jira-dev` startet); zwischen
+„dokumentiert" und „live" bleibt der Kontrollpunkt vor `deploy-manager` seit 23.07.2026
+unverändert bestehen — **E, F und G starten sich nur gegenseitig per Vorschlag, nie automatisch,
+und keines von beiden startet jemals den `deploy-manager`.**
 
 ⚠️ **Geändert am 21.07.2026 (SCRUM-16):** Zuvor legte der Story-Autor direkt in „Zu erledigen" an
 **und startete `jira-dev` automatisch** — ein frisch geschriebenes Ticket konnte dadurch umgesetzt
@@ -469,7 +477,7 @@ Start von `test-agent` vor (startet ihn nicht selbst).
 Transition nach `In Bearbeitung` (`31`), Zeile in
 `.claude/agent-inbox/dev.md`.
 
-## Modus F — „Test-Agent" („Test" ➜ „Bereit für Deployment" oder „In Bearbeitung")
+## Modus F — „Test-Agent" („Test" ➜ „Dokumentation" oder „In Bearbeitung")
 
 Sechster Arbeitsmodus (seit 2026-08-04). Agent-Datei:
 **`.claude/agents/test-agent.md`**. Er nimmt **einen** Vorgang aus „Test",
@@ -486,25 +494,45 @@ an (eigene Fremdfamilie registrieren, fremde Daten-URL aufrufen).
 **JQL:** `project = FAMROOTS AND status = "Test" ORDER BY rank ASC`, Treffer
 mit Label `review-offen` werden übersprungen.
 
-**Bestanden:** Transition nach `Bereit für Deployment` (`3`) — der Vorgang
-liegt dort für den `deploy-manager` bereit, dessen Start bleibt **weiterhin
-ausschließlich manuell**. **Durchgefallen:** Label `test-offen`, Transition
-nach `In Bearbeitung` (`31`), Zeile in `.claude/agent-inbox/dev.md`.
+**Bestanden:** Transition nach `Dokumentation` (`4`) — der Vorgang liegt dort
+für den `doku-agent` bereit (Vorschlag, kein Selbststart). **Durchgefallen:**
+Label `test-offen`, Transition nach `In Bearbeitung` (`31`), Zeile in
+`.claude/agent-inbox/dev.md`.
 
-⚠️ **Kein Loop für E/F** — analog zur Begründung bei Modus D: Ein
-zeitgesteuerter Review/Test würde faktisch denselben menschlichen
+⚠️ **Kein Loop für E/F/G** — analog zur Begründung bei Modus D: Ein
+zeitgesteuerter Review/Test/Doku würde faktisch denselben menschlichen
 Kontrollpunkt entfernen, den die manuelle Vorschlags-Kette (A schlägt E vor,
-E schlägt F vor) bewusst erhält. Beide Modi starten **nur** auf Kommando
-des Nutzers oder als Vorschlag, dem der Nutzer zustimmt — nie automatisch.
+E schlägt F vor, F schlägt G vor) bewusst erhält. Alle drei Modi starten
+**nur** auf Kommando des Nutzers oder als Vorschlag, dem der Nutzer
+zustimmt — nie automatisch.
+
+## Modus G — „Doku-Agent" („Dokumentation" ➜ „Erledigt für Deployment")
+
+Siebter Arbeitsmodus (seit 2026-08-04). Agent-Datei:
+**`.claude/agents/doku-agent.md`**. Er nimmt **einen** Vorgang aus
+„Dokumentation" (auf dem `test-agent` bestanden hat) und schreibt die
+Fachdokumentation in Confluence, Space „FamilyRoots" (ID `589828`), unter
+der Elternseite „App-Dokumentation" (`622594`) — **ausschließlich** dort;
+„Testing"/„Releases" bleiben unverändert beim `deploy-manager`, dessen
+release-übergreifende Regressionsprüfung etwas anderes leistet als eine
+Einzelvorgang-Dokumentation. Ändert **keinen** Code, committet nichts.
+
+**JQL:** `project = FAMROOTS AND status = "Dokumentation" ORDER BY rank ASC`.
+
+**Abschluss:** Transition nach `Erledigt für Deployment` (`3`) — dort holt
+ihn der `deploy-manager` ab (Start bleibt ausschließlich manuell). Fehlt ein
+Nachweis (Review- oder Testergebnis als Jira-Kommentar): Vorgang bleibt in
+`Dokumentation`, Label `frage-offen`.
 
 ---
 
-## Modus D — „Deploy-Manager" („Bereit für Deployment" ➜ live ➜ „Erledigt")
+## Modus D — „Deploy-Manager" („Erledigt für Deployment" ➜ live ➜ „Erledigt")
 
-Vierter Arbeitsmodus (seit 23.07.2026). Agent-Datei: **`.claude/agents/deploy-manager.md`**.
-Er ist der **einzige** Agent, der deployen darf — Modus A endet ausdrücklich in „Test".
+Vierter Arbeitsmodus (seit 23.07.2026, Quellspalte umbenannt 2026-08-04). Agent-Datei:
+**`.claude/agents/deploy-manager.md`**. Er ist der **einzige** Agent, der deployen darf —
+Modus A endet ausdrücklich in „Test", die Modi E/F/G liegen dazwischen.
 
-**JQL:** `project = FAMROOTS AND status = "Bereit für Deployment" ORDER BY rank ASC`
+**JQL:** `project = FAMROOTS AND status = "Erledigt für Deployment" ORDER BY rank ASC`
 
 ### Zuständigkeit
 | | Modus A (`jira-dev`) | Modus D (`deploy-manager`) |
@@ -552,8 +580,8 @@ nicht sehen; er kennt nur sein eigenes Ticket.
   → abbrechen, nichts pushen, kein Statuswechsel, Bericht mit Grund.
 - **Keine SQL-Ausführung, kein Edge-Function-Deploy** durch den Agenten (SQL-Editor bzw.
   Dashboard, Citrix-Firewall) — beides landet als ToDo beim Nutzer und im Release-Eintrag.
-- Er fasst **nur** „Bereit für Deployment" an; „Test" bleibt unberührt, damit die Abnahme des
-  Nutzers ein echter Kontrollpunkt bleibt.
+- Er fasst **nur** „Erledigt für Deployment" an; „Test"/„Dokumentation" bleiben unberührt, damit
+  der Kontrollpunkt vor dem eigentlichen Deploy erhalten bleibt.
 
 ⚠️ **Kein Loop für Modus D** — bewusst. Ein zeitgesteuerter Deploy würde genau den menschlichen
 Kontrollpunkt entfernen, für den die Spalte eingeführt wurde.
