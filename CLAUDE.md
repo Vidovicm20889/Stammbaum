@@ -242,7 +242,7 @@ Vor der Arbeit an einem Feature die passende Datei lesen; neue Features nach obi
 - `docs/externe-libraries-csp.md` — freigegebene Libraries + Verwendungszweck, Noto-Serif-Subset, Leaflet/OSM/Nominatim-CSP & Rate-Limit, Markdown-Sanitizer.
 - `docs/confluence-pflege.md` — Confluence-Spiegelung beim Deployment (nur Deploy-Agent).
 - `docs/workflow-branching-versionierung.md` — Branch pro Änderung, Testmatrix, Freigabe, Versions-Schema mit Überlauf-Beispielen, ausgelagerte Dateien & Cache-Busting.
-- `docs/staging-umgebung.md` — „erst lokal, dann prod": lokaler Supabase-Stack, Aufbau als Prod-Spiegel über den Dump, Seed, Frontend-Umschaltung, geteilte Docker-Kapazität mit StockFlow/LedgerFlow (stoppen statt laufen lassen, Cleanup alter Container). Staging-Cloud = FAMROOTS-37.
+- `docs/staging-umgebung.md` — „erst lokal, dann prod": lokaler Supabase-Stack, Aufbau als Prod-Spiegel über den Dump, Seed, Frontend-Umschaltung, geteilte Docker-Kapazität mit StockFlow/LedgerFlow (stoppen statt laufen lassen, Cleanup alter Container, seit 2026-08-04 automatische app-übergreifende RAM-Bremse vor `node scripts/db_start.mjs`). Staging-Cloud = FAMROOTS-37.
 - `docs/lessons.md` — Fehler-/Lern-Log (Symptom → Ursache → Lösung → Merksatz).
 - `docs/karte.md` — Zeilen-Index von `stammbaum.html` (generiert, nicht von Hand pflegen).
 

@@ -59,12 +59,14 @@ Expand-Archive "$dir\supabase.zip" -DestinationPath $dir -Force
 # 3) Im FamilyRoots-Ordner den lokalen Stack starten (nutzt das laufende Docker):
 cd C:\VidovicAi\FamilyRoots
 supabase --version      # muss die Version zeigen (sonst PATH/neues Fenster prüfen)
-supabase start          # zeigt am Ende API-URL, anon key, DB-URL, Studio-URL
+node scripts/db_start.mjs   # statt `supabase start` direkt — prüft vorher die app-übergreifende RAM-Bremse
 supabase status         # dieselben Werte jederzeit erneut anzeigen
 ```
 
 `supabase start` liest `supabase/config.toml` aus dem Repo. **`supabase init` ist nicht nötig** —
-die `config.toml` liegt bereits vor.
+die `config.toml` liegt bereits vor. **Direktes `supabase start`** funktioniert weiterhin (nichts
+ist gesperrt), **umgeht aber die RAM-Bremse** unten — für den normalen Arbeitsalltag deshalb
+`node scripts/db_start.mjs` verwenden.
 
 ### Ports (Koexistenz mit StockFlow — Pflicht)
 
@@ -93,10 +95,18 @@ getrennten Claude-Code-Sitzungen. Details und der auslösende Vorfall
 (StockFlow, 03.08.2026, ~2 Std. Stillstand durch RAM-Kollaps über alle Apps
 hinweg): [`../../CLAUDE.md`](../../CLAUDE.md).
 
-- **Vor größerem DB-lastigem Arbeiten** (`supabase db reset`, großer
-  Schema-/Seed-Import) kurz `docker ps` **ungefiltert** prüfen – nicht nur
-  `supabase status` im eigenen Ordner. Laufen parallel StockFlow-
-  Story-Instanzen oder LedgerFlow-Container, ist die VM ggf. schon ausgelastet.
+- **Seit 2026-08-04 automatisch statt nur "vorher prüfen":**
+  `node scripts/db_start.mjs` misst vor jedem Start den **tatsächlichen
+  RAM-Verbrauch aller** laufenden Container – app- und namensunabhängig,
+  per `docker stats` – gegen das in `.wslconfig` konfigurierte WSL2-Limit
+  (Sicherheitsgrenze 80 %) und bricht ab, wenn der FamilyRoots-Stack das
+  überschreiten würde. Zählt StockFlow- und LedgerFlow-Container mit, nicht
+  nur `familyroots`-eigene. Details/Begründung (StockFlow, 2026-08-03,
+  ~2 Std. Stillstand): `StockFlow/docs/ENTWICKLUNGSUMGEBUNG.md`, Abschnitt
+  „Wer bekommt eine eigene Datenbank – und wer nicht". Override für einen
+  Einzelfall: `FAMILYROOTS_SKIP_RAM_CHECK=1` vor den Befehl setzen. Ein
+  direktes `supabase start` umgeht die Bremse weiterhin — kurz `docker ps`
+  **ungefiltert** prüfen, falls du es dennoch direkt aufrufst.
 - **Stack stoppen statt dauerhaft laufen lassen, wenn gerade nicht an
   FamilyRoots gearbeitet wird:** `supabase stop` (Daten/Migrationsstand
   bleiben erhalten, `supabase start` bringt ihn in Sekunden zurück). Ein
