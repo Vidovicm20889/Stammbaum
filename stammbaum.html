@@ -10652,7 +10652,7 @@ function aktualisiereBaumInfo() {
 // Autosortierung nutzt wieder den kompakten Blutlinien-Renderer (zeichneGraph2). ALLE Karten
 // (eingeheiratet/lose) bleiben über den TABLA-Modus sichtbar. true = Forest/Netz (nicht empfohlen).
 const VOLL_ALLE_KARTEN = false;
-function vollGraphRender() {
+function vollGraphRender(behalteZoom) {
   if (graphRendererAn()) {
     let w = aktuelleWurzel();
     if (!w || !aktuelleDaten.persons[w]) {
@@ -10665,9 +10665,9 @@ function vollGraphRender() {
       // Blutlinien-Färbung (BLUTLINIE_IDS) bleibt erhalten, begrenzt aber das Anzeigen NICHT mehr.
       // VOLL_ALLE_KARTEN=false -> Backup: frühere gekappte Blutlinien-Vollansicht (nicht gelöscht).
       if (VOLL_ALLE_KARTEN && typeof zeichneGraph === 'function' && typeof netzErlaubtSet === 'function') {
-        zeichneGraph(w, 99, 99, { fokusId: w, erlaubt: netzErlaubtSet(aktuellerStammbaumId) });
+        zeichneGraph(w, 99, 99, { fokusId: w, erlaubt: netzErlaubtSet(aktuellerStammbaumId), behalteZoom });
       } else {
-        zeichneGraph2(w, 99, 0, { fokusId: w, upN: 0, downN: 99, blutScope: aktuellerStammbaumId });
+        zeichneGraph2(w, 99, 0, { fokusId: w, upN: 0, downN: 99, blutScope: aktuellerStammbaumId, behalteZoom });
       }
       return;
     }
@@ -10830,6 +10830,13 @@ function baumAnsichtSync() {
 let boardPos = {};          // person_uuid -> {x,y} (aus board_layout)
 let boardEdit = false;      // Bearbeitungsmodus (Karten ziehen) im Board an/aus
 let boardLeerGemeldet = false;   // „Board leer"-Hinweis nur einmal je Eintritt (s. zeichneBoard)
+// FAMROOTS-51: steuert, ob boardAutoFit beim NÄCHSTEN zeichneBoard()-Redraw den Viewport wirklich
+// zentriert/skaliert (true) oder nur Grenzen/Zoom-Limits aktualisiert und den aktuellen Zoom/Pan
+// unangetastet lässt (false, Default). Wird NUR gesetzt bei Board-Ersteintritt (zeigeBoardAnsicht)
+// und nach „Als Baum ordnen" (boardOrdnen) — dort MUSS neu gefittet werden. Jeder andere Redraw
+// (Realtime-Echo eigener/fremder Verschiebungen, boardEditToggle, Reload nach Anlegen/Verknüpfen/
+// Löschen, Sprachwechsel) lässt boardAutoFit unverändert und konsumiert das Flag NICHT.
+let boardFitAusstehend = false;
 // Minimap-Navigation (SCRUM-11). BEWUSST auf Modulebene, NICHT in boardMinimap(): die Render-
 // Funktion laeuft bei jedem Zoom-/Pan-Frame neu und wuerde einen laufenden Zug sonst zuruecksetzen.
 let boardMinimapDrag = null;       // {pointerId, x0, y0, bewegt} waehrend des Ziehens
@@ -10881,6 +10888,7 @@ async function zeigeBoardAnsicht(behalteZoom) {
   ansichtModus = 'board'; fokusPersonId = null; ansichtFokusId = null;
   boardEdit = false;
   boardLeerGemeldet = false;   // neuer Eintritt -> Leer-Hinweis wieder zulassen
+  boardFitAusstehend = true;   // Ersteintritt -> boardAutoFit zentriert einmalig (FAMROOTS-51 AK3)
   await boardLadeLayout();
   await boardLadeLinien();
   zeichneBoard();
@@ -10926,7 +10934,12 @@ function boardBerechnePositionen() {
   const kanten = new Set();
   if (!w || !aktuelleDaten.persons[w]) return { model, visible, PX, PY, loseDefault, kanten };
   const sammel = new Map();
-  zeichneGraph2(w, 99, 0, { fokusId: w, upN: 0, downN: 99, blutScope: aktuellerStammbaumId, sammlePos: sammel, sammleKanten: kanten });
+  // ohneZoomAnwenden:true — dieser Render ist nur ein SYNCHRONER Zwischenschritt zur Positions-/
+  // Kanten-Ernte (zeichneBoard verwirft baumG sofort wieder, s. u.); er darf den sichtbaren Zoom/Pan
+  // GAR NICHT anfassen (auch kein Klemmen gegen seine eigene, nur intern gültige Bounding-Box) —
+  // sonst würde er den bedingten Fit aus boardAutoFit unterlaufen (FAMROOTS-51/-53: genau das war
+  // vorher der versteckte zweite Fit-Aufruf bei jedem Board-Redraw).
+  zeichneGraph2(w, 99, 0, { fokusId: w, upN: 0, downN: 99, blutScope: aktuellerStammbaumId, sammlePos: sammel, sammleKanten: kanten, ohneZoomAnwenden: true });
   // WICHTIG: hier NICHT auf „hat eine Karte in diesem Baum" filtern. Das Board muss mindestens
   // alles zeigen, was die Autosortierung zeigt (sonst fehlen im Tabla-Modus baumübergreifend
   // verbundene Verwandte, die den Abstammungszusammenhang herstellen).
@@ -12030,6 +12043,7 @@ async function boardOrdnen() {
         redo: async () => { await sbClient.rpc('board_layout_reset', { p_stammbaum: aktuellerStammbaumId }); }
       });
     }
+    boardFitAusstehend = true;   // „Als Baum ordnen" -> boardAutoFit zentriert frisch (FAMROOTS-51 AK4)
     if (ansichtModus === 'board') zeichneBoard();
   } catch (e) { if (typeof zeigeHinweis === 'function') await zeigeHinweis(t('reg_fehler') + ((e && e.message) || e)); }
 }
@@ -12670,7 +12684,15 @@ function boardAutoFit(PX, PY, ausschluss) {
   baumPanGrenze = [[Math.min(tXMin, ...pX) - 170, Math.min(tYMin, ...pY) - 60],
                    [Math.max(tXMax, ...pX) + 170, Math.max(tYMax, ...pY) + 60]];
   fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
-  baumSvg.call(zoom.transform, fitTransform);
+  // FAMROOTS-51: Grenzen/Zoom-Limits (oben) werden bei JEDEM Redraw aktualisiert — das bleibt neu
+  // angelegten/weit verschobenen Karten weiterhin über Pan erreichbar (AK5). Der Viewport wird aber
+  // NUR zentriert/skaliert, wenn boardFitAusstehend gesetzt ist (Board-Ersteintritt/„Als Baum
+  // ordnen"). Jeder andere Redraw (Karten-Drag-Ende + Realtime-Echo, boardEditToggle, Reload nach
+  // Anlegen/Verknüpfen/Löschen, Sprachwechsel) lässt den aktuellen Zoom/Pan unangetastet (AK1/AK2/AK6).
+  if (boardFitAusstehend) {
+    boardFitAusstehend = false;
+    baumSvg.call(zoom.transform, fitTransform);
+  }
 }
 
 function netzErlaubtSet(treeId) {
@@ -12855,7 +12877,7 @@ function zeigeStandardAnsicht(behalteZoom) {
   fokusPersonId = null;
   // upN=2 -> Eltern + Großeltern (beide Seiten); downN=1 -> eigene Kinder. Geschwister zeichnet
   // zeichneGraph2 auf Fokus-Höhe automatisch mit. (positional 1,2 wird ignoriert -> opts zählt)
-  zeichneGraph2(meId, 1, 2, { fokusId: meId, upN: 2, downN: 1 });
+  zeichneGraph2(meId, 1, 2, { fokusId: meId, upN: 2, downN: 1, behalteZoom });
   aktualisiereBaumHinweis();   // Generationen-Hinweis je nach Modus ein-/ausblenden
   return true;
 }
@@ -12880,7 +12902,7 @@ function zeigeErweitertAnsicht(kat, behalteZoom) {
   const k = kat || {};
   const upN = k.urgrosseltern ? 3 : 2;   // bis (Ur-)Großeltern nach oben
   const downN = k.nachkommen ? 2 : 1;    // bis Enkel nach unten
-  zeichneGraph2(meId, downN, upN, { fokusId: meId, upN, downN });
+  zeichneGraph2(meId, downN, upN, { fokusId: meId, upN, downN, behalteZoom });
   aktualisiereBaumHinweis();
   return true;
 }
@@ -12902,7 +12924,7 @@ function zeigeZweigAbPerson(personId, gen, genAuf, behalteZoom) {
   // „Familienzweig ab Person" rendert daher IMMER über die fokus-zentrierte Verwandtschafts-
   // Logik (kanonisch über identitaet_id, alle Bäume) — Vorfahren naviše + Nachkommen naniže
   // + Geschwister der Person.
-  zeichneGraph2(personId, tiefe, tiefeAuf, { fokusId: personId, upN: tiefeAuf, downN: tiefe });
+  zeichneGraph2(personId, tiefe, tiefeAuf, { fokusId: personId, upN: tiefeAuf, downN: tiefe, behalteZoom });
   aktualisiereBaumHinweis();   // Generationen-Hinweis (nur Standardansicht) aus-/einblenden
   return true;
 }
@@ -12918,7 +12940,7 @@ function rendereAktuelleAnsicht() {
     case 'verbund':
       if (ansichtVerbundA && ansichtVerbundB && zeigeVerbundAnsicht(ansichtVerbundA, ansichtVerbundB, true)) return; break;
     case 'board': zeichneBoard(); if (typeof aktualisiereBaumHinweis === 'function') aktualisiereBaumHinweis(); return;
-    case 'voll': vollGraphRender(); aktualisiereBaumHinweis(); return;
+    case 'voll': vollGraphRender(true); aktualisiereBaumHinweis(); return;
   }
   // Fallback: frühere Such-/Fokuslogik
   if (fokusPersonId && aktuelleDaten.persons[fokusPersonId]) zeichneBaum(fokusPersonId, 2, 2);
@@ -22180,7 +22202,7 @@ function zeigeVerbundAnsicht(a, b, behalteZoom) {
   if (!info) return false;
   ansichtModus = 'verbund'; ansichtFokusId = info.mitte; fokusPersonId = null;
   ansichtVerbundA = a; ansichtVerbundB = b;
-  zeichneGraph2(info.mitte, 99, 99, { fokusId: info.mitte, upN: 99, downN: 99, nurBaeume: info.trees, verbindung: info.verbindung, verbundLabel: { a: baumLabel(a), b: baumLabel(b) } });
+  zeichneGraph2(info.mitte, 99, 99, { fokusId: info.mitte, upN: 99, downN: 99, nurBaeume: info.trees, verbindung: info.verbindung, verbundLabel: { a: baumLabel(a), b: baumLabel(b) }, behalteZoom });
   aktualisiereBaumHinweis();
   return true;
 }
@@ -23459,6 +23481,26 @@ let baumSvg, baumG, zoom, fitTransform = null;
 let baumPanGrenze = null;
 const PAN_MIN_SICHTBAR = 90;   // ≈ eine halbe Personenkarte
 
+// Pan-Klemmung (FAMROOTS-51/-53): hält mind. PAN_MIN_SICHTBAR Pixel der Baum-Bounding-Box
+// (baumPanGrenze) im sichtbaren extent. Ausgelagert aus dem d3.zoom-`constrain`-Callback, damit
+// dieselbe Formel auch dort wiederverwendet werden kann, wo ein gesicherter Zoom-Transform
+// (behalteZoom) nach einem Redraw wiederhergestellt wird, dessen Kartenmenge sich geändert haben
+// könnte (zeichneGraph2/zeichneGraph AK6: „nur wenn er außerhalb läge, minimal klemmen").
+function panKlemmen(transform, extent) {
+  const te = baumPanGrenze;
+  if (!te) return transform;
+  const M = PAN_MIN_SICHTBAR;
+  const sx0 = transform.applyX(te[0][0]), sx1 = transform.applyX(te[1][0]);
+  const sy0 = transform.applyY(te[0][1]), sy1 = transform.applyY(te[1][1]);
+  const ex0 = extent[0][0], ey0 = extent[0][1], ex1 = extent[1][0], ey1 = extent[1][1];
+  let dx = 0, dy = 0;
+  if (sx1 < ex0 + M) dx = (ex0 + M) - sx1;        // Baum zu weit links  -> nach rechts
+  else if (sx0 > ex1 - M) dx = (ex1 - M) - sx0;   // Baum zu weit rechts -> nach links
+  if (sy1 < ey0 + M) dy = (ey0 + M) - sy1;        // Baum zu weit oben   -> nach unten
+  else if (sy0 > ey1 - M) dy = (ey1 - M) - sy0;   // Baum zu weit unten  -> nach oben
+  return (dx || dy) ? transform.translate(dx / transform.k, dy / transform.k) : transform;
+}
+
 function initBaum() {
   baumSvg = d3.select('#baum-svg');
   baumG = baumSvg.append('g');
@@ -23475,20 +23517,7 @@ function initBaum() {
     // in Welt-Koordinaten; wir erzwingen, dass davon immer mind. PAN_MIN_SICHTBAR Pixel
     // im Viewport bleiben. Identisch für Desktop & Touch, bei JEDEM Zoom-Level. Greift NUR
     // bei interaktiven Gesten (programmatische Fit-/Zentrier-Transforms bleiben unangetastet).
-    .constrain((transform, extent, translateExtent) => {
-      const te = baumPanGrenze;
-      if (!te) return transform;
-      const M = PAN_MIN_SICHTBAR;
-      const sx0 = transform.applyX(te[0][0]), sx1 = transform.applyX(te[1][0]);
-      const sy0 = transform.applyY(te[0][1]), sy1 = transform.applyY(te[1][1]);
-      const ex0 = extent[0][0], ey0 = extent[0][1], ex1 = extent[1][0], ey1 = extent[1][1];
-      let dx = 0, dy = 0;
-      if (sx1 < ex0 + M) dx = (ex0 + M) - sx1;        // Baum zu weit links  -> nach rechts
-      else if (sx0 > ex1 - M) dx = (ex1 - M) - sx0;   // Baum zu weit rechts -> nach links
-      if (sy1 < ey0 + M) dy = (ey0 + M) - sy1;        // Baum zu weit oben   -> nach unten
-      else if (sy0 > ey1 - M) dy = (ey1 - M) - sy0;   // Baum zu weit unten  -> nach oben
-      return (dx || dy) ? transform.translate(dx / transform.k, dy / transform.k) : transform;
-    })
+    .constrain((transform, extent, translateExtent) => panKlemmen(transform, extent))
     .on('zoom', e => {
       baumG.attr('transform', e.transform);
       if (typeof boardMinimap === 'function' && ansichtModus === 'board') boardMinimap();
@@ -24511,6 +24540,10 @@ function zeichneGraph(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
   baumG.selectAll('*').remove();
   if (!aktuelleDaten.persons[rootPersonId]) return;
 
+  // FAMROOTS-53: gleiche Behandlung wie zeichneGraph2 (Konsistenz für künftige Aufrufer mit
+  // behalteZoom=true); aktuell setzt kein Aufrufer diesen Backup-Renderer mit behalteZoom ein.
+  const alterTransform = (opts.behalteZoom && baumSvg && zoom) ? d3.zoomTransform(baumSvg.node()) : null;
+
   const model = baueGraphModell();
   const fokusExt = opts.fokusId || rootPersonId;
   const fokusCanon = model.canonOf(fokusExt);
@@ -24555,7 +24588,7 @@ function zeichneGraph(rootPersonId, tiefeUnten = 2, tiefeOben = 2, opts = {}) {
   zoom.scaleExtent([skala * 0.9, 4.0]);
   baumPanGrenze = [[tXMin, tYMin], [tXMax, tYMax]];
   fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
-  baumSvg.call(zoom.transform, fitTransform);
+  baumSvg.call(zoom.transform, alterTransform ? panKlemmen(alterTransform, [[0, 0], [breite, hoehe]]) : fitTransform);
   baumG.selectAll('.daten-text').style('display', skala < 0.3 ? 'none' : null);
 
   aktualisiereBaumInfo();
@@ -24681,6 +24714,11 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   aktualisiereKartenGeometrie();   // Kartenhöhe/Reihenabstand aus der aktuellen Feldwahl
   baumG.selectAll('*').remove();
   if (!aktuelleDaten.persons[rootPersonId]) return;
+
+  // FAMROOTS-53: opts.behalteZoom -> aktuellen Zoom/Pan VOR dem Neuzeichnen sichern und am Ende
+  // wiederherstellen statt neu zu fitten (Aufrufer: rendereAktuelleAnsicht nach Edit-Save/
+  // Realtime-Reload; boardBerechnePositionen für den Blutlinien-Zwischenrender im Board).
+  const alterTransform = (opts.behalteZoom && baumSvg && zoom) ? d3.zoomTransform(baumSvg.node()) : null;
 
   const model = baueGraphModell();
 
@@ -25154,7 +25192,15 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
   baumPanGrenze = [[Math.min(...panX) - 170, Math.min(...panY) - 50],
                    [Math.max(...panX) + 170, Math.max(...panY) + 50]];
   fitTransform = d3.zoomIdentity.translate(tx, ty).scale(skala);
-  baumSvg.call(zoom.transform, fitTransform);
+  // FAMROOTS-53: behalteZoom -> gesicherten Transform wiederherstellen statt neu zu fitten (AK1/AK2),
+  // auf die evtl. neue Pan-Grenze geklemmt (AK6); Grenzen/scaleExtent oben bleiben in jedem Fall aktuell.
+  // opts.ohneZoomAnwenden (Board-Zwischenrender, s. boardBerechnePositionen): der sichtbare Zoom/Pan
+  // wird GAR NICHT angefasst — auch kein Klemmen gegen DIESE (nur für die Positions-Ernte gültige,
+  // vom finalen Board-Layout abweichende) Bounding-Box, sonst würde ein von boardAutoFit bewusst
+  // unterdrückter Fit über diesen Umweg doch wieder durchschlagen.
+  if (!opts.ohneZoomAnwenden) {
+    baumSvg.call(zoom.transform, alterTransform ? panKlemmen(alterTransform, [[0, 0], [breite, hoehe]]) : fitTransform);
+  }
   baumG.selectAll('.daten-text').style('display', skala < 0.3 ? 'none' : null);
   aktualisiereBaumInfo();
 }

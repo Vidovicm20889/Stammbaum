@@ -894,3 +894,63 @@ Koordinaten des *zuletzt* aufgesetzten Fingers.
 
 Der Rechtsklick am Desktop (`contextmenu`-Handler) und `boardEigeneGeste` (kein Menü auf Karten/Griffen)
 bleiben unberührt. Verifiziert per Zustandsmaschine (10 Ereignisfolgen inkl. Kern-Leak-Test).
+
+## Zoom/Pan bleibt nach Karten-Move UND Edit-Save erhalten (FAMROOTS-51/-53)
+**Symptom:** Der Viewport sprang nach dem Verschieben einer Board-Karte automatisch auf den
+Gesamt-Fit zurück (FAMROOTS-51) — dasselbe passierte in den Ausschnitts-Ansichten (Standard/
+Erweitert/Zweig) nach jeder gespeicherten Namensänderung (FAMROOTS-53). **Gemeinsame Root Cause:**
+`boardAutoFit()` (Board) und der Fit-Block in `zeichneGraph2()`/`zeichneGraph()` (Ausschnitts-
+Ansichten) riefen `baumSvg.call(zoom.transform, fitTransform)` **bedingungslos** bei jedem Redraw
+auf — der bereits vorhandene `behalteZoom`-Parameter von `zeigeStandardAnsicht`/
+`zeigeErweitertAnsicht`/`zeigeZweigAbPerson`/`zeigeVerbundAnsicht` wurde bis dahin **nirgends
+ausgewertet** (toter Parameter). Beim Board kam der Sprung nicht vom Drag selbst, sondern vom
+**Realtime-Echo** der eigenen Positionsänderung: `postgres_changes` hat — anders als `broadcast` —
+keinen `self:false`-Schutz, die eigene, gerade gespeicherte Position löst also nach der 250-ms-
+Debounce (`boardRtTimer`) einen vollen `zeichneBoard()`-Redraw inkl. Refit aus.
+
+**Fix, zwei Bausteine:**
+1. **Ausschnitts-Ansichten:** `behalteZoom` wird jetzt tatsächlich als `opts.behalteZoom` bis in
+   `zeichneGraph2`/`zeichneGraph` durchgereicht. Dort wird VOR dem Neuzeichnen
+   `d3.zoomTransform(baumSvg.node())` gesichert; im Fit-Block wird bei `behalteZoom` **nicht**
+   `fitTransform`, sondern der gesicherte Transform wiederhergestellt (geklemmt auf eine evtl.
+   neue Pan-Grenze, s. u.) — `zoom.scaleExtent`/`baumPanGrenze` werden **immer** aktualisiert,
+   nur der Viewport-Sprung entfällt. `rendereAktuelleAnsicht()` übergibt `true` weiterhin wie
+   bisher; explizite Aufrufe (Ansicht-Wechsel, „Stammbaum zentrieren") übergeben nach wie vor
+   nichts → fitten wie gehabt.
+2. **Board:** neues Modul-Flag `boardFitAusstehend` (Default `false`). `boardAutoFit()` berechnet
+   `zoom.scaleExtent`/`baumPanGrenze`/`fitTransform` bei **jedem** Redraw (damit neu angelegte/weit
+   verschobene Karten über Pan erreichbar bleiben), wendet den Transform aber **nur** an, wenn das
+   Flag gesetzt ist — danach wird es zurückgesetzt. Gesetzt wird es **ausschließlich** in
+   `zeigeBoardAnsicht()` (Ersteintritt) und in `boardOrdnen()` nach erfolgreichem
+   `board_layout_reset` („Als Baum ordnen"). Alle übrigen `zeichneBoard()`-Aufrufer (Realtime-Echo,
+   `boardEditToggle`, Reload nach Anlegen/Verknüpfen/Löschen, Sprachwechsel) lassen den Zoom/Pan
+   dadurch unangetastet.
+
+**Stolperstein (im Test gefunden, nicht offensichtlich):** `boardBerechnePositionen()` rendert
+intern **synchron** einen Blutlinien-Zwischenschritt über `zeichneGraph2(...)` (nur zur Positions-/
+Kanten-Ernte via `sammlePos`/`sammleKanten`; `zeichneBoard()` verwirft `baumG` danach sofort
+wieder). Dieser Zwischenrender durchläuft **denselben** Fit-Block wie jeder andere
+`zeichneGraph2`-Aufruf — ohne Gegenmaßnahme hätte er den von `boardAutoFit` bewusst unterdrückten
+Fit über einen Seitenkanal doch wieder angewendet (und zusätzlich gegen eine falsche, nur intern
+gültige Bounding-Box geklemmt, sobald `behalteZoom` naiv wiederverwendet worden wäre). Deshalb ein
+eigenes drittes `opts.ohneZoomAnwenden`-Flag (unterscheidet sich bewusst von `behalteZoom`): der
+Zwischenrender lässt den sichtbaren Zoom/Pan **komplett unangetastet**, `zoom.transform` wird dort
+gar nicht aufgerufen. Die alleinige Entscheidung „fitten oder nicht" bleibt damit zentral in
+`boardAutoFit`.
+
+**Geteilte Klemm-Logik:** Die Pan-Klemmung aus dem `d3.zoom`-`constrain`-Callback wurde nach
+`panKlemmen(transform, extent)` ausgelagert (liest weiterhin das Modul-`baumPanGrenze`) und wird
+jetzt auch beim Wiederherstellen eines gesicherten Transforms genutzt — ändert sich die Kartenmenge
+durch die Bearbeitung, bleibt der Ausschnitt erhalten, solange er innerhalb der neuen Pan-Grenze
+liegt, und wird nur bei Bedarf minimal geklemmt statt hart auf den Fit zu springen.
+
+**Nachbesserung (test-agent-Befund, 2. Durchlauf):** Die erste Fassung dieses Fixes hatte
+`case 'voll':` in `rendereAktuelleAnsicht()` bewusst ausgenommen („celo stablo" sei kein Teil der
+beiden Tickets) — das war falsch: „Ganzer Baum" ist die Standardansicht nach Login/Registrierung
+und bleibt für Konten ohne eigene Karte im Baum oft die **einzige** nutzbare Ansicht, AK1/AK2
+gelten dort genauso. `rendereAktuelleAnsicht()`s `case 'voll':` ruft jetzt `vollGraphRender(true)`
+statt `vollGraphRender()`; `vollGraphRender(behalteZoom)` reicht das Flag wie die anderen vier
+Ansichten als `opts.behalteZoom` an `zeichneGraph2`/`zeichneGraph` durch — derselbe Mechanismus,
+keine neue Logik. Alle anderen Aufrufer von `vollGraphRender()` (Ersteintritt, Preset-Wechsel
+„celo", Such-Reset, Zurück-Sprünge) übergeben weiterhin **kein** Flag und fitten unverändert wie
+zuvor (AK4).
