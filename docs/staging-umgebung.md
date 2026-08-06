@@ -11,6 +11,21 @@ Supabase-SQL-Editor"). Ein fehlerhaftes `DROP`/`UPDATE`/eine kaputte RLS-Policy 
 **sofort auf echte Personendaten** durch. Der Workflow prüfte `.sql` nur per „Gegenlesen"
 (`docs/workflow-branching-versionierung.md`), nie durch reale Ausführung.
 
+**Update 2026-08-06 — Prod-Rollout jetzt über den `deploy-manager`, nicht mehr manuell.** Der
+manuelle SQL-Editor-/Dashboard-Schritt war seither begründet mit „CLI durch Citrix-Firewall
+blockiert" — diese Begründung war veraltet (Stand vor der Korrektur „privater Rechner, kein
+Unternehmensrechner" vom 2026-08-03) und live widerlegt: die Supabase-CLI erreicht Prod
+uneingeschränkt. Seit 2026-08-06 rollt **ausschließlich der `deploy-manager`** Migrationen und
+Edge Functions über die Wrapper `node scripts/deploy_db.mjs`/`deploy_functions.mjs` aus — der
+rohe `supabase db push`/`functions deploy`-Befehl ist in `.claude/settings.json` für alle
+Agenten gesperrt (Deny), der Wrapper ist der einzige erlaubte Weg. **Das Sicherheitsprinzip
+dieses Dokuments bleibt unverändert**: „erst lokal verproben" ist weiterhin Pflicht, der Wrapper
+zeigt vor jeder echten Änderung einen Dry-Run, und bei destruktiven Statements
+(`DROP`/`TRUNCATE`/`ALTER … DROP COLUMN`) holt der `deploy-manager` eine zweite, getrennte
+Bestätigung ein (`.claude/agents/deploy-manager.md`). Was sich ändert, ist nur **wer** den
+geprüften Stand nach Prod bringt (Agent statt Copy-Paste durch den User) — nicht **dass** vorher
+geprüft wird.
+
 ## Drei Stufen
 
 | Stufe | Wo | Zweck | Daten | Status |

@@ -15,7 +15,10 @@ Macht dasselbe wie `anfrage-entscheiden`, zusätzlich:
 ## Voraussetzung (DB)
 `supabase_obavjestenja.sql` ausführen (RPC `offene_anfragen()` + Tabelle `anfrage_log`).
 
-## Deploy (Supabase-Dashboard, da CLI durch Citrix blockiert)
+## Deploy
+> Aktueller Weg für Prod: `deploy-manager` über `node scripts/deploy_functions.mjs --name
+> anfrage-bearbeiten --confirm` (seit 2026-08-06 — die frühere Citrix-Begründung unten war
+> veraltet). Die folgenden Dashboard-Schritte bleiben als manueller Fallback gültig.
 1. Edge Functions → **Create a new function** → Name exakt `anfrage-bearbeiten`.
 2. Inhalt von `index.ts` (dieser Ordner) komplett einfügen → **Deploy**.
 3. **Verify JWT: AN lassen** (nur eingeloggte Admins dürfen aufrufen).

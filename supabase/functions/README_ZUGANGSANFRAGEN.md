@@ -21,7 +21,13 @@ also direkt im Dashboard-Editor einfügbar.
 
 ---
 
-## Weg A — Über das Dashboard (Browser) — empfohlen bei Firewall/Citrix
+> **Aktueller Weg für Prod-Deploys (seit 2026-08-06):** `deploy-manager` über
+> `node scripts/deploy_functions.mjs --name <slug> --confirm` — die CLI ist **nicht** mehr durch
+> eine Firewall blockiert (das war eine veraltete Annahme aus der Zeit vor der Korrektur
+> „privater Rechner"). Weg A/B unten bleiben als manueller Fallback bzw. Referenz für
+> Erstanlage/Secrets gültig.
+
+## Weg A — Über das Dashboard (Browser) — Fallback
 
 ### 1. SQL ausführen (SQL Editor)
 - `supabase_registrierung_setup.sql` (Tabelle + Familien-RPC) – erledigt
@@ -60,7 +66,11 @@ Logs im Dashboard unter der jeweiligen Function → **Logs**.
 
 ---
 
-## Weg B — Über die CLI (nur in nicht-gesperrtem Netz)
+## Weg B — Über die CLI
+
+Für neue Einzel-Deploys der `deploy-manager`-Wrapper (s. o.); die rohen `supabase functions
+deploy`/`supabase db push`-Befehle sind in `.claude/settings.json` für alle Agenten gesperrt.
+Für Erstanlage/Secrets (kein laufender Deploy-Vorgang) weiterhin direkt per CLI möglich:
 
 ```bash
 supabase login
@@ -69,8 +79,9 @@ supabase secrets set --env-file supabase/.env
 supabase functions deploy anfrage-senden
 supabase functions deploy anfrage-entscheiden --no-verify-jwt
 ```
-> Scheitert in Firmen-/Citrix-Netzen oft mit `TransportError` (Firewall blockt die CLI).
-> Dann Weg A nutzen oder ein anderes Netz (Handy-Hotspot).
+> Frühere Notiz „scheitert in Firmen-/Citrix-Netzen mit TransportError" war veraltet (Stand vor
+> der Korrektur „privater Rechner, kein Unternehmensrechner" vom 2026-08-03) — live geprüft am
+> 2026-08-06, die CLI erreicht Supabase uneingeschränkt.
 
 ---
 

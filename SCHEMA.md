@@ -27,7 +27,9 @@ chronologischer Reihenfolge. Sie ersetzt das frühere „85 Dateien im Root, nie
 - **Einmal-/Vorfall-Skripte** (Diagnose, person-/konto-spezifische Reparaturen, Restore/Rollback)
   liegen unter [`sql_archiv/`](sql_archiv/) und gehören **NICHT** zum Neuaufbau.
 - **Edge Functions** (kein SQL) liegen unter [`supabase/functions/`](supabase/functions/) und
-  werden über das Supabase-Dashboard deployt (CLI durch Citrix-Firewall blockiert).
+  werden seit 2026-08-06 vom `deploy-manager` über `node scripts/deploy_functions.mjs` gegen Prod
+  ausgerollt (frühere Begründung „CLI durch Citrix-Firewall blockiert" war veraltet, siehe
+  `docs/staging-umgebung.md`). Das Dashboard bleibt Fallback für manuelle Einzelfälle.
 
 ---
 

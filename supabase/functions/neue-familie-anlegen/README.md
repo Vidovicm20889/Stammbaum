@@ -12,7 +12,10 @@ Wird vom Registrier-Overlay aufgerufen, wenn der Nutzer bei
 5. Legt die `mitgliedschaften`-Zeile als `familien_admin` (aktiv) an.
 6. Verschickt die Einladungs-Mail zum Passwort-Setzen (Resend, 5-sprachig).
 
-## Deployen (Dashboard, da CLI durch Citrix-Firewall blockiert)
+## Deployen
+> Aktueller Weg für Prod: `deploy-manager` über `node scripts/deploy_functions.mjs --name
+> neue-familie-anlegen --confirm` (seit 2026-08-06 — die frühere Citrix-Begründung unten war
+> veraltet). Die folgenden Dashboard-Schritte bleiben als manueller Fallback gültig.
 1. Supabase Dashboard → **Edge Functions** → **Create a new function** → Name exakt
    `neue-familie-anlegen`.
 2. Inhalt von `index.ts` komplett einfügen → **Deploy**.

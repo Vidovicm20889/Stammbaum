@@ -172,12 +172,18 @@ Vor jeder UI-Änderung `docs/ui-bausteine.md` lesen. Die harten Invarianten:
   sonst liefert GitHub Pages veraltete Sub-Ressourcen aus und Nutzer sehen kein Update-Banner.
 - **DB-Änderungen**: als idempotente `.sql`-Datei im Repo. **Erst lokal, dann prod:** neue
   Migration zuerst gegen die lokale DB verproben (`supabase db reset` →
-  `node scripts/lokal_db_aufbau.mjs` → neue `.sql`), erst danach im Prod-SQL-Editor ausführen
-  (`docs/staging-umgebung.md`). Frischer DB-Aufbau **nicht** über die Alt-`.sql` replayen, sondern
+  `node scripts/lokal_db_aufbau.mjs` → neue `.sql`). Gegen Prod rollt **ausschließlich der
+  `deploy-manager`** aus, über den Wrapper `node scripts/deploy_db.mjs` (Dry-Run-Vorschau, danach
+  `--confirm`) — nie manuell im SQL-Editor und nie durch andere Agenten/Sitzungen, siehe
+  `docs/staging-umgebung.md`. Frischer DB-Aufbau **nicht** über die Alt-`.sql` replayen, sondern
   über `supabase_prod_schema.sql`. Im Wurzelverzeichnis liegen nur der Dump und `.sql`, die **noch
   nicht in Prod** sind; bereits eingespielte Migrationen stehen unter `sql_archiv/` (Historie, Index
   in `SCHEMA.md`) — dort auch die Einmal-/Vorfall-Skripte.
-- **Edge Functions** über das Supabase-Dashboard deployen (CLI durch Citrix-Firewall blockiert).
+- **Edge Functions** rollt ebenfalls **ausschließlich der `deploy-manager`** über den Wrapper
+  `node scripts/deploy_functions.mjs` gegen Prod aus (seit 2026-08-06; die frühere Begründung
+  „CLI durch Citrix-Firewall blockiert" war veraltet — live geprüft, kein Blocker mehr). Der rohe
+  `supabase db push`/`supabase functions deploy`-Befehl ist in `.claude/settings.json` für alle
+  Agenten gesperrt; das Supabase-Dashboard bleibt Fallback für manuelle Einzelfälle.
 - **Code-Review + Code-Test VOR JEDEM Deployment (Pflicht):** erst Diff-Review (Korrektheit,
   Seiteneffekte, alle Regeln: i18n × 5, RLS/Rechte, referenzielle Integrität, Mobile/Touch,
   Realtime), dann echter Test (`node i18n_lint.js`, `node --check`, Flows durchspielen, `.sql` auf
@@ -225,12 +231,15 @@ Analyse-/Auskunftsantworten):
 7. Selbsteinschätzung: ✅ alles ok / ⚠️ Kompromiss nötig / ❌ Problem gefunden.
 8. Logisch nächsten Schritt vorschlagen.
 9. **ToDo-Liste „Was DU noch erledigen musst"** als eigener Abschnitt am Ende — alles, was ich
-   nicht selbst ausführen kann oder darf, nie nur im Fließtext: **SQL im Supabase-Editor**
-   (mit Reihenfolge + Idempotenz-Hinweis), **Edge Functions übers Dashboard**, **Commit/Merge/Push
+   nicht selbst ausführen kann oder darf, nie nur im Fließtext: **Commit/Merge/Push
    + Version-Bump** (`app-version` **und** alle `?v=`), **Defender-kritische Befehle** in exakt
    ausführbarer Form, **🔬-Punkte**, sonstige manuelle Schritte (Storage-Buckets/Policies,
-   Confluence/Jira, Secrets/`.env`, Rollen, Resend). **Jeder Punkt verlinkt die betroffene(n)
-   Datei(en)** als relativen Pfad (`[datei.sql](datei.sql)`, ggf. mit Zeile `[datei.js:42](datei.js#L42)`).
+   Confluence/Jira, Secrets/`.env`, Rollen, Resend). **SQL-Migrationen und Edge Functions rollt
+   seit 2026-08-06 der `deploy-manager` selbst gegen Prod aus** (`node scripts/deploy_db.mjs`/
+   `deploy_functions.mjs`, siehe „Deploy & Versionierung") — kommen nur dann noch in diese Liste,
+   wenn der Wrapper mangels Secret (z. B. `SUPABASE_DB_PASSWORD`) tatsächlich fehlschlägt.
+   **Jeder Punkt verlinkt die betroffene(n) Datei(en)** als relativen Pfad
+   (`[datei.sql](datei.sql)`, ggf. mit Zeile `[datei.js:42](datei.js#L42)`).
    Ist nichts offen: ausdrücklich „Keine offenen ToDos für dich" schreiben.
 
 ## Feature-Dokumentation (Details unter docs/)
