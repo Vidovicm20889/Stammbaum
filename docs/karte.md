@@ -14,30 +14,30 @@
 
 ## Teil 1 — Abschnitte
 
-### stammbaum.html — 25.257 Zeilen
+### stammbaum.html — 25.374 Zeilen
 
 | Zeilen | Abschnitt | Funktionen |
 |---|---|---|
-| 2876–3703 | SUPABASE AUTH | 49 |
-| 3704–4631 | MITGLIEDER-VERWALTUNG (Admins) | 55 |
-| 4632–6120 | PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort | 99 |
-| 6121–8161 | DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten | 132 |
-| 8162–8166 | FAMILIENDATEN — eingebettet aus deiner GEDCOM-Datei | 0 |
-| 8167–8217 | EVENTS — lokalisierte Event-Karten für Familienmomente | 0 |
-| 8218–8234 | ÜBERSETZUNGEN — hier kannst du Texte ändern oder hinzufügen | 1 |
-| 8235–8252 | SPRACHEN + FLAGGEN (Inline-SVG, plattformübergreifend sichtbar) | 0 |
-| 8253–9138 | SPRACH-SYSTEM | 56 |
-| 9139–9180 | SPRACH-DROPDOWN (Flaggen-Menü) | 2 |
-| 9181–11996 | INITIALISIERUNG | 177 |
-| 11997–13252 | BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen" | 82 |
-| 13253–17085 | KARTEN-ANSICHT | 238 |
-| 17086–17983 | DETAIL-FENSTER | 57 |
-| 17984–21193 | PERSON BEARBEITEN (nur Admins) | 262 |
-| 21194–21243 | PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD | 3 |
-| 21244–23312 | ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie) | 129 |
-| 23313–23435 | ANSICHT-WECHSEL | 7 |
-| 23436–25152 | STAMMBAUM (d3.js) | 72 |
-| 25153–25257 | GEDCOM-UPLOAD | 2 |
+| 2878–3705 | SUPABASE AUTH | 49 |
+| 3706–4633 | MITGLIEDER-VERWALTUNG (Admins) | 55 |
+| 4634–6122 | PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort | 99 |
+| 6123–8163 | DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten | 132 |
+| 8164–8168 | FAMILIENDATEN — eingebettet aus deiner GEDCOM-Datei | 0 |
+| 8169–8219 | EVENTS — lokalisierte Event-Karten für Familienmomente | 0 |
+| 8220–8236 | ÜBERSETZUNGEN — hier kannst du Texte ändern oder hinzufügen | 1 |
+| 8237–8254 | SPRACHEN + FLAGGEN (Inline-SVG, plattformübergreifend sichtbar) | 0 |
+| 8255–9140 | SPRACH-SYSTEM | 56 |
+| 9141–9182 | SPRACH-DROPDOWN (Flaggen-Menü) | 2 |
+| 9183–12016 | INITIALISIERUNG | 177 |
+| 12017–13281 | BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen" | 82 |
+| 13282–17114 | KARTEN-ANSICHT | 238 |
+| 17115–18012 | DETAIL-FENSTER | 57 |
+| 18013–21231 | PERSON BEARBEITEN (nur Admins) | 262 |
+| 21232–21281 | PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD | 3 |
+| 21282–23351 | ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie) | 129 |
+| 23352–23474 | ANSICHT-WECHSEL | 7 |
+| 23475–25269 | STAMMBAUM (d3.js) | 73 |
+| 25270–25374 | GEDCOM-UPLOAD | 2 |
 
 ### pdf_export.js — 926 Zeilen
 
@@ -53,301 +53,301 @@
 
 ---
 
-## Teil 2 — Funktions-Index (alphabetisch, 1514 Eintraege)
+## Teil 2 — Funktions-Index (alphabetisch, 1515 Eintraege)
 
 Per `Grep` auf den Namen abfragen — jede Zeile ist eigenstaendig.
 
-- `_anDatum` — stammbaum.html:3387 — SUPABASE AUTH
-- `_anH3` — stammbaum.html:3252 — SUPABASE AUTH
-- `_anKpi` — stammbaum.html:3245 — SUPABASE AUTH
-- `_ansAlleNachkommen` — stammbaum.html:12760 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_ansEltern` — stammbaum.html:12699 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_ansGeschwister` — stammbaum.html:12735 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_ansichtAusPref` — stammbaum.html:13152 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_ansKinder` — stammbaum.html:12711 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_ansPartner` — stammbaum.html:12722 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_ansPrefKey` — stammbaum.html:13102 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_ansTwins` — stammbaum.html:12694 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_bezElternExt` — stammbaum.html:22899 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `_bezElternListe` — stammbaum.html:22926 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `_bezFehler` — stammbaum.html:22997 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `_bezSibling` — stammbaum.html:22920 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `_bezTwinExt` — stammbaum.html:22888 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `_bezVorfahre` — stammbaum.html:22910 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `_guteLL` — stammbaum.html:14541 — KARTEN-ANSICHT
-- `_landNachCode` — stammbaum.html:8427 — SPRACH-SYSTEM
-- `_lpEnd` — stammbaum.html:23527 — STAMMBAUM (d3.js)
-- `_lpStop` — stammbaum.html:23510 — STAMMBAUM (d3.js)
-- `_orientKey` — stammbaum.html:13113 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_partnerArtZwischen` — stammbaum.html:17276 — DETAIL-FENSTER
-- `_renderWurzelImSet` — stammbaum.html:12823 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `_sameIdent` — stammbaum.html:22893 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `_vwAhneTerm` — stammbaum.html:17302 — DETAIL-FENSTER
-- `_vwKanon` — stammbaum.html:17263 — DETAIL-FENSTER
-- `_vwNachkommeTerm` — stammbaum.html:17307 — DETAIL-FENSTER
-- `_vwNichteTerm` — stammbaum.html:17316 — DETAIL-FENSTER
-- `_vwOnkelTerm` — stammbaum.html:17312 — DETAIL-FENSTER
-- `_vwSex` — stammbaum.html:17264 — DETAIL-FENSTER
-- `_vwVorfahren` — stammbaum.html:17288 — DETAIL-FENSTER
-- `_zeile` — stammbaum.html:5475 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `a11yModalBeobachten` — stammbaum.html:2993 — SUPABASE AUTH
-- `abmelden` — stammbaum.html:7770 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `abmeldenAusMenu` — stammbaum.html:3699 — SUPABASE AUTH
-- `abwAutoBaum` — stammbaum.html:22672 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwBefuelleBez` — stammbaum.html:22747 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwNeuerBaum` — stammbaum.html:22768 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwOhne` — stammbaum.html:22809 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwSameNameFlow` — stammbaum.html:22685 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwSpracheUpdate` — stammbaum.html:22755 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwVerknuepfen` — stammbaum.html:22800 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwVerknuepfenStart` — stammbaum.html:22794 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `abwWahlDialog` — stammbaum.html:22713 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `add` — stammbaum.html:5426 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `add` — stammbaum.html:12774 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `add` — stammbaum.html:13970 — KARTEN-ANSICHT
-- `addBtn` — stammbaum.html:17485 — DETAIL-FENSTER
-- `adrGeoAusfuehren` — stammbaum.html:14879 — KARTEN-ANSICHT
-- `adrGeoInput` — stammbaum.html:14875 — KARTEN-ANSICHT
-- `adrGeoWahl` — stammbaum.html:14898 — KARTEN-ANSICHT
-- `aendereRolle` — stammbaum.html:4000 — MITGLIEDER-VERWALTUNG (Admins)
-- `ahnenBaeume` — stammbaum.html:22146 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `aktiveKartenfelder` — stammbaum.html:9483 — INITIALISIERUNG
-- `aktualisiereAnlaesse` — stammbaum.html:15607 — KARTEN-ANSICHT
-- `aktualisiereAuthUI` — stammbaum.html:3502 — SUPABASE AUTH
-- `aktualisiereAvatarObavBadge` — stammbaum.html:15394 — KARTEN-ANSICHT
-- `aktualisiereBadgeProfil` — stammbaum.html:4731 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `aktualisiereBaumHintergrund` — stammbaum.html:10186 — INITIALISIERUNG
-- `aktualisiereBaumHinweis` — stammbaum.html:9087 — SPRACH-SYSTEM
-- `aktualisiereBaumInfo` — stammbaum.html:10614 — INITIALISIERUNG
-- `aktualisiereBenachrBadge` — stammbaum.html:15406 — KARTEN-ANSICHT
-- `aktualisiereDatumsfelder` — stammbaum.html:9883 — INITIALISIERUNG
-- `aktualisiereDokuLinie` — stammbaum.html:9122 — SPRACH-SYSTEM
-- `aktualisiereErinnAnzeige` — stammbaum.html:15709 — KARTEN-ANSICHT
-- `aktualisiereInhaltSichtbarkeit` — stammbaum.html:3609 — SUPABASE AUTH
-- `aktualisiereKartenGeometrie` — stammbaum.html:9494 — INITIALISIERUNG
-- `aktualisiereKopf` — stammbaum.html:10214 — INITIALISIERUNG
-- `aktualisiereKopfLogo` — stammbaum.html:10164 — INITIALISIERUNG
-- `aktualisiereProfilLeise` — stammbaum.html:4709 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `aktualisiereRegMatchUI` — stammbaum.html:7930 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `aktualisiereRegSubmitButton` — stammbaum.html:7955 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `aktualisiereRegWahl` — stammbaum.html:7946 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `aktualisiereStandardBaumBtn` — stammbaum.html:8922 — SPRACH-SYSTEM
-- `aktualisiereStats` — stammbaum.html:10117 — INITIALISIERUNG
-- `aktualisiereSucheZustand` — stammbaum.html:10276 — INITIALISIERUNG
-- `aktualisiereSyncBannerSprache` — stammbaum.html:5952 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `aktuelleWurzel` — stammbaum.html:8644 — SPRACH-SYSTEM
-- `albenRender` — stammbaum.html:13702 — KARTEN-ANSICHT
-- `albenSigniereEins` — stammbaum.html:13683 — KARTEN-ANSICHT
-- `albenZurueck` — stammbaum.html:13774 — KARTEN-ANSICHT
-- `albumBucketVon` — stammbaum.html:16143 — KARTEN-ANSICHT
-- `albumDateiGewaehlt` — stammbaum.html:16227 — KARTEN-ANSICHT
-- `albumDownload` — stammbaum.html:16320 — KARTEN-ANSICHT
-- `albumErstellen` — stammbaum.html:13752 — KARTEN-ANSICHT
-- `albumFuelleKartenSlot` — stammbaum.html:16389 — KARTEN-ANSICHT
-- `albumLbMediaNav` — stammbaum.html:13903 — KARTEN-ANSICHT
-- `albumLbMediaRender` — stammbaum.html:13887 — KARTEN-ANSICHT
-- `albumLbNav` — stammbaum.html:16309 — KARTEN-ANSICHT
-- `albumLbRender` — stammbaum.html:16276 — KARTEN-ANSICHT
-- `albumLightbox` — stammbaum.html:13874 — KARTEN-ANSICHT
-- `albumLightboxZu` — stammbaum.html:13908 — KARTEN-ANSICHT
-- `albumLoeschen` — stammbaum.html:16330 — KARTEN-ANSICHT
-- `albumLoeschenAktuell` — stammbaum.html:13854 — KARTEN-ANSICHT
-- `albumMedienLaden` — stammbaum.html:13782 — KARTEN-ANSICHT
-- `albumMedienRender` — stammbaum.html:13793 — KARTEN-ANSICHT
-- `albumMediumId` — stammbaum.html:13679 — KARTEN-ANSICHT
-- `albumMediumLoeschen` — stammbaum.html:13843 — KARTEN-ANSICHT
-- `albumNeuBestaetigen` — stammbaum.html:13738 — KARTEN-ANSICHT
-- `albumNeuDialog` — stammbaum.html:13722 — KARTEN-ANSICHT
-- `albumOeffneLightbox` — stammbaum.html:16270 — KARTEN-ANSICHT
-- `albumOeffnen` — stammbaum.html:13761 — KARTEN-ANSICHT
-- `albumRender` — stammbaum.html:16198 — KARTEN-ANSICHT
-- `albumSigniere` — stammbaum.html:16146 — KARTEN-ANSICHT
-- `albumSlidePlan` — stammbaum.html:13926 — KARTEN-ANSICHT
-- `albumSlideshowStart` — stammbaum.html:13915 — KARTEN-ANSICHT
-- `albumSlideshowStop` — stammbaum.html:13921 — KARTEN-ANSICHT
-- `albumSlideshowToggle` — stammbaum.html:13914 — KARTEN-ANSICHT
-- `albumSpracheUpdate` — stammbaum.html:16403 — KARTEN-ANSICHT
-- `albumTyp` — stammbaum.html:16132 — KARTEN-ANSICHT
-- `albumUebernehmeAltmedien` — stammbaum.html:16160 — KARTEN-ANSICHT
-- `albumUpload` — stammbaum.html:13815 — KARTEN-ANSICHT
-- `analytikAktivBalken` — stammbaum.html:3341 — SUPABASE AUTH
-- `analytikDauBlock` — stammbaum.html:3278 — SUPABASE AUTH
-- `analytikLineSvg` — stammbaum.html:3311 — SUPABASE AUTH
-- `analytikNutzerCsv` — stammbaum.html:3436 — SUPABASE AUTH
-- `analytikNutzerListe` — stammbaum.html:3370 — SUPABASE AUTH
-- `analytikNutzerSetFilter` — stammbaum.html:3386 — SUPABASE AUTH
-- `analytikRangeBtns` — stammbaum.html:3283 — SUPABASE AUTH
-- `analytikSetTage` — stammbaum.html:3295 — SUPABASE AUTH
-- `analytikTopHtml` — stammbaum.html:3353 — SUPABASE AUTH
-- `ancNode` — stammbaum.html:24763 — STAMMBAUM (d3.js)
-- `anfrageEntscheiden` — stammbaum.html:6234 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `anlaesseOeffne` — stammbaum.html:15747 — KARTEN-ANSICHT
-- `anlItemHtml` — stammbaum.html:15581 — KARTEN-ANSICHT
-- `anlWannText` — stammbaum.html:15574 — KARTEN-ANSICHT
-- `anmelden` — stammbaum.html:7750 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `ansichtAnwenden` — stammbaum.html:13183 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ansichtErwOeffnen` — stammbaum.html:12960 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ansichtErwToggle` — stammbaum.html:12968 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ansichtModalSprachUpdate` — stammbaum.html:13245 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ansichtModusWahl` — stammbaum.html:13051 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ansichtPersonLabel` — stammbaum.html:12950 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ansichtPickSuche` — stammbaum.html:13063 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ansichtPickWaehle` — stammbaum.html:13086 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `anwenden` — stammbaum.html:10196 — INITIALISIERUNG
-- `auf` — stammbaum.html:16656 — KARTEN-ANSICHT
-- `aufnDateiGewaehlt` — stammbaum.html:20833 — PERSON BEARBEITEN (nur Admins)
-- `aufnDauerLabel` — stammbaum.html:20657 — PERSON BEARBEITEN (nur Admins)
-- `aufnDetailRender` — stammbaum.html:20926 — PERSON BEARBEITEN (nur Admins)
-- `aufnEditOeffnen` — stammbaum.html:20738 — PERSON BEARBEITEN (nur Admins)
-- `aufnEditRender` — stammbaum.html:20759 — PERSON BEARBEITEN (nur Admins)
-- `aufnExt` — stammbaum.html:20662 — PERSON BEARBEITEN (nur Admins)
-- `aufnFehler` — stammbaum.html:20671 — PERSON BEARBEITEN (nur Admins)
-- `aufnItemHtml` — stammbaum.html:20716 — PERSON BEARBEITEN (nur Admins)
-- `aufnLoescheFuerPersonen` — stammbaum.html:20942 — PERSON BEARBEITEN (nur Admins)
-- `aufnLoeschen` — stammbaum.html:20914 — PERSON BEARBEITEN (nur Admins)
-- `aufnMedienDauer` — stammbaum.html:20676 — PERSON BEARBEITEN (nur Admins)
-- `aufnPendingSetzen` — stammbaum.html:20848 — PERSON BEARBEITEN (nur Admins)
-- `aufnRecGestoppt` — stammbaum.html:20818 — PERSON BEARBEITEN (nur Admins)
-- `aufnRecMoeglich` — stammbaum.html:20653 — PERSON BEARBEITEN (nur Admins)
-- `aufnRecToggle` — stammbaum.html:20787 — PERSON BEARBEITEN (nur Admins)
-- `aufnSetModus` — stammbaum.html:20768 — PERSON BEARBEITEN (nur Admins)
-- `aufnSignedUrl` — stammbaum.html:20689 — PERSON BEARBEITEN (nur Admins)
-- `aufnSpeichern` — stammbaum.html:20860 — PERSON BEARBEITEN (nur Admins)
-- `aufnSpracheUpdate` — stammbaum.html:20952 — PERSON BEARBEITEN (nur Admins)
-- `aufnStreamStop` — stammbaum.html:20812 — PERSON BEARBEITEN (nur Admins)
-- `aufnTimerLauf` — stammbaum.html:20776 — PERSON BEARBEITEN (nur Admins)
-- `aufnTypIcon` — stammbaum.html:20656 — PERSON BEARBEITEN (nur Admins)
-- `aufnVerwerfen` — stammbaum.html:20906 — PERSON BEARBEITEN (nur Admins)
-- `aufnVerwerfenNurMedia` — stammbaum.html:20894 — PERSON BEARBEITEN (nur Admins)
+- `_anDatum` — stammbaum.html:3389 — SUPABASE AUTH
+- `_anH3` — stammbaum.html:3254 — SUPABASE AUTH
+- `_anKpi` — stammbaum.html:3247 — SUPABASE AUTH
+- `_ansAlleNachkommen` — stammbaum.html:12789 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_ansEltern` — stammbaum.html:12728 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_ansGeschwister` — stammbaum.html:12764 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_ansichtAusPref` — stammbaum.html:13181 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_ansKinder` — stammbaum.html:12740 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_ansPartner` — stammbaum.html:12751 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_ansPrefKey` — stammbaum.html:13131 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_ansTwins` — stammbaum.html:12723 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_bezElternExt` — stammbaum.html:22938 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `_bezElternListe` — stammbaum.html:22965 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `_bezFehler` — stammbaum.html:23036 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `_bezSibling` — stammbaum.html:22959 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `_bezTwinExt` — stammbaum.html:22927 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `_bezVorfahre` — stammbaum.html:22949 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `_guteLL` — stammbaum.html:14570 — KARTEN-ANSICHT
+- `_landNachCode` — stammbaum.html:8429 — SPRACH-SYSTEM
+- `_lpEnd` — stammbaum.html:23573 — STAMMBAUM (d3.js)
+- `_lpStop` — stammbaum.html:23556 — STAMMBAUM (d3.js)
+- `_orientKey` — stammbaum.html:13142 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_partnerArtZwischen` — stammbaum.html:17305 — DETAIL-FENSTER
+- `_renderWurzelImSet` — stammbaum.html:12852 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `_sameIdent` — stammbaum.html:22932 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `_vwAhneTerm` — stammbaum.html:17331 — DETAIL-FENSTER
+- `_vwKanon` — stammbaum.html:17292 — DETAIL-FENSTER
+- `_vwNachkommeTerm` — stammbaum.html:17336 — DETAIL-FENSTER
+- `_vwNichteTerm` — stammbaum.html:17345 — DETAIL-FENSTER
+- `_vwOnkelTerm` — stammbaum.html:17341 — DETAIL-FENSTER
+- `_vwSex` — stammbaum.html:17293 — DETAIL-FENSTER
+- `_vwVorfahren` — stammbaum.html:17317 — DETAIL-FENSTER
+- `_zeile` — stammbaum.html:5477 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `a11yModalBeobachten` — stammbaum.html:2995 — SUPABASE AUTH
+- `abmelden` — stammbaum.html:7772 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `abmeldenAusMenu` — stammbaum.html:3701 — SUPABASE AUTH
+- `abwAutoBaum` — stammbaum.html:22711 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwBefuelleBez` — stammbaum.html:22786 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwNeuerBaum` — stammbaum.html:22807 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwOhne` — stammbaum.html:22848 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwSameNameFlow` — stammbaum.html:22724 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwSpracheUpdate` — stammbaum.html:22794 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwVerknuepfen` — stammbaum.html:22839 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwVerknuepfenStart` — stammbaum.html:22833 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `abwWahlDialog` — stammbaum.html:22752 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `add` — stammbaum.html:5428 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `add` — stammbaum.html:12803 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `add` — stammbaum.html:13999 — KARTEN-ANSICHT
+- `addBtn` — stammbaum.html:17514 — DETAIL-FENSTER
+- `adrGeoAusfuehren` — stammbaum.html:14908 — KARTEN-ANSICHT
+- `adrGeoInput` — stammbaum.html:14904 — KARTEN-ANSICHT
+- `adrGeoWahl` — stammbaum.html:14927 — KARTEN-ANSICHT
+- `aendereRolle` — stammbaum.html:4002 — MITGLIEDER-VERWALTUNG (Admins)
+- `ahnenBaeume` — stammbaum.html:22185 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `aktiveKartenfelder` — stammbaum.html:9485 — INITIALISIERUNG
+- `aktualisiereAnlaesse` — stammbaum.html:15636 — KARTEN-ANSICHT
+- `aktualisiereAuthUI` — stammbaum.html:3504 — SUPABASE AUTH
+- `aktualisiereAvatarObavBadge` — stammbaum.html:15423 — KARTEN-ANSICHT
+- `aktualisiereBadgeProfil` — stammbaum.html:4733 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `aktualisiereBaumHintergrund` — stammbaum.html:10188 — INITIALISIERUNG
+- `aktualisiereBaumHinweis` — stammbaum.html:9089 — SPRACH-SYSTEM
+- `aktualisiereBaumInfo` — stammbaum.html:10616 — INITIALISIERUNG
+- `aktualisiereBenachrBadge` — stammbaum.html:15435 — KARTEN-ANSICHT
+- `aktualisiereDatumsfelder` — stammbaum.html:9885 — INITIALISIERUNG
+- `aktualisiereDokuLinie` — stammbaum.html:9124 — SPRACH-SYSTEM
+- `aktualisiereErinnAnzeige` — stammbaum.html:15738 — KARTEN-ANSICHT
+- `aktualisiereInhaltSichtbarkeit` — stammbaum.html:3611 — SUPABASE AUTH
+- `aktualisiereKartenGeometrie` — stammbaum.html:9496 — INITIALISIERUNG
+- `aktualisiereKopf` — stammbaum.html:10216 — INITIALISIERUNG
+- `aktualisiereKopfLogo` — stammbaum.html:10166 — INITIALISIERUNG
+- `aktualisiereProfilLeise` — stammbaum.html:4711 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `aktualisiereRegMatchUI` — stammbaum.html:7932 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `aktualisiereRegSubmitButton` — stammbaum.html:7957 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `aktualisiereRegWahl` — stammbaum.html:7948 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `aktualisiereStandardBaumBtn` — stammbaum.html:8924 — SPRACH-SYSTEM
+- `aktualisiereStats` — stammbaum.html:10119 — INITIALISIERUNG
+- `aktualisiereSucheZustand` — stammbaum.html:10278 — INITIALISIERUNG
+- `aktualisiereSyncBannerSprache` — stammbaum.html:5954 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `aktuelleWurzel` — stammbaum.html:8646 — SPRACH-SYSTEM
+- `albenRender` — stammbaum.html:13731 — KARTEN-ANSICHT
+- `albenSigniereEins` — stammbaum.html:13712 — KARTEN-ANSICHT
+- `albenZurueck` — stammbaum.html:13803 — KARTEN-ANSICHT
+- `albumBucketVon` — stammbaum.html:16172 — KARTEN-ANSICHT
+- `albumDateiGewaehlt` — stammbaum.html:16256 — KARTEN-ANSICHT
+- `albumDownload` — stammbaum.html:16349 — KARTEN-ANSICHT
+- `albumErstellen` — stammbaum.html:13781 — KARTEN-ANSICHT
+- `albumFuelleKartenSlot` — stammbaum.html:16418 — KARTEN-ANSICHT
+- `albumLbMediaNav` — stammbaum.html:13932 — KARTEN-ANSICHT
+- `albumLbMediaRender` — stammbaum.html:13916 — KARTEN-ANSICHT
+- `albumLbNav` — stammbaum.html:16338 — KARTEN-ANSICHT
+- `albumLbRender` — stammbaum.html:16305 — KARTEN-ANSICHT
+- `albumLightbox` — stammbaum.html:13903 — KARTEN-ANSICHT
+- `albumLightboxZu` — stammbaum.html:13937 — KARTEN-ANSICHT
+- `albumLoeschen` — stammbaum.html:16359 — KARTEN-ANSICHT
+- `albumLoeschenAktuell` — stammbaum.html:13883 — KARTEN-ANSICHT
+- `albumMedienLaden` — stammbaum.html:13811 — KARTEN-ANSICHT
+- `albumMedienRender` — stammbaum.html:13822 — KARTEN-ANSICHT
+- `albumMediumId` — stammbaum.html:13708 — KARTEN-ANSICHT
+- `albumMediumLoeschen` — stammbaum.html:13872 — KARTEN-ANSICHT
+- `albumNeuBestaetigen` — stammbaum.html:13767 — KARTEN-ANSICHT
+- `albumNeuDialog` — stammbaum.html:13751 — KARTEN-ANSICHT
+- `albumOeffneLightbox` — stammbaum.html:16299 — KARTEN-ANSICHT
+- `albumOeffnen` — stammbaum.html:13790 — KARTEN-ANSICHT
+- `albumRender` — stammbaum.html:16227 — KARTEN-ANSICHT
+- `albumSigniere` — stammbaum.html:16175 — KARTEN-ANSICHT
+- `albumSlidePlan` — stammbaum.html:13955 — KARTEN-ANSICHT
+- `albumSlideshowStart` — stammbaum.html:13944 — KARTEN-ANSICHT
+- `albumSlideshowStop` — stammbaum.html:13950 — KARTEN-ANSICHT
+- `albumSlideshowToggle` — stammbaum.html:13943 — KARTEN-ANSICHT
+- `albumSpracheUpdate` — stammbaum.html:16432 — KARTEN-ANSICHT
+- `albumTyp` — stammbaum.html:16161 — KARTEN-ANSICHT
+- `albumUebernehmeAltmedien` — stammbaum.html:16189 — KARTEN-ANSICHT
+- `albumUpload` — stammbaum.html:13844 — KARTEN-ANSICHT
+- `analytikAktivBalken` — stammbaum.html:3343 — SUPABASE AUTH
+- `analytikDauBlock` — stammbaum.html:3280 — SUPABASE AUTH
+- `analytikLineSvg` — stammbaum.html:3313 — SUPABASE AUTH
+- `analytikNutzerCsv` — stammbaum.html:3438 — SUPABASE AUTH
+- `analytikNutzerListe` — stammbaum.html:3372 — SUPABASE AUTH
+- `analytikNutzerSetFilter` — stammbaum.html:3388 — SUPABASE AUTH
+- `analytikRangeBtns` — stammbaum.html:3285 — SUPABASE AUTH
+- `analytikSetTage` — stammbaum.html:3297 — SUPABASE AUTH
+- `analytikTopHtml` — stammbaum.html:3355 — SUPABASE AUTH
+- `ancNode` — stammbaum.html:24825 — STAMMBAUM (d3.js)
+- `anfrageEntscheiden` — stammbaum.html:6236 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `anlaesseOeffne` — stammbaum.html:15776 — KARTEN-ANSICHT
+- `anlItemHtml` — stammbaum.html:15610 — KARTEN-ANSICHT
+- `anlWannText` — stammbaum.html:15603 — KARTEN-ANSICHT
+- `anmelden` — stammbaum.html:7752 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `ansichtAnwenden` — stammbaum.html:13212 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ansichtErwOeffnen` — stammbaum.html:12989 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ansichtErwToggle` — stammbaum.html:12997 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ansichtModalSprachUpdate` — stammbaum.html:13274 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ansichtModusWahl` — stammbaum.html:13080 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ansichtPersonLabel` — stammbaum.html:12979 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ansichtPickSuche` — stammbaum.html:13092 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ansichtPickWaehle` — stammbaum.html:13115 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `anwenden` — stammbaum.html:10198 — INITIALISIERUNG
+- `auf` — stammbaum.html:16685 — KARTEN-ANSICHT
+- `aufnDateiGewaehlt` — stammbaum.html:20863 — PERSON BEARBEITEN (nur Admins)
+- `aufnDauerLabel` — stammbaum.html:20687 — PERSON BEARBEITEN (nur Admins)
+- `aufnDetailRender` — stammbaum.html:20956 — PERSON BEARBEITEN (nur Admins)
+- `aufnEditOeffnen` — stammbaum.html:20768 — PERSON BEARBEITEN (nur Admins)
+- `aufnEditRender` — stammbaum.html:20789 — PERSON BEARBEITEN (nur Admins)
+- `aufnExt` — stammbaum.html:20692 — PERSON BEARBEITEN (nur Admins)
+- `aufnFehler` — stammbaum.html:20701 — PERSON BEARBEITEN (nur Admins)
+- `aufnItemHtml` — stammbaum.html:20746 — PERSON BEARBEITEN (nur Admins)
+- `aufnLoescheFuerPersonen` — stammbaum.html:20972 — PERSON BEARBEITEN (nur Admins)
+- `aufnLoeschen` — stammbaum.html:20944 — PERSON BEARBEITEN (nur Admins)
+- `aufnMedienDauer` — stammbaum.html:20706 — PERSON BEARBEITEN (nur Admins)
+- `aufnPendingSetzen` — stammbaum.html:20878 — PERSON BEARBEITEN (nur Admins)
+- `aufnRecGestoppt` — stammbaum.html:20848 — PERSON BEARBEITEN (nur Admins)
+- `aufnRecMoeglich` — stammbaum.html:20683 — PERSON BEARBEITEN (nur Admins)
+- `aufnRecToggle` — stammbaum.html:20817 — PERSON BEARBEITEN (nur Admins)
+- `aufnSetModus` — stammbaum.html:20798 — PERSON BEARBEITEN (nur Admins)
+- `aufnSignedUrl` — stammbaum.html:20719 — PERSON BEARBEITEN (nur Admins)
+- `aufnSpeichern` — stammbaum.html:20890 — PERSON BEARBEITEN (nur Admins)
+- `aufnSpracheUpdate` — stammbaum.html:20982 — PERSON BEARBEITEN (nur Admins)
+- `aufnStreamStop` — stammbaum.html:20842 — PERSON BEARBEITEN (nur Admins)
+- `aufnTimerLauf` — stammbaum.html:20806 — PERSON BEARBEITEN (nur Admins)
+- `aufnTypIcon` — stammbaum.html:20686 — PERSON BEARBEITEN (nur Admins)
+- `aufnVerwerfen` — stammbaum.html:20936 — PERSON BEARBEITEN (nur Admins)
+- `aufnVerwerfenNurMedia` — stammbaum.html:20924 — PERSON BEARBEITEN (nur Admins)
 - `aufraeumen` — pdf_export.js:575 — (ohne Abschnittsueberschrift)
-- `avatarBlob` — stammbaum.html:5230 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `backupDownload` — stammbaum.html:22413 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `backupJetzt` — stammbaum.html:22423 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `backupListeLaden` — stammbaum.html:22376 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `bary` — stammbaum.html:24400 — STAMMBAUM (d3.js)
-- `baueBaumDaten` — stammbaum.html:23930 — STAMMBAUM (d3.js)
-- `baueGraphModell` — stammbaum.html:24245 — STAMMBAUM (d3.js)
-- `baueKnoten` — stammbaum.html:24052 — STAMMBAUM (d3.js)
-- `baueVorkommenMap` — stammbaum.html:22037 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `baumAnsichtSync` — stammbaum.html:10773 — INITIALISIERUNG
-- `baumAnsichtWaehle` — stammbaum.html:10744 — INITIALISIERUNG
-- `baumBlutName` — stammbaum.html:22537 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `baumLabel` — stammbaum.html:22552 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `baumLabelNZ` — stammbaum.html:22547 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `baumVollstaendigkeitDaten` — stammbaum.html:17155 — DETAIL-FENSTER
-- `baut` — stammbaum.html:15826 — KARTEN-ANSICHT
-- `befuelleStammbaumAuswahl` — stammbaum.html:8974 — SPRACH-SYSTEM
-- `benachrAlleGelesen` — stammbaum.html:15512 — KARTEN-ANSICHT
-- `benachrItemHtml` — stammbaum.html:15411 — KARTEN-ANSICHT
-- `benachrOeffne` — stammbaum.html:15458 — KARTEN-ANSICHT
-- `benachrSyncAnstossen` — stammbaum.html:4567 — MITGLIEDER-VERWALTUNG (Admins)
-- `benachrUngelesen` — stammbaum.html:15389 — KARTEN-ANSICHT
-- `berAnwenden` — stammbaum.html:6675 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `berechneAnlaesse` — stammbaum.html:15549 — KARTEN-ANSICHT
-- `berechneAusgleich` — stammbaum.html:16472 — KARTEN-ANSICHT
-- `berechneKosten` — stammbaum.html:16445 — KARTEN-ANSICHT
-- `bestaetigeBaumLoeschen` — stammbaum.html:6277 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `bestaetigeOwnerWechsel` — stammbaum.html:6815 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `bezAendernAnwenden` — stammbaum.html:23001 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `bezAendernOeffnen` — stammbaum.html:22943 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `bezAendernWaehle` — stammbaum.html:22975 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `beziehungLoesen` — stammbaum.html:23079 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `bezugspersonOptionen` — stammbaum.html:15077 — KARTEN-ANSICHT
-- `bindeEmailLiveCheck` — stammbaum.html:6392 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `bkDarfRestore` — stammbaum.html:22348 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `bkDatumAusName` — stammbaum.html:22405 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `bkFormatBytes` — stammbaum.html:22368 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `bkRestoreReset` — stammbaum.html:22360 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `blutNameCacheLeeren` — stammbaum.html:22541 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `boardAnker` — stammbaum.html:12404 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardAnkerHandle` — stammbaum.html:12523 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardAutoFit` — stammbaum.html:12645 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardAutoSeiten` — stammbaum.html:12411 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardBerechnePositionen` — stammbaum.html:10906 — INITIALISIERUNG
-- `boardBeziehungAnlegen` — stammbaum.html:11361 — INITIALISIERUNG
-- `boardBezLoeschen` — stammbaum.html:11203 — INITIALISIERUNG
-- `boardCtxAktion` — stammbaum.html:11690 — INITIALISIERUNG
-- `boardCtxMenu` — stammbaum.html:11667 — INITIALISIERUNG
-- `boardCtxSchliessen` — stammbaum.html:11689 — INITIALISIERUNG
-- `boardCursorEmpfang` — stammbaum.html:12353 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardCursorRender` — stammbaum.html:12358 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardCursorSenden` — stammbaum.html:12342 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardEditToggle` — stammbaum.html:10845 — INITIALISIERUNG
-- `boardEigeneGeste` — stammbaum.html:11857 — INITIALISIERUNG
-- `boardEinfuegen` — stammbaum.html:11717 — INITIALISIERUNG
-- `boardFlushPos` — stammbaum.html:12624 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardGridAnwenden` — stammbaum.html:10852 — INITIALISIERUNG
-- `boardGriffPunkt` — stammbaum.html:12462 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardJahr` — stammbaum.html:11337 — INITIALISIERUNG
-- `boardKarteAn` — stammbaum.html:11351 — INITIALISIERUNG
-- `boardKopieren` — stammbaum.html:11705 — INITIALISIERUNG
-- `boardLadeLayout` — stammbaum.html:10890 — INITIALISIERUNG
-- `boardLadeLinien` — stammbaum.html:12387 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLinienHandle` — stammbaum.html:12570 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLiniePushUndo` — stammbaum.html:12604 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLinieRealtime` — stammbaum.html:12321 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLinieReset` — stammbaum.html:12611 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLinieSeitenSpeichern` — stammbaum.html:12556 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLinieSpeichern` — stammbaum.html:12586 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLinieZustandSetzen` — stammbaum.html:12595 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardLoeschen` — stammbaum.html:11944 — INITIALISIERUNG
-- `boardLoseSpeichern` — stammbaum.html:11597 — INITIALISIERUNG
-- `boardMacheZiehbar` — stammbaum.html:11233 — INITIALISIERUNG
-- `boardMarkiereAuswahl` — stammbaum.html:11839 — INITIALISIERUNG
-- `boardMarqueeEnd` — stammbaum.html:11881 — INITIALISIERUNG
-- `boardMarqueeStart` — stammbaum.html:11859 — INITIALISIERUNG
-- `boardMarqueeUpdate` — stammbaum.html:11873 — INITIALISIERUNG
-- `boardMinimap` — stammbaum.html:12119 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardMinimapHandler` — stammbaum.html:12164 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardMinimapZuWelt` — stammbaum.html:12154 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardModusToggle` — stammbaum.html:10859 — INITIALISIERUNG
-- `boardOeffneLoseAnlage` — stammbaum.html:11563 — INITIALISIERUNG
-- `boardOrdnen` — stammbaum.html:12002 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardOrthoPunkte` — stammbaum.html:12427 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardPartnerVon` — stammbaum.html:11466 — INITIALISIERUNG
-- `boardPdfExport` — stammbaum.html:12279 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardPersonStempel` — stammbaum.html:11827 — INITIALISIERUNG
-- `boardPfadLaenge` — stammbaum.html:12453 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardPopoverBestaetigen` — stammbaum.html:11514 — INITIALISIERUNG
-- `boardPopoverPositionieren` — stammbaum.html:11434 — INITIALISIERUNG
-- `boardPopoverSchliessen` — stammbaum.html:11458 — INITIALISIERUNG
-- `boardPopoverTypWaehle` — stammbaum.html:11453 — INITIALISIERUNG
-- `boardPosLesen` — stammbaum.html:11799 — INITIALISIERUNG
-- `boardPosPruef` — stammbaum.html:11814 — INITIALISIERUNG
-- `boardPushUndo` — stammbaum.html:11754 — INITIALISIERUNG
-- `boardRealtimeAenderung` — stammbaum.html:12308 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardRealtimeStart` — stammbaum.html:12297 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardRealtimeStop` — stammbaum.html:12293 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardRedo` — stammbaum.html:11792 — INITIALISIERUNG
-- `boardReloadUndRedraw` — stammbaum.html:11765 — INITIALISIERUNG
-- `boardSeiteAusPunkt` — stammbaum.html:12416 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardSelektionClear` — stammbaum.html:11843 — INITIALISIERUNG
-- `boardSelektionToggle` — stammbaum.html:11844 — INITIALISIERUNG
-- `boardSpeicherePos` — stammbaum.html:12619 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardSucheInput` — stammbaum.html:12089 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardSucheWaehle` — stammbaum.html:12112 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardSync` — stammbaum.html:10839 — INITIALISIERUNG
-- `boardTastatur` — stammbaum.html:11905 — INITIALISIERUNG
-- `boardTypVorschlag` — stammbaum.html:11344 — INITIALISIERUNG
-- `boardUndo` — stammbaum.html:11786 — INITIALISIERUNG
-- `boardUndoAnlage` — stammbaum.html:11969 — INITIALISIERUNG
-- `boardUndoKonfliktfrei` — stammbaum.html:11774 — INITIALISIERUNG
-- `boardUndoLink` — stammbaum.html:11983 — INITIALISIERUNG
-- `boardUndoSync` — stammbaum.html:11757 — INITIALISIERUNG
-- `boardVerbindung` — stammbaum.html:12484 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardVerknuepfenPopover` — stammbaum.html:11399 — INITIALISIERUNG
-- `boardVerlassenAufraeumen` — stammbaum.html:10699 — INITIALISIERUNG
-- `boardWerkzeugeSync` — stammbaum.html:12207 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardZeichneLinien` — stammbaum.html:10988 — INITIALISIERUNG
-- `boardZentriereAuf` — stammbaum.html:12043 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardZentriereAufWelt` — stammbaum.html:12035 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `boardZweitElternteilErmitteln` — stammbaum.html:11508 — INITIALISIERUNG
-- `boardZweitEltWahl` — stammbaum.html:11484 — INITIALISIERUNG
-- `breite` — stammbaum.html:16686 — KARTEN-ANSICHT
-- `btn` — stammbaum.html:16039 — KARTEN-ANSICHT
-- `buildEventMediaHtml` — stammbaum.html:16928 — KARTEN-ANSICHT
-- `buildVerwandte` — stammbaum.html:17480 — DETAIL-FENSTER
-- `canonOf` — stammbaum.html:24246 — STAMMBAUM (d3.js)
+- `avatarBlob` — stammbaum.html:5232 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `backupDownload` — stammbaum.html:22452 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `backupJetzt` — stammbaum.html:22462 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `backupListeLaden` — stammbaum.html:22415 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `bary` — stammbaum.html:24453 — STAMMBAUM (d3.js)
+- `baueBaumDaten` — stammbaum.html:23983 — STAMMBAUM (d3.js)
+- `baueGraphModell` — stammbaum.html:24298 — STAMMBAUM (d3.js)
+- `baueKnoten` — stammbaum.html:24105 — STAMMBAUM (d3.js)
+- `baueVorkommenMap` — stammbaum.html:22076 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `baumAnsichtSync` — stammbaum.html:10775 — INITIALISIERUNG
+- `baumAnsichtWaehle` — stammbaum.html:10746 — INITIALISIERUNG
+- `baumBlutName` — stammbaum.html:22576 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `baumLabel` — stammbaum.html:22591 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `baumLabelNZ` — stammbaum.html:22586 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `baumVollstaendigkeitDaten` — stammbaum.html:17184 — DETAIL-FENSTER
+- `baut` — stammbaum.html:15855 — KARTEN-ANSICHT
+- `befuelleStammbaumAuswahl` — stammbaum.html:8976 — SPRACH-SYSTEM
+- `benachrAlleGelesen` — stammbaum.html:15541 — KARTEN-ANSICHT
+- `benachrItemHtml` — stammbaum.html:15440 — KARTEN-ANSICHT
+- `benachrOeffne` — stammbaum.html:15487 — KARTEN-ANSICHT
+- `benachrSyncAnstossen` — stammbaum.html:4569 — MITGLIEDER-VERWALTUNG (Admins)
+- `benachrUngelesen` — stammbaum.html:15418 — KARTEN-ANSICHT
+- `berAnwenden` — stammbaum.html:6677 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `berechneAnlaesse` — stammbaum.html:15578 — KARTEN-ANSICHT
+- `berechneAusgleich` — stammbaum.html:16501 — KARTEN-ANSICHT
+- `berechneKosten` — stammbaum.html:16474 — KARTEN-ANSICHT
+- `bestaetigeBaumLoeschen` — stammbaum.html:6279 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `bestaetigeOwnerWechsel` — stammbaum.html:6817 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `bezAendernAnwenden` — stammbaum.html:23040 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `bezAendernOeffnen` — stammbaum.html:22982 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `bezAendernWaehle` — stammbaum.html:23014 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `beziehungLoesen` — stammbaum.html:23118 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `bezugspersonOptionen` — stammbaum.html:15106 — KARTEN-ANSICHT
+- `bindeEmailLiveCheck` — stammbaum.html:6394 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `bkDarfRestore` — stammbaum.html:22387 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `bkDatumAusName` — stammbaum.html:22444 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `bkFormatBytes` — stammbaum.html:22407 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `bkRestoreReset` — stammbaum.html:22399 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `blutNameCacheLeeren` — stammbaum.html:22580 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `boardAnker` — stammbaum.html:12425 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardAnkerHandle` — stammbaum.html:12544 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardAutoFit` — stammbaum.html:12666 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardAutoSeiten` — stammbaum.html:12432 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardBerechnePositionen` — stammbaum.html:10916 — INITIALISIERUNG
+- `boardBeziehungAnlegen` — stammbaum.html:11376 — INITIALISIERUNG
+- `boardBezLoeschen` — stammbaum.html:11218 — INITIALISIERUNG
+- `boardCtxAktion` — stammbaum.html:11705 — INITIALISIERUNG
+- `boardCtxMenu` — stammbaum.html:11682 — INITIALISIERUNG
+- `boardCtxSchliessen` — stammbaum.html:11704 — INITIALISIERUNG
+- `boardCursorEmpfang` — stammbaum.html:12374 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardCursorRender` — stammbaum.html:12379 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardCursorSenden` — stammbaum.html:12363 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardEditToggle` — stammbaum.html:10854 — INITIALISIERUNG
+- `boardEigeneGeste` — stammbaum.html:11872 — INITIALISIERUNG
+- `boardEinfuegen` — stammbaum.html:11732 — INITIALISIERUNG
+- `boardFlushPos` — stammbaum.html:12645 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardGridAnwenden` — stammbaum.html:10861 — INITIALISIERUNG
+- `boardGriffPunkt` — stammbaum.html:12483 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardJahr` — stammbaum.html:11352 — INITIALISIERUNG
+- `boardKarteAn` — stammbaum.html:11366 — INITIALISIERUNG
+- `boardKopieren` — stammbaum.html:11720 — INITIALISIERUNG
+- `boardLadeLayout` — stammbaum.html:10900 — INITIALISIERUNG
+- `boardLadeLinien` — stammbaum.html:12408 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLinienHandle` — stammbaum.html:12591 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLiniePushUndo` — stammbaum.html:12625 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLinieRealtime` — stammbaum.html:12342 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLinieReset` — stammbaum.html:12632 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLinieSeitenSpeichern` — stammbaum.html:12577 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLinieSpeichern` — stammbaum.html:12607 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLinieZustandSetzen` — stammbaum.html:12616 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardLoeschen` — stammbaum.html:11964 — INITIALISIERUNG
+- `boardLoseSpeichern` — stammbaum.html:11612 — INITIALISIERUNG
+- `boardMacheZiehbar` — stammbaum.html:11248 — INITIALISIERUNG
+- `boardMarkiereAuswahl` — stammbaum.html:11854 — INITIALISIERUNG
+- `boardMarqueeEnd` — stammbaum.html:11901 — INITIALISIERUNG
+- `boardMarqueeStart` — stammbaum.html:11879 — INITIALISIERUNG
+- `boardMarqueeUpdate` — stammbaum.html:11893 — INITIALISIERUNG
+- `boardMinimap` — stammbaum.html:12140 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardMinimapHandler` — stammbaum.html:12185 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardMinimapZuWelt` — stammbaum.html:12175 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardModusToggle` — stammbaum.html:10868 — INITIALISIERUNG
+- `boardOeffneLoseAnlage` — stammbaum.html:11578 — INITIALISIERUNG
+- `boardOrdnen` — stammbaum.html:12022 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardOrthoPunkte` — stammbaum.html:12448 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardPartnerVon` — stammbaum.html:11481 — INITIALISIERUNG
+- `boardPdfExport` — stammbaum.html:12300 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardPersonStempel` — stammbaum.html:11842 — INITIALISIERUNG
+- `boardPfadLaenge` — stammbaum.html:12474 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardPopoverBestaetigen` — stammbaum.html:11529 — INITIALISIERUNG
+- `boardPopoverPositionieren` — stammbaum.html:11449 — INITIALISIERUNG
+- `boardPopoverSchliessen` — stammbaum.html:11473 — INITIALISIERUNG
+- `boardPopoverTypWaehle` — stammbaum.html:11468 — INITIALISIERUNG
+- `boardPosLesen` — stammbaum.html:11814 — INITIALISIERUNG
+- `boardPosPruef` — stammbaum.html:11829 — INITIALISIERUNG
+- `boardPushUndo` — stammbaum.html:11769 — INITIALISIERUNG
+- `boardRealtimeAenderung` — stammbaum.html:12329 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardRealtimeStart` — stammbaum.html:12318 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardRealtimeStop` — stammbaum.html:12314 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardRedo` — stammbaum.html:11807 — INITIALISIERUNG
+- `boardReloadUndRedraw` — stammbaum.html:11780 — INITIALISIERUNG
+- `boardSeiteAusPunkt` — stammbaum.html:12437 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardSelektionClear` — stammbaum.html:11858 — INITIALISIERUNG
+- `boardSelektionToggle` — stammbaum.html:11859 — INITIALISIERUNG
+- `boardSpeicherePos` — stammbaum.html:12640 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardSucheInput` — stammbaum.html:12110 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardSucheWaehle` — stammbaum.html:12133 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardSync` — stammbaum.html:10848 — INITIALISIERUNG
+- `boardTastatur` — stammbaum.html:11925 — INITIALISIERUNG
+- `boardTypVorschlag` — stammbaum.html:11359 — INITIALISIERUNG
+- `boardUndo` — stammbaum.html:11801 — INITIALISIERUNG
+- `boardUndoAnlage` — stammbaum.html:11989 — INITIALISIERUNG
+- `boardUndoKonfliktfrei` — stammbaum.html:11789 — INITIALISIERUNG
+- `boardUndoLink` — stammbaum.html:12003 — INITIALISIERUNG
+- `boardUndoSync` — stammbaum.html:11772 — INITIALISIERUNG
+- `boardVerbindung` — stammbaum.html:12505 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardVerknuepfenPopover` — stammbaum.html:11414 — INITIALISIERUNG
+- `boardVerlassenAufraeumen` — stammbaum.html:10701 — INITIALISIERUNG
+- `boardWerkzeugeSync` — stammbaum.html:12228 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardZeichneLinien` — stammbaum.html:11003 — INITIALISIERUNG
+- `boardZentriereAuf` — stammbaum.html:12064 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardZentriereAufWelt` — stammbaum.html:12056 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `boardZweitElternteilErmitteln` — stammbaum.html:11523 — INITIALISIERUNG
+- `boardZweitEltWahl` — stammbaum.html:11499 — INITIALISIERUNG
+- `breite` — stammbaum.html:16715 — KARTEN-ANSICHT
+- `btn` — stammbaum.html:16068 — KARTEN-ANSICHT
+- `buildEventMediaHtml` — stammbaum.html:16957 — KARTEN-ANSICHT
+- `buildVerwandte` — stammbaum.html:17509 — DETAIL-FENSTER
+- `canonOf` — stammbaum.html:24299 — STAMMBAUM (d3.js)
 - `chatAdminToggle` — chat.js:494 — (ohne Abschnittsueberschrift)
 - `chatAvatarVon` — chat.js:204 — (ohne Abschnittsueberschrift)
 - `chatBadgeAktualisieren` — chat.js:523 — (ohne Abschnittsueberschrift)
@@ -383,691 +383,692 @@ Per `Grep` auf den Namen abfragen — jede Zeile ist eigenstaendig.
 - `chatZeigeLeer` — chat.js:183 — (ohne Abschnittsueberschrift)
 - `chatZeit` — chat.js:213 — (ohne Abschnittsueberschrift)
 - `chatZurueck` — chat.js:190 — (ohne Abschnittsueberschrift)
-- `childKey` — stammbaum.html:23966 — STAMMBAUM (d3.js)
-- `childrenOf` — stammbaum.html:24716 — STAMMBAUM (d3.js)
-- `chip` — stammbaum.html:22224 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `cl` — stammbaum.html:10132 — INITIALISIERUNG
-- `crossTreeBaeume` — stammbaum.html:22062 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `crossTreeDialog` — stammbaum.html:22088 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `crossTreeOeffnen` — stammbaum.html:22081 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `crossTreeZielKarte` — stammbaum.html:22071 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `darfKnoten` — stammbaum.html:24598 — STAMMBAUM (d3.js)
-- `darfSperreUebernehmen` — stammbaum.html:5849 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `datumFeldUngueltig` — stammbaum.html:9624 — INITIALISIERUNG
-- `datumKanon` — stammbaum.html:9566 — INITIALISIERUNG
-- `datumKurz` — stammbaum.html:9574 — INITIALISIERUNG
-- `datumMeta` — stammbaum.html:9557 — INITIALISIERUNG
-- `datumPlatzhalter` — stammbaum.html:9507 — INITIALISIERUNG
-- `datumSetzen` — stammbaum.html:9599 — INITIALISIERUNG
-- `datumTrenner` — stammbaum.html:9452 — INITIALISIERUNG
-- `datumWert` — stammbaum.html:9590 — INITIALISIERUNG
-- `dbg` — stammbaum.html:2891 — SUPABASE AUTH
-- `deleteEventMedia` — stammbaum.html:16945 — KARTEN-ANSICHT
-- `descNode` — stammbaum.html:24733 — STAMMBAUM (d3.js)
-- `detailUebernehmen` — stammbaum.html:5923 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `doInsert` — stammbaum.html:21852 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `dokDetailRender` — stammbaum.html:20565 — PERSON BEARBEITEN (nur Admins)
-- `dokEditOeffnen` — stammbaum.html:20474 — PERSON BEARBEITEN (nur Admins)
-- `dokEditRender` — stammbaum.html:20494 — PERSON BEARBEITEN (nur Admins)
-- `dokFehler` — stammbaum.html:20448 — PERSON BEARBEITEN (nur Admins)
-- `dokFormReset` — stammbaum.html:20486 — PERSON BEARBEITEN (nur Admins)
-- `dokIstPdf` — stammbaum.html:20419 — PERSON BEARBEITEN (nur Admins)
-- `dokItemHtml` — stammbaum.html:20454 — PERSON BEARBEITEN (nur Admins)
-- `dokLoescheFuerPersonen` — stammbaum.html:20581 — PERSON BEARBEITEN (nur Admins)
-- `dokLoeschen` — stammbaum.html:20553 — PERSON BEARBEITEN (nur Admins)
-- `dokSignedUrl` — stammbaum.html:20422 — PERSON BEARBEITEN (nur Admins)
-- `dokSpracheUpdate` — stammbaum.html:20617 — PERSON BEARBEITEN (nur Admins)
-- `dokTypIcon` — stammbaum.html:20417 — PERSON BEARBEITEN (nur Admins)
-- `dokTypLabel` — stammbaum.html:20418 — PERSON BEARBEITEN (nur Admins)
-- `dokUpload` — stammbaum.html:20502 — PERSON BEARBEITEN (nur Admins)
-- `dpAusPaar` — stammbaum.html:9524 — INITIALISIERUNG
-- `dpGueltig` — stammbaum.html:9515 — INITIALISIERUNG
-- `dpInitPanel` — stammbaum.html:9634 — INITIALISIERUNG
-- `dpJahrSprung` — stammbaum.html:9697 — INITIALISIERUNG
-- `dpModusUmschalten` — stammbaum.html:9726 — INITIALISIERUNG
-- `dpOeffne` — stammbaum.html:9798 — INITIALISIERUNG
-- `dpPositioniere` — stammbaum.html:9780 — INITIALISIERUNG
-- `dpRender` — stammbaum.html:9738 — INITIALISIERUNG
-- `dpRenderJahre` — stammbaum.html:9708 — INITIALISIERUNG
-- `dpSchliesse` — stammbaum.html:9824 — INITIALISIERUNG
-- `dpScrolleZuJahr` — stammbaum.html:9719 — INITIALISIERUNG
-- `dpSetzePraezision` — stammbaum.html:9847 — INITIALISIERUNG
-- `dpSichtbarkeitsWaechter` — stammbaum.html:9817 — INITIALISIERUNG
-- `dpVerschiebe` — stammbaum.html:9688 — INITIALISIERUNG
-- `dpWaehle` — stammbaum.html:9831 — INITIALISIERUNG
-- `dpWaehleJahr` — stammbaum.html:9732 — INITIALISIERUNG
-- `dpWaehleKanon` — stammbaum.html:9839 — INITIALISIERUNG
-- `dpZahl` — stammbaum.html:9512 — INITIALISIERUNG
-- `drawCard` — stammbaum.html:25002 — STAMMBAUM (d3.js)
-- `druckeKosten` — stammbaum.html:16650 — KARTEN-ANSICHT
-- `dubTrotzdem` — stammbaum.html:6145 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `dubVerknuepfen` — stammbaum.html:6151 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `echtesPaar` — stammbaum.html:11014 — INITIALISIERUNG
-- `editUebernehmen` — stammbaum.html:5929 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `eigenerBaum` — stammbaum.html:10696 — INITIALISIERUNG
-- `einkaufInit` — stammbaum.html:19687 — PERSON BEARBEITEN (nur Admins)
-- `einkaufSpracheUpdate` — stammbaum.html:19950 — PERSON BEARBEITEN (nur Admins)
-- `ekAddBestaetigen` — stammbaum.html:19912 — PERSON BEARBEITEN (nur Admins)
-- `ekAddOeffnen` — stammbaum.html:19901 — PERSON BEARBEITEN (nur Admins)
-- `ekArtikelAdd` — stammbaum.html:19761 — PERSON BEARBEITEN (nur Admins)
-- `ekArtikelLaden` — stammbaum.html:19721 — PERSON BEARBEITEN (nur Admins)
-- `ekArtikelLoeschen` — stammbaum.html:19779 — PERSON BEARBEITEN (nur Admins)
-- `ekCheckboxWerte` — stammbaum.html:19826 — PERSON BEARBEITEN (nur Admins)
-- `ekEinheitFuellen` — stammbaum.html:19689 — PERSON BEARBEITEN (nur Admins)
-- `ekListeAnlegen` — stammbaum.html:19840 — PERSON BEARBEITEN (nur Admins)
-- `ekListeLoeschen` — stammbaum.html:19875 — PERSON BEARBEITEN (nur Admins)
-- `ekListenLaden` — stammbaum.html:19696 — PERSON BEARBEITEN (nur Admins)
-- `ekListeWaehlen` — stammbaum.html:19712 — PERSON BEARBEITEN (nur Admins)
-- `ekMengeText` — stammbaum.html:19736 — PERSON BEARBEITEN (nur Admins)
-- `ekNeueListeOeffnen` — stammbaum.html:19831 — PERSON BEARBEITEN (nur Admins)
-- `ekRealtime` — stammbaum.html:19945 — PERSON BEARBEITEN (nur Admins)
-- `ekRender` — stammbaum.html:19741 — PERSON BEARBEITEN (nur Admins)
-- `ekRenderLeer` — stammbaum.html:19714 — PERSON BEARBEITEN (nur Admins)
-- `ekTab` — stammbaum.html:19759 — PERSON BEARBEITEN (nur Admins)
-- `ekTeilenOeffnen` — stammbaum.html:19856 — PERSON BEARBEITEN (nur Admins)
-- `ekTeilenSpeichern` — stammbaum.html:19866 — PERSON BEARBEITEN (nur Admins)
-- `ekTeilnehmerCheckboxes` — stammbaum.html:19801 — PERSON BEARBEITEN (nur Admins)
-- `ekTeilnehmerInfo` — stammbaum.html:19784 — PERSON BEARBEITEN (nur Admins)
-- `ekTnFilter` — stammbaum.html:19818 — PERSON BEARBEITEN (nur Admins)
-- `ekToggle` — stammbaum.html:19775 — PERSON BEARBEITEN (nur Admins)
-- `ekVerbundNutzerLaden` — stammbaum.html:19796 — PERSON BEARBEITEN (nur Admins)
-- `ekVisFlush` — stammbaum.html:19944 — PERSON BEARBEITEN (nur Admins)
-- `ekZutatenInListe` — stammbaum.html:19919 — PERSON BEARBEITEN (nur Admins)
-- `ende` — stammbaum.html:12187 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `engagementAntwort` — stammbaum.html:18653 — PERSON BEARBEITEN (nur Admins)
-- `engagementBearbeitenAbbrechen` — stammbaum.html:18676 — PERSON BEARBEITEN (nur Admins)
-- `engagementBearbeitenSpeichern` — stammbaum.html:18678 — PERSON BEARBEITEN (nur Admins)
-- `engagementBearbeitenStart` — stammbaum.html:18675 — PERSON BEARBEITEN (nur Admins)
-- `engagementEintrag` — stammbaum.html:18530 — PERSON BEARBEITEN (nur Admins)
-- `engagementKommentarSenden` — stammbaum.html:18661 — PERSON BEARBEITEN (nur Admins)
-- `engagementKommHtml` — stammbaum.html:18608 — PERSON BEARBEITEN (nur Admins)
-- `engagementLaden` — stammbaum.html:18548 — PERSON BEARBEITEN (nur Admins)
-- `engagementLiveAnstossen` — stammbaum.html:18725 — PERSON BEARBEITEN (nur Admins)
-- `engagementLoeschen` — stammbaum.html:18689 — PERSON BEARBEITEN (nur Admins)
-- `engagementMount` — stammbaum.html:18533 — PERSON BEARBEITEN (nur Admins)
-- `engagementReagieren` — stammbaum.html:18643 — PERSON BEARBEITEN (nur Admins)
-- `engagementRender` — stammbaum.html:18562 — PERSON BEARBEITEN (nur Admins)
-- `engagementReplyAbbrechen` — stammbaum.html:18659 — PERSON BEARBEITEN (nur Admins)
-- `engagementSpracheUpdate` — stammbaum.html:18699 — PERSON BEARBEITEN (nur Admins)
-- `engagementUnmount` — stammbaum.html:18545 — PERSON BEARBEITEN (nur Admins)
-- `engagementUnmountAlle` — stammbaum.html:18546 — PERSON BEARBEITEN (nur Admins)
-- `ensure` — stammbaum.html:24251 — STAMMBAUM (d3.js)
-- `entAvatar` — stammbaum.html:5508 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `entdeckenAnfrage` — stammbaum.html:5530 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `entdeckenOeffnePerson` — stammbaum.html:5518 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `entdeckenRenderKombiniert` — stammbaum.html:5469 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `entdeckenSpracheUpdate` — stammbaum.html:5547 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `entdeckenSuche` — stammbaum.html:5446 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `entdeckenSucheDebounce` — stammbaum.html:5411 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `entdoppeltePersonen` — stammbaum.html:12934 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `entferneMitglied` — stammbaum.html:4010 — MITGLIEDER-VERWALTUNG (Admins)
-- `entKontaktAnschreiben` — stammbaum.html:10420 — INITIALISIERUNG
-- `entKontaktBaumzugriff` — stammbaum.html:10442 — INITIALISIERUNG
-- `entKontaktDialog` — stammbaum.html:10403 — INITIALISIERUNG
-- `entKontaktDialogVon` — stammbaum.html:10399 — INITIALISIERUNG
-- `entKontaktFehler` — stammbaum.html:10415 — INITIALISIERUNG
-- `entKontaktSchliessen` — stammbaum.html:10411 — INITIALISIERUNG
-- `erinnFeedKarteHtml` — stammbaum.html:15697 — KARTEN-ANSICHT
-- `erinnItemHtml` — stammbaum.html:15676 — KARTEN-ANSICHT
-- `erinnMeta` — stammbaum.html:15664 — KARTEN-ANSICHT
-- `erinnOeffne` — stammbaum.html:15732 — KARTEN-ANSICHT
-- `erinnVorJahren` — stammbaum.html:15638 — KARTEN-ANSICHT
-- `ermittleStartsprache` — stammbaum.html:8261 — SPRACH-SYSTEM
-- `erstelleStammbaum` — stammbaum.html:6323 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `erzeugePlatzhalterElternteil` — stammbaum.html:21748 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `escapeHtml` — stammbaum.html:17081 — KARTEN-ANSICHT
-- `etnAlleWaehlen` — stammbaum.html:15307 — KARTEN-ANSICHT
-- `etnBindeListe` — stammbaum.html:15295 — KARTEN-ANSICHT
-- `etnGefiltert` — stammbaum.html:15243 — KARTEN-ANSICHT
-- `etnInvertieren` — stammbaum.html:15312 — KARTEN-ANSICHT
-- `etnMehrLaden` — stammbaum.html:15289 — KARTEN-ANSICHT
-- `etnSucheDebounce` — stammbaum.html:15237 — KARTEN-ANSICHT
-- `evApplyModusUI` — stammbaum.html:13642 — KARTEN-ANSICHT
-- `evKalenderOptionen` — stammbaum.html:15091 — KARTEN-ANSICHT
-- `evSetModus` — stammbaum.html:13656 — KARTEN-ANSICHT
-- `extOf` — stammbaum.html:11694 — INITIALISIERUNG
+- `childKey` — stammbaum.html:24019 — STAMMBAUM (d3.js)
+- `childrenOf` — stammbaum.html:24778 — STAMMBAUM (d3.js)
+- `chip` — stammbaum.html:22263 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `cl` — stammbaum.html:10134 — INITIALISIERUNG
+- `crossTreeBaeume` — stammbaum.html:22101 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `crossTreeDialog` — stammbaum.html:22127 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `crossTreeOeffnen` — stammbaum.html:22120 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `crossTreeZielKarte` — stammbaum.html:22110 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `darfKnoten` — stammbaum.html:24655 — STAMMBAUM (d3.js)
+- `darfSperreUebernehmen` — stammbaum.html:5851 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `datumFeldUngueltig` — stammbaum.html:9626 — INITIALISIERUNG
+- `datumKanon` — stammbaum.html:9568 — INITIALISIERUNG
+- `datumKurz` — stammbaum.html:9576 — INITIALISIERUNG
+- `datumMeta` — stammbaum.html:9559 — INITIALISIERUNG
+- `datumPlatzhalter` — stammbaum.html:9509 — INITIALISIERUNG
+- `datumSetzen` — stammbaum.html:9601 — INITIALISIERUNG
+- `datumTrenner` — stammbaum.html:9454 — INITIALISIERUNG
+- `datumWert` — stammbaum.html:9592 — INITIALISIERUNG
+- `dbg` — stammbaum.html:2893 — SUPABASE AUTH
+- `deleteEventMedia` — stammbaum.html:16974 — KARTEN-ANSICHT
+- `descNode` — stammbaum.html:24795 — STAMMBAUM (d3.js)
+- `detailUebernehmen` — stammbaum.html:5925 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `doInsert` — stammbaum.html:21891 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `dokDetailRender` — stammbaum.html:20595 — PERSON BEARBEITEN (nur Admins)
+- `dokEditOeffnen` — stammbaum.html:20504 — PERSON BEARBEITEN (nur Admins)
+- `dokEditRender` — stammbaum.html:20524 — PERSON BEARBEITEN (nur Admins)
+- `dokFehler` — stammbaum.html:20478 — PERSON BEARBEITEN (nur Admins)
+- `dokFormReset` — stammbaum.html:20516 — PERSON BEARBEITEN (nur Admins)
+- `dokIstPdf` — stammbaum.html:20449 — PERSON BEARBEITEN (nur Admins)
+- `dokItemHtml` — stammbaum.html:20484 — PERSON BEARBEITEN (nur Admins)
+- `dokLoescheFuerPersonen` — stammbaum.html:20611 — PERSON BEARBEITEN (nur Admins)
+- `dokLoeschen` — stammbaum.html:20583 — PERSON BEARBEITEN (nur Admins)
+- `dokSignedUrl` — stammbaum.html:20452 — PERSON BEARBEITEN (nur Admins)
+- `dokSpracheUpdate` — stammbaum.html:20647 — PERSON BEARBEITEN (nur Admins)
+- `dokTypIcon` — stammbaum.html:20447 — PERSON BEARBEITEN (nur Admins)
+- `dokTypLabel` — stammbaum.html:20448 — PERSON BEARBEITEN (nur Admins)
+- `dokUpload` — stammbaum.html:20532 — PERSON BEARBEITEN (nur Admins)
+- `dpAusPaar` — stammbaum.html:9526 — INITIALISIERUNG
+- `dpGueltig` — stammbaum.html:9517 — INITIALISIERUNG
+- `dpInitPanel` — stammbaum.html:9636 — INITIALISIERUNG
+- `dpJahrSprung` — stammbaum.html:9699 — INITIALISIERUNG
+- `dpModusUmschalten` — stammbaum.html:9728 — INITIALISIERUNG
+- `dpOeffne` — stammbaum.html:9800 — INITIALISIERUNG
+- `dpPositioniere` — stammbaum.html:9782 — INITIALISIERUNG
+- `dpRender` — stammbaum.html:9740 — INITIALISIERUNG
+- `dpRenderJahre` — stammbaum.html:9710 — INITIALISIERUNG
+- `dpSchliesse` — stammbaum.html:9826 — INITIALISIERUNG
+- `dpScrolleZuJahr` — stammbaum.html:9721 — INITIALISIERUNG
+- `dpSetzePraezision` — stammbaum.html:9849 — INITIALISIERUNG
+- `dpSichtbarkeitsWaechter` — stammbaum.html:9819 — INITIALISIERUNG
+- `dpVerschiebe` — stammbaum.html:9690 — INITIALISIERUNG
+- `dpWaehle` — stammbaum.html:9833 — INITIALISIERUNG
+- `dpWaehleJahr` — stammbaum.html:9734 — INITIALISIERUNG
+- `dpWaehleKanon` — stammbaum.html:9841 — INITIALISIERUNG
+- `dpZahl` — stammbaum.html:9514 — INITIALISIERUNG
+- `drawCard` — stammbaum.html:25064 — STAMMBAUM (d3.js)
+- `druckeKosten` — stammbaum.html:16679 — KARTEN-ANSICHT
+- `dubTrotzdem` — stammbaum.html:6147 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `dubVerknuepfen` — stammbaum.html:6153 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `echtesPaar` — stammbaum.html:11029 — INITIALISIERUNG
+- `editUebernehmen` — stammbaum.html:5931 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `eigenerBaum` — stammbaum.html:10698 — INITIALISIERUNG
+- `einkaufInit` — stammbaum.html:19717 — PERSON BEARBEITEN (nur Admins)
+- `einkaufSpracheUpdate` — stammbaum.html:19980 — PERSON BEARBEITEN (nur Admins)
+- `ekAddBestaetigen` — stammbaum.html:19942 — PERSON BEARBEITEN (nur Admins)
+- `ekAddOeffnen` — stammbaum.html:19931 — PERSON BEARBEITEN (nur Admins)
+- `ekArtikelAdd` — stammbaum.html:19791 — PERSON BEARBEITEN (nur Admins)
+- `ekArtikelLaden` — stammbaum.html:19751 — PERSON BEARBEITEN (nur Admins)
+- `ekArtikelLoeschen` — stammbaum.html:19809 — PERSON BEARBEITEN (nur Admins)
+- `ekCheckboxWerte` — stammbaum.html:19856 — PERSON BEARBEITEN (nur Admins)
+- `ekEinheitFuellen` — stammbaum.html:19719 — PERSON BEARBEITEN (nur Admins)
+- `ekListeAnlegen` — stammbaum.html:19870 — PERSON BEARBEITEN (nur Admins)
+- `ekListeLoeschen` — stammbaum.html:19905 — PERSON BEARBEITEN (nur Admins)
+- `ekListenLaden` — stammbaum.html:19726 — PERSON BEARBEITEN (nur Admins)
+- `ekListeWaehlen` — stammbaum.html:19742 — PERSON BEARBEITEN (nur Admins)
+- `ekMengeText` — stammbaum.html:19766 — PERSON BEARBEITEN (nur Admins)
+- `ekNeueListeOeffnen` — stammbaum.html:19861 — PERSON BEARBEITEN (nur Admins)
+- `ekRealtime` — stammbaum.html:19975 — PERSON BEARBEITEN (nur Admins)
+- `ekRender` — stammbaum.html:19771 — PERSON BEARBEITEN (nur Admins)
+- `ekRenderLeer` — stammbaum.html:19744 — PERSON BEARBEITEN (nur Admins)
+- `ekTab` — stammbaum.html:19789 — PERSON BEARBEITEN (nur Admins)
+- `ekTeilenOeffnen` — stammbaum.html:19886 — PERSON BEARBEITEN (nur Admins)
+- `ekTeilenSpeichern` — stammbaum.html:19896 — PERSON BEARBEITEN (nur Admins)
+- `ekTeilnehmerCheckboxes` — stammbaum.html:19831 — PERSON BEARBEITEN (nur Admins)
+- `ekTeilnehmerInfo` — stammbaum.html:19814 — PERSON BEARBEITEN (nur Admins)
+- `ekTnFilter` — stammbaum.html:19848 — PERSON BEARBEITEN (nur Admins)
+- `ekToggle` — stammbaum.html:19805 — PERSON BEARBEITEN (nur Admins)
+- `ekVerbundNutzerLaden` — stammbaum.html:19826 — PERSON BEARBEITEN (nur Admins)
+- `ekVisFlush` — stammbaum.html:19974 — PERSON BEARBEITEN (nur Admins)
+- `ekZutatenInListe` — stammbaum.html:19949 — PERSON BEARBEITEN (nur Admins)
+- `ende` — stammbaum.html:12208 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `engagementAntwort` — stammbaum.html:18683 — PERSON BEARBEITEN (nur Admins)
+- `engagementBearbeitenAbbrechen` — stammbaum.html:18706 — PERSON BEARBEITEN (nur Admins)
+- `engagementBearbeitenSpeichern` — stammbaum.html:18708 — PERSON BEARBEITEN (nur Admins)
+- `engagementBearbeitenStart` — stammbaum.html:18705 — PERSON BEARBEITEN (nur Admins)
+- `engagementEintrag` — stammbaum.html:18560 — PERSON BEARBEITEN (nur Admins)
+- `engagementKommentarSenden` — stammbaum.html:18691 — PERSON BEARBEITEN (nur Admins)
+- `engagementKommHtml` — stammbaum.html:18638 — PERSON BEARBEITEN (nur Admins)
+- `engagementLaden` — stammbaum.html:18578 — PERSON BEARBEITEN (nur Admins)
+- `engagementLiveAnstossen` — stammbaum.html:18755 — PERSON BEARBEITEN (nur Admins)
+- `engagementLoeschen` — stammbaum.html:18719 — PERSON BEARBEITEN (nur Admins)
+- `engagementMount` — stammbaum.html:18563 — PERSON BEARBEITEN (nur Admins)
+- `engagementReagieren` — stammbaum.html:18673 — PERSON BEARBEITEN (nur Admins)
+- `engagementRender` — stammbaum.html:18592 — PERSON BEARBEITEN (nur Admins)
+- `engagementReplyAbbrechen` — stammbaum.html:18689 — PERSON BEARBEITEN (nur Admins)
+- `engagementSpracheUpdate` — stammbaum.html:18729 — PERSON BEARBEITEN (nur Admins)
+- `engagementUnmount` — stammbaum.html:18575 — PERSON BEARBEITEN (nur Admins)
+- `engagementUnmountAlle` — stammbaum.html:18576 — PERSON BEARBEITEN (nur Admins)
+- `ensure` — stammbaum.html:24304 — STAMMBAUM (d3.js)
+- `entAvatar` — stammbaum.html:5510 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `entdeckenAnfrage` — stammbaum.html:5532 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `entdeckenOeffnePerson` — stammbaum.html:5520 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `entdeckenRenderKombiniert` — stammbaum.html:5471 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `entdeckenSpracheUpdate` — stammbaum.html:5549 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `entdeckenSuche` — stammbaum.html:5448 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `entdeckenSucheDebounce` — stammbaum.html:5413 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `entdoppeltePersonen` — stammbaum.html:12963 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `entferneMitglied` — stammbaum.html:4012 — MITGLIEDER-VERWALTUNG (Admins)
+- `entKontaktAnschreiben` — stammbaum.html:10422 — INITIALISIERUNG
+- `entKontaktBaumzugriff` — stammbaum.html:10444 — INITIALISIERUNG
+- `entKontaktDialog` — stammbaum.html:10405 — INITIALISIERUNG
+- `entKontaktDialogVon` — stammbaum.html:10401 — INITIALISIERUNG
+- `entKontaktFehler` — stammbaum.html:10417 — INITIALISIERUNG
+- `entKontaktSchliessen` — stammbaum.html:10413 — INITIALISIERUNG
+- `erinnFeedKarteHtml` — stammbaum.html:15726 — KARTEN-ANSICHT
+- `erinnItemHtml` — stammbaum.html:15705 — KARTEN-ANSICHT
+- `erinnMeta` — stammbaum.html:15693 — KARTEN-ANSICHT
+- `erinnOeffne` — stammbaum.html:15761 — KARTEN-ANSICHT
+- `erinnVorJahren` — stammbaum.html:15667 — KARTEN-ANSICHT
+- `ermittleStartsprache` — stammbaum.html:8263 — SPRACH-SYSTEM
+- `erstelleStammbaum` — stammbaum.html:6325 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `erzeugePlatzhalterElternteil` — stammbaum.html:21787 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `escapeHtml` — stammbaum.html:17110 — KARTEN-ANSICHT
+- `etnAlleWaehlen` — stammbaum.html:15336 — KARTEN-ANSICHT
+- `etnBindeListe` — stammbaum.html:15324 — KARTEN-ANSICHT
+- `etnGefiltert` — stammbaum.html:15272 — KARTEN-ANSICHT
+- `etnInvertieren` — stammbaum.html:15341 — KARTEN-ANSICHT
+- `etnMehrLaden` — stammbaum.html:15318 — KARTEN-ANSICHT
+- `etnSucheDebounce` — stammbaum.html:15266 — KARTEN-ANSICHT
+- `evApplyModusUI` — stammbaum.html:13671 — KARTEN-ANSICHT
+- `evKalenderOptionen` — stammbaum.html:15120 — KARTEN-ANSICHT
+- `evSetModus` — stammbaum.html:13685 — KARTEN-ANSICHT
+- `extOf` — stammbaum.html:11709 — INITIALISIERUNG
 - `faerbe` — pdf_export.js:830 — (ohne Abschnittsueberschrift)
-- `familieAnsehen` — stammbaum.html:12988 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `familienListeFuellen` — stammbaum.html:12975 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `familienSuchLabel` — stammbaum.html:3722 — MITGLIEDER-VERWALTUNG (Admins)
-- `fBtn` — stammbaum.html:3400 — SUPABASE AUTH
-- `feedAktivitaetHtml` — stammbaum.html:19169 — PERSON BEARBEITEN (nur Admins)
-- `feedApplyModusUI` — stammbaum.html:19079 — PERSON BEARBEITEN (nur Admins)
-- `feedBearbeitenAbbrechen` — stammbaum.html:19956 — PERSON BEARBEITEN (nur Admins)
-- `feedBearbeitenSpeichern` — stammbaum.html:19957 — PERSON BEARBEITEN (nur Admins)
-- `feedBearbeitenStart` — stammbaum.html:19955 — PERSON BEARBEITEN (nur Admins)
-- `feedBeitragAusAkt` — stammbaum.html:19158 — PERSON BEARBEITEN (nur Admins)
-- `feedBeitragHtml` — stammbaum.html:19269 — PERSON BEARBEITEN (nur Admins)
-- `feedBeitragLoeschen` — stammbaum.html:19967 — PERSON BEARBEITEN (nur Admins)
-- `feedBeitragSenden` — stammbaum.html:19329 — PERSON BEARBEITEN (nur Admins)
-- `feedBildEntfernen` — stammbaum.html:19322 — PERSON BEARBEITEN (nur Admins)
-- `feedBildGewaehlt` — stammbaum.html:19311 — PERSON BEARBEITEN (nur Admins)
-- `feedEintragLoeschen` — stammbaum.html:19258 — PERSON BEARBEITEN (nur Admins)
-- `feedLaden` — stammbaum.html:19106 — PERSON BEARBEITEN (nur Admins)
-- `feedLiveAnstossen` — stammbaum.html:20128 — PERSON BEARBEITEN (nur Admins)
-- `feedMehr` — stammbaum.html:19125 — PERSON BEARBEITEN (nur Admins)
-- `feedOeffneAlbum` — stammbaum.html:19248 — PERSON BEARBEITEN (nur Admins)
-- `feedOeffneEvent` — stammbaum.html:19242 — PERSON BEARBEITEN (nur Admins)
-- `feedOeffnePerson` — stammbaum.html:19304 — PERSON BEARBEITEN (nur Admins)
-- `feedPersonOptionen` — stammbaum.html:19091 — PERSON BEARBEITEN (nur Admins)
-- `feedRefPersonOptionen` — stammbaum.html:19103 — PERSON BEARBEITEN (nur Admins)
-- `feedRender` — stammbaum.html:19127 — PERSON BEARBEITEN (nur Admins)
-- `feedSetModus` — stammbaum.html:19073 — PERSON BEARBEITEN (nur Admins)
-- `feedSpracheUpdate` — stammbaum.html:19980 — PERSON BEARBEITEN (nur Admins)
-- `feFehlerText` — stammbaum.html:7092 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feFrameAusEinst` — stammbaum.html:6462 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feFuelleOwnerSektion` — stammbaum.html:6703 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `fehl` — stammbaum.html:5453 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `feldFehler` — stammbaum.html:6405 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feldFehlerReset` — stammbaum.html:6445 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feldFehlerWeg` — stammbaum.html:6435 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feldFokus` — stammbaum.html:6426 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feldInSichtScrollen` — stammbaum.html:10005 — INITIALISIERUNG
-- `feLogoAusEinst` — stammbaum.html:6471 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feMediaCleanup` — stammbaum.html:7043 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feMediaPreview` — stammbaum.html:6844 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feMediaStandard` — stammbaum.html:6881 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feMediaUpload` — stammbaum.html:6855 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `fertig` — stammbaum.html:7978 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `fertig` — stammbaum.html:11500 — INITIALISIERUNG
-- `fertig` — stammbaum.html:13521 — KARTEN-ANSICHT
-- `fertig` — stammbaum.html:13545 — KARTEN-ANSICHT
-- `fertig` — stammbaum.html:20681 — PERSON BEARBEITEN (nur Admins)
-- `fertig` — stammbaum.html:22104 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `fertig` — stammbaum.html:22727 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `feSammleEinstellungen` — stammbaum.html:7067 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `feSetReadonly` — stammbaum.html:6515 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `filterBaumNameInput` — stammbaum.html:22572 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `findeStammbaumWurzel` — stammbaum.html:9003 — SPRACH-SYSTEM
-- `findeWurzel` — stammbaum.html:24028 — STAMMBAUM (d3.js)
-- `findeZwillinge` — stammbaum.html:17613 — DETAIL-FENSTER
-- `flushTrack` — stammbaum.html:3197 — SUPABASE AUTH
-- `fokusAufPerson` — stammbaum.html:10539 — INITIALISIERUNG
-- `fokusAusUrl` — stammbaum.html:10583 — INITIALISIERUNG
-- `fokusUrlSetzen` — stammbaum.html:10573 — INITIALISIERUNG
-- `fokusZurueck` — stammbaum.html:10559 — INITIALISIERUNG
-- `fontStr` — stammbaum.html:16685 — KARTEN-ANSICHT
-- `formatDatumLang` — stammbaum.html:9582 — INITIALISIERUNG
-- `formatDatumZeit` — stammbaum.html:5603 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `formatGeld` — stammbaum.html:16440 — KARTEN-ANSICHT
-- `fotoTagEntfernen` — stammbaum.html:18453 — PERSON BEARBEITEN (nur Admins)
-- `fotoTagMarkierenStart` — stammbaum.html:18425 — PERSON BEARBEITEN (nur Admins)
-- `fotoTagOeffne` — stammbaum.html:18419 — PERSON BEARBEITEN (nur Admins)
-- `fotoTagSetzen` — stammbaum.html:18441 — PERSON BEARBEITEN (nur Admins)
-- `fotoTagsPaint` — stammbaum.html:18402 — PERSON BEARBEITEN (nur Admins)
-- `fotoTagsRender` — stammbaum.html:18386 — PERSON BEARBEITEN (nur Admins)
-- `fotoUrl` — stammbaum.html:18083 — PERSON BEARBEITEN (nur Admins)
-- `frageBildEntfernen` — stammbaum.html:20038 — PERSON BEARBEITEN (nur Admins)
-- `frageBildGewaehlt` — stammbaum.html:20027 — PERSON BEARBEITEN (nur Admins)
-- `frageHtml` — stammbaum.html:20013 — PERSON BEARBEITEN (nur Admins)
-- `frageLoeschen` — stammbaum.html:20067 — PERSON BEARBEITEN (nur Admins)
-- `frageLoesenBestaetigen` — stammbaum.html:20100 — PERSON BEARBEITEN (nur Admins)
-- `frageLoesenKarte` — stammbaum.html:20093 — PERSON BEARBEITEN (nur Admins)
-- `frageLoesenOeffnen` — stammbaum.html:20080 — PERSON BEARBEITEN (nur Admins)
-- `fragenLaden` — stammbaum.html:19991 — PERSON BEARBEITEN (nur Admins)
-- `fragenMehr` — stammbaum.html:20005 — PERSON BEARBEITEN (nur Admins)
-- `fragenRender` — stammbaum.html:20006 — PERSON BEARBEITEN (nur Admins)
-- `fragenSpracheUpdate` — stammbaum.html:20106 — PERSON BEARBEITEN (nur Admins)
-- `frageRefPersonOptionen` — stammbaum.html:19104 — PERSON BEARBEITEN (nur Admins)
-- `frageStellen` — stammbaum.html:20044 — PERSON BEARBEITEN (nur Admins)
-- `frageWiederOeffnen` — stammbaum.html:20076 — PERSON BEARBEITEN (nur Admins)
-- `fuegeMitgliedEinladen` — stammbaum.html:4182 — MITGLIEDER-VERWALTUNG (Admins)
-- `fuelleEinLandSelect` — stammbaum.html:8463 — SPRACH-SYSTEM
-- `fuelleFeKartenfelder` — stammbaum.html:7054 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `fuelleLandBosnien` — stammbaum.html:7290 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `fuelleLandSelect` — stammbaum.html:8493 — SPRACH-SYSTEM
-- `fuelleLandSelects` — stammbaum.html:8489 — SPRACH-SYSTEM
-- `fuelleProfilDatumsformat` — stammbaum.html:5190 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `fuelleProfilSprache` — stammbaum.html:5183 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `fuelleProfilStammdaten` — stammbaum.html:4809 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `fuelleProfilZeitzone` — stammbaum.html:5207 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `fuelleStandardBaumSelect` — stammbaum.html:8928 — SPRACH-SYSTEM
-- `g` — stammbaum.html:15933 — KARTEN-ANSICHT
+- `familieAnsehen` — stammbaum.html:13017 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `familienListeFuellen` — stammbaum.html:13004 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `familienSuchLabel` — stammbaum.html:3724 — MITGLIEDER-VERWALTUNG (Admins)
+- `fBtn` — stammbaum.html:3402 — SUPABASE AUTH
+- `feedAktivitaetHtml` — stammbaum.html:19199 — PERSON BEARBEITEN (nur Admins)
+- `feedApplyModusUI` — stammbaum.html:19109 — PERSON BEARBEITEN (nur Admins)
+- `feedBearbeitenAbbrechen` — stammbaum.html:19986 — PERSON BEARBEITEN (nur Admins)
+- `feedBearbeitenSpeichern` — stammbaum.html:19987 — PERSON BEARBEITEN (nur Admins)
+- `feedBearbeitenStart` — stammbaum.html:19985 — PERSON BEARBEITEN (nur Admins)
+- `feedBeitragAusAkt` — stammbaum.html:19188 — PERSON BEARBEITEN (nur Admins)
+- `feedBeitragHtml` — stammbaum.html:19299 — PERSON BEARBEITEN (nur Admins)
+- `feedBeitragLoeschen` — stammbaum.html:19997 — PERSON BEARBEITEN (nur Admins)
+- `feedBeitragSenden` — stammbaum.html:19359 — PERSON BEARBEITEN (nur Admins)
+- `feedBildEntfernen` — stammbaum.html:19352 — PERSON BEARBEITEN (nur Admins)
+- `feedBildGewaehlt` — stammbaum.html:19341 — PERSON BEARBEITEN (nur Admins)
+- `feedEintragLoeschen` — stammbaum.html:19288 — PERSON BEARBEITEN (nur Admins)
+- `feedLaden` — stammbaum.html:19136 — PERSON BEARBEITEN (nur Admins)
+- `feedLiveAnstossen` — stammbaum.html:20158 — PERSON BEARBEITEN (nur Admins)
+- `feedMehr` — stammbaum.html:19155 — PERSON BEARBEITEN (nur Admins)
+- `feedOeffneAlbum` — stammbaum.html:19278 — PERSON BEARBEITEN (nur Admins)
+- `feedOeffneEvent` — stammbaum.html:19272 — PERSON BEARBEITEN (nur Admins)
+- `feedOeffnePerson` — stammbaum.html:19334 — PERSON BEARBEITEN (nur Admins)
+- `feedPersonOptionen` — stammbaum.html:19121 — PERSON BEARBEITEN (nur Admins)
+- `feedRefPersonOptionen` — stammbaum.html:19133 — PERSON BEARBEITEN (nur Admins)
+- `feedRender` — stammbaum.html:19157 — PERSON BEARBEITEN (nur Admins)
+- `feedSetModus` — stammbaum.html:19103 — PERSON BEARBEITEN (nur Admins)
+- `feedSpracheUpdate` — stammbaum.html:20010 — PERSON BEARBEITEN (nur Admins)
+- `feFehlerText` — stammbaum.html:7094 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feFrameAusEinst` — stammbaum.html:6464 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feFuelleOwnerSektion` — stammbaum.html:6705 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `fehl` — stammbaum.html:5455 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `feldFehler` — stammbaum.html:6407 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feldFehlerReset` — stammbaum.html:6447 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feldFehlerWeg` — stammbaum.html:6437 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feldFokus` — stammbaum.html:6428 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feldInSichtScrollen` — stammbaum.html:10007 — INITIALISIERUNG
+- `feLogoAusEinst` — stammbaum.html:6473 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feMediaCleanup` — stammbaum.html:7045 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feMediaPreview` — stammbaum.html:6846 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feMediaStandard` — stammbaum.html:6883 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feMediaUpload` — stammbaum.html:6857 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `fertig` — stammbaum.html:7980 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `fertig` — stammbaum.html:11515 — INITIALISIERUNG
+- `fertig` — stammbaum.html:13550 — KARTEN-ANSICHT
+- `fertig` — stammbaum.html:13574 — KARTEN-ANSICHT
+- `fertig` — stammbaum.html:20711 — PERSON BEARBEITEN (nur Admins)
+- `fertig` — stammbaum.html:22143 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `fertig` — stammbaum.html:22766 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `feSammleEinstellungen` — stammbaum.html:7069 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `feSetReadonly` — stammbaum.html:6517 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `filterBaumNameInput` — stammbaum.html:22611 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `findeStammbaumWurzel` — stammbaum.html:9005 — SPRACH-SYSTEM
+- `findeWurzel` — stammbaum.html:24081 — STAMMBAUM (d3.js)
+- `findeZwillinge` — stammbaum.html:17642 — DETAIL-FENSTER
+- `flushTrack` — stammbaum.html:3199 — SUPABASE AUTH
+- `fokusAufPerson` — stammbaum.html:10541 — INITIALISIERUNG
+- `fokusAusUrl` — stammbaum.html:10585 — INITIALISIERUNG
+- `fokusUrlSetzen` — stammbaum.html:10575 — INITIALISIERUNG
+- `fokusZurueck` — stammbaum.html:10561 — INITIALISIERUNG
+- `fontStr` — stammbaum.html:16714 — KARTEN-ANSICHT
+- `formatDatumLang` — stammbaum.html:9584 — INITIALISIERUNG
+- `formatDatumZeit` — stammbaum.html:5605 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `formatGeld` — stammbaum.html:16469 — KARTEN-ANSICHT
+- `fotoTagEntfernen` — stammbaum.html:18483 — PERSON BEARBEITEN (nur Admins)
+- `fotoTagMarkierenStart` — stammbaum.html:18455 — PERSON BEARBEITEN (nur Admins)
+- `fotoTagOeffne` — stammbaum.html:18449 — PERSON BEARBEITEN (nur Admins)
+- `fotoTagSetzen` — stammbaum.html:18471 — PERSON BEARBEITEN (nur Admins)
+- `fotoTagsPaint` — stammbaum.html:18432 — PERSON BEARBEITEN (nur Admins)
+- `fotoTagsRender` — stammbaum.html:18416 — PERSON BEARBEITEN (nur Admins)
+- `fotoUrl` — stammbaum.html:18113 — PERSON BEARBEITEN (nur Admins)
+- `frageBildEntfernen` — stammbaum.html:20068 — PERSON BEARBEITEN (nur Admins)
+- `frageBildGewaehlt` — stammbaum.html:20057 — PERSON BEARBEITEN (nur Admins)
+- `frageHtml` — stammbaum.html:20043 — PERSON BEARBEITEN (nur Admins)
+- `frageLoeschen` — stammbaum.html:20097 — PERSON BEARBEITEN (nur Admins)
+- `frageLoesenBestaetigen` — stammbaum.html:20130 — PERSON BEARBEITEN (nur Admins)
+- `frageLoesenKarte` — stammbaum.html:20123 — PERSON BEARBEITEN (nur Admins)
+- `frageLoesenOeffnen` — stammbaum.html:20110 — PERSON BEARBEITEN (nur Admins)
+- `fragenLaden` — stammbaum.html:20021 — PERSON BEARBEITEN (nur Admins)
+- `fragenMehr` — stammbaum.html:20035 — PERSON BEARBEITEN (nur Admins)
+- `fragenRender` — stammbaum.html:20036 — PERSON BEARBEITEN (nur Admins)
+- `fragenSpracheUpdate` — stammbaum.html:20136 — PERSON BEARBEITEN (nur Admins)
+- `frageRefPersonOptionen` — stammbaum.html:19134 — PERSON BEARBEITEN (nur Admins)
+- `frageStellen` — stammbaum.html:20074 — PERSON BEARBEITEN (nur Admins)
+- `frageWiederOeffnen` — stammbaum.html:20106 — PERSON BEARBEITEN (nur Admins)
+- `fuegeMitgliedEinladen` — stammbaum.html:4184 — MITGLIEDER-VERWALTUNG (Admins)
+- `fuelleEinLandSelect` — stammbaum.html:8465 — SPRACH-SYSTEM
+- `fuelleFeKartenfelder` — stammbaum.html:7056 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `fuelleLandBosnien` — stammbaum.html:7292 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `fuelleLandSelect` — stammbaum.html:8495 — SPRACH-SYSTEM
+- `fuelleLandSelects` — stammbaum.html:8491 — SPRACH-SYSTEM
+- `fuelleProfilDatumsformat` — stammbaum.html:5192 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `fuelleProfilSprache` — stammbaum.html:5185 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `fuelleProfilStammdaten` — stammbaum.html:4811 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `fuelleProfilZeitzone` — stammbaum.html:5209 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `fuelleStandardBaumSelect` — stammbaum.html:8930 — SPRACH-SYSTEM
+- `g` — stammbaum.html:15962 — KARTEN-ANSICHT
 - `g` — pdf_export.js:186 — (ohne Abschnittsueberschrift)
-- `galerieBeschriftung` — stammbaum.html:18233 — PERSON BEARBEITEN (nur Admins)
-- `galerieDetailRender` — stammbaum.html:18318 — PERSON BEARBEITEN (nur Admins)
-- `galerieDragEnd` — stammbaum.html:18288 — PERSON BEARBEITEN (nur Admins)
-- `galerieDragMove` — stammbaum.html:18282 — PERSON BEARBEITEN (nur Admins)
-- `galerieDragStart` — stammbaum.html:18264 — PERSON BEARBEITEN (nur Admins)
-- `galerieEditOeffnen` — stammbaum.html:18151 — PERSON BEARBEITEN (nur Admins)
-- `galerieEditRender` — stammbaum.html:18164 — PERSON BEARBEITEN (nur Admins)
-- `galerieFehler` — stammbaum.html:18124 — PERSON BEARBEITEN (nur Admins)
-- `galerieHauptbild` — stammbaum.html:18219 — PERSON BEARBEITEN (nur Admins)
-- `galerieKarteUnter` — stammbaum.html:18277 — PERSON BEARBEITEN (nur Admins)
-- `galerieKomprimiere` — stammbaum.html:18102 — PERSON BEARBEITEN (nur Admins)
-- `galerieLoescheFuerPersonen` — stammbaum.html:18341 — PERSON BEARBEITEN (nur Admins)
-- `galerieLoeschen` — stammbaum.html:18241 — PERSON BEARBEITEN (nur Admins)
-- `galerieReihenfolgeSpeichern` — stammbaum.html:18308 — PERSON BEARBEITEN (nur Admins)
-- `galerieSpracheUpdate` — stammbaum.html:18487 — PERSON BEARBEITEN (nur Admins)
-- `galerieUpload` — stammbaum.html:18183 — PERSON BEARBEITEN (nur Admins)
-- `gamErreichteAbzeichen` — stammbaum.html:17201 — DETAIL-FENSTER
-- `gamSpracheUpdate` — stammbaum.html:17251 — DETAIL-FENSTER
-- `gapFn` — stammbaum.html:24426 — STAMMBAUM (d3.js)
-- `gedenkBearbeitenAbbrechen` — stammbaum.html:19000 — PERSON BEARBEITEN (nur Admins)
-- `gedenkBearbeitenSpeichern` — stammbaum.html:19002 — PERSON BEARBEITEN (nur Admins)
-- `gedenkBearbeitenStart` — stammbaum.html:18999 — PERSON BEARBEITEN (nur Admins)
-- `gedenkEintragHtml` — stammbaum.html:18896 — PERSON BEARBEITEN (nur Admins)
-- `gedenkEintragLoeschen` — stammbaum.html:19013 — PERSON BEARBEITEN (nur Admins)
-- `gedenkEintragSenden` — stammbaum.html:18956 — PERSON BEARBEITEN (nur Admins)
-- `gedenkFehler` — stammbaum.html:18929 — PERSON BEARBEITEN (nur Admins)
-- `gedenkFotoLeeren` — stammbaum.html:18934 — PERSON BEARBEITEN (nur Admins)
-- `gedenkFotoLeerenUndRender` — stammbaum.html:18938 — PERSON BEARBEITEN (nur Admins)
-- `gedenkFotoUrl` — stammbaum.html:18755 — PERSON BEARBEITEN (nur Admins)
-- `gedenkFotoWahl` — stammbaum.html:18940 — PERSON BEARBEITEN (nur Admins)
-- `gedenkInitialen` — stammbaum.html:18761 — PERSON BEARBEITEN (nur Admins)
-- `gedenkKerzeUmschalten` — stammbaum.html:18990 — PERSON BEARBEITEN (nur Admins)
-- `gedenkLoescheFuerPersonen` — stammbaum.html:19027 — PERSON BEARBEITEN (nur Admins)
-- `gedenkRender` — stammbaum.html:18812 — PERSON BEARBEITEN (nur Admins)
-- `gedenkSpracheUpdate` — stammbaum.html:19037 — PERSON BEARBEITEN (nur Admins)
-- `geheZurueck` — stammbaum.html:17600 — DETAIL-FENSTER
-- `geoAdrInput` — stammbaum.html:15011 — KARTEN-ANSICHT
-- `geoAdrKoord` — stammbaum.html:15069 — KARTEN-ANSICHT
-- `geoAdrSetze` — stammbaum.html:15061 — KARTEN-ANSICHT
-- `geoAdrStatus` — stammbaum.html:15051 — KARTEN-ANSICHT
-- `geoAdrSuche` — stammbaum.html:15021 — KARTEN-ANSICHT
-- `geoAdrWahl` — stammbaum.html:15040 — KARTEN-ANSICHT
-- `geoEditInit` — stammbaum.html:14744 — KARTEN-ANSICHT
-- `geoEditOeffnen` — stammbaum.html:14759 — KARTEN-ANSICHT
-- `geoEntfernen` — stammbaum.html:14792 — KARTEN-ANSICHT
-- `geoSetze` — stammbaum.html:14779 — KARTEN-ANSICHT
-- `geoStatusAktualisieren` — stammbaum.html:14799 — KARTEN-ANSICHT
-- `geoSucheAusfuehren` — stammbaum.html:14833 — KARTEN-ANSICHT
-- `geoSucheDebounce` — stammbaum.html:14828 — KARTEN-ANSICHT
-- `geoTrefferWahl` — stammbaum.html:14855 — KARTEN-ANSICHT
-- `geraetLabel` — stammbaum.html:5612 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `geschCleanElement` — stammbaum.html:20164 — PERSON BEARBEITEN (nur Admins)
-- `geschDetailRender` — stammbaum.html:20368 — PERSON BEARBEITEN (nur Admins)
-- `geschEditOeffnen` — stammbaum.html:20225 — PERSON BEARBEITEN (nur Admins)
-- `geschFeldInput` — stammbaum.html:20275 — PERSON BEARBEITEN (nur Admins)
-- `geschFuelleFelder` — stammbaum.html:20263 — PERSON BEARBEITEN (nur Admins)
-- `geschLoeschen` — stammbaum.html:20336 — PERSON BEARBEITEN (nur Admins)
-- `geschMarkdownHtml` — stammbaum.html:20195 — PERSON BEARBEITEN (nur Admins)
-- `geschPuffer` — stammbaum.html:20244 — PERSON BEARBEITEN (nur Admins)
-- `geschRenderTabs` — stammbaum.html:20250 — PERSON BEARBEITEN (nur Admins)
-- `geschSpeichern` — stammbaum.html:20310 — PERSON BEARBEITEN (nur Admins)
-- `geschSpracheUpdate` — stammbaum.html:20393 — PERSON BEARBEITEN (nur Admins)
-- `geschStatus` — stammbaum.html:20301 — PERSON BEARBEITEN (nur Admins)
-- `geschTabWechsel` — stammbaum.html:20293 — PERSON BEARBEITEN (nur Admins)
-- `geschVorschau` — stammbaum.html:20286 — PERSON BEARBEITEN (nur Admins)
-- `geschWaehleAnzeige` — stammbaum.html:20358 — PERSON BEARBEITEN (nur Admins)
-- `getDebugRolle` — stammbaum.html:3467 — SUPABASE AUTH
-- `getEventConfig` — stammbaum.html:13327 — KARTEN-ANSICHT
-- `getStandardBaum` — stammbaum.html:8849 — SPRACH-SYSTEM
-- `gleich` — stammbaum.html:21161 — PERSON BEARBEITEN (nur Admins)
-- `gpFuelleBaeume` — stammbaum.html:17869 — DETAIL-FENSTER
-- `gpFuellePersonenSelect` — stammbaum.html:17901 — DETAIL-FENSTER
-- `gpLadeDubletten` — stammbaum.html:17777 — DETAIL-FENSTER
-- `gpLadePersonen` — stammbaum.html:17883 — DETAIL-FENSTER
-- `gpLinkGruppe` — stammbaum.html:17816 — DETAIL-FENSTER
-- `gpManuellWeiter` — stammbaum.html:17909 — DETAIL-FENSTER
-- `gpModalVerknuepfen` — stammbaum.html:17921 — DETAIL-FENSTER
-- `gpRenderAuto` — stammbaum.html:17857 — DETAIL-FENSTER
-- `gpRenderKonflikte` — stammbaum.html:17840 — DETAIL-FENSTER
-- `gpStartKonflikt` — stammbaum.html:17829 — DETAIL-FENSTER
-- `gpTwinHtml` — stammbaum.html:17626 — DETAIL-FENSTER
-- `gpVerknuepfeAusgewaehlte` — stammbaum.html:17798 — DETAIL-FENSTER
-- `gpWaehleBaum` — stammbaum.html:17880 — DETAIL-FENSTER
-- `gpZeigeSchritt` — stammbaum.html:17822 — DETAIL-FENSTER
-- `graph2FokusAufPerson` — stammbaum.html:25140 — STAMMBAUM (d3.js)
-- `graphBlutScope` — stammbaum.html:24583 — STAMMBAUM (d3.js)
-- `graphFokusAufPerson` — stammbaum.html:24543 — STAMMBAUM (d3.js)
-- `graphKomponente` — stammbaum.html:24306 — STAMMBAUM (d3.js)
-- `graphLayout` — stammbaum.html:24379 — STAMMBAUM (d3.js)
-- `graphNachkommen` — stammbaum.html:24334 — STAMMBAUM (d3.js)
-- `graphRadius` — stammbaum.html:24315 — STAMMBAUM (d3.js)
-- `graphRaenge` — stammbaum.html:24359 — STAMMBAUM (d3.js)
-- `graphRendererAn` — stammbaum.html:24227 — STAMMBAUM (d3.js)
-- `graphSichtbar` — stammbaum.html:24347 — STAMMBAUM (d3.js)
-- `groessterStammbaum` — stammbaum.html:8966 — SPRACH-SYSTEM
-- `gueltig` — stammbaum.html:8830 — SPRACH-SYSTEM
-- `handleGedcomUpload` — stammbaum.html:25156 — GEDCOM-UPLOAD
-- `handler` — stammbaum.html:4406 — MITGLIEDER-VERWALTUNG (Admins)
-- `handler` — stammbaum.html:18712 — PERSON BEARBEITEN (nur Admins)
-- `handleSuche` — stammbaum.html:10299 — INITIALISIERUNG
-- `handleSucheDebounce` — stammbaum.html:10294 — INITIALISIERUNG
-- `hardReload` — stammbaum.html:9902 — INITIALISIERUNG
-- `hatElternImBaum` — stammbaum.html:9007 — SPRACH-SYSTEM
-- `heuteIso` — stammbaum.html:14024 — KARTEN-ANSICHT
-- `holeFamilie` — stammbaum.html:8749 — SPRACH-SYSTEM
-- `icalAboOeffnen` — stammbaum.html:14090 — KARTEN-ANSICHT
-- `icalFeedUrl` — stammbaum.html:14089 — KARTEN-ANSICHT
-- `icalKopieren` — stammbaum.html:14102 — KARTEN-ANSICHT
-- `icalReset` — stammbaum.html:14108 — KARTEN-ANSICHT
-- `imBaum` — stammbaum.html:9004 — SPRACH-SYSTEM
-- `imBaumKnoten` — stammbaum.html:24597 — STAMMBAUM (d3.js)
-- `inCand` — stammbaum.html:21406 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `inErlaubt` — stammbaum.html:23936 — STAMMBAUM (d3.js)
-- `init` — stammbaum.html:10026 — INITIALISIERUNG
-- `initBaum` — stammbaum.html:23445 — STAMMBAUM (d3.js)
-- `initMobileTastatur` — stammbaum.html:10017 — INITIALISIERUNG
-- `initSessionUeberwachung` — stammbaum.html:9944 — INITIALISIERUNG
-- `initSprachDropdown` — stammbaum.html:9142 — SPRACH-DROPDOWN (Flaggen-Menü)
-- `initSuchbareSelects` — stammbaum.html:9412 — INITIALISIERUNG
-- `initVersionsPruefung` — stammbaum.html:9977 — INITIALISIERUNG
-- `integOeffnePerson` — stammbaum.html:22328 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `integPersonChips` — stammbaum.html:22283 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `integSpracheUpdate` — stammbaum.html:22335 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `inV` — stammbaum.html:10991 — INITIALISIERUNG
-- `isoLocale` — stammbaum.html:8409 — SPRACH-SYSTEM
-- `isoVon` — stammbaum.html:9513 — INITIALISIERUNG
-- `isoZuKurz` — stammbaum.html:9542 — INITIALISIERUNG
-- `isoZuLang` — stammbaum.html:9547 — INITIALISIERUNG
-- `istAdmin` — stammbaum.html:3171 — SUPABASE AUTH
-- `istBlut` — stammbaum.html:24599 — STAMMBAUM (d3.js)
-- `istBlutBaum` — stammbaum.html:9018 — SPRACH-SYSTEM
-- `istBlutInBaum` — stammbaum.html:22010 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `istBlutName` — stammbaum.html:23989 — STAMMBAUM (d3.js)
-- `istExOhneKinder` — stammbaum.html:23923 — STAMMBAUM (d3.js)
-- `istGueltigerBaumName` — stammbaum.html:22567 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `istIsoDatum` — stammbaum.html:9514 — INITIALISIERUNG
-- `istPlatz` — stammbaum.html:24623 — STAMMBAUM (d3.js)
-- `istSuperAdmin` — stammbaum.html:3175 — SUPABASE AUTH
-- `isValidEmail` — stammbaum.html:6360 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `joint` — stammbaum.html:24794 — STAMMBAUM (d3.js)
-- `kalEintraege` — stammbaum.html:13968 — KARTEN-ANSICHT
-- `kalHeute` — stammbaum.html:14076 — KARTEN-ANSICHT
-- `kalInitAnker` — stammbaum.html:13960 — KARTEN-ANSICHT
-- `kalLocale` — stammbaum.html:13957 — KARTEN-ANSICHT
-- `kalNav` — stammbaum.html:14067 — KARTEN-ANSICHT
-- `kalRender` — stammbaum.html:14002 — KARTEN-ANSICHT
-- `kalSpracheUpdate` — stammbaum.html:14083 — KARTEN-ANSICHT
-- `kalTag` — stammbaum.html:14045 — KARTEN-ANSICHT
-- `kalTagDetailRender` — stammbaum.html:14050 — KARTEN-ANSICHT
-- `kalToggleAnlaesse` — stammbaum.html:14077 — KARTEN-ANSICHT
-- `kanon` — stammbaum.html:14595 — KARTEN-ANSICHT
-- `kanonId` — stammbaum.html:23959 — STAMMBAUM (d3.js)
-- `karteEdgeAdd` — stammbaum.html:21264 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `karteEvents` — stammbaum.html:14520 — KARTEN-ANSICHT
-- `karteFit` — stammbaum.html:14686 — KARTEN-ANSICHT
-- `karteFuelleFilter` — stammbaum.html:14632 — KARTEN-ANSICHT
-- `karteIcon` — stammbaum.html:14660 — KARTEN-ANSICHT
-- `karteInit` — stammbaum.html:14646 — KARTEN-ANSICHT
-- `karteLeer` — stammbaum.html:14678 — KARTEN-ANSICHT
-- `karteLeerAus` — stammbaum.html:14685 — KARTEN-ANSICHT
-- `kartenfelderStandardSet` — stammbaum.html:9477 — INITIALISIERUNG
-- `kartePersonen` — stammbaum.html:14528 — KARTEN-ANSICHT
-- `kartePersonenMigration` — stammbaum.html:14593 — KARTEN-ANSICHT
-- `kartePopupHtml` — stammbaum.html:14666 — KARTEN-ANSICHT
-- `kartePunktPopupHtml` — stammbaum.html:14611 — KARTEN-ANSICHT
-- `karteRandPlus` — stammbaum.html:23877 — STAMMBAUM (d3.js)
-- `karteRender` — stammbaum.html:14692 — KARTEN-ANSICHT
-- `karteSetModus` — stammbaum.html:14622 — KARTEN-ANSICHT
-- `kbFuelleKueche` — stammbaum.html:19531 — PERSON BEARBEITEN (nur Admins)
-- `kbMetaHtml` — stammbaum.html:19570 — PERSON BEARBEITEN (nur Admins)
-- `kbSchritteHtml` — stammbaum.html:19564 — PERSON BEARBEITEN (nur Admins)
-- `kbTagesgerichtRender` — stammbaum.html:19623 — PERSON BEARBEITEN (nur Admins)
-- `kbTagesIndex` — stammbaum.html:19549 — PERSON BEARBEITEN (nur Admins)
-- `kbUeberrasche` — stammbaum.html:19656 — PERSON BEARBEITEN (nur Admins)
-- `kbVollHtml` — stammbaum.html:19576 — PERSON BEARBEITEN (nur Admins)
-- `kbZuEinkauf` — stammbaum.html:19884 — PERSON BEARBEITEN (nur Admins)
-- `kbZutatenHtml` — stammbaum.html:19555 — PERSON BEARBEITEN (nur Admins)
-- `kEhe` — stammbaum.html:24826 — STAMMBAUM (d3.js)
-- `kElt` — stammbaum.html:24827 — STAMMBAUM (d3.js)
-- `klick` — stammbaum.html:11047 — INITIALISIERUNG
-- `kochbuchBewLaden` — stammbaum.html:19588 — PERSON BEARBEITEN (nur Admins)
-- `kochbuchInit` — stammbaum.html:19539 — PERSON BEARBEITEN (nur Admins)
-- `kochbuchRender` — stammbaum.html:19631 — PERSON BEARBEITEN (nur Admins)
-- `kochbuchSpracheUpdate` — stammbaum.html:19661 — PERSON BEARBEITEN (nur Admins)
-- `kochbuchStern` — stammbaum.html:19609 — PERSON BEARBEITEN (nur Admins)
-- `kochbuchSterneHtml` — stammbaum.html:19596 — PERSON BEARBEITEN (nur Admins)
-- `kochbuchSterneNeu` — stammbaum.html:19619 — PERSON BEARBEITEN (nur Admins)
-- `konfliktAktuelle` — stammbaum.html:21185 — PERSON BEARBEITEN (nur Admins)
-- `konfliktErsteAnsicht` — stammbaum.html:21148 — PERSON BEARBEITEN (nur Admins)
-- `konfliktMeine` — stammbaum.html:21181 — PERSON BEARBEITEN (nur Admins)
-- `konfliktOverlayBau` — stammbaum.html:21134 — PERSON BEARBEITEN (nur Admins)
-- `konfliktSchliessen` — stammbaum.html:21139 — PERSON BEARBEITEN (nur Admins)
-- `konfliktVergleich` — stammbaum.html:21159 — PERSON BEARBEITEN (nur Admins)
-- `konfliktWert` — stammbaum.html:21124 — PERSON BEARBEITEN (nur Admins)
-- `kontaktAnfrageEntscheiden` — stammbaum.html:6070 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `kontaktKarteHtml` — stammbaum.html:6050 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `korrigiereNachname` — stammbaum.html:7347 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `korrigiereNachnamen` — stammbaum.html:7389 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `kostenAusgabeAbbrechen` — stammbaum.html:16618 — KARTEN-ANSICHT
-- `kostenAusgabeBearbeiten` — stammbaum.html:16617 — KARTEN-ANSICHT
-- `kostenAusgabeLoeschen` — stammbaum.html:16636 — KARTEN-ANSICHT
-- `kostenAusgabeSpeichern` — stammbaum.html:16619 — KARTEN-ANSICHT
-- `kostenPdfErzeugen` — stammbaum.html:16675 — KARTEN-ANSICHT
-- `kostenTeilnehmerAusBaum` — stammbaum.html:16593 — KARTEN-ANSICHT
-- `kostenTeilnehmerExtern` — stammbaum.html:16602 — KARTEN-ANSICHT
-- `kostenTeilnehmerLoeschen` — stammbaum.html:16612 — KARTEN-ANSICHT
-- `kostenTeilnehmerSpeichern` — stammbaum.html:16607 — KARTEN-ANSICHT
-- `kuecheLabel` — stammbaum.html:19529 — PERSON BEARBEITEN (nur Admins)
-- `ladeAddFamilien` — stammbaum.html:4144 — MITGLIEDER-VERWALTUNG (Admins)
-- `ladeAlbum` — stammbaum.html:16176 — KARTEN-ANSICHT
-- `ladeAlbumUebersicht` — stammbaum.html:16363 — KARTEN-ANSICHT
-- `ladeAnalytik` — stammbaum.html:3220 — SUPABASE AUTH
-- `ladeAnlassEinstellungen` — stammbaum.html:15758 — KARTEN-ANSICHT
-- `ladeAnsichtPref` — stammbaum.html:13103 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ladeAuth` — stammbaum.html:3013 — SUPABASE AUTH
-- `ladeAvatarHoch` — stammbaum.html:5286 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `ladeBaumAusSupabase` — stammbaum.html:8667 — SPRACH-SYSTEM
-- `ladeBaumDaten` — stammbaum.html:8811 — SPRACH-SYSTEM
-- `ladeBenachrichtigungen` — stammbaum.html:15376 — KARTEN-ANSICHT
-- `ladeBereinigung` — stammbaum.html:6605 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `ladeCss` — stammbaum.html:2917 — SUPABASE AUTH
-- `ladeErinnerungen` — stammbaum.html:15652 — KARTEN-ANSICHT
-- `ladeEventMedienListe` — stammbaum.html:15167 — KARTEN-ANSICHT
-- `ladeGamification` — stammbaum.html:17203 — DETAIL-FENSTER
-- `ladeGedenkseite` — stammbaum.html:18786 — PERSON BEARBEITEN (nur Admins)
-- `ladeIntegritaet` — stammbaum.html:22268 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `ladeKostenDaten` — stammbaum.html:16434 — KARTEN-ANSICHT
-- `ladeLeafletLib` — stammbaum.html:2945 — SUPABASE AUTH
-- `ladeMarkedLib` — stammbaum.html:2941 — SUPABASE AUTH
-- `ladeMeinePersonStatus` — stammbaum.html:4841 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `ladeMeinProfil` — stammbaum.html:4638 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `ladeMitglieder` — stammbaum.html:3749 — MITGLIEDER-VERWALTUNG (Admins)
-- `ladeNachnamenKandidaten` — stammbaum.html:22241 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `ladeOffeneAnfragen` — stammbaum.html:4320 — MITGLIEDER-VERWALTUNG (Admins)
-- `ladeOrientPref` — stammbaum.html:13114 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ladePdfLib` — stammbaum.html:2929 — SUPABASE AUTH
-- `ladePersonAufnahmen` — stammbaum.html:20697 — PERSON BEARBEITEN (nur Admins)
-- `ladePersonDokumente` — stammbaum.html:20430 — PERSON BEARBEITEN (nur Admins)
-- `ladePersonFotos` — stammbaum.html:18089 — PERSON BEARBEITEN (nur Admins)
-- `ladePersonGeschichten` — stammbaum.html:20215 — PERSON BEARBEITEN (nur Admins)
-- `ladeScript` — stammbaum.html:2906 — SUPABASE AUTH
-- `ladeSicherheit` — stammbaum.html:5628 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `ladeTabNeuigkeiten` — stammbaum.html:23378 — ANSICHT-WECHSEL
-- `landAnzeige` — stammbaum.html:8445 — SPRACH-SYSTEM
-- `landDisplayNames` — stammbaum.html:8411 — SPRACH-SYSTEM
-- `landName` — stammbaum.html:8420 — SPRACH-SYSTEM
-- `landZuCode` — stammbaum.html:8438 — SPRACH-SYSTEM
-- `layoutModusWaehle` — stammbaum.html:10756 — INITIALISIERUNG
-- `lightboxNav` — stammbaum.html:18372 — PERSON BEARBEITEN (nur Admins)
-- `lightboxRender` — stammbaum.html:18357 — PERSON BEARBEITEN (nur Admins)
-- `line` — stammbaum.html:16708 — KARTEN-ANSICHT
-- `linie` — stammbaum.html:23724 — STAMMBAUM (d3.js)
-- `linie` — stammbaum.html:24454 — STAMMBAUM (d3.js)
-- `linie` — stammbaum.html:24807 — STAMMBAUM (d3.js)
-- `loescheAlbumMedien` — stammbaum.html:16344 — KARTEN-ANSICHT
-- `loescheAvatarDateien` — stammbaum.html:5301 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `loescheEvent` — stammbaum.html:15961 — KARTEN-ANSICHT
-- `loescheEventMedien` — stammbaum.html:13486 — KARTEN-ANSICHT
-- `loeschePerson` — stammbaum.html:22844 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `loescheStammbaum` — stammbaum.html:6253 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `loescheUser` — stammbaum.html:3471 — SUPABASE AUTH
-- `logoCropAbbrechen` — stammbaum.html:6938 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropBinde` — stammbaum.html:6994 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropDown` — stammbaum.html:7010 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropLoese` — stammbaum.html:7002 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropMove` — stammbaum.html:7019 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropOeffne` — stammbaum.html:6897 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropPan` — stammbaum.html:6975 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropRender` — stammbaum.html:6958 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropReset` — stammbaum.html:6953 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropUebernehmen` — stammbaum.html:6939 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropUp` — stammbaum.html:7033 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropViewportForm` — stammbaum.html:6915 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropWheel` — stammbaum.html:7037 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropZoomBy` — stammbaum.html:6988 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoCropZoomSlider` — stammbaum.html:6966 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `logoFrameGeom` — stammbaum.html:10143 — INITIALISIERUNG
-- `logoFrameNorm` — stammbaum.html:10130 — INITIALISIERUNG
-- `logoFrameStyleAnwenden` — stammbaum.html:10152 — INITIALISIERUNG
-- `lokalisierePlatzhalterNamen` — stammbaum.html:8802 — SPRACH-SYSTEM
-- `maAktiveFamilie` — stammbaum.html:4042 — MITGLIEDER-VERWALTUNG (Admins)
-- `macheAlleDatumsfelder` — stammbaum.html:9878 — INITIALISIERUNG
-- `macheAlleSelectsSuchbar` — stammbaum.html:9379 — INITIALISIERUNG
-- `macheDatumsfeld` — stammbaum.html:9855 — INITIALISIERUNG
-- `macheSelectSuchbar` — stammbaum.html:9334 — INITIALISIERUNG
-- `maFamilieGewechselt` — stammbaum.html:4063 — MITGLIEDER-VERWALTUNG (Admins)
-- `maKarteEntfernen` — stammbaum.html:4094 — MITGLIEDER-VERWALTUNG (Admins)
-- `maKarteSuche` — stammbaum.html:4097 — MITGLIEDER-VERWALTUNG (Admins)
-- `maKarteSucheDebounce` — stammbaum.html:4096 — MITGLIEDER-VERWALTUNG (Admins)
-- `maKarteWaehle` — stammbaum.html:4131 — MITGLIEDER-VERWALTUNG (Admins)
-- `maLadeKarteBaeume` — stammbaum.html:4072 — MITGLIEDER-VERWALTUNG (Admins)
-- `maNeueKarteToggle` — stammbaum.html:4057 — MITGLIEDER-VERWALTUNG (Admins)
-- `maRenderKarteChip` — stammbaum.html:4085 — MITGLIEDER-VERWALTUNG (Admins)
-- `markiereEmailFehler` — stammbaum.html:6370 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `markiereTabGesehen` — stammbaum.html:23388 — ANSICHT-WECHSEL
-- `markierteFotosRender` — stammbaum.html:18463 — PERSON BEARBEITEN (nur Admins)
-- `markiertFotoOeffne` — stammbaum.html:18480 — PERSON BEARBEITEN (nur Admins)
-- `maSetModus` — stammbaum.html:4049 — MITGLIEDER-VERWALTUNG (Admins)
-- `meinAvatarUrl` — stammbaum.html:4725 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `meineKarteImBaum` — stammbaum.html:12742 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `meineVerantwortlichenBaeume` — stammbaum.html:8858 — SPRACH-SYSTEM
-- `mgErfolgUndZu` — stammbaum.html:7743 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgFeldLabel` — stammbaum.html:7431 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgFertig` — stammbaum.html:7708 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgFuelleBaeume` — stammbaum.html:7470 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgInfoZeile` — stammbaum.html:7548 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgKandidatHtml` — stammbaum.html:7575 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgLadeInfo` — stammbaum.html:7540 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgMergeAktuelles` — stammbaum.html:7674 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgPruefen` — stammbaum.html:7503 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgRenderAuto` — stammbaum.html:7661 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgRenderKandidaten` — stammbaum.html:7564 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgRenderKonflikte` — stammbaum.html:7644 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgRenderPaar` — stammbaum.html:7610 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgRenderSurvivor` — stammbaum.html:7637 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgRenderTreeMerge` — stammbaum.html:7722 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgRohName` — stammbaum.html:7439 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgSetSurvivor` — stammbaum.html:7642 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgSurvLabel` — stammbaum.html:7631 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgTreeMerge` — stammbaum.html:7732 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgTreeNein` — stammbaum.html:7742 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgWaehleBaum` — stammbaum.html:7481 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgWeiterZuKonflikt` — stammbaum.html:7595 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgWertAnzeige` — stammbaum.html:7433 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgZeigeSchritt` — stammbaum.html:7464 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mgZurueckZu` — stammbaum.html:7467 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `migriereMultiTree` — stammbaum.html:7218 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `migriereStammbaum` — stammbaum.html:7158 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `mittel` — stammbaum.html:24431 — STAMMBAUM (d3.js)
+- `galerieBeschriftung` — stammbaum.html:18263 — PERSON BEARBEITEN (nur Admins)
+- `galerieDetailRender` — stammbaum.html:18348 — PERSON BEARBEITEN (nur Admins)
+- `galerieDragEnd` — stammbaum.html:18318 — PERSON BEARBEITEN (nur Admins)
+- `galerieDragMove` — stammbaum.html:18312 — PERSON BEARBEITEN (nur Admins)
+- `galerieDragStart` — stammbaum.html:18294 — PERSON BEARBEITEN (nur Admins)
+- `galerieEditOeffnen` — stammbaum.html:18181 — PERSON BEARBEITEN (nur Admins)
+- `galerieEditRender` — stammbaum.html:18194 — PERSON BEARBEITEN (nur Admins)
+- `galerieFehler` — stammbaum.html:18154 — PERSON BEARBEITEN (nur Admins)
+- `galerieHauptbild` — stammbaum.html:18249 — PERSON BEARBEITEN (nur Admins)
+- `galerieKarteUnter` — stammbaum.html:18307 — PERSON BEARBEITEN (nur Admins)
+- `galerieKomprimiere` — stammbaum.html:18132 — PERSON BEARBEITEN (nur Admins)
+- `galerieLoescheFuerPersonen` — stammbaum.html:18371 — PERSON BEARBEITEN (nur Admins)
+- `galerieLoeschen` — stammbaum.html:18271 — PERSON BEARBEITEN (nur Admins)
+- `galerieReihenfolgeSpeichern` — stammbaum.html:18338 — PERSON BEARBEITEN (nur Admins)
+- `galerieSpracheUpdate` — stammbaum.html:18517 — PERSON BEARBEITEN (nur Admins)
+- `galerieUpload` — stammbaum.html:18213 — PERSON BEARBEITEN (nur Admins)
+- `gamErreichteAbzeichen` — stammbaum.html:17230 — DETAIL-FENSTER
+- `gamSpracheUpdate` — stammbaum.html:17280 — DETAIL-FENSTER
+- `gapFn` — stammbaum.html:24479 — STAMMBAUM (d3.js)
+- `gedenkBearbeitenAbbrechen` — stammbaum.html:19030 — PERSON BEARBEITEN (nur Admins)
+- `gedenkBearbeitenSpeichern` — stammbaum.html:19032 — PERSON BEARBEITEN (nur Admins)
+- `gedenkBearbeitenStart` — stammbaum.html:19029 — PERSON BEARBEITEN (nur Admins)
+- `gedenkEintragHtml` — stammbaum.html:18926 — PERSON BEARBEITEN (nur Admins)
+- `gedenkEintragLoeschen` — stammbaum.html:19043 — PERSON BEARBEITEN (nur Admins)
+- `gedenkEintragSenden` — stammbaum.html:18986 — PERSON BEARBEITEN (nur Admins)
+- `gedenkFehler` — stammbaum.html:18959 — PERSON BEARBEITEN (nur Admins)
+- `gedenkFotoLeeren` — stammbaum.html:18964 — PERSON BEARBEITEN (nur Admins)
+- `gedenkFotoLeerenUndRender` — stammbaum.html:18968 — PERSON BEARBEITEN (nur Admins)
+- `gedenkFotoUrl` — stammbaum.html:18785 — PERSON BEARBEITEN (nur Admins)
+- `gedenkFotoWahl` — stammbaum.html:18970 — PERSON BEARBEITEN (nur Admins)
+- `gedenkInitialen` — stammbaum.html:18791 — PERSON BEARBEITEN (nur Admins)
+- `gedenkKerzeUmschalten` — stammbaum.html:19020 — PERSON BEARBEITEN (nur Admins)
+- `gedenkLoescheFuerPersonen` — stammbaum.html:19057 — PERSON BEARBEITEN (nur Admins)
+- `gedenkRender` — stammbaum.html:18842 — PERSON BEARBEITEN (nur Admins)
+- `gedenkSpracheUpdate` — stammbaum.html:19067 — PERSON BEARBEITEN (nur Admins)
+- `geheZurueck` — stammbaum.html:17629 — DETAIL-FENSTER
+- `geoAdrInput` — stammbaum.html:15040 — KARTEN-ANSICHT
+- `geoAdrKoord` — stammbaum.html:15098 — KARTEN-ANSICHT
+- `geoAdrSetze` — stammbaum.html:15090 — KARTEN-ANSICHT
+- `geoAdrStatus` — stammbaum.html:15080 — KARTEN-ANSICHT
+- `geoAdrSuche` — stammbaum.html:15050 — KARTEN-ANSICHT
+- `geoAdrWahl` — stammbaum.html:15069 — KARTEN-ANSICHT
+- `geoEditInit` — stammbaum.html:14773 — KARTEN-ANSICHT
+- `geoEditOeffnen` — stammbaum.html:14788 — KARTEN-ANSICHT
+- `geoEntfernen` — stammbaum.html:14821 — KARTEN-ANSICHT
+- `geoSetze` — stammbaum.html:14808 — KARTEN-ANSICHT
+- `geoStatusAktualisieren` — stammbaum.html:14828 — KARTEN-ANSICHT
+- `geoSucheAusfuehren` — stammbaum.html:14862 — KARTEN-ANSICHT
+- `geoSucheDebounce` — stammbaum.html:14857 — KARTEN-ANSICHT
+- `geoTrefferWahl` — stammbaum.html:14884 — KARTEN-ANSICHT
+- `geraetLabel` — stammbaum.html:5614 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `geschCleanElement` — stammbaum.html:20194 — PERSON BEARBEITEN (nur Admins)
+- `geschDetailRender` — stammbaum.html:20398 — PERSON BEARBEITEN (nur Admins)
+- `geschEditOeffnen` — stammbaum.html:20255 — PERSON BEARBEITEN (nur Admins)
+- `geschFeldInput` — stammbaum.html:20305 — PERSON BEARBEITEN (nur Admins)
+- `geschFuelleFelder` — stammbaum.html:20293 — PERSON BEARBEITEN (nur Admins)
+- `geschLoeschen` — stammbaum.html:20366 — PERSON BEARBEITEN (nur Admins)
+- `geschMarkdownHtml` — stammbaum.html:20225 — PERSON BEARBEITEN (nur Admins)
+- `geschPuffer` — stammbaum.html:20274 — PERSON BEARBEITEN (nur Admins)
+- `geschRenderTabs` — stammbaum.html:20280 — PERSON BEARBEITEN (nur Admins)
+- `geschSpeichern` — stammbaum.html:20340 — PERSON BEARBEITEN (nur Admins)
+- `geschSpracheUpdate` — stammbaum.html:20423 — PERSON BEARBEITEN (nur Admins)
+- `geschStatus` — stammbaum.html:20331 — PERSON BEARBEITEN (nur Admins)
+- `geschTabWechsel` — stammbaum.html:20323 — PERSON BEARBEITEN (nur Admins)
+- `geschVorschau` — stammbaum.html:20316 — PERSON BEARBEITEN (nur Admins)
+- `geschWaehleAnzeige` — stammbaum.html:20388 — PERSON BEARBEITEN (nur Admins)
+- `getDebugRolle` — stammbaum.html:3469 — SUPABASE AUTH
+- `getEventConfig` — stammbaum.html:13356 — KARTEN-ANSICHT
+- `getStandardBaum` — stammbaum.html:8851 — SPRACH-SYSTEM
+- `gleich` — stammbaum.html:21199 — PERSON BEARBEITEN (nur Admins)
+- `gpFuelleBaeume` — stammbaum.html:17898 — DETAIL-FENSTER
+- `gpFuellePersonenSelect` — stammbaum.html:17930 — DETAIL-FENSTER
+- `gpLadeDubletten` — stammbaum.html:17806 — DETAIL-FENSTER
+- `gpLadePersonen` — stammbaum.html:17912 — DETAIL-FENSTER
+- `gpLinkGruppe` — stammbaum.html:17845 — DETAIL-FENSTER
+- `gpManuellWeiter` — stammbaum.html:17938 — DETAIL-FENSTER
+- `gpModalVerknuepfen` — stammbaum.html:17950 — DETAIL-FENSTER
+- `gpRenderAuto` — stammbaum.html:17886 — DETAIL-FENSTER
+- `gpRenderKonflikte` — stammbaum.html:17869 — DETAIL-FENSTER
+- `gpStartKonflikt` — stammbaum.html:17858 — DETAIL-FENSTER
+- `gpTwinHtml` — stammbaum.html:17655 — DETAIL-FENSTER
+- `gpVerknuepfeAusgewaehlte` — stammbaum.html:17827 — DETAIL-FENSTER
+- `gpWaehleBaum` — stammbaum.html:17909 — DETAIL-FENSTER
+- `gpZeigeSchritt` — stammbaum.html:17851 — DETAIL-FENSTER
+- `graph2FokusAufPerson` — stammbaum.html:25257 — STAMMBAUM (d3.js)
+- `graphBlutScope` — stammbaum.html:24640 — STAMMBAUM (d3.js)
+- `graphFokusAufPerson` — stammbaum.html:24600 — STAMMBAUM (d3.js)
+- `graphKomponente` — stammbaum.html:24359 — STAMMBAUM (d3.js)
+- `graphLayout` — stammbaum.html:24432 — STAMMBAUM (d3.js)
+- `graphNachkommen` — stammbaum.html:24387 — STAMMBAUM (d3.js)
+- `graphRadius` — stammbaum.html:24368 — STAMMBAUM (d3.js)
+- `graphRaenge` — stammbaum.html:24412 — STAMMBAUM (d3.js)
+- `graphRendererAn` — stammbaum.html:24280 — STAMMBAUM (d3.js)
+- `graphSichtbar` — stammbaum.html:24400 — STAMMBAUM (d3.js)
+- `groessterStammbaum` — stammbaum.html:8968 — SPRACH-SYSTEM
+- `gueltig` — stammbaum.html:8832 — SPRACH-SYSTEM
+- `handleGedcomUpload` — stammbaum.html:25273 — GEDCOM-UPLOAD
+- `handler` — stammbaum.html:4408 — MITGLIEDER-VERWALTUNG (Admins)
+- `handler` — stammbaum.html:18742 — PERSON BEARBEITEN (nur Admins)
+- `handleSuche` — stammbaum.html:10301 — INITIALISIERUNG
+- `handleSucheDebounce` — stammbaum.html:10296 — INITIALISIERUNG
+- `hardReload` — stammbaum.html:9904 — INITIALISIERUNG
+- `hatElternImBaum` — stammbaum.html:9009 — SPRACH-SYSTEM
+- `heuteIso` — stammbaum.html:14053 — KARTEN-ANSICHT
+- `holeFamilie` — stammbaum.html:8751 — SPRACH-SYSTEM
+- `icalAboOeffnen` — stammbaum.html:14119 — KARTEN-ANSICHT
+- `icalFeedUrl` — stammbaum.html:14118 — KARTEN-ANSICHT
+- `icalKopieren` — stammbaum.html:14131 — KARTEN-ANSICHT
+- `icalReset` — stammbaum.html:14137 — KARTEN-ANSICHT
+- `imBaum` — stammbaum.html:9006 — SPRACH-SYSTEM
+- `imBaumKnoten` — stammbaum.html:24654 — STAMMBAUM (d3.js)
+- `inCand` — stammbaum.html:21444 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `inErlaubt` — stammbaum.html:23989 — STAMMBAUM (d3.js)
+- `init` — stammbaum.html:10028 — INITIALISIERUNG
+- `initBaum` — stammbaum.html:23504 — STAMMBAUM (d3.js)
+- `initMobileTastatur` — stammbaum.html:10019 — INITIALISIERUNG
+- `initSessionUeberwachung` — stammbaum.html:9946 — INITIALISIERUNG
+- `initSprachDropdown` — stammbaum.html:9144 — SPRACH-DROPDOWN (Flaggen-Menü)
+- `initSuchbareSelects` — stammbaum.html:9414 — INITIALISIERUNG
+- `initVersionsPruefung` — stammbaum.html:9979 — INITIALISIERUNG
+- `integOeffnePerson` — stammbaum.html:22367 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `integPersonChips` — stammbaum.html:22322 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `integSpracheUpdate` — stammbaum.html:22374 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `inV` — stammbaum.html:11006 — INITIALISIERUNG
+- `isoLocale` — stammbaum.html:8411 — SPRACH-SYSTEM
+- `isoVon` — stammbaum.html:9515 — INITIALISIERUNG
+- `isoZuKurz` — stammbaum.html:9544 — INITIALISIERUNG
+- `isoZuLang` — stammbaum.html:9549 — INITIALISIERUNG
+- `istAdmin` — stammbaum.html:3173 — SUPABASE AUTH
+- `istBlut` — stammbaum.html:24656 — STAMMBAUM (d3.js)
+- `istBlutBaum` — stammbaum.html:9020 — SPRACH-SYSTEM
+- `istBlutInBaum` — stammbaum.html:22049 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `istBlutName` — stammbaum.html:24042 — STAMMBAUM (d3.js)
+- `istExOhneKinder` — stammbaum.html:23976 — STAMMBAUM (d3.js)
+- `istGueltigerBaumName` — stammbaum.html:22606 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `istIsoDatum` — stammbaum.html:9516 — INITIALISIERUNG
+- `istPlatz` — stammbaum.html:24680 — STAMMBAUM (d3.js)
+- `istSuperAdmin` — stammbaum.html:3177 — SUPABASE AUTH
+- `isValidEmail` — stammbaum.html:6362 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `joint` — stammbaum.html:24856 — STAMMBAUM (d3.js)
+- `kalEintraege` — stammbaum.html:13997 — KARTEN-ANSICHT
+- `kalHeute` — stammbaum.html:14105 — KARTEN-ANSICHT
+- `kalInitAnker` — stammbaum.html:13989 — KARTEN-ANSICHT
+- `kalLocale` — stammbaum.html:13986 — KARTEN-ANSICHT
+- `kalNav` — stammbaum.html:14096 — KARTEN-ANSICHT
+- `kalRender` — stammbaum.html:14031 — KARTEN-ANSICHT
+- `kalSpracheUpdate` — stammbaum.html:14112 — KARTEN-ANSICHT
+- `kalTag` — stammbaum.html:14074 — KARTEN-ANSICHT
+- `kalTagDetailRender` — stammbaum.html:14079 — KARTEN-ANSICHT
+- `kalToggleAnlaesse` — stammbaum.html:14106 — KARTEN-ANSICHT
+- `kanon` — stammbaum.html:14624 — KARTEN-ANSICHT
+- `kanonId` — stammbaum.html:24012 — STAMMBAUM (d3.js)
+- `karteEdgeAdd` — stammbaum.html:21302 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `karteEvents` — stammbaum.html:14549 — KARTEN-ANSICHT
+- `karteFit` — stammbaum.html:14715 — KARTEN-ANSICHT
+- `karteFuelleFilter` — stammbaum.html:14661 — KARTEN-ANSICHT
+- `karteIcon` — stammbaum.html:14689 — KARTEN-ANSICHT
+- `karteInit` — stammbaum.html:14675 — KARTEN-ANSICHT
+- `karteLeer` — stammbaum.html:14707 — KARTEN-ANSICHT
+- `karteLeerAus` — stammbaum.html:14714 — KARTEN-ANSICHT
+- `kartenfelderStandardSet` — stammbaum.html:9479 — INITIALISIERUNG
+- `kartePersonen` — stammbaum.html:14557 — KARTEN-ANSICHT
+- `kartePersonenMigration` — stammbaum.html:14622 — KARTEN-ANSICHT
+- `kartePopupHtml` — stammbaum.html:14695 — KARTEN-ANSICHT
+- `kartePunktPopupHtml` — stammbaum.html:14640 — KARTEN-ANSICHT
+- `karteRandPlus` — stammbaum.html:23930 — STAMMBAUM (d3.js)
+- `karteRender` — stammbaum.html:14721 — KARTEN-ANSICHT
+- `karteSetModus` — stammbaum.html:14651 — KARTEN-ANSICHT
+- `kbFuelleKueche` — stammbaum.html:19561 — PERSON BEARBEITEN (nur Admins)
+- `kbMetaHtml` — stammbaum.html:19600 — PERSON BEARBEITEN (nur Admins)
+- `kbSchritteHtml` — stammbaum.html:19594 — PERSON BEARBEITEN (nur Admins)
+- `kbTagesgerichtRender` — stammbaum.html:19653 — PERSON BEARBEITEN (nur Admins)
+- `kbTagesIndex` — stammbaum.html:19579 — PERSON BEARBEITEN (nur Admins)
+- `kbUeberrasche` — stammbaum.html:19686 — PERSON BEARBEITEN (nur Admins)
+- `kbVollHtml` — stammbaum.html:19606 — PERSON BEARBEITEN (nur Admins)
+- `kbZuEinkauf` — stammbaum.html:19914 — PERSON BEARBEITEN (nur Admins)
+- `kbZutatenHtml` — stammbaum.html:19585 — PERSON BEARBEITEN (nur Admins)
+- `kEhe` — stammbaum.html:24888 — STAMMBAUM (d3.js)
+- `kElt` — stammbaum.html:24889 — STAMMBAUM (d3.js)
+- `klick` — stammbaum.html:11062 — INITIALISIERUNG
+- `kochbuchBewLaden` — stammbaum.html:19618 — PERSON BEARBEITEN (nur Admins)
+- `kochbuchInit` — stammbaum.html:19569 — PERSON BEARBEITEN (nur Admins)
+- `kochbuchRender` — stammbaum.html:19661 — PERSON BEARBEITEN (nur Admins)
+- `kochbuchSpracheUpdate` — stammbaum.html:19691 — PERSON BEARBEITEN (nur Admins)
+- `kochbuchStern` — stammbaum.html:19639 — PERSON BEARBEITEN (nur Admins)
+- `kochbuchSterneHtml` — stammbaum.html:19626 — PERSON BEARBEITEN (nur Admins)
+- `kochbuchSterneNeu` — stammbaum.html:19649 — PERSON BEARBEITEN (nur Admins)
+- `konfliktAktuelle` — stammbaum.html:21223 — PERSON BEARBEITEN (nur Admins)
+- `konfliktErsteAnsicht` — stammbaum.html:21186 — PERSON BEARBEITEN (nur Admins)
+- `konfliktMeine` — stammbaum.html:21219 — PERSON BEARBEITEN (nur Admins)
+- `konfliktOverlayBau` — stammbaum.html:21172 — PERSON BEARBEITEN (nur Admins)
+- `konfliktSchliessen` — stammbaum.html:21177 — PERSON BEARBEITEN (nur Admins)
+- `konfliktVergleich` — stammbaum.html:21197 — PERSON BEARBEITEN (nur Admins)
+- `konfliktWert` — stammbaum.html:21162 — PERSON BEARBEITEN (nur Admins)
+- `kontaktAnfrageEntscheiden` — stammbaum.html:6072 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `kontaktKarteHtml` — stammbaum.html:6052 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `korrigiereNachname` — stammbaum.html:7349 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `korrigiereNachnamen` — stammbaum.html:7391 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `kostenAusgabeAbbrechen` — stammbaum.html:16647 — KARTEN-ANSICHT
+- `kostenAusgabeBearbeiten` — stammbaum.html:16646 — KARTEN-ANSICHT
+- `kostenAusgabeLoeschen` — stammbaum.html:16665 — KARTEN-ANSICHT
+- `kostenAusgabeSpeichern` — stammbaum.html:16648 — KARTEN-ANSICHT
+- `kostenPdfErzeugen` — stammbaum.html:16704 — KARTEN-ANSICHT
+- `kostenTeilnehmerAusBaum` — stammbaum.html:16622 — KARTEN-ANSICHT
+- `kostenTeilnehmerExtern` — stammbaum.html:16631 — KARTEN-ANSICHT
+- `kostenTeilnehmerLoeschen` — stammbaum.html:16641 — KARTEN-ANSICHT
+- `kostenTeilnehmerSpeichern` — stammbaum.html:16636 — KARTEN-ANSICHT
+- `kuecheLabel` — stammbaum.html:19559 — PERSON BEARBEITEN (nur Admins)
+- `ladeAddFamilien` — stammbaum.html:4146 — MITGLIEDER-VERWALTUNG (Admins)
+- `ladeAlbum` — stammbaum.html:16205 — KARTEN-ANSICHT
+- `ladeAlbumUebersicht` — stammbaum.html:16392 — KARTEN-ANSICHT
+- `ladeAnalytik` — stammbaum.html:3222 — SUPABASE AUTH
+- `ladeAnlassEinstellungen` — stammbaum.html:15787 — KARTEN-ANSICHT
+- `ladeAnsichtPref` — stammbaum.html:13132 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ladeAuth` — stammbaum.html:3015 — SUPABASE AUTH
+- `ladeAvatarHoch` — stammbaum.html:5288 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `ladeBaumAusSupabase` — stammbaum.html:8669 — SPRACH-SYSTEM
+- `ladeBaumDaten` — stammbaum.html:8813 — SPRACH-SYSTEM
+- `ladeBenachrichtigungen` — stammbaum.html:15405 — KARTEN-ANSICHT
+- `ladeBereinigung` — stammbaum.html:6607 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `ladeCss` — stammbaum.html:2919 — SUPABASE AUTH
+- `ladeErinnerungen` — stammbaum.html:15681 — KARTEN-ANSICHT
+- `ladeEventMedienListe` — stammbaum.html:15196 — KARTEN-ANSICHT
+- `ladeGamification` — stammbaum.html:17232 — DETAIL-FENSTER
+- `ladeGedenkseite` — stammbaum.html:18816 — PERSON BEARBEITEN (nur Admins)
+- `ladeIntegritaet` — stammbaum.html:22307 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `ladeKostenDaten` — stammbaum.html:16463 — KARTEN-ANSICHT
+- `ladeLeafletLib` — stammbaum.html:2947 — SUPABASE AUTH
+- `ladeMarkedLib` — stammbaum.html:2943 — SUPABASE AUTH
+- `ladeMeinePersonStatus` — stammbaum.html:4843 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `ladeMeinProfil` — stammbaum.html:4640 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `ladeMitglieder` — stammbaum.html:3751 — MITGLIEDER-VERWALTUNG (Admins)
+- `ladeNachnamenKandidaten` — stammbaum.html:22280 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `ladeOffeneAnfragen` — stammbaum.html:4322 — MITGLIEDER-VERWALTUNG (Admins)
+- `ladeOrientPref` — stammbaum.html:13143 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ladePdfLib` — stammbaum.html:2931 — SUPABASE AUTH
+- `ladePersonAufnahmen` — stammbaum.html:20727 — PERSON BEARBEITEN (nur Admins)
+- `ladePersonDokumente` — stammbaum.html:20460 — PERSON BEARBEITEN (nur Admins)
+- `ladePersonFotos` — stammbaum.html:18119 — PERSON BEARBEITEN (nur Admins)
+- `ladePersonGeschichten` — stammbaum.html:20245 — PERSON BEARBEITEN (nur Admins)
+- `ladeScript` — stammbaum.html:2908 — SUPABASE AUTH
+- `ladeSicherheit` — stammbaum.html:5630 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `ladeTabNeuigkeiten` — stammbaum.html:23417 — ANSICHT-WECHSEL
+- `landAnzeige` — stammbaum.html:8447 — SPRACH-SYSTEM
+- `landDisplayNames` — stammbaum.html:8413 — SPRACH-SYSTEM
+- `landName` — stammbaum.html:8422 — SPRACH-SYSTEM
+- `landZuCode` — stammbaum.html:8440 — SPRACH-SYSTEM
+- `layoutModusWaehle` — stammbaum.html:10758 — INITIALISIERUNG
+- `lightboxNav` — stammbaum.html:18402 — PERSON BEARBEITEN (nur Admins)
+- `lightboxRender` — stammbaum.html:18387 — PERSON BEARBEITEN (nur Admins)
+- `line` — stammbaum.html:16737 — KARTEN-ANSICHT
+- `linie` — stammbaum.html:23777 — STAMMBAUM (d3.js)
+- `linie` — stammbaum.html:24507 — STAMMBAUM (d3.js)
+- `linie` — stammbaum.html:24869 — STAMMBAUM (d3.js)
+- `loescheAlbumMedien` — stammbaum.html:16373 — KARTEN-ANSICHT
+- `loescheAvatarDateien` — stammbaum.html:5303 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `loescheEvent` — stammbaum.html:15990 — KARTEN-ANSICHT
+- `loescheEventMedien` — stammbaum.html:13515 — KARTEN-ANSICHT
+- `loeschePerson` — stammbaum.html:22883 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `loescheStammbaum` — stammbaum.html:6255 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `loescheUser` — stammbaum.html:3473 — SUPABASE AUTH
+- `logoCropAbbrechen` — stammbaum.html:6940 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropBinde` — stammbaum.html:6996 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropDown` — stammbaum.html:7012 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropLoese` — stammbaum.html:7004 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropMove` — stammbaum.html:7021 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropOeffne` — stammbaum.html:6899 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropPan` — stammbaum.html:6977 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropRender` — stammbaum.html:6960 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropReset` — stammbaum.html:6955 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropUebernehmen` — stammbaum.html:6941 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropUp` — stammbaum.html:7035 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropViewportForm` — stammbaum.html:6917 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropWheel` — stammbaum.html:7039 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropZoomBy` — stammbaum.html:6990 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoCropZoomSlider` — stammbaum.html:6968 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `logoFrameGeom` — stammbaum.html:10145 — INITIALISIERUNG
+- `logoFrameNorm` — stammbaum.html:10132 — INITIALISIERUNG
+- `logoFrameStyleAnwenden` — stammbaum.html:10154 — INITIALISIERUNG
+- `lokalisierePlatzhalterNamen` — stammbaum.html:8804 — SPRACH-SYSTEM
+- `maAktiveFamilie` — stammbaum.html:4044 — MITGLIEDER-VERWALTUNG (Admins)
+- `macheAlleDatumsfelder` — stammbaum.html:9880 — INITIALISIERUNG
+- `macheAlleSelectsSuchbar` — stammbaum.html:9381 — INITIALISIERUNG
+- `macheDatumsfeld` — stammbaum.html:9857 — INITIALISIERUNG
+- `macheSelectSuchbar` — stammbaum.html:9336 — INITIALISIERUNG
+- `maFamilieGewechselt` — stammbaum.html:4065 — MITGLIEDER-VERWALTUNG (Admins)
+- `maKarteEntfernen` — stammbaum.html:4096 — MITGLIEDER-VERWALTUNG (Admins)
+- `maKarteSuche` — stammbaum.html:4099 — MITGLIEDER-VERWALTUNG (Admins)
+- `maKarteSucheDebounce` — stammbaum.html:4098 — MITGLIEDER-VERWALTUNG (Admins)
+- `maKarteWaehle` — stammbaum.html:4133 — MITGLIEDER-VERWALTUNG (Admins)
+- `maLadeKarteBaeume` — stammbaum.html:4074 — MITGLIEDER-VERWALTUNG (Admins)
+- `maNeueKarteToggle` — stammbaum.html:4059 — MITGLIEDER-VERWALTUNG (Admins)
+- `maRenderKarteChip` — stammbaum.html:4087 — MITGLIEDER-VERWALTUNG (Admins)
+- `markiereEmailFehler` — stammbaum.html:6372 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `markiereTabGesehen` — stammbaum.html:23427 — ANSICHT-WECHSEL
+- `markierteFotosRender` — stammbaum.html:18493 — PERSON BEARBEITEN (nur Admins)
+- `markiertFotoOeffne` — stammbaum.html:18510 — PERSON BEARBEITEN (nur Admins)
+- `maSetModus` — stammbaum.html:4051 — MITGLIEDER-VERWALTUNG (Admins)
+- `meinAvatarUrl` — stammbaum.html:4727 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `meineKarteImBaum` — stammbaum.html:12771 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `meineVerantwortlichenBaeume` — stammbaum.html:8860 — SPRACH-SYSTEM
+- `mgErfolgUndZu` — stammbaum.html:7745 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgFeldLabel` — stammbaum.html:7433 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgFertig` — stammbaum.html:7710 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgFuelleBaeume` — stammbaum.html:7472 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgInfoZeile` — stammbaum.html:7550 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgKandidatHtml` — stammbaum.html:7577 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgLadeInfo` — stammbaum.html:7542 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgMergeAktuelles` — stammbaum.html:7676 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgPruefen` — stammbaum.html:7505 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgRenderAuto` — stammbaum.html:7663 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgRenderKandidaten` — stammbaum.html:7566 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgRenderKonflikte` — stammbaum.html:7646 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgRenderPaar` — stammbaum.html:7612 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgRenderSurvivor` — stammbaum.html:7639 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgRenderTreeMerge` — stammbaum.html:7724 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgRohName` — stammbaum.html:7441 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgSetSurvivor` — stammbaum.html:7644 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgSurvLabel` — stammbaum.html:7633 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgTreeMerge` — stammbaum.html:7734 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgTreeNein` — stammbaum.html:7744 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgWaehleBaum` — stammbaum.html:7483 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgWeiterZuKonflikt` — stammbaum.html:7597 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgWertAnzeige` — stammbaum.html:7435 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgZeigeSchritt` — stammbaum.html:7466 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mgZurueckZu` — stammbaum.html:7469 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `migriereMultiTree` — stammbaum.html:7220 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `migriereStammbaum` — stammbaum.html:7160 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `mittel` — stammbaum.html:24484 — STAMMBAUM (d3.js)
 - `mkCard` — pdf_export.js:322 — (ohne Abschnittsueberschrift)
-- `modalFokus` — stammbaum.html:2983 — SUPABASE AUTH
-- `moveBaumBestaetigen` — stammbaum.html:17708 — DETAIL-FENSTER
-- `moveKonsolidiere` — stammbaum.html:17736 — DETAIL-FENSTER
-- `mpCreateAnlegen` — stammbaum.html:5045 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpCreateSprachUpdate` — stammbaum.html:5139 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpDupVerknuepfen` — stammbaum.html:5136 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpHinweisAuswaehlen` — stammbaum.html:4880 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpHinweisErstellen` — stammbaum.html:4884 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpHinweisSpaeter` — stammbaum.html:4876 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpIstGesnoozt` — stammbaum.html:4854 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpSnoozeKey` — stammbaum.html:4853 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpSnoozeSetzen` — stammbaum.html:4858 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpVerknuepfe` — stammbaum.html:4966 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpVerknuepfungLoesen` — stammbaum.html:5151 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpZeigeDuplikate` — stammbaum.html:5122 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mpZielBaeume` — stammbaum.html:5002 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `mvWaehleFamilie` — stammbaum.html:3798 — MITGLIEDER-VERWALTUNG (Admins)
-- `mx` — stammbaum.html:12136 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `nachkommen` — stammbaum.html:9031 — SPRACH-SYSTEM
-- `naechsterJahrestag` — stammbaum.html:15535 — KARTEN-ANSICHT
-- `nameOf` — stammbaum.html:11043 — INITIALISIERUNG
-- `navigiereNachBaumLoeschung` — stammbaum.html:23169 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `navSuchOeffne` — stammbaum.html:10460 — INITIALISIERUNG
-- `navSuchPanel` — stammbaum.html:10332 — INITIALISIERUNG
-- `navSuchPanelPos` — stammbaum.html:10320 — INITIALISIERUNG
-- `navSuchPanelRender` — stammbaum.html:10370 — INITIALISIERUNG
-- `navSuchPanelSchliessen` — stammbaum.html:10316 — INITIALISIERUNG
-- `navSuchVerbundItem` — stammbaum.html:10360 — INITIALISIERUNG
-- `nebenPartnerOf` — stammbaum.html:24719 — STAMMBAUM (d3.js)
-- `netzErlaubtSet` — stammbaum.html:12669 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `nimm` — stammbaum.html:12648 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `nm` — stammbaum.html:8364 — SPRACH-SYSTEM
-- `nnausAuslagern` — stammbaum.html:22255 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `nominatimAbfrage` — stammbaum.html:14817 — KARTEN-ANSICHT
-- `normalizeRolle` — stammbaum.html:3166 — SUPABASE AUTH
-- `nutzerAnzeigeName` — stammbaum.html:4619 — MITGLIEDER-VERWALTUNG (Admins)
-- `obavAkzeptierenBestaetigen` — stammbaum.html:6189 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `obavAkzeptierenStart` — stammbaum.html:6170 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `obavInlineAktion` — stammbaum.html:4372 — MITGLIEDER-VERWALTUNG (Admins)
-- `obavLivePoll` — stammbaum.html:4349 — MITGLIEDER-VERWALTUNG (Admins)
-- `obavNeueKarteBestaetigen` — stammbaum.html:6219 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `obavNeueKarteStart` — stammbaum.html:6195 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `obavRegKarteHtml` — stammbaum.html:6028 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `obersteModal` — stammbaum.html:2959 — SUPABASE AUTH
-- `oeffneAbwNachname` — stammbaum.html:22734 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `oeffneAnalytik` — stammbaum.html:3210 — SUPABASE AUTH
-- `oeffneAnlaesseModal` — stammbaum.html:15621 — KARTEN-ANSICHT
-- `oeffneAnsichtModal` — stammbaum.html:12998 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `oeffneBackup` — stammbaum.html:22350 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `modalFokus` — stammbaum.html:2985 — SUPABASE AUTH
+- `moveBaumBestaetigen` — stammbaum.html:17737 — DETAIL-FENSTER
+- `moveKonsolidiere` — stammbaum.html:17765 — DETAIL-FENSTER
+- `mpCreateAnlegen` — stammbaum.html:5047 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpCreateSprachUpdate` — stammbaum.html:5141 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpDupVerknuepfen` — stammbaum.html:5138 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpHinweisAuswaehlen` — stammbaum.html:4882 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpHinweisErstellen` — stammbaum.html:4886 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpHinweisSpaeter` — stammbaum.html:4878 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpIstGesnoozt` — stammbaum.html:4856 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpSnoozeKey` — stammbaum.html:4855 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpSnoozeSetzen` — stammbaum.html:4860 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpVerknuepfe` — stammbaum.html:4968 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpVerknuepfungLoesen` — stammbaum.html:5153 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpZeigeDuplikate` — stammbaum.html:5124 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mpZielBaeume` — stammbaum.html:5004 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `mvWaehleFamilie` — stammbaum.html:3800 — MITGLIEDER-VERWALTUNG (Admins)
+- `mx` — stammbaum.html:12157 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `nachkommen` — stammbaum.html:9033 — SPRACH-SYSTEM
+- `naechsterJahrestag` — stammbaum.html:15564 — KARTEN-ANSICHT
+- `nameOf` — stammbaum.html:11058 — INITIALISIERUNG
+- `navigiereNachBaumLoeschung` — stammbaum.html:23208 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `navSuchOeffne` — stammbaum.html:10462 — INITIALISIERUNG
+- `navSuchPanel` — stammbaum.html:10334 — INITIALISIERUNG
+- `navSuchPanelPos` — stammbaum.html:10322 — INITIALISIERUNG
+- `navSuchPanelRender` — stammbaum.html:10372 — INITIALISIERUNG
+- `navSuchPanelSchliessen` — stammbaum.html:10318 — INITIALISIERUNG
+- `navSuchVerbundItem` — stammbaum.html:10362 — INITIALISIERUNG
+- `nebenPartnerOf` — stammbaum.html:24781 — STAMMBAUM (d3.js)
+- `netzErlaubtSet` — stammbaum.html:12698 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `nimm` — stammbaum.html:12669 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `nm` — stammbaum.html:8366 — SPRACH-SYSTEM
+- `nnausAuslagern` — stammbaum.html:22294 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `nominatimAbfrage` — stammbaum.html:14846 — KARTEN-ANSICHT
+- `normalizeRolle` — stammbaum.html:3168 — SUPABASE AUTH
+- `nutzerAnzeigeName` — stammbaum.html:4621 — MITGLIEDER-VERWALTUNG (Admins)
+- `obavAkzeptierenBestaetigen` — stammbaum.html:6191 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `obavAkzeptierenStart` — stammbaum.html:6172 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `obavInlineAktion` — stammbaum.html:4374 — MITGLIEDER-VERWALTUNG (Admins)
+- `obavLivePoll` — stammbaum.html:4351 — MITGLIEDER-VERWALTUNG (Admins)
+- `obavNeueKarteBestaetigen` — stammbaum.html:6221 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `obavNeueKarteStart` — stammbaum.html:6197 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `obavRegKarteHtml` — stammbaum.html:6030 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `obersteModal` — stammbaum.html:2961 — SUPABASE AUTH
+- `oeffneAbwNachname` — stammbaum.html:22773 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `oeffneAnalytik` — stammbaum.html:3212 — SUPABASE AUTH
+- `oeffneAnlaesseModal` — stammbaum.html:15650 — KARTEN-ANSICHT
+- `oeffneAnsichtModal` — stammbaum.html:13027 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `oeffneBackup` — stammbaum.html:22389 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
 - `oeffneChat` — chat.js:163 — (ohne Abschnittsueberschrift)
-- `oeffneClanoviAusMenu` — stammbaum.html:23431 — ANSICHT-WECHSEL
-- `oeffneDokViewer` — stammbaum.html:20591 — PERSON BEARBEITEN (nur Admins)
-- `oeffneEntdecken` — stammbaum.html:5400 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `oeffneErinnModal` — stammbaum.html:15725 — KARTEN-ANSICHT
-- `oeffneEventTeilnehmer` — stammbaum.html:15194 — KARTEN-ANSICHT
-- `oeffneFamilieEinstellungen` — stammbaum.html:6487 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `oeffneGedenkseite` — stammbaum.html:18767 — PERSON BEARBEITEN (nur Admins)
-- `oeffneIntegritaet` — stammbaum.html:21974 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `oeffneKochbuch` — stammbaum.html:19647 — PERSON BEARBEITEN (nur Admins)
-- `oeffneKosten` — stammbaum.html:16419 — KARTEN-ANSICHT
-- `oeffneLightbox` — stammbaum.html:18351 — PERSON BEARBEITEN (nur Admins)
-- `oeffneMoveBaum` — stammbaum.html:17679 — DETAIL-FENSTER
-- `oeffneMpCreate` — stammbaum.html:5007 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `oeffneMpPick` — stammbaum.html:4918 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `oeffneNachnamenTool` — stammbaum.html:21987 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `oeffneObavZentral` — stammbaum.html:5966 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `oeffneOwnerWechsel` — stammbaum.html:6721 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `oeffnePapierkorb` — stammbaum.html:23186 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `oeffnePapierkorbAusMenu` — stammbaum.html:3693 — SUPABASE AUTH
-- `oeffnePasswort` — stammbaum.html:5580 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneClanoviAusMenu` — stammbaum.html:23470 — ANSICHT-WECHSEL
+- `oeffneDokViewer` — stammbaum.html:20621 — PERSON BEARBEITEN (nur Admins)
+- `oeffneEntdecken` — stammbaum.html:5402 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneErinnModal` — stammbaum.html:15754 — KARTEN-ANSICHT
+- `oeffneEventTeilnehmer` — stammbaum.html:15223 — KARTEN-ANSICHT
+- `oeffneFamilieEinstellungen` — stammbaum.html:6489 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `oeffneGedenkseite` — stammbaum.html:18797 — PERSON BEARBEITEN (nur Admins)
+- `oeffneIntegritaet` — stammbaum.html:22013 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `oeffneKochbuch` — stammbaum.html:19677 — PERSON BEARBEITEN (nur Admins)
+- `oeffneKosten` — stammbaum.html:16448 — KARTEN-ANSICHT
+- `oeffneLightbox` — stammbaum.html:18381 — PERSON BEARBEITEN (nur Admins)
+- `oeffneMoveBaum` — stammbaum.html:17708 — DETAIL-FENSTER
+- `oeffneMpCreate` — stammbaum.html:5009 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneMpPick` — stammbaum.html:4920 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneNachnamenTool` — stammbaum.html:22026 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `oeffneObavZentral` — stammbaum.html:5968 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneOwnerWechsel` — stammbaum.html:6723 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `oeffnePapierkorb` — stammbaum.html:23225 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `oeffnePapierkorbAusMenu` — stammbaum.html:3695 — SUPABASE AUTH
+- `oeffnePasswort` — stammbaum.html:5582 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
 - `oeffnePdfExport` — pdf_export.js:60 — (ohne Abschnittsueberschrift)
-- `oeffnePrivatnost` — stammbaum.html:5377 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `oeffneProfil` — stammbaum.html:4761 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `oeffneProfilAusMenu` — stammbaum.html:3686 — SUPABASE AUTH
-- `oeffneSicherheit` — stammbaum.html:5593 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `oeffneStandardBaumAusMenu` — stammbaum.html:8940 — SPRACH-SYSTEM
-- `oeffneStandardBaumModal` — stammbaum.html:8944 — SPRACH-SYSTEM
-- `oeffneUserKarte` — stammbaum.html:3868 — MITGLIEDER-VERWALTUNG (Admins)
-- `oeffneVollstModal` — stammbaum.html:9132 — SPRACH-SYSTEM
-- `oeffneZweiModal` — stammbaum.html:21996 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `offen` — stammbaum.html:8549 — SPRACH-SYSTEM
+- `oeffnePrivatnost` — stammbaum.html:5379 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneProfil` — stammbaum.html:4763 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneProfilAusMenu` — stammbaum.html:3688 — SUPABASE AUTH
+- `oeffneSicherheit` — stammbaum.html:5595 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `oeffneStandardBaumAusMenu` — stammbaum.html:8942 — SPRACH-SYSTEM
+- `oeffneStandardBaumModal` — stammbaum.html:8946 — SPRACH-SYSTEM
+- `oeffneUserKarte` — stammbaum.html:3870 — MITGLIEDER-VERWALTUNG (Admins)
+- `oeffneVollstModal` — stammbaum.html:9134 — SPRACH-SYSTEM
+- `oeffneZweiModal` — stammbaum.html:22035 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `offen` — stammbaum.html:8551 — SPRACH-SYSTEM
 - `offen` — chat.js:532 — (ohne Abschnittsueberschrift)
-- `offset` — stammbaum.html:23637 — STAMMBAUM (d3.js)
-- `okElt` — stammbaum.html:24039 — STAMMBAUM (d3.js)
-- `orientWahl` — stammbaum.html:13126 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `ortLookup` — stammbaum.html:8397 — SPRACH-SYSTEM
-- `owEmailSuche` — stammbaum.html:6780 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `owFehlerText` — stammbaum.html:6805 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `owSetzeAuswahl` — stammbaum.html:6760 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `owWaehleMitglied` — stammbaum.html:6770 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `paAktualisiereKontext` — stammbaum.html:21652 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paElternSuche` — stammbaum.html:21692 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paElternSucheDebounce` — stammbaum.html:21688 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paEntferneElternteil` — stammbaum.html:21687 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paLaufendeAdresse` — stammbaum.html:21617 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paPartnerVorbelegen` — stammbaum.html:21599 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paPflichtMarkierung` — stammbaum.html:20983 — PERSON BEARBEITEN (nur Admins)
-- `papierkorbEndgueltig` — stammbaum.html:23243 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `papierkorbWiederherstellen` — stammbaum.html:23234 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paPruefeFelder` — stammbaum.html:21627 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `parentsOf` — stammbaum.html:24715 — STAMMBAUM (d3.js)
-- `parseDatumZuIso` — stammbaum.html:9533 — INITIALISIERUNG
-- `parseGedcom` — stammbaum.html:25178 — GEDCOM-UPLOAD
-- `partnerArtDialog` — stammbaum.html:23038 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `partnerArtLabel` — stammbaum.html:17268 — DETAIL-FENSTER
-- `partnerArtWaehle` — stammbaum.html:23055 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `partnerSchluessel` — stammbaum.html:24079 — STAMMBAUM (d3.js)
-- `partnersOf` — stammbaum.html:24717 — STAMMBAUM (d3.js)
-- `paSetzeElternteil` — stammbaum.html:21672 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `passwortVergessen` — stammbaum.html:7779 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `paTypGewechselt` — stammbaum.html:21589 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `paWaehleErgebnis` — stammbaum.html:21738 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `pcBestehend` — stammbaum.html:21287 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `pcNeu` — stammbaum.html:21283 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `offset` — stammbaum.html:23690 — STAMMBAUM (d3.js)
+- `okElt` — stammbaum.html:24092 — STAMMBAUM (d3.js)
+- `orientWahl` — stammbaum.html:13155 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `ortLookup` — stammbaum.html:8399 — SPRACH-SYSTEM
+- `owEmailSuche` — stammbaum.html:6782 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `owFehlerText` — stammbaum.html:6807 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `owSetzeAuswahl` — stammbaum.html:6762 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `owWaehleMitglied` — stammbaum.html:6772 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `paAktualisiereKontext` — stammbaum.html:21691 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `paElternSuche` — stammbaum.html:21731 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `paElternSucheDebounce` — stammbaum.html:21727 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `paEntferneElternteil` — stammbaum.html:21726 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `paLaufendeAdresse` — stammbaum.html:21655 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `panKlemmen` — stammbaum.html:23489 — STAMMBAUM (d3.js)
+- `paPartnerVorbelegen` — stammbaum.html:21637 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `paPflichtMarkierung` — stammbaum.html:21021 — PERSON BEARBEITEN (nur Admins)
+- `papierkorbEndgueltig` — stammbaum.html:23282 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `papierkorbWiederherstellen` — stammbaum.html:23273 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `paPruefeFelder` — stammbaum.html:21665 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `parentsOf` — stammbaum.html:24777 — STAMMBAUM (d3.js)
+- `parseDatumZuIso` — stammbaum.html:9535 — INITIALISIERUNG
+- `parseGedcom` — stammbaum.html:25295 — GEDCOM-UPLOAD
+- `partnerArtDialog` — stammbaum.html:23077 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `partnerArtLabel` — stammbaum.html:17297 — DETAIL-FENSTER
+- `partnerArtWaehle` — stammbaum.html:23094 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `partnerSchluessel` — stammbaum.html:24132 — STAMMBAUM (d3.js)
+- `partnersOf` — stammbaum.html:24779 — STAMMBAUM (d3.js)
+- `paSetzeElternteil` — stammbaum.html:21711 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `passwortVergessen` — stammbaum.html:7781 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `paTypGewechselt` — stammbaum.html:21627 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `paWaehleErgebnis` — stammbaum.html:21777 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `pcBestehend` — stammbaum.html:21325 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `pcNeu` — stammbaum.html:21321 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
 - `pdfAutoPapier` — pdf_export.js:265 — (ohne Abschnittsueberschrift)
 - `pdfBaueModell` — pdf_export.js:227 — (ohne Abschnittsueberschrift)
 - `pdfBaueSvg` — pdf_export.js:412 — (ohne Abschnittsueberschrift)
@@ -1110,467 +1111,467 @@ Per `Grep` auf den Namen abfragen — jede Zeile ist eigenstaendig.
 - `pdfVektorMoeglich` — pdf_export.js:771 — (ohne Abschnittsueberschrift)
 - `pdfWinAnsiSafe` — pdf_export.js:715 — (ohne Abschnittsueberschrift)
 - `pdfZeichneKarte` — pdf_export.js:368 — (ohne Abschnittsueberschrift)
-- `pePflichtMarkierung` — stammbaum.html:20982 — PERSON BEARBEITEN (nur Admins)
-- `pePruefeFelder` — stammbaum.html:18048 — PERSON BEARBEITEN (nur Admins)
-- `persKey` — stammbaum.html:17412 — DETAIL-FENSTER
-- `persOf` — stammbaum.html:24585 — STAMMBAUM (d3.js)
-- `personBaeumeMap` — stammbaum.html:22817 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `personElternNamen` — stammbaum.html:12073 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `personHatElternteil` — stammbaum.html:17105 — DETAIL-FENSTER
-- `personLocPunkte` — stammbaum.html:14548 — KARTEN-ANSICHT
-- `personLoeschWahl` — stammbaum.html:22829 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `personNeuBaumAnlegen` — stammbaum.html:12237 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `personNeuBaumOeffnen` — stammbaum.html:12222 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `personOf` — stammbaum.html:24713 — STAMMBAUM (d3.js)
-- `personPlus` — stammbaum.html:21273 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `personSignatur` — stammbaum.html:5885 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `personSuchJahr` — stammbaum.html:12054 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `personSuchZusatz` — stammbaum.html:12060 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `personUnlink` — stammbaum.html:17972 — DETAIL-FENSTER
-- `pflichtMarkierung` — stammbaum.html:20974 — PERSON BEARBEITEN (nur Admins)
-- `pkTypLabel` — stammbaum.html:23229 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `platzhalterBlutElternteil` — stammbaum.html:24015 — STAMMBAUM (d3.js)
-- `platzMitBlut` — stammbaum.html:24624 — STAMMBAUM (d3.js)
-- `presenceAktualisieren` — stammbaum.html:5783 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `presenceTrack` — stammbaum.html:4600 — MITGLIEDER-VERWALTUNG (Admins)
-- `profilAndereAbmelden` — stammbaum.html:5681 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `profilAvatarLoeschen` — stammbaum.html:5279 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `profilAvatarWaehlen` — stammbaum.html:5262 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `profilEinstellungenAnwenden` — stammbaum.html:4675 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `profilEinstellungSetzen` — stammbaum.html:4665 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `profilFehler` — stammbaum.html:4755 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `profilPasswortAendern` — stammbaum.html:5706 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `pruefeAbweichenderNachname` — stammbaum.html:22645 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `pruefeBaumMatch` — stammbaum.html:7906 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `pruefeBaumMatchDebounced` — stammbaum.html:7901 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `pruefeDatumFelder` — stammbaum.html:9611 — INITIALISIERUNG
-- `pruefeEmailFeld` — stammbaum.html:6382 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `pruefeHeiratsZweig` — stammbaum.html:22585 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `pruefeLockBanner` — stammbaum.html:5857 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `pruefeMeinePersonHinweis` — stammbaum.html:4861 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `pruefeNamePflicht` — stammbaum.html:20967 — PERSON BEARBEITEN (nur Admins)
-- `pruefeNeueVersion` — stammbaum.html:9958 — INITIALISIERUNG
-- `pruefeOverlayAktualitaet` — stammbaum.html:5937 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `pruefePasswortSetzen` — stammbaum.html:7831 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `pwFehler` — stammbaum.html:5704 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `q` — stammbaum.html:3440 — SUPABASE AUTH
-- `r` — stammbaum.html:11067 — INITIALISIERUNG
-- `r` — stammbaum.html:23725 — STAMMBAUM (d3.js)
-- `r` — stammbaum.html:24455 — STAMMBAUM (d3.js)
-- `r` — stammbaum.html:24808 — STAMMBAUM (d3.js)
-- `raeumePersonenMedien` — stammbaum.html:23276 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `raeumeVerwaisteMedien` — stammbaum.html:23257 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `realtimeAenderung` — stammbaum.html:4444 — MITGLIEDER-VERWALTUNG (Admins)
-- `realtimeInkrementellRender` — stammbaum.html:4490 — MITGLIEDER-VERWALTUNG (Admins)
-- `realtimePatchPerson` — stammbaum.html:4462 — MITGLIEDER-VERWALTUNG (Admins)
-- `realtimeReloadAnstossen` — stammbaum.html:4431 — MITGLIEDER-VERWALTUNG (Admins)
-- `realtimeReloadAusfuehren` — stammbaum.html:4503 — MITGLIEDER-VERWALTUNG (Admins)
-- `rect` — stammbaum.html:16707 — KARTEN-ANSICHT
-- `regFelderLeeren` — stammbaum.html:7985 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `regMatchWahl` — stammbaum.html:7940 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `regNeueFamilieAnlegen` — stammbaum.html:8082 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `reindex` — stammbaum.html:24393 — STAMMBAUM (d3.js)
-- `relChip` — stammbaum.html:17457 — DETAIL-FENSTER
-- `reloadBaumBehalteFokus` — stammbaum.html:21199 — PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD
-- `renderAnalytik` — stammbaum.html:3255 — SUPABASE AUTH
-- `renderAnlaesseListe` — stammbaum.html:15596 — KARTEN-ANSICHT
-- `renderBenachrichtigungen` — stammbaum.html:15456 — KARTEN-ANSICHT
-- `renderBereinigung` — stammbaum.html:6617 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `rendereAktuelleAnsicht` — stammbaum.html:12904 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `rendereLayout` — stammbaum.html:10725 — INITIALISIERUNG
-- `renderErinnListe` — stammbaum.html:15688 — KARTEN-ANSICHT
-- `renderEtnListe` — stammbaum.html:15249 — KARTEN-ANSICHT
-- `renderEventMedia` — stammbaum.html:13442 — KARTEN-ANSICHT
-- `renderGamification` — stammbaum.html:17213 — DETAIL-FENSTER
-- `renderIntegritaet` — stammbaum.html:22293 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `renderKosten` — stammbaum.html:16487 — KARTEN-ANSICHT
-- `renderMeinePersonBereich` — stammbaum.html:4890 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `renderMitglieder` — stammbaum.html:3804 — MITGLIEDER-VERWALTUNG (Admins)
-- `renderMpPick` — stammbaum.html:4943 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `renderNutzerListe` — stammbaum.html:3393 — SUPABASE AUTH
-- `renderObavBadges` — stammbaum.html:4336 — MITGLIEDER-VERWALTUNG (Admins)
-- `renderObavListe` — stammbaum.html:6047 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `renderObavZentral` — stammbaum.html:5990 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `renderPapierkorb` — stammbaum.html:23201 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `renderPresenceIndikator` — stammbaum.html:5808 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `renderPreset` — stammbaum.html:10708 — INITIALISIERUNG
-- `renderProfilKopf` — stammbaum.html:5170 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `renderSicherheit` — stammbaum.html:5649 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `renderTabBadges` — stammbaum.html:23368 — ANSICHT-WECHSEL
-- `renderVollstBaum` — stammbaum.html:17169 — DETAIL-FENSTER
-- `resetInaktivTimer` — stammbaum.html:9912 — INITIALISIERUNG
-- `restoreAusfuehren` — stammbaum.html:22478 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `restoreBerichtRender` — stammbaum.html:22465 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `restoreVorbereiten` — stammbaum.html:22445 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `rezeptBildEntfernen` — stammbaum.html:19379 — PERSON BEARBEITEN (nur Admins)
-- `rezeptBildGewaehlt` — stammbaum.html:19368 — PERSON BEARBEITEN (nur Admins)
-- `rezeptComposerReset` — stammbaum.html:19432 — PERSON BEARBEITEN (nur Admins)
-- `rezeptEditStart` — stammbaum.html:19440 — PERSON BEARBEITEN (nur Admins)
-- `rezepteLaden` — stammbaum.html:19387 — PERSON BEARBEITEN (nur Admins)
-- `rezeptKatLabel` — stammbaum.html:19385 — PERSON BEARBEITEN (nur Admins)
-- `rezeptLoeschen` — stammbaum.html:19480 — PERSON BEARBEITEN (nur Admins)
-- `rezeptQuelle` — stammbaum.html:19506 — PERSON BEARBEITEN (nur Admins)
-- `rezeptRefName` — stammbaum.html:19399 — PERSON BEARBEITEN (nur Admins)
-- `rezeptRender` — stammbaum.html:19404 — PERSON BEARBEITEN (nur Admins)
-- `rezeptSenden` — stammbaum.html:19450 — PERSON BEARBEITEN (nur Admins)
-- `rezeptSpracheUpdate` — stammbaum.html:19490 — PERSON BEARBEITEN (nur Admins)
-- `rezeptZuEinkauf` — stammbaum.html:19891 — PERSON BEARBEITEN (nur Admins)
-- `rezeptZuEinkaufVon` — stammbaum.html:19897 — PERSON BEARBEITEN (nur Admins)
-- `rohName` — stammbaum.html:7528 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `rpcDel` — stammbaum.html:23125 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `rpcSafe` — stammbaum.html:10341 — INITIALISIERUNG
-- `rsvpAnzahl` — stammbaum.html:16096 — KARTEN-ANSICHT
-- `rsvpLaden` — stammbaum.html:16015 — KARTEN-ANSICHT
-- `rsvpRender` — stammbaum.html:16033 — KARTEN-ANSICHT
-- `rsvpSetzen` — stammbaum.html:16080 — KARTEN-ANSICHT
-- `rsvpSpracheUpdate` — stammbaum.html:16113 — KARTEN-ANSICHT
-- `rsvpToggleNamen` — stammbaum.html:16110 — KARTEN-ANSICHT
-- `rzEinheit` — stammbaum.html:19528 — PERSON BEARBEITEN (nur Admins)
-- `rzLang` — stammbaum.html:19522 — PERSON BEARBEITEN (nur Admins)
-- `sameTree` — stammbaum.html:23941 — STAMMBAUM (d3.js)
-- `schliesse` — stammbaum.html:9154 — SPRACH-DROPDOWN (Flaggen-Menü)
-- `schliesseAbwNachname` — stammbaum.html:22761 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliesseAlbumLightbox` — stammbaum.html:16314 — KARTEN-ANSICHT
-- `schliesseAlbumNeu` — stammbaum.html:13734 — KARTEN-ANSICHT
-- `schliesseAnalytik` — stammbaum.html:3217 — SUPABASE AUTH
-- `schliesseAnlaesseModal` — stammbaum.html:15626 — KARTEN-ANSICHT
-- `schliesseAnsichtModal` — stammbaum.html:13047 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `schliesseBackup` — stammbaum.html:22358 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliesseBaumDel` — stammbaum.html:6272 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseBaumNeu` — stammbaum.html:6319 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseBereinigungModal` — stammbaum.html:6601 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseBezAendern` — stammbaum.html:22937 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `pePflichtMarkierung` — stammbaum.html:21020 — PERSON BEARBEITEN (nur Admins)
+- `pePruefeFelder` — stammbaum.html:18077 — PERSON BEARBEITEN (nur Admins)
+- `persKey` — stammbaum.html:17441 — DETAIL-FENSTER
+- `persOf` — stammbaum.html:24642 — STAMMBAUM (d3.js)
+- `personBaeumeMap` — stammbaum.html:22856 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `personElternNamen` — stammbaum.html:12094 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `personHatElternteil` — stammbaum.html:17134 — DETAIL-FENSTER
+- `personLocPunkte` — stammbaum.html:14577 — KARTEN-ANSICHT
+- `personLoeschWahl` — stammbaum.html:22868 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `personNeuBaumAnlegen` — stammbaum.html:12258 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `personNeuBaumOeffnen` — stammbaum.html:12243 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `personOf` — stammbaum.html:24775 — STAMMBAUM (d3.js)
+- `personPlus` — stammbaum.html:21311 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `personSignatur` — stammbaum.html:5887 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `personSuchJahr` — stammbaum.html:12075 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `personSuchZusatz` — stammbaum.html:12081 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `personUnlink` — stammbaum.html:18001 — DETAIL-FENSTER
+- `pflichtMarkierung` — stammbaum.html:21010 — PERSON BEARBEITEN (nur Admins)
+- `pkTypLabel` — stammbaum.html:23268 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `platzhalterBlutElternteil` — stammbaum.html:24068 — STAMMBAUM (d3.js)
+- `platzMitBlut` — stammbaum.html:24681 — STAMMBAUM (d3.js)
+- `presenceAktualisieren` — stammbaum.html:5785 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `presenceTrack` — stammbaum.html:4602 — MITGLIEDER-VERWALTUNG (Admins)
+- `profilAndereAbmelden` — stammbaum.html:5683 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `profilAvatarLoeschen` — stammbaum.html:5281 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `profilAvatarWaehlen` — stammbaum.html:5264 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `profilEinstellungenAnwenden` — stammbaum.html:4677 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `profilEinstellungSetzen` — stammbaum.html:4667 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `profilFehler` — stammbaum.html:4757 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `profilPasswortAendern` — stammbaum.html:5708 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `pruefeAbweichenderNachname` — stammbaum.html:22684 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `pruefeBaumMatch` — stammbaum.html:7908 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `pruefeBaumMatchDebounced` — stammbaum.html:7903 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `pruefeDatumFelder` — stammbaum.html:9613 — INITIALISIERUNG
+- `pruefeEmailFeld` — stammbaum.html:6384 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `pruefeHeiratsZweig` — stammbaum.html:22624 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `pruefeLockBanner` — stammbaum.html:5859 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `pruefeMeinePersonHinweis` — stammbaum.html:4863 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `pruefeNamePflicht` — stammbaum.html:21000 — PERSON BEARBEITEN (nur Admins)
+- `pruefeNeueVersion` — stammbaum.html:9960 — INITIALISIERUNG
+- `pruefeOverlayAktualitaet` — stammbaum.html:5939 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `pruefePasswortSetzen` — stammbaum.html:7833 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `pwFehler` — stammbaum.html:5706 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `q` — stammbaum.html:3442 — SUPABASE AUTH
+- `r` — stammbaum.html:11082 — INITIALISIERUNG
+- `r` — stammbaum.html:23778 — STAMMBAUM (d3.js)
+- `r` — stammbaum.html:24508 — STAMMBAUM (d3.js)
+- `r` — stammbaum.html:24870 — STAMMBAUM (d3.js)
+- `raeumePersonenMedien` — stammbaum.html:23315 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `raeumeVerwaisteMedien` — stammbaum.html:23296 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `realtimeAenderung` — stammbaum.html:4446 — MITGLIEDER-VERWALTUNG (Admins)
+- `realtimeInkrementellRender` — stammbaum.html:4492 — MITGLIEDER-VERWALTUNG (Admins)
+- `realtimePatchPerson` — stammbaum.html:4464 — MITGLIEDER-VERWALTUNG (Admins)
+- `realtimeReloadAnstossen` — stammbaum.html:4433 — MITGLIEDER-VERWALTUNG (Admins)
+- `realtimeReloadAusfuehren` — stammbaum.html:4505 — MITGLIEDER-VERWALTUNG (Admins)
+- `rect` — stammbaum.html:16736 — KARTEN-ANSICHT
+- `regFelderLeeren` — stammbaum.html:7987 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `regMatchWahl` — stammbaum.html:7942 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `regNeueFamilieAnlegen` — stammbaum.html:8084 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `reindex` — stammbaum.html:24446 — STAMMBAUM (d3.js)
+- `relChip` — stammbaum.html:17486 — DETAIL-FENSTER
+- `reloadBaumBehalteFokus` — stammbaum.html:21237 — PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD
+- `renderAnalytik` — stammbaum.html:3257 — SUPABASE AUTH
+- `renderAnlaesseListe` — stammbaum.html:15625 — KARTEN-ANSICHT
+- `renderBenachrichtigungen` — stammbaum.html:15485 — KARTEN-ANSICHT
+- `renderBereinigung` — stammbaum.html:6619 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `rendereAktuelleAnsicht` — stammbaum.html:12933 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `rendereLayout` — stammbaum.html:10727 — INITIALISIERUNG
+- `renderErinnListe` — stammbaum.html:15717 — KARTEN-ANSICHT
+- `renderEtnListe` — stammbaum.html:15278 — KARTEN-ANSICHT
+- `renderEventMedia` — stammbaum.html:13471 — KARTEN-ANSICHT
+- `renderGamification` — stammbaum.html:17242 — DETAIL-FENSTER
+- `renderIntegritaet` — stammbaum.html:22332 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `renderKosten` — stammbaum.html:16516 — KARTEN-ANSICHT
+- `renderMeinePersonBereich` — stammbaum.html:4892 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `renderMitglieder` — stammbaum.html:3806 — MITGLIEDER-VERWALTUNG (Admins)
+- `renderMpPick` — stammbaum.html:4945 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `renderNutzerListe` — stammbaum.html:3395 — SUPABASE AUTH
+- `renderObavBadges` — stammbaum.html:4338 — MITGLIEDER-VERWALTUNG (Admins)
+- `renderObavListe` — stammbaum.html:6049 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `renderObavZentral` — stammbaum.html:5992 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `renderPapierkorb` — stammbaum.html:23240 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `renderPresenceIndikator` — stammbaum.html:5810 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `renderPreset` — stammbaum.html:10710 — INITIALISIERUNG
+- `renderProfilKopf` — stammbaum.html:5172 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `renderSicherheit` — stammbaum.html:5651 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `renderTabBadges` — stammbaum.html:23407 — ANSICHT-WECHSEL
+- `renderVollstBaum` — stammbaum.html:17198 — DETAIL-FENSTER
+- `resetInaktivTimer` — stammbaum.html:9914 — INITIALISIERUNG
+- `restoreAusfuehren` — stammbaum.html:22517 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `restoreBerichtRender` — stammbaum.html:22504 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `restoreVorbereiten` — stammbaum.html:22484 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `rezeptBildEntfernen` — stammbaum.html:19409 — PERSON BEARBEITEN (nur Admins)
+- `rezeptBildGewaehlt` — stammbaum.html:19398 — PERSON BEARBEITEN (nur Admins)
+- `rezeptComposerReset` — stammbaum.html:19462 — PERSON BEARBEITEN (nur Admins)
+- `rezeptEditStart` — stammbaum.html:19470 — PERSON BEARBEITEN (nur Admins)
+- `rezepteLaden` — stammbaum.html:19417 — PERSON BEARBEITEN (nur Admins)
+- `rezeptKatLabel` — stammbaum.html:19415 — PERSON BEARBEITEN (nur Admins)
+- `rezeptLoeschen` — stammbaum.html:19510 — PERSON BEARBEITEN (nur Admins)
+- `rezeptQuelle` — stammbaum.html:19536 — PERSON BEARBEITEN (nur Admins)
+- `rezeptRefName` — stammbaum.html:19429 — PERSON BEARBEITEN (nur Admins)
+- `rezeptRender` — stammbaum.html:19434 — PERSON BEARBEITEN (nur Admins)
+- `rezeptSenden` — stammbaum.html:19480 — PERSON BEARBEITEN (nur Admins)
+- `rezeptSpracheUpdate` — stammbaum.html:19520 — PERSON BEARBEITEN (nur Admins)
+- `rezeptZuEinkauf` — stammbaum.html:19921 — PERSON BEARBEITEN (nur Admins)
+- `rezeptZuEinkaufVon` — stammbaum.html:19927 — PERSON BEARBEITEN (nur Admins)
+- `rohName` — stammbaum.html:7530 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `rpcDel` — stammbaum.html:23164 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `rpcSafe` — stammbaum.html:10343 — INITIALISIERUNG
+- `rsvpAnzahl` — stammbaum.html:16125 — KARTEN-ANSICHT
+- `rsvpLaden` — stammbaum.html:16044 — KARTEN-ANSICHT
+- `rsvpRender` — stammbaum.html:16062 — KARTEN-ANSICHT
+- `rsvpSetzen` — stammbaum.html:16109 — KARTEN-ANSICHT
+- `rsvpSpracheUpdate` — stammbaum.html:16142 — KARTEN-ANSICHT
+- `rsvpToggleNamen` — stammbaum.html:16139 — KARTEN-ANSICHT
+- `rzEinheit` — stammbaum.html:19558 — PERSON BEARBEITEN (nur Admins)
+- `rzLang` — stammbaum.html:19552 — PERSON BEARBEITEN (nur Admins)
+- `sameTree` — stammbaum.html:23994 — STAMMBAUM (d3.js)
+- `schliesse` — stammbaum.html:9156 — SPRACH-DROPDOWN (Flaggen-Menü)
+- `schliesseAbwNachname` — stammbaum.html:22800 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliesseAlbumLightbox` — stammbaum.html:16343 — KARTEN-ANSICHT
+- `schliesseAlbumNeu` — stammbaum.html:13763 — KARTEN-ANSICHT
+- `schliesseAnalytik` — stammbaum.html:3219 — SUPABASE AUTH
+- `schliesseAnlaesseModal` — stammbaum.html:15655 — KARTEN-ANSICHT
+- `schliesseAnsichtModal` — stammbaum.html:13076 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `schliesseBackup` — stammbaum.html:22397 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliesseBaumDel` — stammbaum.html:6274 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseBaumNeu` — stammbaum.html:6321 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseBereinigungModal` — stammbaum.html:6603 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseBezAendern` — stammbaum.html:22976 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
 - `schliesseChat` — chat.js:180 — (ohne Abschnittsueberschrift)
-- `schliesseDokViewer` — stammbaum.html:20610 — PERSON BEARBEITEN (nur Admins)
-- `schliesseDublettenModal` — stammbaum.html:6126 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseEkAdd` — stammbaum.html:19911 — PERSON BEARBEITEN (nur Admins)
-- `schliesseEkNeu` — stammbaum.html:19839 — PERSON BEARBEITEN (nur Admins)
-- `schliesseEkTeilen` — stammbaum.html:19865 — PERSON BEARBEITEN (nur Admins)
-- `schliesseEntdecken` — stammbaum.html:5409 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `schliesseErinnModal` — stammbaum.html:15729 — KARTEN-ANSICHT
-- `schliesseEventModal` — stammbaum.html:15178 — KARTEN-ANSICHT
-- `schliesseEventTeilnehmer` — stammbaum.html:15233 — KARTEN-ANSICHT
-- `schliesseFamilieEinstellungen` — stammbaum.html:6584 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseFeWahl` — stammbaum.html:6512 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseFrageLoesen` — stammbaum.html:20092 — PERSON BEARBEITEN (nur Admins)
-- `schliesseGedenkseite` — stammbaum.html:18780 — PERSON BEARBEITEN (nur Admins)
-- `schliesseGleichePersonModal` — stammbaum.html:17773 — DETAIL-FENSTER
-- `schliesseIcalModal` — stammbaum.html:14101 — KARTEN-ANSICHT
-- `schliesseIntegritaet` — stammbaum.html:21981 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliesseKochbuch` — stammbaum.html:19653 — PERSON BEARBEITEN (nur Admins)
-- `schliesseKostenModal` — stammbaum.html:16430 — KARTEN-ANSICHT
-- `schliesseLightbox` — stammbaum.html:18377 — PERSON BEARBEITEN (nur Admins)
-- `schliesseLoginModal` — stammbaum.html:7803 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseLogoCrop` — stammbaum.html:6933 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseMergeModal` — stammbaum.html:7460 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseMitglieder` — stammbaum.html:3746 — MITGLIEDER-VERWALTUNG (Admins)
-- `schliesseMitgliedHinzufuegen` — stammbaum.html:4032 — MITGLIEDER-VERWALTUNG (Admins)
-- `schliesseModal` — stammbaum.html:17590 — DETAIL-FENSTER
-- `schliesseModalUndZeigeBaum` — stammbaum.html:23297 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliesseMoveBaum` — stammbaum.html:17703 — DETAIL-FENSTER
-- `schliesseMpCreate` — stammbaum.html:5042 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `schliesseMpPick` — stammbaum.html:4941 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `schliesseNachnamenTool` — stammbaum.html:21993 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliesseObavModal` — stammbaum.html:6024 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `schliesseOwnerWechsel` — stammbaum.html:6755 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliessePaHilfe` — stammbaum.html:21224 — PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD
-- `schliessePapierkorb` — stammbaum.html:23200 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliessePartnerArt` — stammbaum.html:23034 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliessePasswort` — stammbaum.html:5587 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseDokViewer` — stammbaum.html:20640 — PERSON BEARBEITEN (nur Admins)
+- `schliesseDublettenModal` — stammbaum.html:6128 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseEkAdd` — stammbaum.html:19941 — PERSON BEARBEITEN (nur Admins)
+- `schliesseEkNeu` — stammbaum.html:19869 — PERSON BEARBEITEN (nur Admins)
+- `schliesseEkTeilen` — stammbaum.html:19895 — PERSON BEARBEITEN (nur Admins)
+- `schliesseEntdecken` — stammbaum.html:5411 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseErinnModal` — stammbaum.html:15758 — KARTEN-ANSICHT
+- `schliesseEventModal` — stammbaum.html:15207 — KARTEN-ANSICHT
+- `schliesseEventTeilnehmer` — stammbaum.html:15262 — KARTEN-ANSICHT
+- `schliesseFamilieEinstellungen` — stammbaum.html:6586 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseFeWahl` — stammbaum.html:6514 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseFrageLoesen` — stammbaum.html:20122 — PERSON BEARBEITEN (nur Admins)
+- `schliesseGedenkseite` — stammbaum.html:18810 — PERSON BEARBEITEN (nur Admins)
+- `schliesseGleichePersonModal` — stammbaum.html:17802 — DETAIL-FENSTER
+- `schliesseIcalModal` — stammbaum.html:14130 — KARTEN-ANSICHT
+- `schliesseIntegritaet` — stammbaum.html:22020 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliesseKochbuch` — stammbaum.html:19683 — PERSON BEARBEITEN (nur Admins)
+- `schliesseKostenModal` — stammbaum.html:16459 — KARTEN-ANSICHT
+- `schliesseLightbox` — stammbaum.html:18407 — PERSON BEARBEITEN (nur Admins)
+- `schliesseLoginModal` — stammbaum.html:7805 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseLogoCrop` — stammbaum.html:6935 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseMergeModal` — stammbaum.html:7462 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseMitglieder` — stammbaum.html:3748 — MITGLIEDER-VERWALTUNG (Admins)
+- `schliesseMitgliedHinzufuegen` — stammbaum.html:4034 — MITGLIEDER-VERWALTUNG (Admins)
+- `schliesseModal` — stammbaum.html:17619 — DETAIL-FENSTER
+- `schliesseModalUndZeigeBaum` — stammbaum.html:23336 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliesseMoveBaum` — stammbaum.html:17732 — DETAIL-FENSTER
+- `schliesseMpCreate` — stammbaum.html:5044 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseMpPick` — stammbaum.html:4943 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseNachnamenTool` — stammbaum.html:22032 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliesseObavModal` — stammbaum.html:6026 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseOwnerWechsel` — stammbaum.html:6757 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliessePaHilfe` — stammbaum.html:21262 — PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD
+- `schliessePapierkorb` — stammbaum.html:23239 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliessePartnerArt` — stammbaum.html:23073 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliessePasswort` — stammbaum.html:5589 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
 - `schliessePdfExport` — pdf_export.js:81 — (ohne Abschnittsueberschrift)
-- `schliessePersonAdd` — stammbaum.html:21740 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliessePersonChoice` — stammbaum.html:21282 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliessePersonEdit` — stammbaum.html:18060 — PERSON BEARBEITEN (nur Admins)
-- `schliessePersonNeuBaum` — stammbaum.html:12235 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `schliessePrivatnost` — stammbaum.html:5390 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `schliesseProfil` — stammbaum.html:4823 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `schliesseRegistrierModal` — stammbaum.html:7825 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `schliesseSicherheit` — stammbaum.html:5600 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `schliesseStandardBaumModal` — stammbaum.html:8949 — SPRACH-SYSTEM
-- `schliesseStandardWahl` — stammbaum.html:8910 — SPRACH-SYSTEM
-- `schliesseTerminDetail` — stammbaum.html:14235 — KARTEN-ANSICHT
-- `schliesseTerminEinladen` — stammbaum.html:14280 — KARTEN-ANSICHT
-- `schliesseTerminNeu` — stammbaum.html:14186 — KARTEN-ANSICHT
-- `schliesseUserKarte` — stammbaum.html:3888 — MITGLIEDER-VERWALTUNG (Admins)
-- `schliesseVerbinden` — stammbaum.html:21323 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `schliesseVollstModal` — stammbaum.html:9137 — SPRACH-SYSTEM
-- `schliesseZweiModal` — stammbaum.html:22003 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `segZeichnen` — stammbaum.html:11066 — INITIALISIERUNG
-- `sektion` — stammbaum.html:16713 — KARTEN-ANSICHT
-- `sektion` — stammbaum.html:17489 — DETAIL-FENSTER
-- `sendeRegistrierAnfrage` — stammbaum.html:7996 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `sessAktivitaet` — stammbaum.html:9919 — INITIALISIERUNG
-- `sessionAutoLogout` — stammbaum.html:9934 — INITIALISIERUNG
-- `sessionVerlaengern` — stammbaum.html:9933 — INITIALISIERUNG
-- `set` — stammbaum.html:4811 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `set` — stammbaum.html:18006 — PERSON BEARBEITEN (nur Admins)
-- `setD` — stammbaum.html:18007 — PERSON BEARBEITEN (nur Admins)
-- `setDebugRolle` — stammbaum.html:3457 — SUPABASE AUTH
-- `setGraphRenderer` — stammbaum.html:24233 — STAMMBAUM (d3.js)
-- `setKarteFoto` — stammbaum.html:18132 — PERSON BEARBEITEN (nur Admins)
-- `setLandSelect` — stammbaum.html:8487 — SPRACH-SYSTEM
-- `setLandSelectValue` — stammbaum.html:8475 — SPRACH-SYSTEM
-- `setProfilAvatarVorschau` — stammbaum.html:5221 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `setStandardBaum` — stammbaum.html:8854 — SPRACH-SYSTEM
-- `setzeDatumsFormat` — stammbaum.html:5198 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `setzePasswort` — stammbaum.html:7840 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `setzeUser` — stammbaum.html:3045 — SUPABASE AUTH
-- `setzeWenn` — stammbaum.html:14908 — KARTEN-ANSICHT
-- `sichtbar` — stammbaum.html:20360 — PERSON BEARBEITEN (nur Admins)
-- `slideshowUpdate` — stammbaum.html:17009 — KARTEN-ANSICHT
+- `schliessePersonAdd` — stammbaum.html:21779 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliessePersonChoice` — stammbaum.html:21320 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliessePersonEdit` — stammbaum.html:18090 — PERSON BEARBEITEN (nur Admins)
+- `schliessePersonNeuBaum` — stammbaum.html:12256 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `schliessePrivatnost` — stammbaum.html:5392 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseProfil` — stammbaum.html:4825 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseRegistrierModal` — stammbaum.html:7827 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `schliesseSicherheit` — stammbaum.html:5602 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `schliesseStandardBaumModal` — stammbaum.html:8951 — SPRACH-SYSTEM
+- `schliesseStandardWahl` — stammbaum.html:8912 — SPRACH-SYSTEM
+- `schliesseTerminDetail` — stammbaum.html:14264 — KARTEN-ANSICHT
+- `schliesseTerminEinladen` — stammbaum.html:14309 — KARTEN-ANSICHT
+- `schliesseTerminNeu` — stammbaum.html:14215 — KARTEN-ANSICHT
+- `schliesseUserKarte` — stammbaum.html:3890 — MITGLIEDER-VERWALTUNG (Admins)
+- `schliesseVerbinden` — stammbaum.html:21361 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `schliesseVollstModal` — stammbaum.html:9139 — SPRACH-SYSTEM
+- `schliesseZweiModal` — stammbaum.html:22042 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `segZeichnen` — stammbaum.html:11081 — INITIALISIERUNG
+- `sektion` — stammbaum.html:16742 — KARTEN-ANSICHT
+- `sektion` — stammbaum.html:17518 — DETAIL-FENSTER
+- `sendeRegistrierAnfrage` — stammbaum.html:7998 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `sessAktivitaet` — stammbaum.html:9921 — INITIALISIERUNG
+- `sessionAutoLogout` — stammbaum.html:9936 — INITIALISIERUNG
+- `sessionVerlaengern` — stammbaum.html:9935 — INITIALISIERUNG
+- `set` — stammbaum.html:4813 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `set` — stammbaum.html:18035 — PERSON BEARBEITEN (nur Admins)
+- `setD` — stammbaum.html:18036 — PERSON BEARBEITEN (nur Admins)
+- `setDebugRolle` — stammbaum.html:3459 — SUPABASE AUTH
+- `setGraphRenderer` — stammbaum.html:24286 — STAMMBAUM (d3.js)
+- `setKarteFoto` — stammbaum.html:18162 — PERSON BEARBEITEN (nur Admins)
+- `setLandSelect` — stammbaum.html:8489 — SPRACH-SYSTEM
+- `setLandSelectValue` — stammbaum.html:8477 — SPRACH-SYSTEM
+- `setProfilAvatarVorschau` — stammbaum.html:5223 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `setStandardBaum` — stammbaum.html:8856 — SPRACH-SYSTEM
+- `setzeDatumsFormat` — stammbaum.html:5200 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `setzePasswort` — stammbaum.html:7842 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `setzeUser` — stammbaum.html:3047 — SUPABASE AUTH
+- `setzeWenn` — stammbaum.html:14937 — KARTEN-ANSICHT
+- `sichtbar` — stammbaum.html:20390 — PERSON BEARBEITEN (nur Admins)
+- `slideshowUpdate` — stammbaum.html:17038 — KARTEN-ANSICHT
 - `slotBreadth` — pdf_export.js:321 — (ohne Abschnittsueberschrift)
-- `socialFehler` — stammbaum.html:19051 — PERSON BEARBEITEN (nur Admins)
-- `speichereAnlassEinstellungen` — stammbaum.html:15810 — KARTEN-ANSICHT
-- `speichereAnsichtPref` — stammbaum.html:13106 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `speichereEvent` — stammbaum.html:15854 — KARTEN-ANSICHT
-- `speichereEventTeilnehmer` — stammbaum.html:15319 — KARTEN-ANSICHT
-- `speichereFamilieEinstellungen` — stammbaum.html:7102 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `speichereNeuePerson` — stammbaum.html:21765 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `speichereOrientPref` — stammbaum.html:13120 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `speicherePerson` — stammbaum.html:20985 — PERSON BEARBEITEN (nur Admins)
-- `speicherePrivatnost` — stammbaum.html:5552 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `speichereProfil` — stammbaum.html:5307 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `speichereProfilSprache` — stammbaum.html:4697 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `speichereStandardBaumModal` — stammbaum.html:8950 — SPRACH-SYSTEM
-- `speichereStandardWahl` — stammbaum.html:8911 — SPRACH-SYSTEM
-- `spiegele` — stammbaum.html:9363 — INITIALISIERUNG
-- `spreize` — stammbaum.html:24427 — STAMMBAUM (d3.js)
-- `springeZuBaumPerson` — stammbaum.html:17638 — DETAIL-FENSTER
-- `SR_CYR2LAT` — stammbaum.html:8349 — SPRACH-SYSTEM
-- `srCyr2Lat` — stammbaum.html:8354 — SPRACH-SYSTEM
-- `srLat2Cyr` — stammbaum.html:8338 — SPRACH-SYSTEM
-- `ssFold` — stammbaum.html:9214 — INITIALISIERUNG
-- `ssInitPanel` — stammbaum.html:9193 — INITIALISIERUNG
-- `ssIstTouch` — stammbaum.html:9236 — INITIALISIERUNG
-- `ssOeffne` — stammbaum.html:9283 — INITIALISIERUNG
-- `ssPositioniere` — stammbaum.html:9240 — INITIALISIERUNG
-- `ssRender` — stammbaum.html:9221 — INITIALISIERUNG
-- `ssSchliesse` — stammbaum.html:9312 — INITIALISIERUNG
-- `ssSichtbarkeitsWaechter` — stammbaum.html:9305 — INITIALISIERUNG
-- `ssSyncLabel` — stammbaum.html:9328 — INITIALISIERUNG
-- `ssWaehle` — stammbaum.html:9320 — INITIALISIERUNG
-- `stammbaumGroessen` — stammbaum.html:8960 — SPRACH-SYSTEM
-- `standardBaumKey` — stammbaum.html:8848 — SPRACH-SYSTEM
-- `startBenachrSync` — stammbaum.html:4542 — MITGLIEDER-VERWALTUNG (Admins)
+- `socialFehler` — stammbaum.html:19081 — PERSON BEARBEITEN (nur Admins)
+- `speichereAnlassEinstellungen` — stammbaum.html:15839 — KARTEN-ANSICHT
+- `speichereAnsichtPref` — stammbaum.html:13135 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `speichereEvent` — stammbaum.html:15883 — KARTEN-ANSICHT
+- `speichereEventTeilnehmer` — stammbaum.html:15348 — KARTEN-ANSICHT
+- `speichereFamilieEinstellungen` — stammbaum.html:7104 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `speichereNeuePerson` — stammbaum.html:21804 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `speichereOrientPref` — stammbaum.html:13149 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `speicherePerson` — stammbaum.html:21023 — PERSON BEARBEITEN (nur Admins)
+- `speicherePrivatnost` — stammbaum.html:5554 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `speichereProfil` — stammbaum.html:5309 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `speichereProfilSprache` — stammbaum.html:4699 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `speichereStandardBaumModal` — stammbaum.html:8952 — SPRACH-SYSTEM
+- `speichereStandardWahl` — stammbaum.html:8913 — SPRACH-SYSTEM
+- `spiegele` — stammbaum.html:9365 — INITIALISIERUNG
+- `spreize` — stammbaum.html:24480 — STAMMBAUM (d3.js)
+- `springeZuBaumPerson` — stammbaum.html:17667 — DETAIL-FENSTER
+- `SR_CYR2LAT` — stammbaum.html:8351 — SPRACH-SYSTEM
+- `srCyr2Lat` — stammbaum.html:8356 — SPRACH-SYSTEM
+- `srLat2Cyr` — stammbaum.html:8340 — SPRACH-SYSTEM
+- `ssFold` — stammbaum.html:9216 — INITIALISIERUNG
+- `ssInitPanel` — stammbaum.html:9195 — INITIALISIERUNG
+- `ssIstTouch` — stammbaum.html:9238 — INITIALISIERUNG
+- `ssOeffne` — stammbaum.html:9285 — INITIALISIERUNG
+- `ssPositioniere` — stammbaum.html:9242 — INITIALISIERUNG
+- `ssRender` — stammbaum.html:9223 — INITIALISIERUNG
+- `ssSchliesse` — stammbaum.html:9314 — INITIALISIERUNG
+- `ssSichtbarkeitsWaechter` — stammbaum.html:9307 — INITIALISIERUNG
+- `ssSyncLabel` — stammbaum.html:9330 — INITIALISIERUNG
+- `ssWaehle` — stammbaum.html:9322 — INITIALISIERUNG
+- `stammbaumGroessen` — stammbaum.html:8962 — SPRACH-SYSTEM
+- `standardBaumKey` — stammbaum.html:8850 — SPRACH-SYSTEM
+- `startBenachrSync` — stammbaum.html:4544 — MITGLIEDER-VERWALTUNG (Admins)
 - `startChat` — chat.js:28 — (ohne Abschnittsueberschrift)
-- `startEinkauf` — stammbaum.html:19930 — PERSON BEARBEITEN (nur Admins)
-- `startEngagementSync` — stammbaum.html:18708 — PERSON BEARBEITEN (nur Admins)
-- `startFeedSync` — stammbaum.html:20112 — PERSON BEARBEITEN (nur Admins)
-- `startObavPolling` — stammbaum.html:4377 — MITGLIEDER-VERWALTUNG (Admins)
-- `startPresence` — stammbaum.html:5745 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `startRealtimeSync` — stammbaum.html:4402 — MITGLIEDER-VERWALTUNG (Admins)
-- `stopBenachrSync` — stammbaum.html:4558 — MITGLIEDER-VERWALTUNG (Admins)
+- `startEinkauf` — stammbaum.html:19960 — PERSON BEARBEITEN (nur Admins)
+- `startEngagementSync` — stammbaum.html:18738 — PERSON BEARBEITEN (nur Admins)
+- `startFeedSync` — stammbaum.html:20142 — PERSON BEARBEITEN (nur Admins)
+- `startObavPolling` — stammbaum.html:4379 — MITGLIEDER-VERWALTUNG (Admins)
+- `startPresence` — stammbaum.html:5747 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `startRealtimeSync` — stammbaum.html:4404 — MITGLIEDER-VERWALTUNG (Admins)
+- `stopBenachrSync` — stammbaum.html:4560 — MITGLIEDER-VERWALTUNG (Admins)
 - `stopChat` — chat.js:42 — (ohne Abschnittsueberschrift)
-- `stopEinkauf` — stammbaum.html:19939 — PERSON BEARBEITEN (nur Admins)
-- `stopEngagementSync` — stammbaum.html:18719 — PERSON BEARBEITEN (nur Admins)
-- `stopFeedSync` — stammbaum.html:20123 — PERSON BEARBEITEN (nur Admins)
-- `stopObavPolling` — stammbaum.html:4384 — MITGLIEDER-VERWALTUNG (Admins)
-- `stopPresence` — stammbaum.html:5769 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `stopRealtimeSync` — stammbaum.html:4419 — MITGLIEDER-VERWALTUNG (Admins)
-- `sucheDedupKey` — stammbaum.html:5433 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `sucheMergeUnscharf` — stammbaum.html:5439 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `sucheSplitVarianten` — stammbaum.html:5421 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `suchImBaum` — stammbaum.html:10493 — INITIALISIERUNG
-- `surnameOf` — stammbaum.html:7233 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `swallow` — stammbaum.html:9402 — INITIALISIERUNG
-- `syncBannerEinfuegen` — stammbaum.html:5908 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `t` — stammbaum.html:8316 — SPRACH-SYSTEM
-- `tabNeuAnstossen` — stammbaum.html:23400 — ANSICHT-WECHSEL
-- `td` — stammbaum.html:3420 — SUPABASE AUTH
-- `text` — stammbaum.html:16709 — KARTEN-ANSICHT
-- `tfCheckedIds` — stammbaum.html:14173 — KARTEN-ANSICHT
-- `tfDetailOeffnen` — stammbaum.html:14224 — KARTEN-ANSICHT
-- `tfDetailRender` — stammbaum.html:14237 — KARTEN-ANSICHT
-- `tfEinladenHtml` — stammbaum.html:14168 — KARTEN-ANSICHT
-- `tfEinladenOeffnen` — stammbaum.html:14268 — KARTEN-ANSICHT
-- `tfEinladenSpeichern` — stammbaum.html:14281 — KARTEN-ANSICHT
-- `tfEntscheiden` — stammbaum.html:14301 — KARTEN-ANSICHT
-- `tfErstellen` — stammbaum.html:14198 — KARTEN-ANSICHT
-- `tfLadeCreateEinladen` — stammbaum.html:14176 — KARTEN-ANSICHT
-- `tfLoeschen` — stammbaum.html:14312 — KARTEN-ANSICHT
-- `tfNeuOeffnen` — stammbaum.html:14155 — KARTEN-ANSICHT
-- `tfOptionHinzu` — stammbaum.html:14187 — KARTEN-ANSICHT
-- `tfRender` — stammbaum.html:14127 — KARTEN-ANSICHT
-- `tfSpracheUpdate` — stammbaum.html:14320 — KARTEN-ANSICHT
-- `tfStimme` — stammbaum.html:14292 — KARTEN-ANSICHT
-- `th` — stammbaum.html:3413 — SUPABASE AUTH
-- `tile` — stammbaum.html:16210 — KARTEN-ANSICHT
-- `tippAuswahl` — stammbaum.html:9386 — INITIALISIERUNG
-- `tnName` — stammbaum.html:16492 — KARTEN-ANSICHT
-- `tnName` — stammbaum.html:16679 — KARTEN-ANSICHT
-- `toggle` — stammbaum.html:9354 — INITIALISIERUNG
-- `toggleAktiv` — stammbaum.html:3994 — MITGLIEDER-VERWALTUNG (Admins)
-- `toggleAvatarMenu` — stammbaum.html:3675 — SUPABASE AUTH
-- `toggleNavMenu` — stammbaum.html:3667 — SUPABASE AUTH
-- `togglePaHilfe` — stammbaum.html:21231 — PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD
-- `togglePresencePanel` — stammbaum.html:5838 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `stopEinkauf` — stammbaum.html:19969 — PERSON BEARBEITEN (nur Admins)
+- `stopEngagementSync` — stammbaum.html:18749 — PERSON BEARBEITEN (nur Admins)
+- `stopFeedSync` — stammbaum.html:20153 — PERSON BEARBEITEN (nur Admins)
+- `stopObavPolling` — stammbaum.html:4386 — MITGLIEDER-VERWALTUNG (Admins)
+- `stopPresence` — stammbaum.html:5771 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `stopRealtimeSync` — stammbaum.html:4421 — MITGLIEDER-VERWALTUNG (Admins)
+- `sucheDedupKey` — stammbaum.html:5435 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `sucheMergeUnscharf` — stammbaum.html:5441 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `sucheSplitVarianten` — stammbaum.html:5423 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `suchImBaum` — stammbaum.html:10495 — INITIALISIERUNG
+- `surnameOf` — stammbaum.html:7235 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `swallow` — stammbaum.html:9404 — INITIALISIERUNG
+- `syncBannerEinfuegen` — stammbaum.html:5910 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `t` — stammbaum.html:8318 — SPRACH-SYSTEM
+- `tabNeuAnstossen` — stammbaum.html:23439 — ANSICHT-WECHSEL
+- `td` — stammbaum.html:3422 — SUPABASE AUTH
+- `text` — stammbaum.html:16738 — KARTEN-ANSICHT
+- `tfCheckedIds` — stammbaum.html:14202 — KARTEN-ANSICHT
+- `tfDetailOeffnen` — stammbaum.html:14253 — KARTEN-ANSICHT
+- `tfDetailRender` — stammbaum.html:14266 — KARTEN-ANSICHT
+- `tfEinladenHtml` — stammbaum.html:14197 — KARTEN-ANSICHT
+- `tfEinladenOeffnen` — stammbaum.html:14297 — KARTEN-ANSICHT
+- `tfEinladenSpeichern` — stammbaum.html:14310 — KARTEN-ANSICHT
+- `tfEntscheiden` — stammbaum.html:14330 — KARTEN-ANSICHT
+- `tfErstellen` — stammbaum.html:14227 — KARTEN-ANSICHT
+- `tfLadeCreateEinladen` — stammbaum.html:14205 — KARTEN-ANSICHT
+- `tfLoeschen` — stammbaum.html:14341 — KARTEN-ANSICHT
+- `tfNeuOeffnen` — stammbaum.html:14184 — KARTEN-ANSICHT
+- `tfOptionHinzu` — stammbaum.html:14216 — KARTEN-ANSICHT
+- `tfRender` — stammbaum.html:14156 — KARTEN-ANSICHT
+- `tfSpracheUpdate` — stammbaum.html:14349 — KARTEN-ANSICHT
+- `tfStimme` — stammbaum.html:14321 — KARTEN-ANSICHT
+- `th` — stammbaum.html:3415 — SUPABASE AUTH
+- `tile` — stammbaum.html:16239 — KARTEN-ANSICHT
+- `tippAuswahl` — stammbaum.html:9388 — INITIALISIERUNG
+- `tnName` — stammbaum.html:16521 — KARTEN-ANSICHT
+- `tnName` — stammbaum.html:16708 — KARTEN-ANSICHT
+- `toggle` — stammbaum.html:9356 — INITIALISIERUNG
+- `toggleAktiv` — stammbaum.html:3996 — MITGLIEDER-VERWALTUNG (Admins)
+- `toggleAvatarMenu` — stammbaum.html:3677 — SUPABASE AUTH
+- `toggleNavMenu` — stammbaum.html:3669 — SUPABASE AUTH
+- `togglePaHilfe` — stammbaum.html:21269 — PERSON HINZUFÜGEN + LÖSCHEN (nur Admins) — Stammbaum-CRUD
+- `togglePresencePanel` — stammbaum.html:5840 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
 - `toXY` — pdf_export.js:301 — (ohne Abschnittsueberschrift)
-- `track` — stammbaum.html:3187 — SUPABASE AUTH
+- `track` — stammbaum.html:3189 — SUPABASE AUTH
 - `treeColor` — pdf_export.js:304 — (ohne Abschnittsueberschrift)
-- `trefferBaumLabel` — stammbaum.html:22558 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `twinExtIds` — stammbaum.html:23953 — STAMMBAUM (d3.js)
-- `twinExts` — stammbaum.html:23089 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `twinObjs` — stammbaum.html:23087 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `twinUuids` — stammbaum.html:23088 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `uebersetzeOrt` — stammbaum.html:8453 — SPRACH-SYSTEM
-- `ukEntfernen` — stammbaum.html:3973 — MITGLIEDER-VERWALTUNG (Admins)
-- `ukRenderAktuell` — stammbaum.html:3891 — MITGLIEDER-VERWALTUNG (Admins)
-- `ukSpracheUpdate` — stammbaum.html:3983 — MITGLIEDER-VERWALTUNG (Admins)
-- `ukSuche` — stammbaum.html:3900 — MITGLIEDER-VERWALTUNG (Admins)
-- `ukSucheDebounce` — stammbaum.html:3899 — MITGLIEDER-VERWALTUNG (Admins)
-- `ukWaehle` — stammbaum.html:3939 — MITGLIEDER-VERWALTUNG (Admins)
-- `ukZuweisen` — stammbaum.html:3952 — MITGLIEDER-VERWALTUNG (Admins)
-- `umbrich` — stammbaum.html:16687 — KARTEN-ANSICHT
-- `umbrucheNamen` — stammbaum.html:23898 — STAMMBAUM (d3.js)
-- `unterstuetzteSprache` — stammbaum.html:8257 — SPRACH-SYSTEM
-- `updateSlideshow` — stammbaum.html:16980 — KARTEN-ANSICHT
-- `uploadEventMedia` — stammbaum.html:13343 — KARTEN-ANSICHT
-- `uuidOf` — stammbaum.html:11042 — INITIALISIERUNG
-- `v` — stammbaum.html:6330 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `v` — stammbaum.html:7068 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `v` — stammbaum.html:7110 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `v` — stammbaum.html:7907 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `v` — stammbaum.html:11602 — INITIALISIERUNG
-- `v` — stammbaum.html:15856 — KARTEN-ANSICHT
-- `v` — stammbaum.html:20997 — PERSON BEARBEITEN (nur Admins)
-- `v` — stammbaum.html:21785 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `val` — stammbaum.html:8003 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `val` — stammbaum.html:8089 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `vald` — stammbaum.html:8004 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `vald` — stammbaum.html:8090 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `vbErgebnisHtml` — stammbaum.html:21428 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbFehlerText` — stammbaum.html:21441 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbIdentGruppe` — stammbaum.html:21389 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbLinkBtn` — stammbaum.html:21421 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbNeuAnlegen` — stammbaum.html:21376 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbSchonVerbunden` — stammbaum.html:21397 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbSuche` — stammbaum.html:21333 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbSucheDebounce` — stammbaum.html:21329 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vbVerknuepfe` — stammbaum.html:21454 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `vd` — stammbaum.html:11603 — INITIALISIERUNG
-- `vd` — stammbaum.html:20998 — PERSON BEARBEITEN (nur Admins)
-- `vd` — stammbaum.html:21786 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `verarbeiteAvatar` — stammbaum.html:5246 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `verarbeiteEventDeepLink` — stammbaum.html:4309 — MITGLIEDER-VERWALTUNG (Admins)
-- `verbundFuelleBaeume` — stammbaum.html:22171 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `verbundPfadFinden` — stammbaum.html:22121 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `verschiebbareZielBaeume` — stammbaum.html:17663 — DETAIL-FENSTER
-- `verschiebeLandBosnien` — stammbaum.html:7319 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `versteckeSessionWarnung` — stammbaum.html:9929 — INITIALISIERUNG
-- `verwandtschaftBestimmen` — stammbaum.html:17322 — DETAIL-FENSTER
-- `verwandtschaftBtnHtml` — stammbaum.html:17379 — DETAIL-FENSTER
-- `verwandtschaftLabel` — stammbaum.html:17365 — DETAIL-FENSTER
-- `verwandtschaftsSet` — stammbaum.html:12771 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `verwandtschaftZeigen` — stammbaum.html:17385 — DETAIL-FENSTER
-- `vis` — stammbaum.html:24714 — STAMMBAUM (d3.js)
-- `vknEntscheiden` — stammbaum.html:6106 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `vknKarteHtml` — stammbaum.html:6085 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `vollGraphRender` — stammbaum.html:10653 — INITIALISIERUNG
-- `vollstaendigkeit` — stammbaum.html:17123 — DETAIL-FENSTER
-- `vollstBoxHtml` — stammbaum.html:17139 — DETAIL-FENSTER
-- `vollstOeffnePerson` — stammbaum.html:17191 — DETAIL-FENSTER
-- `vollstRingHtml` — stammbaum.html:17133 — DETAIL-FENSTER
-- `vornKey` — stammbaum.html:17413 — DETAIL-FENSTER
-- `waehleAusBaum` — stammbaum.html:10609 — INITIALISIERUNG
-- `waehleStammbaum` — stammbaum.html:9047 — SPRACH-SYSTEM
-- `waehleStartStammbaum` — stammbaum.html:8874 — SPRACH-SYSTEM
-- `waehleWillkommenSprache` — stammbaum.html:9994 — INITIALISIERUNG
-- `wechselAnsicht` — stammbaum.html:23316 — ANSICHT-WECHSEL
-- `wechselSprache` — stammbaum.html:8495 — SPRACH-SYSTEM
-- `weg` — stammbaum.html:6416 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `wegKachel` — stammbaum.html:19145 — PERSON BEARBEITEN (nur Admins)
-- `wendeGespeicherteAnsichtAn` — stammbaum.html:13141 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `wertSpeichern` — stammbaum.html:13336 — KARTEN-ANSICHT
-- `wohnortAusPerson` — stammbaum.html:14990 — KARTEN-ANSICHT
-- `wohnorteDetailHtml` — stammbaum.html:14998 — KARTEN-ANSICHT
-- `wohnortEntfernen` — stammbaum.html:14969 — KARTEN-ANSICHT
-- `wohnortHinzu` — stammbaum.html:14964 — KARTEN-ANSICHT
-- `wohnortRender` — stammbaum.html:14958 — KARTEN-ANSICHT
-- `wohnortRowHtml` — stammbaum.html:14925 — KARTEN-ANSICHT
-- `wohnortRowMount` — stammbaum.html:14945 — KARTEN-ANSICHT
-- `wohnortSammeln` — stammbaum.html:14972 — KARTEN-ANSICHT
-- `x` — stammbaum.html:3317 — SUPABASE AUTH
-- `y` — stammbaum.html:3318 — SUPABASE AUTH
-- `zeichneBaum` — stammbaum.html:23571 — STAMMBAUM (d3.js)
-- `zeichneBaumNeu` — stammbaum.html:8653 — SPRACH-SYSTEM
-- `zeichneBoard` — stammbaum.html:10952 — INITIALISIERUNG
-- `zeichneGraph` — stammbaum.html:24486 — STAMMBAUM (d3.js)
-- `zeichneGraph2` — stammbaum.html:24656 — STAMMBAUM (d3.js)
-- `zeichneGraphKanten` — stammbaum.html:24447 — STAMMBAUM (d3.js)
-- `zeichneKnotenBox` — stammbaum.html:23806 — STAMMBAUM (d3.js)
-- `zeichneVerbindungen` — stammbaum.html:23714 — STAMMBAUM (d3.js)
-- `zeigAuswahlDialog` — stammbaum.html:10595 — INITIALISIERUNG
-- `zeigeAlben` — stammbaum.html:13689 — KARTEN-ANSICHT
-- `zeigeAlbenLeise` — stammbaum.html:13698 — KARTEN-ANSICHT
-- `zeigeBaumNeu` — stammbaum.html:6310 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeBereinigungModal` — stammbaum.html:6595 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeBestaetigung` — stammbaum.html:13502 — KARTEN-ANSICHT
-- `zeigeBoardAnsicht` — stammbaum.html:10877 — INITIALISIERUNG
-- `zeigeDetails` — stammbaum.html:17397 — DETAIL-FENSTER
-- `zeigeDreiWahl` — stammbaum.html:13530 — KARTEN-ANSICHT
-- `zeigeDublettenDialog` — stammbaum.html:6128 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeEhe` — stammbaum.html:11022 — INITIALISIERUNG
-- `zeigeElt` — stammbaum.html:11023 — INITIALISIERUNG
-- `zeigeErweitertAnsicht` — stammbaum.html:12864 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `zeigeEventBearbeiten` — stammbaum.html:15132 — KARTEN-ANSICHT
-- `zeigeEventDetail` — stammbaum.html:15976 — KARTEN-ANSICHT
-- `zeigeEventEditor` — stammbaum.html:16866 — KARTEN-ANSICHT
-- `zeigeEventNeu` — stammbaum.html:15108 — KARTEN-ANSICHT
-- `zeigeEventUploader` — stammbaum.html:17019 — KARTEN-ANSICHT
-- `zeigeFamilieEinstellungen` — stammbaum.html:6529 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeFeed` — stammbaum.html:19063 — PERSON BEARBEITEN (nur Admins)
-- `zeigeFeWahl` — stammbaum.html:6504 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeGleichePersonModal` — stammbaum.html:17763 — DETAIL-FENSTER
-- `zeigeHinweis` — stammbaum.html:7965 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeKarten` — stammbaum.html:13256 — KARTEN-ANSICHT
-- `zeigeKind` — stammbaum.html:24167 — STAMMBAUM (d3.js)
-- `zeigeKonfliktDialog` — stammbaum.html:21144 — PERSON BEARBEITEN (nur Admins)
-- `zeigeLoginModal` — stammbaum.html:7798 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeMaFehler` — stammbaum.html:4175 — MITGLIEDER-VERWALTUNG (Admins)
-- `zeigeMape` — stammbaum.html:23413 — ANSICHT-WECHSEL
-- `zeigeMediaSlideshow` — stammbaum.html:16970 — KARTEN-ANSICHT
-- `zeigeMeinePersonHinweis` — stammbaum.html:4873 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `zeigeMergeModal` — stammbaum.html:7442 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeMitglieder` — stammbaum.html:3736 — MITGLIEDER-VERWALTUNG (Admins)
-- `zeigeMitgliedHinzufuegen` — stammbaum.html:4019 — MITGLIEDER-VERWALTUNG (Admins)
-- `zeigeMvFehler` — stammbaum.html:3731 — MITGLIEDER-VERWALTUNG (Admins)
-- `zeigeMvInfo` — stammbaum.html:3854 — MITGLIEDER-VERWALTUNG (Admins)
-- `zeigeObavModal` — stammbaum.html:5982 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
-- `zeigePersonBearbeiten` — stammbaum.html:17987 — PERSON BEARBEITEN (nur Admins)
-- `zeigePersonHinzufuegen` — stammbaum.html:21504 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `zeigeRechtstext` — stammbaum.html:8225 — ÜBERSETZUNGEN — hier kannst du Texte ändern oder hinzufügen
-- `zeigeRegistrierModal` — stammbaum.html:7814 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
-- `zeigeSessionWarnung` — stammbaum.html:9926 — INITIALISIERUNG
-- `zeigeShort` — stammbaum.html:16834 — KARTEN-ANSICHT
-- `zeigeShorts` — stammbaum.html:13558 — KARTEN-ANSICHT
-- `zeigeStandardAnsicht` — stammbaum.html:12842 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `zeigeStandardOderVoll` — stammbaum.html:12922 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `zeigeStandardWahl` — stammbaum.html:8896 — SPRACH-SYSTEM
-- `zeigeVerbinden` — stammbaum.html:21293 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `zeigeVerbundAnsicht` — stammbaum.html:22161 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `zeigeWillkommenSprache` — stammbaum.html:9984 — INITIALISIERUNG
-- `zeigeZweigAbPerson` — stammbaum.html:12883 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
-- `zeigVollenBaum` — stammbaum.html:10677 — INITIALISIERUNG
-- `zeile` — stammbaum.html:15979 — KARTEN-ANSICHT
-- `zentriereAufPerson` — stammbaum.html:10527 — INITIALISIERUNG
-- `zentriereBaumAnsicht` — stammbaum.html:23557 — STAMMBAUM (d3.js)
-- `zielBaumFuer` — stammbaum.html:24002 — STAMMBAUM (d3.js)
-- `zielBaumFuer` — stammbaum.html:24609 — STAMMBAUM (d3.js)
-- `zsBaueMarker` — stammbaum.html:14326 — KARTEN-ANSICHT
-- `zsFuelleFilter` — stammbaum.html:14384 — KARTEN-ANSICHT
-- `zsIso` — stammbaum.html:13636 — KARTEN-ANSICHT
-- `zsJahrAusIso` — stammbaum.html:13637 — KARTEN-ANSICHT
-- `zsMarkerHtml` — stammbaum.html:14465 — KARTEN-ANSICHT
-- `zsName` — stammbaum.html:13639 — KARTEN-ANSICHT
-- `zsOeffneEvent` — stammbaum.html:14418 — KARTEN-ANSICHT
-- `zsOeffnePerson` — stammbaum.html:14419 — KARTEN-ANSICHT
-- `zsPersonenListe` — stammbaum.html:14372 — KARTEN-ANSICHT
-- `zsRender` — stammbaum.html:14422 — KARTEN-ANSICHT
-- `zweiFuelleBaeume` — stammbaum.html:22181 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `zweigNachnameNorm` — stammbaum.html:22507 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `zweiNachbarn` — stammbaum.html:22191 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `zweiVerbindungFinden` — stammbaum.html:22200 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
-- `zweiZusammenAnzeigen` — stammbaum.html:22112 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `trefferBaumLabel` — stammbaum.html:22597 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `twinExtIds` — stammbaum.html:24006 — STAMMBAUM (d3.js)
+- `twinExts` — stammbaum.html:23128 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `twinObjs` — stammbaum.html:23126 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `twinUuids` — stammbaum.html:23127 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `uebersetzeOrt` — stammbaum.html:8455 — SPRACH-SYSTEM
+- `ukEntfernen` — stammbaum.html:3975 — MITGLIEDER-VERWALTUNG (Admins)
+- `ukRenderAktuell` — stammbaum.html:3893 — MITGLIEDER-VERWALTUNG (Admins)
+- `ukSpracheUpdate` — stammbaum.html:3985 — MITGLIEDER-VERWALTUNG (Admins)
+- `ukSuche` — stammbaum.html:3902 — MITGLIEDER-VERWALTUNG (Admins)
+- `ukSucheDebounce` — stammbaum.html:3901 — MITGLIEDER-VERWALTUNG (Admins)
+- `ukWaehle` — stammbaum.html:3941 — MITGLIEDER-VERWALTUNG (Admins)
+- `ukZuweisen` — stammbaum.html:3954 — MITGLIEDER-VERWALTUNG (Admins)
+- `umbrich` — stammbaum.html:16716 — KARTEN-ANSICHT
+- `umbrucheNamen` — stammbaum.html:23951 — STAMMBAUM (d3.js)
+- `unterstuetzteSprache` — stammbaum.html:8259 — SPRACH-SYSTEM
+- `updateSlideshow` — stammbaum.html:17009 — KARTEN-ANSICHT
+- `uploadEventMedia` — stammbaum.html:13372 — KARTEN-ANSICHT
+- `uuidOf` — stammbaum.html:11057 — INITIALISIERUNG
+- `v` — stammbaum.html:6332 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `v` — stammbaum.html:7070 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `v` — stammbaum.html:7112 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `v` — stammbaum.html:7909 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `v` — stammbaum.html:11617 — INITIALISIERUNG
+- `v` — stammbaum.html:15885 — KARTEN-ANSICHT
+- `v` — stammbaum.html:21035 — PERSON BEARBEITEN (nur Admins)
+- `v` — stammbaum.html:21824 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `val` — stammbaum.html:8005 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `val` — stammbaum.html:8091 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `vald` — stammbaum.html:8006 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `vald` — stammbaum.html:8092 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `vbErgebnisHtml` — stammbaum.html:21466 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbFehlerText` — stammbaum.html:21479 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbIdentGruppe` — stammbaum.html:21427 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbLinkBtn` — stammbaum.html:21459 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbNeuAnlegen` — stammbaum.html:21414 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbSchonVerbunden` — stammbaum.html:21435 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbSuche` — stammbaum.html:21371 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbSucheDebounce` — stammbaum.html:21367 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vbVerknuepfe` — stammbaum.html:21492 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `vd` — stammbaum.html:11618 — INITIALISIERUNG
+- `vd` — stammbaum.html:21036 — PERSON BEARBEITEN (nur Admins)
+- `vd` — stammbaum.html:21825 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `verarbeiteAvatar` — stammbaum.html:5248 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `verarbeiteEventDeepLink` — stammbaum.html:4311 — MITGLIEDER-VERWALTUNG (Admins)
+- `verbundFuelleBaeume` — stammbaum.html:22210 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `verbundPfadFinden` — stammbaum.html:22160 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `verschiebbareZielBaeume` — stammbaum.html:17692 — DETAIL-FENSTER
+- `verschiebeLandBosnien` — stammbaum.html:7321 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `versteckeSessionWarnung` — stammbaum.html:9931 — INITIALISIERUNG
+- `verwandtschaftBestimmen` — stammbaum.html:17351 — DETAIL-FENSTER
+- `verwandtschaftBtnHtml` — stammbaum.html:17408 — DETAIL-FENSTER
+- `verwandtschaftLabel` — stammbaum.html:17394 — DETAIL-FENSTER
+- `verwandtschaftsSet` — stammbaum.html:12800 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `verwandtschaftZeigen` — stammbaum.html:17414 — DETAIL-FENSTER
+- `vis` — stammbaum.html:24776 — STAMMBAUM (d3.js)
+- `vknEntscheiden` — stammbaum.html:6108 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `vknKarteHtml` — stammbaum.html:6087 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `vollGraphRender` — stammbaum.html:10655 — INITIALISIERUNG
+- `vollstaendigkeit` — stammbaum.html:17152 — DETAIL-FENSTER
+- `vollstBoxHtml` — stammbaum.html:17168 — DETAIL-FENSTER
+- `vollstOeffnePerson` — stammbaum.html:17220 — DETAIL-FENSTER
+- `vollstRingHtml` — stammbaum.html:17162 — DETAIL-FENSTER
+- `vornKey` — stammbaum.html:17442 — DETAIL-FENSTER
+- `waehleAusBaum` — stammbaum.html:10611 — INITIALISIERUNG
+- `waehleStammbaum` — stammbaum.html:9049 — SPRACH-SYSTEM
+- `waehleStartStammbaum` — stammbaum.html:8876 — SPRACH-SYSTEM
+- `waehleWillkommenSprache` — stammbaum.html:9996 — INITIALISIERUNG
+- `wechselAnsicht` — stammbaum.html:23355 — ANSICHT-WECHSEL
+- `wechselSprache` — stammbaum.html:8497 — SPRACH-SYSTEM
+- `weg` — stammbaum.html:6418 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `wegKachel` — stammbaum.html:19175 — PERSON BEARBEITEN (nur Admins)
+- `wendeGespeicherteAnsichtAn` — stammbaum.html:13170 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `wertSpeichern` — stammbaum.html:13365 — KARTEN-ANSICHT
+- `wohnortAusPerson` — stammbaum.html:15019 — KARTEN-ANSICHT
+- `wohnorteDetailHtml` — stammbaum.html:15027 — KARTEN-ANSICHT
+- `wohnortEntfernen` — stammbaum.html:14998 — KARTEN-ANSICHT
+- `wohnortHinzu` — stammbaum.html:14993 — KARTEN-ANSICHT
+- `wohnortRender` — stammbaum.html:14987 — KARTEN-ANSICHT
+- `wohnortRowHtml` — stammbaum.html:14954 — KARTEN-ANSICHT
+- `wohnortRowMount` — stammbaum.html:14974 — KARTEN-ANSICHT
+- `wohnortSammeln` — stammbaum.html:15001 — KARTEN-ANSICHT
+- `x` — stammbaum.html:3319 — SUPABASE AUTH
+- `y` — stammbaum.html:3320 — SUPABASE AUTH
+- `zeichneBaum` — stammbaum.html:23624 — STAMMBAUM (d3.js)
+- `zeichneBaumNeu` — stammbaum.html:8655 — SPRACH-SYSTEM
+- `zeichneBoard` — stammbaum.html:10967 — INITIALISIERUNG
+- `zeichneGraph` — stammbaum.html:24539 — STAMMBAUM (d3.js)
+- `zeichneGraph2` — stammbaum.html:24713 — STAMMBAUM (d3.js)
+- `zeichneGraphKanten` — stammbaum.html:24500 — STAMMBAUM (d3.js)
+- `zeichneKnotenBox` — stammbaum.html:23859 — STAMMBAUM (d3.js)
+- `zeichneVerbindungen` — stammbaum.html:23767 — STAMMBAUM (d3.js)
+- `zeigAuswahlDialog` — stammbaum.html:10597 — INITIALISIERUNG
+- `zeigeAlben` — stammbaum.html:13718 — KARTEN-ANSICHT
+- `zeigeAlbenLeise` — stammbaum.html:13727 — KARTEN-ANSICHT
+- `zeigeBaumNeu` — stammbaum.html:6312 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeBereinigungModal` — stammbaum.html:6597 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeBestaetigung` — stammbaum.html:13531 — KARTEN-ANSICHT
+- `zeigeBoardAnsicht` — stammbaum.html:10886 — INITIALISIERUNG
+- `zeigeDetails` — stammbaum.html:17426 — DETAIL-FENSTER
+- `zeigeDreiWahl` — stammbaum.html:13559 — KARTEN-ANSICHT
+- `zeigeDublettenDialog` — stammbaum.html:6130 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeEhe` — stammbaum.html:11037 — INITIALISIERUNG
+- `zeigeElt` — stammbaum.html:11038 — INITIALISIERUNG
+- `zeigeErweitertAnsicht` — stammbaum.html:12893 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `zeigeEventBearbeiten` — stammbaum.html:15161 — KARTEN-ANSICHT
+- `zeigeEventDetail` — stammbaum.html:16005 — KARTEN-ANSICHT
+- `zeigeEventEditor` — stammbaum.html:16895 — KARTEN-ANSICHT
+- `zeigeEventNeu` — stammbaum.html:15137 — KARTEN-ANSICHT
+- `zeigeEventUploader` — stammbaum.html:17048 — KARTEN-ANSICHT
+- `zeigeFamilieEinstellungen` — stammbaum.html:6531 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeFeed` — stammbaum.html:19093 — PERSON BEARBEITEN (nur Admins)
+- `zeigeFeWahl` — stammbaum.html:6506 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeGleichePersonModal` — stammbaum.html:17792 — DETAIL-FENSTER
+- `zeigeHinweis` — stammbaum.html:7967 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeKarten` — stammbaum.html:13285 — KARTEN-ANSICHT
+- `zeigeKind` — stammbaum.html:24220 — STAMMBAUM (d3.js)
+- `zeigeKonfliktDialog` — stammbaum.html:21182 — PERSON BEARBEITEN (nur Admins)
+- `zeigeLoginModal` — stammbaum.html:7800 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeMaFehler` — stammbaum.html:4177 — MITGLIEDER-VERWALTUNG (Admins)
+- `zeigeMape` — stammbaum.html:23452 — ANSICHT-WECHSEL
+- `zeigeMediaSlideshow` — stammbaum.html:16999 — KARTEN-ANSICHT
+- `zeigeMeinePersonHinweis` — stammbaum.html:4875 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `zeigeMergeModal` — stammbaum.html:7444 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeMitglieder` — stammbaum.html:3738 — MITGLIEDER-VERWALTUNG (Admins)
+- `zeigeMitgliedHinzufuegen` — stammbaum.html:4021 — MITGLIEDER-VERWALTUNG (Admins)
+- `zeigeMvFehler` — stammbaum.html:3733 — MITGLIEDER-VERWALTUNG (Admins)
+- `zeigeMvInfo` — stammbaum.html:3856 — MITGLIEDER-VERWALTUNG (Admins)
+- `zeigeObavModal` — stammbaum.html:5984 — PROFILEINSTELLUNGEN (Phase 1): Konto-Stammdaten, Avatar, Passwort
+- `zeigePersonBearbeiten` — stammbaum.html:18016 — PERSON BEARBEITEN (nur Admins)
+- `zeigePersonHinzufuegen` — stammbaum.html:21542 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `zeigeRechtstext` — stammbaum.html:8227 — ÜBERSETZUNGEN — hier kannst du Texte ändern oder hinzufügen
+- `zeigeRegistrierModal` — stammbaum.html:7816 — DUBLETTEN-FRÜHERKENNUNG: Dialog beim Anlegen/Bearbeiten
+- `zeigeSessionWarnung` — stammbaum.html:9928 — INITIALISIERUNG
+- `zeigeShort` — stammbaum.html:16863 — KARTEN-ANSICHT
+- `zeigeShorts` — stammbaum.html:13587 — KARTEN-ANSICHT
+- `zeigeStandardAnsicht` — stammbaum.html:12871 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `zeigeStandardOderVoll` — stammbaum.html:12951 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `zeigeStandardWahl` — stammbaum.html:8898 — SPRACH-SYSTEM
+- `zeigeVerbinden` — stammbaum.html:21331 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `zeigeVerbundAnsicht` — stammbaum.html:22200 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `zeigeWillkommenSprache` — stammbaum.html:9986 — INITIALISIERUNG
+- `zeigeZweigAbPerson` — stammbaum.html:12912 — BOARD Phase 4 (Batch 1) — „Als Baum ordnen", Minimap, Suche/„zu Karte springen"
+- `zeigVollenBaum` — stammbaum.html:10679 — INITIALISIERUNG
+- `zeile` — stammbaum.html:16008 — KARTEN-ANSICHT
+- `zentriereAufPerson` — stammbaum.html:10529 — INITIALISIERUNG
+- `zentriereBaumAnsicht` — stammbaum.html:23610 — STAMMBAUM (d3.js)
+- `zielBaumFuer` — stammbaum.html:24055 — STAMMBAUM (d3.js)
+- `zielBaumFuer` — stammbaum.html:24666 — STAMMBAUM (d3.js)
+- `zsBaueMarker` — stammbaum.html:14355 — KARTEN-ANSICHT
+- `zsFuelleFilter` — stammbaum.html:14413 — KARTEN-ANSICHT
+- `zsIso` — stammbaum.html:13665 — KARTEN-ANSICHT
+- `zsJahrAusIso` — stammbaum.html:13666 — KARTEN-ANSICHT
+- `zsMarkerHtml` — stammbaum.html:14494 — KARTEN-ANSICHT
+- `zsName` — stammbaum.html:13668 — KARTEN-ANSICHT
+- `zsOeffneEvent` — stammbaum.html:14447 — KARTEN-ANSICHT
+- `zsOeffnePerson` — stammbaum.html:14448 — KARTEN-ANSICHT
+- `zsPersonenListe` — stammbaum.html:14401 — KARTEN-ANSICHT
+- `zsRender` — stammbaum.html:14451 — KARTEN-ANSICHT
+- `zweiFuelleBaeume` — stammbaum.html:22220 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `zweigNachnameNorm` — stammbaum.html:22546 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `zweiNachbarn` — stammbaum.html:22230 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `zweiVerbindungFinden` — stammbaum.html:22239 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
+- `zweiZusammenAnzeigen` — stammbaum.html:22151 — ＋ : NEUE PERSON  ODER  BESTEHENDE PERSON VERKNÜPFEN (Blutlinie)
 
 ---
 
