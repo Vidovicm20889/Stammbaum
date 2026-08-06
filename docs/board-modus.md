@@ -725,13 +725,79 @@ läuft vom Fokus aus und findet unverbundene Inseln nie. Ablage im Raster **oben
   übernimmt daraus `loseDefault` (nur ohne gespeicherte `board_layout`-Position). Die dortige
   Ergänzungsschleife findet dadurch im Regelfall nichts mehr und bleibt als Sicherheitsnetz stehen.
 
-**Bewusste Folge:** Eine lose Karte mit echter Beziehung (deren Kante die Autosortierung nicht zeichnet)
-erscheint in **beiden** Ansichten als Karte **ohne Linie**. Das ist gewollt — die Alternative wäre genau
-die gemeldete lange Querlinie. Beide Ansichten sind damit konsistent.
+**Bewusste Folge (AUFGEWEICHT durch die gezielte Ausnahme unten, FAMROOTS-52):** Eine lose Karte mit
+echter Beziehung (deren Kante die Autosortierung nicht zeichnet) erscheint grundsätzlich weiter **ohne
+Linie** — die Alternative wäre genau die gemeldete lange Querlinie. **Ausnahme:** Bilden ALLE Beteiligten
+einer echten Union (Eltern **und** Kind) gemeinsam lose Karten, wird die Eltern→Kind-Linie seit
+FAMROOTS-52 doch gezeichnet (Details siehe Abschnitt „SCRUM-6-Ausnahme FAMROOTS-52" unten). Ist nur ein
+Teil der Union lose (z. B. ein Elternteil regulär im Hauptbaum), bleibt es bei „ohne Linie" — Beide
+Ansichten sind damit weiter konsistent zueinander (Auto == Tabla, da beide dieselbe `sammleKanten`-Menge
+konsumieren).
 
 **Verifikation:** Kartenzahl Auto == Tabla in **allen 47** Bäumen (19 ergänzte lose Karten, u. a.
 Tadić +7, Jovanović +4, Vidović +3, Knežević +3); zusätzlich geprüft: **keine** Linie hängt an einer
-losen Karte.
+losen Karte (Stand vor FAMROOTS-52 — seither gilt das nur noch für Unions mit mindestens einem
+NICHT-losen Beteiligten, s. u.).
+
+### SCRUM-6-Ausnahme FAMROOTS-52: Eltern-Kind-Linie zwischen ausschließlich losen Karten
+**Auslöser:** Familie Liebl (Baum „Scicluna") — Anton Liebl + Agathe Liebl mit den Kindern Georg Liebl,
+Elisabeth Lechner und Anna Liebl. Alle fünf Karten waren als „lose Karten" im Ablage-Raster oben links
+klassifiziert (vom Fokus-Traversal `descNode`/`ancNode`/Geschwister-Block nicht erreicht), obwohl die
+Eltern-Kind-Beziehung in `beziehungen`/`families` korrekt hinterlegt war — genau der unter „Bewusste
+Folge" oben dokumentierte, bis dahin gewollte Fall.
+
+**Entscheidung (Governance-Rückfrage beantwortet, Freigabe erteilt):** Eine reale Eltern-Kind-Kante
+zwischen zwei sichtbaren Karten wird auch dann gezeichnet, wenn **Eltern UND Kind ausschließlich als
+lose Karten** vorliegen — mit einer harten Sicherheitsbedingung, die die ursprüngliche 77-Phantom-
+Querlinien-Regression strukturell ausschließt.
+
+**Umsetzung (`zeichneGraph2`, direkt nach der bestehenden Lose-Karten-Ergänzungsschleife):**
+1. Die Lose-Karten-Schleife merkt sich zusätzlich `loseCanons` (alle in diesem Durchlauf ergänzten
+   canon-IDs).
+2. Nur wenn `loseCanons.length >= 2`: über `model.unions` (dieselbe Quelle wie der Haupt-Baum, keine
+   neue Datenabfrage) iterieren. Für jede Union:
+   - **Sicherheitsbedingung:** Sind ALLE aktuell sichtbaren Elternteile dieser Union (`posByCanon.has(p)`)
+     in `loseCanons` enthalten? Ist auch nur EIN sichtbarer Elternteil NICHT lose (regulär im Hauptbaum
+     positioniert), wird die gesamte Union übersprungen — genau das war die Ursache der ursprünglichen
+     Phantom-Querlinie (der Paar-Mittelpunkt `px` würde zwischen einer Hauptbaum-Position und dem
+     Ablage-Raster pendeln).
+   - Je Kind der Union zusätzlich einzeln geprüft: nur wenn auch das Kind selbst lose ist, wird
+     verbunden. Ein nicht-loses Geschwister in derselben Union bleibt unverbunden (kein Freifahrtschein
+     für die ganze Union).
+   - **Höchstens eine Linie pro Kind (Review-Nachbesserung FAMROOTS-52):** Ein `Set`
+     `verbundeneLoseKinder` merkt sich jedes Kind, sobald es eine Linie bekommen hat; jede weitere
+     Union für dasselbe Kind wird danach übersprungen. Hintergrund: Anders als der Haupt-Traversal
+     (`descNode`, der pro Kind durch Konstruktion GENAU EINER Union folgt, s. Kommentar bei
+     `stammbaum.html:24842-24846`) iteriert dieser Block über ALLE `model.unions` — ein Kind kann
+     durch nicht per `_ident` zusammengeführte Identitäts-Spiegelkarten in mehreren Unions mit
+     unterschiedlichen (Duplikat-)Eltern-Canons stehen. Ohne diese Bremse hätte ein lose-klassifiziertes
+     Kind mit mehreren gleichzeitig „vollständig losen" Duplikat-Unions für JEDE davon eine eigene
+     Linie bekommen — ein im Blast-Radius auf den Lose-Bereich begrenztes, aber strukturell identisches
+     Wiederauftreten des ursprünglichen 77-Phantom-Linien-Musters (verletzt AC4).
+   - Die neue Linie verläuft ausschließlich **innerhalb des kompakten Ablage-Rasters** (`randX`/`randY`,
+     max. wenige hundert Pixel) — sie kann strukturell keine lange Querlinie durch den Baum werden, weil
+     beide Enden im selben Eck-Bereich liegen.
+   - `kElt(elternLos, kind)` wird wie beim Haupt-Baum aufgerufen → die Kante landet in
+     `opts.sammleKanten` und wird dadurch **automatisch auch im Board (Tabla)** über den bestehenden
+     `boardZeichneLinien`/`zeigeElt`-Abgleich gezeichnet — **keine Änderung an `boardZeichneLinien`
+     nötig**, die bestehende Subset-Schlüssel-Logik (FAMROOTS-40/42) greift unverändert.
+3. Richtung/Mittelpunkt der neuen Linie werden anhand der TATSÄCHLICHEN Bildschirm-Y-Differenz von
+   Eltern- und Kind-Position berechnet (`Math.abs(HH)` statt vorzeichenbehaftetem `HH`) — die Lose-
+   Karten-Zeilen sind NICHT generationsbasiert sortiert (anders als der Haupt-Baum), ein Elternteil kann
+   im Raster unter- oder oberhalb seines Kindes liegen.
+
+**Bewusst NICHT gemacht:** keine Ehe-/Partnerlinie zwischen losen Elternteilen (Ticket-Scope war explizit
+nur Eltern→Kind); kein Umgruppieren der Lose-Karten-Positionen nach Familie (Ticket verlangt nur
+„Linie sichtbar", keine Neuanordnung — vermeidet zusätzliches Sprung-/Regressionsrisiko).
+
+**Verifikation:** Logik-Test (`node`, synthetische Fälle, kein Zugriff auf Personendaten nötig): (1)
+Elternpaar + 3 Kinder alle lose → 3 Kanten; (2) ein Elternteil nicht lose → 0 Kanten (Bremse greift);
+(3) ein Kind nicht lose, Geschwister lose → nur das lose Geschwister bekommt eine Kante; (4)
+Ein-Eltern-Union, beide lose → 1 Kante; (5) < 2 lose Karten im Baum → Block bleibt wirkungslos
+(Regressionsgarantie für alle Bäume ohne diese Konstellation, unverändertes Verhalten); (6)
+**Review-Nachbesserung:** ein Kind steht gleichzeitig in ZWEI vollständig losen Duplikat-Unions
+(Identitäts-Spiegelkarten-Fall) → trotz zweier passender Unions wird nur **eine** Linie zum Kind
+gezeichnet (`verbundeneLoseKinder`-Bremse greift bei der zweiten Union).
 
 ## Autosortierung zeigt alle EIGENEN Karten (v14.84)
 `zeichneGraph2(..., blutScope)` nutzte ausschließlich `graphBlutScope.visible` → eingeheiratete

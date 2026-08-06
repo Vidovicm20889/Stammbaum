@@ -25155,6 +25155,7 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
     const randX = (_aX.length ? Math.min(..._aX) : 0) - 420;
     const randY = (_aY.length ? Math.min(..._aY) : 0);
     let losIdx = 0;
+    const loseCanons = [];   // FAMROOTS-52: Menge merken fuer die Eltern-Kind-Ausnahme unten
     Object.values(aktuelleDaten.persons || {}).forEach(p => {
       if (!p || p._tree !== opts.blutScope || p.platzhalter) return;
       const c = model.canonOf(p.id);
@@ -25163,7 +25164,53 @@ function zeichneGraph2(rootPersonId, tiefeUnten = 4, tiefeOben = 4, opts = {}) {
       // los=true -> aus dem Auto-Fit heraus (sonst zieht das 420px-Raster die Bounding-Box auf und
       // der ganze Baum wird kleingezoomt), die Pan-Grenze umfasst sie aber weiterhin (s. u.).
       drawCard(c, randX - col * 190, randY + row * 120, true);
+      loseCanons.push(c);
     });
+
+    // FAMROOTS-52: Eltern-Kind-Linie NACHTRAEGLICH zwischen zwei losen Karten, wenn eine ECHTE
+    // Union (model.unions, dieselbe Quelle wie der Haupt-Baum) ausschliesslich lose Karten
+    // verbindet. Sicherheitsbedingung (verhindert die SCRUM-6-Phantom-Querlinie): NUR zeichnen,
+    // wenn JEDER sichtbare Elternteil UND das Kind lose sind — sonst wuerde px zwischen einer
+    // regulaer positionierten Hauptbaum-Karte und dem Ablage-Raster pendeln. Da alle losen Karten
+    // im selben kompakten Eck-Raster liegen (randX/randY, s. o.), bleibt die neue Linie lokal kurz
+    // statt quer durch den Baum zu laufen. Betrifft NUR den blutScope-Zweig ("celo stablo"), analog
+    // der Karten-Ergaenzung oben. Siehe docs/board-modus.md, Abschnitt „SCRUM-6-Ausnahme FAMROOTS-52".
+    // Review-Nachbesserung FAMROOTS-52: Anders als der Haupt-Traversal (`descNode`, s. Kommentar
+    // oben bei kElt) hat dieser Block KEINE eingebaute "genau eine Union pro Kind"-Garantie — ein
+    // Kind kann durch nicht per `_ident` zusammengefuehrte Identitaets-Spiegelkarten in MEHREREN
+    // Unions mit unterschiedlichen (Duplikat-)Eltern-Canons stehen. Sind bei einem losen Kind
+    // gleichzeitig mehrere solcher Unions "vollstaendig lose", wuerde ohne Bremse fuer JEDE eine
+    // eigene Linie zum selben Kind gezeichnet (Wiederholung des 77-Phantom-Linien-Musters im
+    // Lose-Bereich). Deshalb `verbundeneLoseKinder`: sobald ein Kind eine Linie bekommen hat,
+    // wird jede weitere Union fuer dasselbe Kind uebersprungen — analog der Ein-Union-pro-Kind-
+    // Disziplin des Haupt-Traversals.
+    if (loseCanons.length >= 2) {
+      const loseSet = new Set(loseCanons);
+      const verbundeneLoseKinder = new Set();
+      model.unions.forEach(u => {
+        const elternSichtbar = [...u.parents].filter(p => model.nodes.has(p) && posByCanon.has(p));
+        if (!elternSichtbar.length) return;
+        if (elternSichtbar.some(p => !loseSet.has(p))) return;   // ein Elternteil sitzt im Hauptbaum -> nicht anfassen
+        const elternLos = elternSichtbar;
+        const pPos = elternLos.map(p => posByCanon.get(p));
+        const px = pPos.reduce((s, q) => s + q.x, 0) / pPos.length;
+        const py = pPos.reduce((s, q) => s + q.y, 0) / pPos.length;
+        [...u.children].forEach(kind => {
+          if (!loseSet.has(kind)) return;   // Kind ausserhalb der losen Gruppe -> Phantom-Risiko, nicht anfassen
+          if (verbundeneLoseKinder.has(kind)) return;   // Kind hat bereits eine SCRUM-6-Ausnahme-Linie -> keine zweite
+          const kPos = posByCanon.get(kind);
+          if (!kPos) return;
+          const dirP = kPos.y >= py ? 1 : -1, dirK = -dirP;
+          const startY = py + Math.abs(HH) * dirP, endY = kPos.y + Math.abs(HH) * dirK;
+          const midY = (startY + endY) / 2;
+          linie(px, startY, px, midY, 'verbindung');
+          linie(Math.min(px, kPos.x), midY, Math.max(px, kPos.x), midY, 'verbindung');
+          linie(kPos.x, midY, kPos.x, endY, 'verbindung');
+          kElt(elternLos, kind);
+          verbundeneLoseKinder.add(kind);
+        });
+      });
+    }
   }
 
   aktualisiereKopf(rootPersonId);
